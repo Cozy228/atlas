@@ -82,22 +82,48 @@ Rules that AI must follow when implementing the Atlas design. Check every code c
 
 32. Dependencies must be pinned to exact versions in lock files. Do not use floating version ranges in production dependency manifests.
 
+## Implementation Stack
+
+33. V1 application code uses TypeScript for `portal`, `context-layer`, and shared schema packages. Do not implement the V1 backend in Python, Go, Java, or another runtime without updating `docs/architecture/current_design.md` and this constraint file first.
+
+34. Use `pnpm` as the only JavaScript package manager. Commit `pnpm-lock.yaml`. Do not commit `package-lock.json`, `npm-shrinkwrap.json`, or `yarn.lock`.
+
+35. Use pnpm workspaces for multi-package local development. Keep `portal`, `context-layer`, and shared schema packages as separate workspace packages with explicit dependencies.
+
+36. Define API contracts schema-first before implementing route handlers or Portal clients. The Portal API client must depend on the shared contract; do not copy response types into Portal code.
+
+37. Portal server-side code may call the Atlas Context API and the LLM adapter. Portal browser code must not call the LLM provider directly.
+
+38. LLM credentials and source-system credentials must never enter the browser bundle, seed data, fixtures, or committed files. Load them only from approved deployment environment, Secrets Manager, or Parameter Store.
+
+39. DynamoDB access belongs only in `context-layer` data-access modules. Portal code must not query DynamoDB directly.
+
+40. Route handlers must not contain raw DynamoDB query logic. A route handler calls a focused service or repository module and returns API responses.
+
+41. Use Vitest for TypeScript unit and API tests unless this constraint is updated. Use Playwright for Portal end-to-end or interaction tests when browser behavior matters.
+
+42. Do not rely on snapshot tests alone for context bundles, citations, access filtering, warnings, or AI answer validation. These behaviors require explicit assertions.
+
+43. Portal UI must not hardcode pilot source truth. Capability, landing zone, source badge, authority, freshness, and warning data must come from registry/API data or explicit seed data.
+
+44. Bedrock or another approved model provider may be used for model invocation, but V1 must not use Bedrock Knowledge Bases, Kendra, OpenSearch, or another managed retrieval layer that bypasses Atlas Context Layer source selection and locator resolution.
+
 ## Naming and Convention
 
-33. All code, comments, commit messages, variable names, and API field names must be in English.
+45. All code, comments, commit messages, variable names, and API field names must be in English.
 
-34. API field names use `snake_case`. TypeScript code uses `camelCase` for variables and functions, `PascalCase` for types and classes. Do not mix conventions.
+46. API field names use `snake_case`. TypeScript code uses `camelCase` for variables and functions, `PascalCase` for types and classes. Do not mix conventions.
 
-35. Git commits follow Conventional Commits. Every commit must have a type prefix (`feat:`, `fix:`, `refactor:`, `test:`, `docs:`, `chore:`).
+47. Git commits follow Conventional Commits. Every commit must have a type prefix (`feat:`, `fix:`, `refactor:`, `test:`, `docs:`, `chore:`).
 
 ## What Not to Build
 
-36. Do not build a general-purpose search engine. Source selection in V1 uses registry lookups and authority mapping, not full-text search or vector similarity.
+48. Do not build a general-purpose search engine. Source selection in V1 uses registry lookups and authority mapping, not full-text search or vector similarity.
 
-37. Do not build a background sync/ingest pipeline. V1 is request-time only.
+49. Do not build a background sync/ingest pipeline. V1 is request-time only.
 
-38. Do not build user authentication/registration for the Portal. V1 uses organizational SSO or IAM-based access. Do not implement username/password flows.
+50. Do not build user authentication/registration for the Portal. V1 uses organizational SSO or IAM-based access. Do not implement username/password flows.
 
-39. Do not build an admin UI for source registration in V1. Source and topic registration is done via API calls or seed scripts. The admin UI is a post-V1 concern.
+51. Do not build an admin UI for source registration in V1. Source and topic registration is done via API calls or seed scripts. The admin UI is a post-V1 concern.
 
-40. Do not add fields to the data model that are not defined in `docs/architecture/current_design.md`. If a new field is needed, update the design document first, then implement.
+52. Do not add fields to the data model that are not defined in `docs/architecture/current_design.md`. If a new field is needed, update the design document first, then implement.
