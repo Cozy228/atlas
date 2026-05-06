@@ -4,14 +4,20 @@ import {
   TopicDiscoveryResponseSchema,
   type ContextBundleResponse,
   type ContextRequest,
+  type SourceDiscoveryRequest,
   type SourceDiscoveryResponse,
+  type TopicDiscoveryRequest,
   type TopicDiscoveryResponse,
 } from "@atlas/schema";
 
 export type ContextApiClient = {
   getContextBundle(request: ContextRequest): Promise<ContextBundleResponse>;
-  discoverSources(): Promise<SourceDiscoveryResponse>;
-  discoverTopics(): Promise<TopicDiscoveryResponse>;
+  discoverSources(
+    request?: SourceDiscoveryRequest,
+  ): Promise<SourceDiscoveryResponse>;
+  discoverTopics(
+    request?: TopicDiscoveryRequest,
+  ): Promise<TopicDiscoveryResponse>;
 };
 
 type StaticContextApiClientInput = {
