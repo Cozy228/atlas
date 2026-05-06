@@ -1,22 +1,16 @@
 {
-  "name": "@atlas/context-layer",
+  "name": "@atlas/acceptance",
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "main": "./src/index.ts",
-  "types": "./src/index.ts",
-  "exports": {
-    ".": {
-      "types": "./src/index.ts",
-      "import": "./src/index.ts"
-    }
-  },
   "scripts": {
     "lint": "tsc --noEmit --pretty false",
     "typecheck": "tsc --noEmit --pretty false",
     "test": "vitest run"
   },
   "dependencies": {
+    "@atlas/context-layer": "workspace:*",
+    "@atlas/portal": "workspace:*",
     "@atlas/schema": "workspace:*"
   },
   "devDependencies": {
