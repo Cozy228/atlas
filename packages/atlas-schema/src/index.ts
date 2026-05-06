@@ -121,11 +121,23 @@ export const SourceDiscoveryRequestSchema = z
   })
   .strict();
 
+export const SourceDiscoveryResponseSchema = z
+  .object({
+    sources: z.array(SourceSchema),
+  })
+  .strict();
+
 export const TopicDiscoveryRequestSchema = z
   .object({
     query: z.string().min(1).optional(),
     topic_type: TopicTypeSchema.optional(),
     category: z.string().min(1).optional(),
+  })
+  .strict();
+
+export const TopicDiscoveryResponseSchema = z
+  .object({
+    topics: z.array(TopicSchema),
   })
   .strict();
 
@@ -222,7 +234,11 @@ export type Source = z.infer<typeof SourceSchema>;
 export type Topic = z.infer<typeof TopicSchema>;
 export type SourceTopicMapping = z.infer<typeof SourceTopicMappingSchema>;
 export type SourceDiscoveryRequest = z.infer<typeof SourceDiscoveryRequestSchema>;
+export type SourceDiscoveryResponse = z.infer<
+  typeof SourceDiscoveryResponseSchema
+>;
 export type TopicDiscoveryRequest = z.infer<typeof TopicDiscoveryRequestSchema>;
+export type TopicDiscoveryResponse = z.infer<typeof TopicDiscoveryResponseSchema>;
 export type ContextRequest = z.infer<typeof ContextRequestSchema>;
 export type ExpansionRequest = z.infer<typeof ExpansionRequestSchema>;
 export type ContextBundleResponse = z.infer<typeof ContextBundleResponseSchema>;
