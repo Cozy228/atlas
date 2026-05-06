@@ -32,6 +32,7 @@ The Portal must feel like a real operating surface, not a marketing page, provis
 
 - Atlas Portal is the first consumer of the Atlas Context API.
 - Portal uses TanStack Start, TanStack Router, React, Vite, TypeScript, and `pnpm`.
+- Portal uses Tailwind CSS as the utility styling engine, backed by Atlas-owned CSS variables and OKLCH design tokens.
 - Portal browser code never calls DynamoDB, source systems, or an LLM provider directly.
 - Portal server-side code may call the Atlas Context API and a Portal-owned LLM adapter.
 - V1 has no authentication, registration, SSO, or identity-based application access.
@@ -286,11 +287,32 @@ State coverage per interactive component:
 
 Use Base UI as the primitive layer and a shadcn-style local component layer for Atlas-owned wrappers.
 
+### Styling Stack
+
+Use Tailwind CSS as the utility styling engine for Portal UI implementation.
+
+Tailwind is the implementation layer for spacing, layout, interaction states, and token-backed utility classes. It is not the product design system by itself. Atlas-owned CSS variables and OKLCH design tokens define the visual language, and Tailwind utilities consume those tokens.
+
+Rules:
+
+- Configure Tailwind inside the `portal` package when shadcn is initialized.
+- Keep `components.json` pointed at the Portal global CSS entry and Atlas aliases.
+- Use CSS variables for color, radius, focus, surface, border, text, semantic state, and sidebar tokens.
+- Do not hardcode brand color, semantic colors, spacing one-offs, or radius values in component markup when a token exists.
+- Do not use arbitrary Tailwind values to bypass the Atlas token system.
+- Keep Base UI as the accessible primitive layer. Tailwind styles the local Atlas wrappers, not Base UI internals directly.
+- Treat shadcn-generated Tailwind classes as starting points. Adapt them to Atlas density, evidence-surface rules, token names, focus states, and anti-pattern checks before shipping.
+- Expected utility dependencies include `clsx`, `class-variance-authority`, `tailwind-merge`, `@tabler/icons-react`, and `tw-animate-css` when required by generated or local components.
+- Use Tabler Icons as the Portal icon library. Do not use `lucide-react` unless this design plan is updated.
+- Add Tailwind-related and UI utility dependencies only as needed by the current implementation batch. Do not install broad UI dependency sets preemptively.
+
 External reference checks:
 
 - Base UI is an unstyled React component library for accessible interfaces. It does not bundle CSS or prescribe a styling engine, which keeps Atlas in control of its product tokens and brand usage.
+- Tailwind CSS is the selected styling engine for shadcn-generated local wrappers and Atlas utility classes.
 - shadcn CLI supports `--base base`, and the `docs` command can fetch component documentation for the Base UI variant.
 - shadcn's component catalog includes the primitives Atlas will need, including `Sidebar`, `Command`, `Table`, `Field`, `Button`, `Badge`, `Breadcrumb`, `Collapsible`, `Dialog`, `Input`, `Popover`, `Select`, `Skeleton`, `Tabs`, `Tooltip`, and `Typography`.
+- Tabler Icons is the selected icon package for Portal navigation, status indicators, empty states, and action affordances.
 - shadcn skills are intended to give AI assistants project-aware context about components, registry usage, installed base library, aliases, theming, and component APIs.
 
 Reference links:
@@ -336,6 +358,9 @@ Rules:
 - Run `search` or `docs` before adding a component.
 - Use `--base base` for docs and initialization.
 - Use `--cwd portal` so generated files land under the Portal package.
+- Ensure generated Tailwind utilities resolve through Portal global CSS and Atlas token variables.
+- Configure the shadcn icon library as Tabler Icons when initializing or editing `components.json`.
+- Replace any generated icon imports that point to a different icon library with `@tabler/icons-react` equivalents before shipping.
 - Add components one small batch at a time. Do not run `add --all`.
 - Use `--dry-run` before any component install in a dirty worktree.
 - Treat shadcn blocks as references, not production-ready Atlas screens.
@@ -445,6 +470,8 @@ Deliver:
 - Logo slot contract for desktop, tablet, and mobile shell states.
 - Base UI plus shadcn local component strategy confirmed.
 - Initial `components.json` plan for the `portal` package, with `base` selected as the base library.
+- Tailwind CSS setup scoped to the `portal` package and wired to Atlas token variables.
+- Tabler Icons configured as the Portal icon library.
 - Design tokens for color, spacing, typography, radius, focus, and state.
 - Brand token mapping for `#001aff`, including restrained accent usage and reduced-chroma tints.
 - Shared UI state vocabulary for loading, empty, warning, error, and restricted evidence.
@@ -593,6 +620,7 @@ Every frontend implementation batch must explicitly check for these patterns bef
 - Keep components small and state-complete.
 - Use Base UI primitives for accessible behavior and local Atlas wrappers for product styling.
 - Use shadcn search, docs, and dry-run flows before adding components.
+- Use Tabler Icons for navigation, status, feedback, and action icons.
 - Use familiar controls for filters, tabs, tables, buttons, and forms.
 - Leave stable space for the company logo.
 - Use `#001aff` with restraint through approved brand tokens.
@@ -610,6 +638,7 @@ Every frontend implementation batch must explicitly check for these patterns bef
 - Do not copy shadcn blocks as final Atlas screens without adapting density, brand tokens, data boundaries, and accessibility states.
 - Do not run `shadcn add --all`.
 - Do not use Radix-based shadcn components after choosing Base UI unless the design plan is updated.
+- Do not introduce `lucide-react` or mix icon libraries without updating this plan.
 - Do not use the logo as repeated decoration.
 - Do not use `#001aff` as a large-area background or semantic warning color.
 - Do not ship side-stripe accents, gradient text, default glass panels, hero metrics, or identical decorative card grids.
