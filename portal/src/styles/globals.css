@@ -1,3 +1,21 @@
+/*
+ * Self-hosted IBM Plex Sans + IBM Plex Mono.
+ *
+ * Fonts are bundled with the Portal build via @fontsource/* npm packages,
+ * not fetched from a CDN at runtime. Vite copies the woff2 files into the
+ * client/server output and rewrites the @font-face url() references to
+ * hashed asset paths, so there is no third-party font dependency in prod.
+ *
+ * Latin subset only: Atlas is an internal English-first product. Add other
+ * subsets when a non-Latin script is actually needed.
+ */
+@import "@fontsource/ibm-plex-sans/latin-400.css";
+@import "@fontsource/ibm-plex-sans/latin-500.css";
+@import "@fontsource/ibm-plex-sans/latin-600.css";
+@import "@fontsource/ibm-plex-sans/latin-700.css";
+@import "@fontsource/ibm-plex-mono/latin-400.css";
+@import "@fontsource/ibm-plex-mono/latin-600.css";
+
 @import "tailwindcss";
 @import "tw-animate-css";
 
@@ -11,11 +29,11 @@
  */
 @theme inline {
   --font-sans:
-    "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
-    "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji",
-    "Segoe UI Emoji";
+    "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+    Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif,
+    "Apple Color Emoji", "Segoe UI Emoji";
   --font-mono:
-    ui-monospace, SFMono-Regular, "JetBrains Mono", Menlo, Consolas,
+    "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas,
     "Liberation Mono", monospace;
 
   --radius: 0.5rem;
@@ -141,8 +159,10 @@
     color: var(--color-foreground);
     font-family: var(--font-sans);
     font-feature-settings:
-      "cv11" 1,
-      "ss01" 1;
+      "kern" 1,
+      "liga" 1,
+      "calt" 1,
+      "ss03" 1;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
   }
