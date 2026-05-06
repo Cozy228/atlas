@@ -51,6 +51,37 @@ describe("Ask Atlas", () => {
     ]);
   });
 
+  it("rejects claims backed only by non-authoritative sources", () => {
+    const answer = validateCitations({
+      bundle: {
+        ...capabilityBundle,
+        sources: [
+          {
+            ...capabilityBundle.sources[0],
+            source: {
+              ...capabilityBundle.sources[0]!.source,
+              authority_level: "draft",
+            },
+          },
+        ],
+      },
+      claims: [
+        {
+          text: "Draft guidance is enough for a factual answer.",
+          citation_ids: ["textract-module-readme#private-subnet-usage"],
+        },
+      ],
+    });
+
+    expect(answer.claims).toEqual([]);
+    expect(answer.rejected_claims).toEqual([
+      {
+        text: "Draft guidance is enough for a factual answer.",
+        citation_ids: ["textract-module-readme#private-subnet-usage"],
+      },
+    ]);
+  });
+
   it("uses an adapter instead of calling a provider directly", async () => {
     const adapter: LlmAdapter = {
       async answer() {

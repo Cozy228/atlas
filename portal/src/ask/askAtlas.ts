@@ -31,10 +31,12 @@ export function buildAskAtlasPrompt(input: {
   bundle: ContextBundleResponse;
 }): string {
   const excerpts = input.bundle.sources.flatMap((source) =>
-    source.excerpts.map(
-      (excerpt) =>
-        `[${citationId(excerpt.citation.source_id, excerpt.citation.anchor_id)}] ${excerpt.text}`,
-    ),
+    source.source.authority_level === "authoritative"
+      ? source.excerpts.map(
+          (excerpt) =>
+            `[${citationId(excerpt.citation.source_id, excerpt.citation.anchor_id)}] ${excerpt.text}`,
+        )
+      : [],
   );
 
   return [
@@ -50,9 +52,11 @@ export function validateCitations(input: {
 }): CitationValidationResult {
   const allowedCitationIds = new Set(
     input.bundle.sources.flatMap((source) =>
-      source.excerpts.map((excerpt) =>
-        citationId(excerpt.citation.source_id, excerpt.citation.anchor_id),
-      ),
+      source.source.authority_level === "authoritative"
+        ? source.excerpts.map((excerpt) =>
+            citationId(excerpt.citation.source_id, excerpt.citation.anchor_id),
+          )
+        : [],
     ),
   );
 
@@ -83,7 +87,11 @@ export async function askAtlas(input: {
   userId: string;
   rateLimiter: RateLimiter;
 }): Promise<AskAtlasAnswer> {
-  if (input.bundle.sources.length === 0) {
+  if (
+    !input.bundle.sources.some(
+      (source) => source.source.authority_level === "authoritative",
+    )
+  ) {
     return {
       claims: [],
       rejected_claims: [],
