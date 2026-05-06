@@ -57,4 +57,18 @@ describe("Atlas infrastructure plan", () => {
       "api_error_count",
     ]);
   });
+
+  it("expresses the V1 resource plan as Terraform IaC", () => {
+    const plan = buildAtlasInfraPlan(buildEnvironmentConfig("test"));
+    const mainTerraform = plan.terraform_files.find(
+      (file) => file.path === "main.tf",
+    )?.content;
+
+    expect(mainTerraform).toContain('resource "aws_dynamodb_table"');
+    expect(mainTerraform).toContain('resource "aws_lambda_function"');
+    expect(mainTerraform).toContain('resource "aws_apigatewayv2_api"');
+    expect(mainTerraform).toContain('resource "aws_secretsmanager_secret"');
+    expect(mainTerraform).toContain('resource "aws_iam_role"');
+    expect(mainTerraform).toContain('resource "aws_cloudwatch_log_group"');
+  });
 });
