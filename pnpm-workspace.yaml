@@ -2,3 +2,4 @@ packages:
   - "packages/*"
   - "context-layer"
   - "portal"
+  - "infra"

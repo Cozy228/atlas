@@ -34,6 +34,18 @@ importers:
         specifier: 4.1.5
         version: 4.1.5(vite@8.0.10(jiti@2.7.0))
 
+  infra:
+    devDependencies:
+      typescript:
+        specifier: 6.0.3
+        version: 6.0.3
+      vite:
+        specifier: 8.0.10
+        version: 8.0.10(jiti@2.7.0)
+      vitest:
+        specifier: 4.1.5
+        version: 4.1.5(vite@8.0.10(jiti@2.7.0))
+
   packages/atlas-schema:
     dependencies:
       zod:
