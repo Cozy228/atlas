@@ -19,9 +19,11 @@ Portal is Atlas's first consumer, not Atlas's parent. The Context Layer API simu
 
 3. **Consumer-neutral.** The Context Layer API serves Portal, AI agents, and future consumers through the same interfaces. No consumer gets a privileged data path.
 
-4. **Deterministic core.** Atlas performs source registration, authority routing, locator resolution, access filtering, and context packaging through deterministic logic. Judgment, interpretation, and recommendation stay with consumers.
+4. **Deterministic core.** Atlas performs source registration, authority routing, locator resolution, visibility signaling, and context packaging through deterministic logic. Judgment, interpretation, and recommendation stay with consumers.
 
 5. **Portal is a consumer, not the architecture.** Portal's UX needs are met by consuming the Context Layer API. Portal does not own the data model, authority logic, or source governance.
+
+6. **No Auth in V1.** V1 intentionally does not add user authentication, registration, or identity-based application access. It assumes a trusted internal operating environment. Visibility remains a source metadata and warning signal, not a V1 identity enforcement system.
 
 ## System Architecture
 
@@ -38,7 +40,7 @@ Portal is Atlas's first consumer, not Atlas's parent. The Context Layer API simu
 │           Atlas Context Layer API            │
 │  ┌─────────────────────────────────────────┐ │
 │  │ Source Registry  │ Topic Registry       │ │
-│  │ Authority Mapping│ Access Filtering     │ │
+│  │ Authority Mapping│ Visibility Signals   │ │
 │  │ Locator Resolution │ Context Packaging  │ │
 │  └─────────────────────────────────────────┘ │
 ├──────────────────────────────────────────────┤
@@ -59,7 +61,7 @@ Atlas owns:
 - Source selection interfaces
 - Excerpt and expansion interfaces
 - Context packaging and progressive disclosure
-- Access and visibility filtering
+- Visibility metadata and access warning packaging
 
 Atlas does not own:
 
@@ -76,7 +78,7 @@ Atlas owns deterministic work:
 
 - Source registration
 - Authority mapping
-- Access and visibility filtering
+- Visibility signal packaging
 - Locator and anchor resolution
 - Context bundle assembly
 - Citation and provenance packaging
@@ -90,7 +92,7 @@ Consumers own latent work:
 
 ## Data Model
 
-Two core entities and one mapping relation. Governance lives on Source. Navigation lives on Topic. They do not contaminate each other.
+Atlas keeps governance, navigation, location, and user feedback separate. Governance lives on Source. Navigation lives on Topic. Source-native addressability lives on Anchor. Operational feedback lives on Feedback. These concerns do not contaminate each other.
 
 ### Source (Governance Entity)
 
@@ -106,8 +108,6 @@ A Source represents a registered, governed piece of cloud knowledge.
 | visibility | enum | `internal` / `restricted` |
 | authority_scope | string[] | What this source is authoritative for (e.g. `module-usage`, `security-guardrail`, `reference-guidance`) |
 | authority_level | enum | `authoritative` / `reference` / `example` / `draft` / `deprecated` |
-| anchor_strategy | enum | `markdown-heading` / `confluence-section` / `document-clause` |
-| available_anchors | anchor[] | Registered addressable anchors within this source |
 | last_observed_at | timestamp | Last time content was observed |
 | last_reviewed_at | timestamp | Last human review |
 | review_frequency | duration | Suggested review cycle |
@@ -128,11 +128,48 @@ A Topic is what users look for — a capability, a landing zone, or a guardrail 
 | support_channel | string | Support path |
 | entry_tools | object[] | Related operational tool entry points (TFE link, Harness link) |
 
+### Anchor (Addressability Entity)
+
+An Anchor represents a stable, source-native location inside a Source. Atlas stores the selector needed to find that location at request time; it does not store a permanent copy of the source content.
+
+| Field | Type | Description |
+|---|---|---|
+| id | string | Stable unique identifier |
+| source_id | string | Source this anchor belongs to |
+| anchor_strategy | enum | `markdown-heading` / `confluence-section` / `document-clause` |
+| title | string | Human-readable section or clause name |
+| selector | object | Source-class-specific locator, such as file path plus heading path, Confluence page section, or document clause ID |
+| citation_label | string | Human-readable citation text for consumers |
+| content_fingerprint | string | Optional hash used to detect drift without storing full content |
+| status | enum | `valid` / `broken` / `weak` / `unvalidated` |
+| last_validated_at | timestamp | Last validation time |
+
+Example selectors:
+
+```json
+{
+  "type": "markdown-heading",
+  "file_path": "README.md",
+  "heading_path": ["Usage", "Private subnet"],
+  "heading_slug": "private-subnet"
+}
+```
+
+```json
+{
+  "type": "confluence-section",
+  "page_id": "123456",
+  "heading_path": ["AWS Textract", "Networking"],
+  "heading_slug": "networking"
+}
+```
+
 ### Source-Topic Mapping
 
 Many-to-many. A source can serve multiple topics. A topic aggregates multiple sources.
 
 Authority and governance metadata stay on the Source, never duplicated onto the Topic.
+Topic-specific default anchors may be referenced from the mapping, but anchor selectors remain owned by Anchor records.
 
 ```
 Topic: AWS Textract (capability)
@@ -145,6 +182,19 @@ Topic: S3 Guardrails (guardrail-area)
   ├── Source: textract-security-policy  (authority: security-guardrail, level: authoritative)  ← shared
   └── Source: s3-module-readme          (authority: module-usage, level: authoritative)
 ```
+
+### Feedback (Operational Signal)
+
+Feedback records user-reported missing, stale, broken, or unclear guidance. It is not authoritative source content and does not change Source, Topic, or Anchor truth by itself.
+
+| Field | Type | Description |
+|---|---|---|
+| id | string | Stable or generated identifier |
+| target_type | enum | `topic` / `source` / `anchor` |
+| target_id | string | Referenced Topic, Source, or Anchor |
+| feedback_type | enum | `missing` / `stale` / `broken` / `unclear` |
+| message | string | Free-text user message |
+| submitted_at | timestamp | Submission time |
 
 ### Source Onboarding Principle
 
@@ -161,10 +211,12 @@ Atlas's primary output is a **context bundle**, not a page and not a recommendat
 A context bundle contains:
 
 - Selected sources and why they were selected
-- Exact sections or excerpts (or anchor references to them)
+- Selected anchors and why they were selected
+- Exact sections or excerpts, or anchor references that can be expanded on demand
 - Authority and provenance metadata
 - Sufficient surrounding context to prevent misinterpretation
 - Expansion paths for further disclosure
+- Warnings for stale, broken, conflicting, unavailable, or restricted evidence
 
 ### Two Access Paths
 
@@ -175,8 +227,8 @@ A context bundle contains:
 
 | Level | What is returned |
 |---|---|
-| 0 | Source list + selection rationale + authority badges |
-| 1 | Exact sections or excerpts |
+| 0 | Source list + selection rationale + authority badges + anchor references |
+| 1 | Exact sections or excerpts for selected anchors |
 | 2 | Adjacent supporting evidence |
 | 3 | Deep expansion into related sources |
 
@@ -202,29 +254,29 @@ V1 proves the full chain — source registry → authority mapping → locator r
 
 **Context Layer path:** Query topic registry (topic_type=landing-zone) → select associated sources → retrieve guardrail excerpts → package context bundle.
 
-### Scenario 3: Ask Cloud Platform (AI-Assisted Discovery)
+### Scenario 3: AI Consumer Discovery
 
 **User question:** "How do I use Textract from a private subnet?"
 
-**Portal surface:** AI-generated answer with inline citations, authority badges, source freshness indicators, expansion links.
+**Consumer surface:** Portal Ask UI, local AI agent skill, CLI assistant, MCP tool, or automation workflow with inline citations, authority badges, source freshness indicators, and expansion links.
 
 **Context Layer path:** Source selection → excerpt retrieval → authority packaging → context bundle returned to consumer.
 
-**Consumer path (Portal AI layer):** Receive context bundle → send bundle + user question to LLM → LLM reasons over context → display cited answer.
+**AI consumer path:** Receive context bundle → send bundle + user question to LLM → LLM reasons over governed context → present cited answer or take a bounded follow-up action.
 
-## AI Design
+## AI Consumer Design
 
 ### Architectural Boundary
 
-LLM reasoning is a consumer responsibility, not an Atlas responsibility. Atlas provides precise, governed context. The consumer's AI layer interprets it.
+LLM reasoning is a consumer responsibility, not an Atlas responsibility. Atlas provides precise, governed context. The AI consumer interprets it. Ask Atlas is one Portal presentation of this contract, not the only AI consumer.
 
 ```
-Portal "Ask Cloud Platform"
+AI Consumer (Portal Ask UI / local agent skill / CLI / MCP tool)
   1. Receive user question
   2. Call Atlas API → get context bundle
   3. Send context bundle + question → LLM
   4. LLM reasons over governed context, generates answer
-  5. Display answer + citations + authority badges
+  5. Present answer or action with citations + authority badges
 
 Atlas Context Layer API
   - Deterministically select relevant sources
@@ -234,7 +286,7 @@ Atlas Context Layer API
   - No reasoning, no recommendations, no judgment
 ```
 
-### AI Constraint Rules
+### AI Consumer Constraint Rules
 
 - Answers only based on registered authoritative sources
 - Must display citations (which source, which section)
@@ -245,19 +297,7 @@ Atlas Context Layer API
 - Must not generate Terraform code and claim it is production-ready
 - Must not bypass policy or substitute for approval processes
 
-## Technical Direction
-
-| Component | Technology | Notes |
-|---|---|---|
-| Portal frontend | TanStack Start + Vite | Lightweight, SSR-capable |
-| Atlas API | API Gateway + Lambda | Consumer-neutral context delivery |
-| Data store | DynamoDB | Source registry, topic registry, authority mapping, access metadata |
-| Source access | Lambda → source systems | Request-time content retrieval from Terraform repos / Confluence / policy docs |
-| Credential management | Secrets Manager / Parameter Store | Source access configuration |
-| AI reasoning | Bedrock / external LLM | Invoked at the consumer layer (Portal backend), not inside Atlas core |
-| Observability | CloudWatch | Logging, metrics, alerting |
-
-### Request-Time Execution
+## Execution Model
 
 V1 prefers request-time resolution. No pre-ingested content index, no async ingest pipeline, no background worker fleet.
 
@@ -275,7 +315,7 @@ If caching becomes necessary for performance, treat it as an implementation opti
 
 - Every registered source has a steward
 - Authority level is explicit for every governed source
-- Visibility and access boundaries are recorded
+- Visibility boundaries are recorded
 - Anchors are validated at registration time
 - Sources past review_frequency are flagged "Needs Review"
 - Broken anchors are flagged "Broken Anchor"
@@ -307,7 +347,8 @@ V1 minimizes workflow change for source owners:
 | Context Bundle API | Consumer-neutral context delivery interface |
 | Portal: Capability Discovery | Browse and detail view for topic_type=capability |
 | Portal: Landing Zone Navigator | Navigation, environment matrix, guardrail summary for topic_type=landing-zone |
-| Portal: Ask Cloud Platform | AI answer + citation + authority badge |
+| AI Consumer Contract | Context bundle contract usable by Portal Ask UI, local agent skills, CLI tools, MCP tools, and automation workflows |
+| No Auth operating model | Trusted internal V1 surface with no user registration, login, SSO, or identity-based application access |
 | Pilot content | 10-15 core topics with registered sources |
 
 ### Out of Scope
@@ -323,6 +364,7 @@ V1 minimizes workflow change for source owners:
 | Full platform capability coverage | Pilot scope; 10-15 core topics first |
 | Write-back memory layer | No synthesized content written to source systems |
 | Background ingest pipeline | Not needed for request-time model |
+| User authentication or registration | V1 intentionally uses a trusted internal operating model |
 
 ## Failure Modes
 
@@ -331,7 +373,7 @@ V1 minimizes workflow change for source owners:
 | Relevant source not registered | State "no registered source found"; offer feedback path |
 | Authority unclear across sources | Surface conflict; do not pick sides |
 | Broken anchor or link | Flag "Broken Anchor"; fall back to source-level context |
-| Permission mismatch | Acknowledge source exists but access denied; point to request path |
+| Source permission mismatch | Flag the source as restricted or unavailable; do not add a user auth flow |
 | Weak anchoring for source class | Flag "weak anchoring"; provide source-level context only |
 | AI answer has no registered source support | Do not fabricate; state "beyond registered knowledge scope" |
 | Context bundle too broad or narrow | Provide expansion / narrowing paths for consumer adjustment |
@@ -345,7 +387,7 @@ V1 minimizes workflow change for source owners:
 | Source selection precision | Are returned sources relevant to the query? |
 | Anchor resolution success rate | Do anchors resolve to valid content? |
 | Citation completeness | Does the context bundle include full provenance? |
-| Access filtering correctness | Is permission filtering accurate? |
+| Visibility warning correctness | Are restricted or unavailable source signals accurate? |
 | Context bundle size | Is returned context precise and bounded? |
 
 ### Portal Experience (External)

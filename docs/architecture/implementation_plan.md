@@ -12,11 +12,11 @@ Build Atlas V1 as a narrow but complete product loop:
 2. Map sources to user-facing topics.
 3. Resolve source-native anchors at request time.
 4. Return citation-ready context bundles.
-5. Present capability, landing zone, authoritative source, and Ask Atlas experiences through Atlas Portal.
+5. Present capability, landing zone, authoritative source, and AI consumer experiences through Atlas Portal and other consumers.
 
 V1 is successful when the system proves the full chain:
 
-Source Registry -> Authority Mapping -> Locator Resolution -> Context Bundle API -> Portal Presentation -> Ask Atlas cited answer.
+Source Registry -> Authority Mapping -> Locator Resolution -> Context Bundle API -> Portal Presentation or AI Consumer -> cited answer or bounded action.
 
 ## Truth Sources
 
@@ -39,6 +39,7 @@ If a conflict appears, stop and update the design or constraint document before 
 - Pilot data is seed-driven in V1; there is no admin UI for source or topic management.
 - Source retrieval happens at request time.
 - The Portal may use an LLM provider through an adapter, but the Context Layer never invokes an LLM.
+- V1 has no user authentication, registration, or identity-based application access. It assumes a trusted internal operating environment.
 
 ## Non-Goals
 
@@ -51,7 +52,7 @@ If a conflict appears, stop and update the design or constraint document before 
 - No background sync, ingest, queue, or crawler pipeline.
 - No AI-generated write-back to source systems.
 - No admin UI for registry management in V1.
-- No username/password authentication flow.
+- No user authentication, registration, SSO, or identity-based application access in V1.
 
 ## Target Module Shape
 
@@ -62,7 +63,7 @@ The implementation should keep these ownership boundaries clear.
 | Root workspace | Workspace scripts, package manager configuration, shared tooling only |
 | `packages/atlas-schema` | Shared API contracts, request/response schemas, enums, and contract tests |
 | `context-layer` | Atlas Context API, source registry, topic registry, source-topic mapping, authority routing, locator resolution, context bundle assembly |
-| `portal` | Atlas Portal UI, Portal server routes, Context API client, Ask Atlas LLM adapter, citation validation, user-facing rendering |
+| `portal` | Atlas Portal UI, Portal server routes, Context API client, optional Ask Atlas example, citation validation, user-facing rendering |
 | `infra` | Infrastructure as code for API Gateway, Lambda, DynamoDB, secrets, IAM, and deployment wiring |
 | `docs` | Architecture, product, implementation, and operational documentation |
 
@@ -115,8 +116,8 @@ Do not let Portal import Context Layer internals. Do not let Context Layer impor
 
 **Expected outputs:**
 
-- Source, Topic, SourceTopicMapping, anchor, warning, expansion path, and context bundle schemas.
-- Request and response schemas for source discovery, topic discovery, context retrieval, and expansion.
+- Source, Topic, Anchor, SourceTopicMapping, Feedback, warning, expansion path, and context bundle schemas.
+- Request and response schemas for topic discovery, source metadata, context retrieval, source content expansion, and feedback submission.
 - Structured error model with stable error codes.
 - Contract tests that validate required fields and enum boundaries.
 
@@ -124,7 +125,7 @@ Do not let Portal import Context Layer internals. Do not let Context Layer impor
 
 - API field names use `snake_case`.
 - TypeScript code uses `camelCase` and `PascalCase`.
-- Context bundle responses always include `sources`, `warnings`, and `expansion_paths`.
+- Context bundle responses always include `sources`, `anchors` or `anchor_references`, `warnings`, and `expansion_paths`.
 - Governance fields live on Source only.
 - Source and Topic are joined through an explicit mapping entity.
 - Do not add fields that are not in `current_design.md` unless the design is updated first.
@@ -150,13 +151,13 @@ Do not let Portal import Context Layer internals. Do not let Context Layer impor
 
 ### Phase 2: Context Layer Data Model and Repositories
 
-**Subgoal:** Implement registry storage boundaries for Source, Topic, and SourceTopicMapping.
+**Subgoal:** Implement registry storage boundaries for Source, Topic, Anchor, SourceTopicMapping, and Feedback.
 
 **Expected outputs:**
 
-- Repository modules for Source, Topic, and SourceTopicMapping.
+- Repository modules for Source, Topic, Anchor, SourceTopicMapping, and Feedback.
 - DynamoDB table design or local equivalent aligned to V1 access patterns.
-- Seed path for 10-15 pilot topics and their governed sources.
+- Seed path for 10-15 pilot topics, governed sources, anchors, source-topic mappings, and feedback examples.
 - Tests using in-memory or local DynamoDB behavior rather than mocked data-model code.
 
 **Constraints:**
@@ -172,6 +173,16 @@ Do not let Portal import Context Layer internals. Do not let Context Layer impor
 - Design storage around the V1 access paths: topic lookup, source lookup, mapping lookup, and authority-based source selection.
 - Keep seed data close to Context Layer ownership.
 - Include stale, deprecated, restricted, and broken-anchor pilot examples.
+- Maintain seed data as structured files, for example:
+
+```text
+data/
+├── topics.yaml
+├── sources.yaml
+├── anchors.yaml
+├── source-topic-mappings.yaml
+└── feedback.yaml
+```
 
 **Don't:**
 
@@ -182,30 +193,43 @@ Do not let Portal import Context Layer internals. Do not let Context Layer impor
 
 **Verification gate:**
 
-- Repository tests prove Source, Topic, and Mapping records can be created and queried independently.
+- Repository tests prove Source, Topic, Anchor, Mapping, and Feedback records can be created and queried independently.
 - Required field validation catches malformed seed records.
 - Pilot data can support all three V1 scenarios.
 
-### Phase 3: Anchor Resolver Framework
+### Phase 3: Source Fetcher and Anchor Resolver Framework
 
-**Subgoal:** Resolve source-native anchors for the three V1 source classes.
+**Subgoal:** Fetch source content at request time and resolve source-native anchors for the three V1 source classes.
 
 **Expected outputs:**
 
 - Resolver registry keyed by `source_class`.
+- Fetcher modules for Git, Confluence, and policy document sources.
 - One resolver per V1 source class:
   - `terraform-module`
   - `confluence-page`
   - `policy-document`
 - Anchor validation behavior for registration or seed validation.
 - Resolution behavior for exact excerpt retrieval and fallback to source-level context.
+- Fetch timeout and partial-failure behavior that returns warnings instead of failing whole context requests.
 
 **Constraints:**
 
 - One anchor resolver per file.
 - Anchor resolvers are registered by source class, not hardcoded in route handlers.
+- Fetchers do not store durable source content.
 - Each resolver test covers successful resolution, broken anchor, source unavailable, and malformed anchor input.
 - A new source class requires a corresponding resolver before it can be added.
+
+**Fetcher design:**
+
+| Fetcher | Input | Behavior | Output |
+|---|---|---|---|
+| Git fetcher | Terraform module Source location and anchor selector | Shallow fetch or read the target repository path | Markdown or text content with file path provenance |
+| Confluence fetcher | Confluence Source location and anchor selector | Call the Confluence REST API and convert supported page content to Markdown-like text | Page or section content with page provenance |
+| Policy document fetcher | Policy document Source location and anchor selector | Read the registered policy document path or approved document endpoint | Clause or section content with document provenance |
+
+Source-system credentials come from Secrets Manager, Parameter Store, or approved deployment environment. Timeouts are source-class-specific implementation settings. A timeout or fetch failure marks the affected source or anchor as unavailable and returns a partial context bundle when other evidence is available.
 
 **Do:**
 
@@ -233,24 +257,40 @@ Do not let Portal import Context Layer internals. Do not let Context Layer impor
 
 **Expected outputs:**
 
-- Discovery path for topic, keyword, or question input.
-- Expansion path for known source or anchor input.
+- Discovery endpoint for topic context.
+- Expansion endpoint for known source or anchor content.
+- Feedback endpoint for missing, stale, broken, or unclear guidance.
 - Authority-based source selection.
 - Context bundle assembly with citations, warnings, and expansion paths.
 - Structured API error responses.
 - API tests for success paths and error structure.
+
+**Endpoint sketch:**
+
+| Endpoint | Purpose |
+|---|---|
+| `GET /topics` | List and filter topics by type, category, status, or update signal |
+| `GET /topics/{id}` | Return one topic's navigation metadata |
+| `GET /topics/{id}/context` | Return a context bundle for a topic, including sources, selected anchors, warnings, and expansion paths |
+| `GET /sources/{id}` | Return one source's governance metadata |
+| `GET /sources/{id}/content` | Fetch source content or anchor-scoped excerpts at request time |
+| `POST /feedback` | Capture missing, stale, broken, or unclear guidance reports |
+
+**Staleness behavior:**
+
+V1 computes staleness at read time. The stored Source authority level remains separate from freshness. If `last_reviewed_at` exceeds the review frequency, the API adds a stale or needs-review warning to the context bundle without rewriting the Source's authority level.
 
 **Constraints:**
 
 - Context Layer selects, resolves, filters, and packages evidence.
 - Context Layer does not interpret evidence or recommend actions.
 - Context Layer does not call an LLM.
-- Context bundles must carry authority, provenance, freshness, access, conflict, and broken-anchor signals.
+- Context bundles must carry authority, provenance, freshness, visibility, conflict, and broken-anchor signals.
 - Every defined error code needs a corresponding test.
 
 **Do:**
 
-- Keep the first context response small and precise.
+- Keep the first context response small and precise; return exact content through expansion when appropriate.
 - Support progressive disclosure levels.
 - Surface authority conflicts instead of picking a winner.
 - Return partial bundles when some sources fail.
@@ -264,7 +304,7 @@ Do not let Portal import Context Layer internals. Do not let Context Layer impor
 
 **Verification gate:**
 
-- API tests cover source not found, anchor broken, source unavailable, and access denied.
+- API tests cover source not found, anchor broken, source unavailable, and restricted source signals.
 - Context bundle tests assert citations, warnings, and expansion paths explicitly.
 - API responses remain schema-compatible with the shared contract.
 
@@ -306,35 +346,37 @@ Do not let Portal import Context Layer internals. Do not let Context Layer impor
 
 - Portal pages render pilot capability, landing zone, and source data from API responses.
 - UI tests or interaction tests cover the primary V1 navigation paths.
-- Portal handles stale, broken, conflict, and access warning states visibly.
+- Portal handles stale, broken, conflict, restricted-source, and source-unavailable warning states visibly.
 
-### Phase 6: Ask Atlas Consumer Layer
+### Phase 6: AI Consumer Contract and Portal Ask Example
 
-**Subgoal:** Add AI-assisted discovery in Portal without moving reasoning into Atlas Context Layer.
+**Subgoal:** Prove that any AI consumer can use Atlas context bundles without moving reasoning into Atlas Context Layer.
 
 **Expected outputs:**
 
-- Portal-side LLM adapter interface.
+- Portal Ask UI or another thin AI consumer example.
+- LLM adapter interface for the chosen consumer.
 - Prompt assembly that uses only the context bundle and user question.
 - Citation validation before displaying answers.
-- Answer UI with citations, authority badges, freshness signals, warnings, and expansion links.
-- Rate limit and cost-control behavior at the Portal backend layer.
+- Answer or action output with citations, authority badges, freshness signals, warnings, and expansion links.
+- Rate limit and cost-control behavior if Portal provides model invocation.
 
 **Constraints:**
 
-- All LLM code lives in Portal.
+- All LLM code lives in the consumer layer, never in Context Layer.
 - Prompt content must come only from the Atlas context bundle plus the user question.
 - Every factual claim must map to a citation from the context bundle.
-- Uncited claims must be stripped or flagged before display.
-- Browser code must not call the LLM provider directly.
+- Uncited claims must be stripped or flagged before display or action.
+- Browser code must not call the LLM provider directly if the consumer is Portal.
 - Credentials must never enter browser bundles, seed data, fixtures, or committed files.
+- No Auth in V1 does not relax source-system or model credential handling; credentials remain server-side only.
 
 **Do:**
 
-- Treat Ask Atlas as a consumer of governed evidence.
-- Make no-source, stale-source, conflict, and access-denied states explicit.
+- Treat Ask Atlas as one possible consumer of governed evidence, not the architecture.
+- Make no-source, stale-source, conflict, restricted-source, and source-unavailable states explicit.
 - Keep the model provider swappable through the adapter.
-- Enforce Portal-owned rate limits.
+- Enforce Portal-owned rate limits if Portal provides hosted model invocation.
 
 **Don't:**
 
@@ -347,7 +389,7 @@ Do not let Portal import Context Layer internals. Do not let Context Layer impor
 
 - Tests prove prompts are built only from context bundle content.
 - Tests prove uncited claims are rejected, stripped, or flagged.
-- Ask Atlas returns a clear no-registered-source response when the Context Layer has no evidence.
+- The AI consumer returns a clear no-registered-source response when the Context Layer has no evidence.
 
 ### Phase 7: Infrastructure and Deployment Path
 
@@ -359,6 +401,19 @@ Do not let Portal import Context Layer internals. Do not let Context Layer impor
 - Environment configuration model for local, test, and production-like deployment.
 - Secret loading paths for source-system and LLM credentials.
 - CloudWatch logging and core metrics.
+- Single Lambda deployable with thin internal route modules for topics, sources, source content, and feedback.
+- Optional V1 Portal static or SPA-mode hosting path for the TanStack Start build.
+- Deployment or local setup path that loads YAML seed data into DynamoDB.
+
+**V1 delivery topology:**
+
+| Component | Service | Notes |
+|---|---|---|
+| Portal | TanStack Start + Vite, optionally built in SPA mode for V1 | Human-facing first consumer of the Context API |
+| Context API | API Gateway + single Lambda deployable | Internal route modules for topics, sources, content expansion, and feedback |
+| Registry store | DynamoDB | Sources, Topics, Anchors, Source-Topic mappings, and Feedback |
+| Credentials | Secrets Manager / Parameter Store | Git, Confluence, policy source, and model-provider credentials |
+| Observability | CloudWatch | Logs, metrics, warnings, and failure signals |
 
 **Constraints:**
 
@@ -366,12 +421,14 @@ Do not let Portal import Context Layer internals. Do not let Context Layer impor
 - Do not add SQS, Step Functions, OpenSearch, Kendra, Bedrock Knowledge Bases, or other managed retrieval layers in V1.
 - Source-system and LLM credentials stay out of committed files.
 - Caching, if needed, must be TTL-based and disposable.
+- Do not add user authentication infrastructure in V1.
 
 **Do:**
 
 - Keep infrastructure aligned with request-time execution.
 - Make local development possible without production credentials.
 - Log enough to diagnose source selection, anchor resolution, warnings, and API errors.
+- Keep Portal hosting decisions separate from the Context Layer API boundary.
 
 **Don't:**
 
@@ -418,7 +475,7 @@ Do not let Portal import Context Layer internals. Do not let Context Layer impor
 
 **Verification gate:**
 
-- Capability Discovery, Landing Zone Navigation, and Ask Atlas all work against pilot data.
+- Capability Discovery, Landing Zone Navigation, and at least one AI consumer flow work against pilot data.
 - Context bundle quality metrics are observable.
 - Portal experience metrics can be reviewed during pilot.
 - Known limitations are captured before broader rollout.
@@ -433,7 +490,7 @@ Do not let Portal import Context Layer internals. Do not let Context Layer impor
 - Use request-time source retrieval.
 - Surface stale, broken, conflicting, restricted, and missing evidence.
 - Keep data model fields aligned with the design.
-- Make tests explicit for context bundles, citations, warnings, access filtering, and AI answer validation.
+- Make tests explicit for context bundles, citations, warnings, visibility signals, and AI answer validation.
 - Prefer the smallest implementation that proves the V1 loop.
 
 ### Don't
@@ -457,7 +514,7 @@ Use small, logically isolated commits:
 4. Anchor resolver framework.
 5. Context Bundle API.
 6. Portal core surfaces.
-7. Ask Atlas consumer layer.
+7. AI consumer contract and Portal Ask example.
 8. Infrastructure and pilot acceptance.
 
 Each commit should include tests or verification appropriate to its scope. Do not combine Portal UI work with Context Layer data-model changes unless the commit is strictly contract-integration work.
@@ -473,7 +530,7 @@ Stop implementation and update the design first if any of these occur:
 - The Portal needs data that is not available through the Context API.
 - The Context Layer needs to interpret or recommend rather than select and package evidence.
 - Request-time source retrieval cannot meet V1 needs without a new architectural component.
-- Ask Atlas needs domain facts outside the returned context bundle.
+- An AI consumer needs domain facts outside the returned context bundle.
 
 ## Final V1 Definition of Done
 
@@ -481,9 +538,9 @@ Atlas V1 is done when:
 
 - The Context Layer can register and retrieve governed Sources, Topics, and SourceTopicMappings.
 - Anchor resolvers work for all three V1 source classes.
-- Context bundles always include sources, warnings, and expansion paths.
+- Context bundles always include sources, anchors or anchor references, warnings, and expansion paths.
 - Portal surfaces pilot capability and landing zone experiences from API data.
-- Ask Atlas answers only from context bundles and displays citations.
+- At least one AI consumer answers only from context bundles and displays citations.
 - Stale, broken, restricted, conflicting, and missing-source cases are visible to users.
 - All V1 constraints remain true.
 - Pilot acceptance is documented with known limitations.
