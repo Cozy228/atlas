@@ -55,6 +55,7 @@ function validateExplicitRequest(
   const resolver = service.resolvers.get(source.source_class);
   const resolved = resolver?.resolve({
     source,
+    anchors: service.registry.anchors.findBySourceId(source.id),
     anchorId: request.anchor_id,
     contentProvider: service.contentProvider,
   });

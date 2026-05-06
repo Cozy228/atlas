@@ -11,14 +11,6 @@ const source: Source = {
   visibility: "internal",
   authority_scope: ["module-usage", "private-networking"],
   authority_level: "authoritative",
-  anchor_strategy: "markdown-heading",
-  available_anchors: [
-    {
-      id: "private-subnet-usage",
-      label: "Private subnet usage",
-      locator: "#private-subnet-usage",
-    },
-  ],
   last_observed_at: "2026-05-05T00:00:00.000Z",
   last_reviewed_at: "2026-05-01T00:00:00.000Z",
   review_frequency: "P90D",

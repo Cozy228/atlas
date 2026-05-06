@@ -1,4 +1,4 @@
-import type { Source, SourceClass } from "@atlas/schema";
+import type { Anchor, Source, SourceClass } from "@atlas/schema";
 import type { SourceContentProvider } from "./sourceContentProvider.js";
 
 export type ResolvedExcerpt = {
@@ -21,6 +21,7 @@ export type ResolverWarning = {
 
 export type ResolveRequest = {
   source: Source;
+  anchors: Anchor[];
   anchorId?: string;
   contentProvider: SourceContentProvider;
 };

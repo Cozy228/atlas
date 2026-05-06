@@ -7,6 +7,8 @@ describe("pilot registry seed", () => {
 
     expect(registry.topics.list()).toHaveLength(10);
     expect(registry.sources.list()).toHaveLength(12);
+    expect(registry.anchors.list().length).toBeGreaterThan(10);
+    expect(registry.feedback.list().length).toBeGreaterThan(0);
     expect(registry.mappings.list().length).toBeGreaterThan(12);
   });
 
@@ -28,11 +30,9 @@ describe("pilot registry seed", () => {
     );
     expect(sources.some((source) => source.visibility === "restricted")).toBe(true);
     expect(
-      sources.some((source) =>
-        source.available_anchors.some((anchor) =>
-          anchor.locator.includes("missing"),
-        ),
-      ),
+      registry.anchors
+        .list()
+        .some((anchor) => String(anchor.selector.locator).includes("missing")),
     ).toBe(true);
   });
 

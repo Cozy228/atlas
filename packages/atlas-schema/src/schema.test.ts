@@ -4,6 +4,7 @@ import {
   ContextBundleResponseSchema,
   ContextRequestSchema,
   ExpansionRequestSchema,
+  FeedbackSchema,
   SourceDiscoveryRequestSchema,
   SourceSchema,
   SourceTopicMappingSchema,
@@ -17,8 +18,15 @@ import {
 
 const anchor = {
   id: "textract-private-subnet",
-  label: "Private subnet usage",
-  locator: "#private-subnet-usage",
+  source_id: "textract-module-readme",
+  anchor_strategy: "markdown-heading",
+  title: "Private subnet usage",
+  selector: {
+    locator: "#private-subnet-usage",
+  },
+  citation_label: "Private subnet usage",
+  status: "valid",
+  last_validated_at: "2026-05-05T00:00:00.000Z",
 };
 
 const source = {
@@ -30,8 +38,6 @@ const source = {
   visibility: "internal",
   authority_scope: ["module-usage"],
   authority_level: "authoritative",
-  anchor_strategy: "markdown-heading",
-  available_anchors: [anchor],
   last_observed_at: "2026-05-05T00:00:00.000Z",
   last_reviewed_at: "2026-05-01T00:00:00.000Z",
   review_frequency: "P90D",
@@ -100,6 +106,28 @@ describe("entity schemas", () => {
     expect(parsed.authority_level).toBe("authoritative");
     expect(parsed.authority_scope).toEqual(["module-usage"]);
     expect(parsed.steward).toBe("cloud-platform");
+  });
+
+  it("keeps source-native addressability in Anchor records, not Source records", () => {
+    const parsed = AnchorSchema.parse(anchor);
+
+    expect(parsed.source_id).toBe("textract-module-readme");
+    expect(parsed.anchor_strategy).toBe("markdown-heading");
+    expect(() => SourceSchema.parse({ ...source, available_anchors: [anchor] })).toThrow();
+  });
+
+  it("accepts operational feedback as a separate non-authoritative signal", () => {
+    const parsed = FeedbackSchema.parse({
+      id: "feedback-1",
+      target_type: "anchor",
+      target_id: "textract-private-subnet",
+      feedback_type: "broken",
+      message: "The private subnet section is out of date.",
+      submitted_at: "2026-05-06T00:00:00.000Z",
+    });
+
+    expect(parsed.target_type).toBe("anchor");
+    expect(parsed.feedback_type).toBe("broken");
   });
 
   it("rejects malformed source enum values", () => {
@@ -179,6 +207,14 @@ describe("request and response schemas", () => {
           ],
         },
       ],
+      anchor_references: [
+        {
+          source_id: "textract-module-readme",
+          anchor_id: "textract-private-subnet",
+          citation_label: "Private subnet usage",
+          status: "valid",
+        },
+      ],
       warnings: [],
       expansion_paths: [
         {
@@ -198,6 +234,7 @@ describe("request and response schemas", () => {
           topic_id: "aws-textract",
         },
         sources: [],
+        anchor_references: [],
         warnings: [],
       }),
     ).toThrow();

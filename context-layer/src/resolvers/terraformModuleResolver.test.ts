@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { Source } from "@atlas/schema";
+import type { Anchor, Source } from "@atlas/schema";
 import { createInMemorySourceContentProvider } from "./sourceContentProvider.js";
 import { terraformModuleResolver } from "./terraformModuleResolver.js";
 
@@ -12,23 +12,27 @@ const source: Source = {
   visibility: "internal",
   authority_scope: ["module-usage"],
   authority_level: "authoritative",
-  anchor_strategy: "markdown-heading",
-  available_anchors: [
-    {
-      id: "private-subnet-usage",
-      label: "Private subnet usage",
-      locator: "#private-subnet-usage",
-    },
-  ],
   last_observed_at: "2026-05-05T00:00:00.000Z",
   last_reviewed_at: "2026-05-01T00:00:00.000Z",
   review_frequency: "P90D",
+};
+
+const anchor: Anchor = {
+  id: "private-subnet-usage",
+  source_id: "textract-module-readme",
+  anchor_strategy: "markdown-heading",
+  title: "Private subnet usage",
+  selector: { locator: "#private-subnet-usage" },
+  citation_label: "Private subnet usage",
+  status: "valid",
+  last_validated_at: "2026-05-05T00:00:00.000Z",
 };
 
 describe("terraformModuleResolver", () => {
   it("resolves a registered markdown heading anchor", () => {
     const result = terraformModuleResolver.resolve({
       source,
+      anchors: [anchor],
       anchorId: "private-subnet-usage",
       contentProvider: createInMemorySourceContentProvider({
         "textract-module-readme": {
@@ -49,6 +53,7 @@ describe("terraformModuleResolver", () => {
   it("returns a broken anchor warning for missing markdown content", () => {
     const result = terraformModuleResolver.resolve({
       source,
+      anchors: [anchor],
       anchorId: "private-subnet-usage",
       contentProvider: createInMemorySourceContentProvider({
         "textract-module-readme": {},
@@ -66,6 +71,7 @@ describe("terraformModuleResolver", () => {
   it("returns source_unavailable when module content cannot be fetched", () => {
     const result = terraformModuleResolver.resolve({
       source,
+      anchors: [anchor],
       anchorId: "private-subnet-usage",
       contentProvider: createInMemorySourceContentProvider({}),
     });
@@ -79,16 +85,13 @@ describe("terraformModuleResolver", () => {
 
   it("returns broken_anchor for malformed markdown anchor input", () => {
     const result = terraformModuleResolver.resolve({
-      source: {
-        ...source,
-        available_anchors: [
-          {
-            id: "private-subnet-usage",
-            label: "Private subnet usage",
-            locator: "private-subnet-usage",
-          },
-        ],
-      },
+      source,
+      anchors: [
+        {
+          ...anchor,
+          selector: { locator: "private-subnet-usage" },
+        },
+      ],
       anchorId: "private-subnet-usage",
       contentProvider: createInMemorySourceContentProvider({
         "textract-module-readme": {

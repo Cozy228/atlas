@@ -7,13 +7,15 @@ type ResolveAnchorOptions = ResolveRequest & {
 
 export function resolveAnchor({
   source,
+  anchors,
   anchorId,
   contentProvider,
   isValidLocator,
 }: ResolveAnchorOptions): ResolveResult {
-  const anchor = selectAnchor(source.available_anchors, anchorId);
+  const anchor = selectAnchor(anchors, anchorId);
+  const locator = anchor ? selectorLocator(anchor) : undefined;
 
-  if (!anchor || !isValidLocator(anchor.locator)) {
+  if (!anchor || !locator || !isValidLocator(locator)) {
     return {
       excerpts: [],
       warnings: [
@@ -42,7 +44,7 @@ export function resolveAnchor({
     };
   }
 
-  const text = sourceContent[anchor.locator];
+  const text = sourceContent[locator];
   if (!text) {
     return {
       excerpts: [],
@@ -65,13 +67,18 @@ export function resolveAnchor({
         citation: {
           source_id: source.id,
           anchor_id: anchor.id,
-          label: anchor.label,
-          location: `${source.location}${anchor.locator}`,
+          label: anchor.citation_label,
+          location: `${source.location}${locator}`,
         },
       },
     ],
     warnings: [],
   };
+}
+
+function selectorLocator(anchor: Anchor): string | undefined {
+  const locator = anchor.selector.locator;
+  return typeof locator === "string" ? locator : undefined;
 }
 
 function selectAnchor(anchors: Anchor[], anchorId: string | undefined): Anchor | undefined {

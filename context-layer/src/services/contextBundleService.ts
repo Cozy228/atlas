@@ -1,4 +1,5 @@
 import type {
+  Anchor,
   ContextBundleResponse,
   ContextRequest,
   Source,
@@ -40,13 +41,19 @@ export function buildContextBundle(
   service: ContextBundleService,
   request: ContextRequest,
 ): ContextBundleResponse {
-  const sources = selectSources(service, request);
+  const disclosureLevel = request.disclosure_level ?? 1;
+  const selectedSources = selectSources(service, request);
+  const sources =
+    disclosureLevel >= 3
+      ? expandRelatedSources(service, selectedSources)
+      : selectedSources;
 
   if (sources.length === 0) {
     return {
       bundle_id: "bundle-empty",
       request,
       sources: [],
+      anchor_references: [],
       warnings: [
         {
           code: "no_registered_source",
@@ -59,8 +66,13 @@ export function buildContextBundle(
 
   const bundleSources = [];
   const warnings: ContextBundleResponse["warnings"] = [];
+  const selectedAnchors = sources.flatMap((source) =>
+    service.registry.anchors.findBySourceId(source.id),
+  );
 
   for (const source of sources) {
+    const anchors = service.registry.anchors.findBySourceId(source.id);
+
     if (source.visibility === "restricted") {
       warnings.push({
         code: "restricted_source",
@@ -77,22 +89,35 @@ export function buildContextBundle(
       });
     }
 
-    const resolver = service.resolvers.get(source.source_class);
-    const resolved = resolver?.resolve({
-      source,
-      anchorId: request.anchor_id,
-      contentProvider: service.contentProvider,
-    });
+    const excerpts = [];
 
-    if (resolved) {
-      warnings.push(...resolved.warnings);
-      bundleSources.push({
-        source,
-        anchors: source.available_anchors,
-        selection_rationale: buildSelectionRationale(source, request),
-        excerpts: resolved.excerpts,
-      });
+    if (disclosureLevel > 0) {
+      const resolver = service.resolvers.get(source.source_class);
+      for (const anchorId of anchorIdsForDisclosure(
+        anchors,
+        request.anchor_id,
+        disclosureLevel,
+      )) {
+        const resolved = resolver?.resolve({
+          source,
+          anchors,
+          anchorId,
+          contentProvider: service.contentProvider,
+        });
+
+        if (resolved) {
+          warnings.push(...resolved.warnings);
+          excerpts.push(...resolved.excerpts);
+        }
+      }
     }
+
+    bundleSources.push({
+      source,
+      anchors,
+      selection_rationale: buildSelectionRationale(source, request),
+      excerpts,
+    });
   }
 
   warnings.push(...authorityConflictWarnings(sources));
@@ -101,8 +126,9 @@ export function buildContextBundle(
     bundle_id: `bundle-${request.topic_id ?? request.source_id ?? request.keyword ?? "query"}`,
     request,
     sources: bundleSources,
+    anchor_references: buildAnchorReferences(selectedAnchors),
     warnings,
-    expansion_paths: buildExpansionPaths(sources),
+    expansion_paths: buildExpansionPaths(selectedAnchors, disclosureLevel),
   };
 }
 
@@ -184,6 +210,31 @@ function selectSources(
   ]);
 }
 
+function expandRelatedSources(
+  service: ContextBundleService,
+  sources: Source[],
+): Source[] {
+  const sourceIds = new Set(sources.map((source) => source.id));
+  const topicIds = new Set(
+    sources.flatMap((source) =>
+      service.registry.mappings
+        .findBySourceId(source.id)
+        .map((mapping) => mapping.topic_id),
+    ),
+  );
+  const relatedSources = Array.from(topicIds).flatMap((topicId) =>
+    service.registry.mappings
+      .findByTopicId(topicId)
+      .map((mapping) => service.registry.sources.getById(mapping.source_id))
+      .filter(
+        (source): source is Source =>
+          source !== undefined && !sourceIds.has(source.id),
+      ),
+  );
+
+  return uniqueSources([...sources, ...relatedSources]);
+}
+
 function uniqueSources(sources: Source[]): Source[] {
   return Array.from(new Map(sources.map((source) => [source.id, source])).values());
 }
@@ -229,15 +280,51 @@ function buildSelectionRationale(source: Source, request: ContextRequest): strin
   return `Selected through deterministic registry match for ${source.authority_level} source metadata.`;
 }
 
-function buildExpansionPaths(sources: Source[]): ContextBundleResponse["expansion_paths"] {
-  return sources.flatMap((source) =>
-    source.available_anchors.map((anchor) => ({
-      source_id: source.id,
-      anchor_id: anchor.id,
-      disclosure_level: 2,
-      label: anchor.label,
-    })),
-  );
+function buildAnchorReferences(
+  anchors: Anchor[],
+): ContextBundleResponse["anchor_references"] {
+  return anchors.map((anchor) => ({
+    source_id: anchor.source_id,
+    anchor_id: anchor.id,
+    citation_label: anchor.citation_label,
+    status: anchor.status,
+  }));
+}
+
+function anchorIdsForDisclosure(
+  anchors: Anchor[],
+  requestedAnchorId: string | undefined,
+  disclosureLevel: number,
+): Array<string | undefined> {
+  if (disclosureLevel >= 2) {
+    const anchorIds = anchors.map((anchor) => anchor.id);
+    return uniqueAnchorIds(
+      requestedAnchorId ? [requestedAnchorId, ...anchorIds] : anchorIds,
+    );
+  }
+
+  return [requestedAnchorId ?? anchors[0]?.id];
+}
+
+function uniqueAnchorIds(anchorIds: string[]): string[] {
+  return Array.from(new Set(anchorIds));
+}
+
+function buildExpansionPaths(
+  anchors: Anchor[],
+  disclosureLevel: number,
+): ContextBundleResponse["expansion_paths"] {
+  if (disclosureLevel >= 3) {
+    return [];
+  }
+
+  const nextDisclosureLevel = disclosureLevel + 1;
+  return anchors.map((anchor) => ({
+    source_id: anchor.source_id,
+    anchor_id: anchor.id,
+    disclosure_level: nextDisclosureLevel,
+    label: anchor.citation_label,
+  }));
 }
 
 function authorityConflictWarnings(

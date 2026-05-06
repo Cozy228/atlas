@@ -14,14 +14,6 @@ export const capabilityBundle: ContextBundleResponse = {
         visibility: "internal",
         authority_scope: ["module-usage"],
         authority_level: "authoritative",
-        anchor_strategy: "markdown-heading",
-        available_anchors: [
-          {
-            id: "private-subnet-usage",
-            label: "Private subnet usage",
-            locator: "#private-subnet-usage",
-          },
-        ],
         last_observed_at: "2026-05-05T00:00:00.000Z",
         last_reviewed_at: "2026-05-01T00:00:00.000Z",
         review_frequency: "P90D",
@@ -29,8 +21,13 @@ export const capabilityBundle: ContextBundleResponse = {
       anchors: [
         {
           id: "private-subnet-usage",
-          label: "Private subnet usage",
-          locator: "#private-subnet-usage",
+          source_id: "textract-module-readme",
+          anchor_strategy: "markdown-heading",
+          title: "Private subnet usage",
+          selector: { locator: "#private-subnet-usage" },
+          citation_label: "Private subnet usage",
+          status: "valid",
+          last_validated_at: "2026-05-05T00:00:00.000Z",
         },
       ],
       selection_rationale: "Selected through explicit Source-Topic mapping.",
@@ -47,6 +44,14 @@ export const capabilityBundle: ContextBundleResponse = {
           },
         },
       ],
+    },
+  ],
+  anchor_references: [
+    {
+      source_id: "textract-module-readme",
+      anchor_id: "private-subnet-usage",
+      citation_label: "Private subnet usage",
+      status: "valid",
     },
   ],
   warnings: [],
@@ -74,14 +79,6 @@ export const landingZoneBundle: ContextBundleResponse = {
         visibility: "internal",
         authority_scope: ["landing-zone-guidance"],
         authority_level: "authoritative",
-        anchor_strategy: "confluence-section",
-        available_anchors: [
-          {
-            id: "environment-matrix",
-            label: "Environment matrix",
-            locator: "environment-matrix",
-          },
-        ],
         last_observed_at: "2026-05-05T00:00:00.000Z",
         last_reviewed_at: "2026-04-10T00:00:00.000Z",
         review_frequency: "P120D",
@@ -89,8 +86,13 @@ export const landingZoneBundle: ContextBundleResponse = {
       anchors: [
         {
           id: "environment-matrix",
-          label: "Environment matrix",
-          locator: "environment-matrix",
+          source_id: "central-lz-confluence",
+          anchor_strategy: "confluence-section",
+          title: "Environment matrix",
+          selector: { locator: "environment-matrix" },
+          citation_label: "Environment matrix",
+          status: "valid",
+          last_validated_at: "2026-05-05T00:00:00.000Z",
         },
       ],
       selection_rationale: "Selected through explicit Source-Topic mapping.",
@@ -107,6 +109,14 @@ export const landingZoneBundle: ContextBundleResponse = {
           },
         },
       ],
+    },
+  ],
+  anchor_references: [
+    {
+      source_id: "central-lz-confluence",
+      anchor_id: "environment-matrix",
+      citation_label: "Environment matrix",
+      status: "valid",
     },
   ],
   warnings: [],

@@ -29,6 +29,9 @@ export const anchorStrategies = [
 ] as const;
 
 export const topicStatuses = ["active", "deprecated", "planned"] as const;
+export const anchorStatuses = ["valid", "broken", "weak", "unvalidated"] as const;
+export const feedbackTargetTypes = ["topic", "source", "anchor"] as const;
+export const feedbackTypes = ["missing", "stale", "broken", "unclear"] as const;
 
 export const warningCodes = [
   "stale_source",
@@ -55,14 +58,23 @@ export const AuthorityLevelSchema = z.enum(authorityLevels);
 export const VisibilitySchema = z.enum(visibilityLevels);
 export const AnchorStrategySchema = z.enum(anchorStrategies);
 export const TopicStatusSchema = z.enum(topicStatuses);
+export const AnchorStatusSchema = z.enum(anchorStatuses);
+export const FeedbackTargetTypeSchema = z.enum(feedbackTargetTypes);
+export const FeedbackTypeSchema = z.enum(feedbackTypes);
 export const WarningCodeSchema = z.enum(warningCodes);
 export const ApiErrorCodeSchema = z.enum(apiErrorCodes);
 
 export const AnchorSchema = z
   .object({
     id: z.string().min(1),
-    label: z.string().min(1),
-    locator: z.string().min(1),
+    source_id: z.string().min(1),
+    anchor_strategy: AnchorStrategySchema,
+    title: z.string().min(1),
+    selector: z.record(z.string(), z.unknown()),
+    citation_label: z.string().min(1),
+    content_fingerprint: z.string().min(1).optional(),
+    status: AnchorStatusSchema,
+    last_validated_at: z.string().datetime(),
   })
   .strict();
 
@@ -83,8 +95,6 @@ export const SourceSchema = z
     visibility: VisibilitySchema,
     authority_scope: z.array(z.string().min(1)).min(1),
     authority_level: AuthorityLevelSchema,
-    anchor_strategy: AnchorStrategySchema,
-    available_anchors: z.array(AnchorSchema),
     last_observed_at: z.string().datetime(),
     last_reviewed_at: z.string().datetime(),
     review_frequency: z.string().min(1),
@@ -110,6 +120,17 @@ export const SourceTopicMappingSchema = z
     id: z.string().min(1),
     source_id: z.string().min(1),
     topic_id: z.string().min(1),
+  })
+  .strict();
+
+export const FeedbackSchema = z
+  .object({
+    id: z.string().min(1),
+    target_type: FeedbackTargetTypeSchema,
+    target_id: z.string().min(1),
+    feedback_type: FeedbackTypeSchema,
+    message: z.string().min(1),
+    submitted_at: z.string().datetime(),
   })
   .strict();
 
@@ -186,6 +207,15 @@ export const ContextBundleSourceSchema = z
   })
   .strict();
 
+export const AnchorReferenceSchema = z
+  .object({
+    source_id: z.string().min(1),
+    anchor_id: z.string().min(1),
+    citation_label: z.string().min(1),
+    status: AnchorStatusSchema,
+  })
+  .strict();
+
 export const WarningSchema = z
   .object({
     code: WarningCodeSchema,
@@ -209,6 +239,7 @@ export const ContextBundleResponseSchema = z
     bundle_id: z.string().min(1),
     request: ContextRequestSchema,
     sources: z.array(ContextBundleSourceSchema),
+    anchor_references: z.array(AnchorReferenceSchema),
     warnings: z.array(WarningSchema),
     expansion_paths: z.array(ExpansionPathSchema),
   })
@@ -229,10 +260,12 @@ export const ApiErrorResponseSchema = z
 export type SourceClass = z.infer<typeof SourceClassSchema>;
 export type TopicType = z.infer<typeof TopicTypeSchema>;
 export type AuthorityLevel = z.infer<typeof AuthorityLevelSchema>;
+export type FeedbackTargetType = z.infer<typeof FeedbackTargetTypeSchema>;
 export type Anchor = z.infer<typeof AnchorSchema>;
 export type Source = z.infer<typeof SourceSchema>;
 export type Topic = z.infer<typeof TopicSchema>;
 export type SourceTopicMapping = z.infer<typeof SourceTopicMappingSchema>;
+export type Feedback = z.infer<typeof FeedbackSchema>;
 export type SourceDiscoveryRequest = z.infer<typeof SourceDiscoveryRequestSchema>;
 export type SourceDiscoveryResponse = z.infer<
   typeof SourceDiscoveryResponseSchema

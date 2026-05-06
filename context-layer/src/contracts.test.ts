@@ -9,11 +9,13 @@ describe("context layer contract boundary", () => {
         topic_id: "unknown-topic",
       },
       sources: [],
+      anchor_references: [],
       warnings: [],
       expansion_paths: [],
     });
 
     expect(bundle.sources).toEqual([]);
+    expect(bundle.anchor_references).toEqual([]);
     expect(bundle.warnings).toEqual([]);
     expect(bundle.expansion_paths).toEqual([]);
   });

@@ -89,4 +89,68 @@ describe("context bundle service", () => {
     expect(bundle.warnings[0]).toMatchObject({ code: "no_registered_source" });
     expect(bundle.expansion_paths).toEqual([]);
   });
+
+  it("uses disclosure level 0 for metadata and anchor references without excerpts", () => {
+    const service = createDefaultContextBundleService();
+
+    const bundle = buildContextBundle(service, {
+      topic_id: "aws-textract",
+      disclosure_level: 0,
+    });
+
+    expect(bundle.anchor_references.length).toBeGreaterThan(0);
+    expect(bundle.sources[0]?.excerpts).toEqual([]);
+    expect(bundle.expansion_paths[0]?.disclosure_level).toBe(1);
+  });
+
+  it("stops emitting expansion paths at disclosure level 3", () => {
+    const service = createDefaultContextBundleService();
+
+    const bundle = buildContextBundle(service, {
+      topic_id: "aws-textract",
+      disclosure_level: 3,
+    });
+
+    expect(bundle.sources[0]?.excerpts.length).toBeGreaterThan(0);
+    expect(bundle.expansion_paths).toEqual([]);
+  });
+
+  it("uses disclosure level 2 to include adjacent anchors from the selected source", () => {
+    const service = createDefaultContextBundleService();
+    service.registry.anchors.put({
+      id: "textract-adjacent-anchor",
+      source_id: "textract-module-readme",
+      anchor_strategy: "markdown-heading",
+      title: "Adjacent Textract guidance",
+      selector: { locator: "#private-subnet-usage" },
+      citation_label: "textract-module-readme#adjacent",
+      status: "valid",
+      last_validated_at: "2026-05-06T00:00:00.000Z",
+    });
+
+    const levelOne = buildContextBundle(service, {
+      source_id: "textract-module-readme",
+      disclosure_level: 1,
+    });
+    const levelTwo = buildContextBundle(service, {
+      source_id: "textract-module-readme",
+      disclosure_level: 2,
+    });
+
+    expect(levelOne.sources[0]?.excerpts).toHaveLength(1);
+    expect(levelTwo.sources[0]?.excerpts).toHaveLength(2);
+  });
+
+  it("uses disclosure level 3 to include related sources from shared topics", () => {
+    const service = createDefaultContextBundleService();
+
+    const bundle = buildContextBundle(service, {
+      source_id: "textract-module-readme",
+      disclosure_level: 3,
+    });
+
+    expect(bundle.sources.map((source) => source.source.id)).toContain(
+      "private-networking-policy",
+    );
+  });
 });

@@ -1,21 +1,35 @@
-import { SourceSchema, SourceTopicMappingSchema, TopicSchema } from "@atlas/schema";
+import {
+  AnchorSchema,
+  FeedbackSchema,
+  SourceSchema,
+  SourceTopicMappingSchema,
+  TopicSchema,
+} from "@atlas/schema";
+import { InMemoryAnchorRepository } from "../repositories/anchorRepository.js";
+import { InMemoryFeedbackRepository } from "../repositories/feedbackRepository.js";
 import { InMemorySourceRepository } from "../repositories/sourceRepository.js";
 import { InMemorySourceTopicMappingRepository } from "../repositories/sourceTopicMappingRepository.js";
 import { InMemoryTopicRepository } from "../repositories/topicRepository.js";
 
 export type PilotRegistrySeed = {
+  anchors: unknown[];
+  feedback: unknown[];
   sources: unknown[];
   topics: unknown[];
   mappings: unknown[];
 };
 
 export type PilotRegistry = {
+  anchors: InMemoryAnchorRepository;
+  feedback: InMemoryFeedbackRepository;
   sources: InMemorySourceRepository;
   topics: InMemoryTopicRepository;
   mappings: InMemorySourceTopicMappingRepository;
 };
 
 export function loadPilotRegistry(seed: PilotRegistrySeed): PilotRegistry {
+  const anchors = seed.anchors.map((anchor) => AnchorSchema.parse(anchor));
+  const feedback = seed.feedback.map((item) => FeedbackSchema.parse(item));
   const sources = seed.sources.map((source) => SourceSchema.parse(source));
   const topics = seed.topics.map((topic) => TopicSchema.parse(topic));
   const mappings = seed.mappings.map((mapping) =>
@@ -24,6 +38,13 @@ export function loadPilotRegistry(seed: PilotRegistrySeed): PilotRegistry {
 
   const sourceIds = new Set(sources.map((source) => source.id));
   const topicIds = new Set(topics.map((topic) => topic.id));
+  const anchorIds = new Set(anchors.map((anchor) => anchor.id));
+
+  for (const anchor of anchors) {
+    if (!sourceIds.has(anchor.source_id)) {
+      throw new Error(`Unknown source_id in anchor: ${anchor.source_id}`);
+    }
+  }
 
   for (const mapping of mappings) {
     if (!sourceIds.has(mapping.source_id)) {
@@ -34,7 +55,21 @@ export function loadPilotRegistry(seed: PilotRegistrySeed): PilotRegistry {
     }
   }
 
+  for (const item of feedback) {
+    if (item.target_type === "source" && !sourceIds.has(item.target_id)) {
+      throw new Error(`Unknown source target_id in feedback: ${item.target_id}`);
+    }
+    if (item.target_type === "topic" && !topicIds.has(item.target_id)) {
+      throw new Error(`Unknown topic target_id in feedback: ${item.target_id}`);
+    }
+    if (item.target_type === "anchor" && !anchorIds.has(item.target_id)) {
+      throw new Error(`Unknown anchor target_id in feedback: ${item.target_id}`);
+    }
+  }
+
   return {
+    anchors: new InMemoryAnchorRepository(anchors),
+    feedback: new InMemoryFeedbackRepository(feedback),
     sources: new InMemorySourceRepository(sources),
     topics: new InMemoryTopicRepository(topics),
     mappings: new InMemorySourceTopicMappingRepository(mappings),
@@ -169,14 +204,6 @@ export const pilotRegistrySeed = {
       visibility: "internal",
       authority_scope: ["module-usage", "private-networking"],
       authority_level: "authoritative",
-      anchor_strategy: "markdown-heading",
-      available_anchors: [
-        {
-          id: "private-subnet-usage",
-          label: "Private subnet usage",
-          locator: "#private-subnet-usage",
-        },
-      ],
       last_observed_at: "2026-05-05T00:00:00.000Z",
       last_reviewed_at: "2026-05-01T00:00:00.000Z",
       review_frequency: "P90D",
@@ -190,8 +217,6 @@ export const pilotRegistrySeed = {
       visibility: "internal",
       authority_scope: ["module-usage", "ai-ml"],
       authority_level: "authoritative",
-      anchor_strategy: "markdown-heading",
-      available_anchors: [{ id: "model-access", label: "Model access", locator: "#model-access" }],
       last_observed_at: "2026-05-05T00:00:00.000Z",
       last_reviewed_at: "2026-04-15T00:00:00.000Z",
       review_frequency: "P90D",
@@ -205,8 +230,6 @@ export const pilotRegistrySeed = {
       visibility: "internal",
       authority_scope: ["module-usage", "compute"],
       authority_level: "authoritative",
-      anchor_strategy: "markdown-heading",
-      available_anchors: [{ id: "event-sources", label: "Event sources", locator: "#event-sources" }],
       last_observed_at: "2026-05-05T00:00:00.000Z",
       last_reviewed_at: "2026-04-20T00:00:00.000Z",
       review_frequency: "P90D",
@@ -220,8 +243,6 @@ export const pilotRegistrySeed = {
       visibility: "internal",
       authority_scope: ["landing-zone-guidance"],
       authority_level: "authoritative",
-      anchor_strategy: "confluence-section",
-      available_anchors: [{ id: "environment-matrix", label: "Environment matrix", locator: "environment-matrix" }],
       last_observed_at: "2026-05-05T00:00:00.000Z",
       last_reviewed_at: "2026-04-10T00:00:00.000Z",
       review_frequency: "P120D",
@@ -235,8 +256,6 @@ export const pilotRegistrySeed = {
       visibility: "restricted",
       authority_scope: ["landing-zone-guidance", "regulated-workloads"],
       authority_level: "authoritative",
-      anchor_strategy: "confluence-section",
-      available_anchors: [{ id: "regulated-controls", label: "Regulated controls", locator: "regulated-controls" }],
       last_observed_at: "2026-05-05T00:00:00.000Z",
       last_reviewed_at: "2026-03-20T00:00:00.000Z",
       review_frequency: "P90D",
@@ -250,8 +269,6 @@ export const pilotRegistrySeed = {
       visibility: "internal",
       authority_scope: ["landing-zone-guidance"],
       authority_level: "reference",
-      anchor_strategy: "confluence-section",
-      available_anchors: [{ id: "expiration-policy", label: "Expiration policy", locator: "expiration-policy" }],
       last_observed_at: "2026-05-05T00:00:00.000Z",
       last_reviewed_at: "2026-04-25T00:00:00.000Z",
       review_frequency: "P120D",
@@ -265,8 +282,6 @@ export const pilotRegistrySeed = {
       visibility: "internal",
       authority_scope: ["security-guardrail", "storage"],
       authority_level: "authoritative",
-      anchor_strategy: "document-clause",
-      available_anchors: [{ id: "public-access", label: "Public access controls", locator: "clause-2.1" }],
       last_observed_at: "2026-05-05T00:00:00.000Z",
       last_reviewed_at: "2026-04-01T00:00:00.000Z",
       review_frequency: "P90D",
@@ -280,8 +295,6 @@ export const pilotRegistrySeed = {
       visibility: "internal",
       authority_scope: ["security-guardrail", "storage"],
       authority_level: "deprecated",
-      anchor_strategy: "document-clause",
-      available_anchors: [{ id: "legacy-public-access", label: "Legacy public access", locator: "clause-1.4" }],
       last_observed_at: "2026-05-05T00:00:00.000Z",
       last_reviewed_at: "2024-01-15T00:00:00.000Z",
       review_frequency: "P90D",
@@ -295,8 +308,6 @@ export const pilotRegistrySeed = {
       visibility: "internal",
       authority_scope: ["security-guardrail", "private-networking"],
       authority_level: "authoritative",
-      anchor_strategy: "document-clause",
-      available_anchors: [{ id: "vpc-endpoints", label: "VPC endpoints", locator: "missing-clause-4.2" }],
       last_observed_at: "2026-05-05T00:00:00.000Z",
       last_reviewed_at: "2026-04-05T00:00:00.000Z",
       review_frequency: "P90D",
@@ -310,8 +321,6 @@ export const pilotRegistrySeed = {
       visibility: "restricted",
       authority_scope: ["security-guardrail", "iam-boundary"],
       authority_level: "authoritative",
-      anchor_strategy: "document-clause",
-      available_anchors: [{ id: "delegated-roles", label: "Delegated roles", locator: "clause-3.1" }],
       last_observed_at: "2026-05-05T00:00:00.000Z",
       last_reviewed_at: "2026-04-12T00:00:00.000Z",
       review_frequency: "P90D",
@@ -325,8 +334,6 @@ export const pilotRegistrySeed = {
       visibility: "internal",
       authority_scope: ["operations-guardrail", "logging-monitoring"],
       authority_level: "authoritative",
-      anchor_strategy: "document-clause",
-      available_anchors: [{ id: "required-signals", label: "Required signals", locator: "clause-1.2" }],
       last_observed_at: "2026-05-05T00:00:00.000Z",
       last_reviewed_at: "2026-04-18T00:00:00.000Z",
       review_frequency: "P90D",
@@ -340,11 +347,141 @@ export const pilotRegistrySeed = {
       visibility: "internal",
       authority_scope: ["reference-guidance"],
       authority_level: "draft",
-      anchor_strategy: "confluence-section",
-      available_anchors: [{ id: "pilot-limitations", label: "Pilot limitations", locator: "pilot-limitations" }],
       last_observed_at: "2026-05-05T00:00:00.000Z",
       last_reviewed_at: "2026-04-30T00:00:00.000Z",
       review_frequency: "P30D",
+    },
+  ],
+  anchors: [
+    {
+      id: "private-subnet-usage",
+      source_id: "textract-module-readme",
+      anchor_strategy: "markdown-heading",
+      title: "Private subnet usage",
+      selector: { locator: "#private-subnet-usage" },
+      citation_label: "Private subnet usage",
+      status: "valid",
+      last_validated_at: "2026-05-05T00:00:00.000Z",
+    },
+    {
+      id: "model-access",
+      source_id: "bedrock-module-readme",
+      anchor_strategy: "markdown-heading",
+      title: "Model access",
+      selector: { locator: "#model-access" },
+      citation_label: "Model access",
+      status: "valid",
+      last_validated_at: "2026-05-05T00:00:00.000Z",
+    },
+    {
+      id: "event-sources",
+      source_id: "lambda-module-readme",
+      anchor_strategy: "markdown-heading",
+      title: "Event sources",
+      selector: { locator: "#event-sources" },
+      citation_label: "Event sources",
+      status: "valid",
+      last_validated_at: "2026-05-05T00:00:00.000Z",
+    },
+    {
+      id: "environment-matrix",
+      source_id: "central-lz-confluence",
+      anchor_strategy: "confluence-section",
+      title: "Environment matrix",
+      selector: { locator: "environment-matrix" },
+      citation_label: "Environment matrix",
+      status: "valid",
+      last_validated_at: "2026-05-05T00:00:00.000Z",
+    },
+    {
+      id: "regulated-controls",
+      source_id: "regulated-lz-confluence",
+      anchor_strategy: "confluence-section",
+      title: "Regulated controls",
+      selector: { locator: "regulated-controls" },
+      citation_label: "Regulated controls",
+      status: "valid",
+      last_validated_at: "2026-05-05T00:00:00.000Z",
+    },
+    {
+      id: "expiration-policy",
+      source_id: "sandbox-lz-confluence",
+      anchor_strategy: "confluence-section",
+      title: "Expiration policy",
+      selector: { locator: "expiration-policy" },
+      citation_label: "Expiration policy",
+      status: "valid",
+      last_validated_at: "2026-05-05T00:00:00.000Z",
+    },
+    {
+      id: "public-access",
+      source_id: "s3-policy-doc",
+      anchor_strategy: "document-clause",
+      title: "Public access controls",
+      selector: { locator: "clause-2.1" },
+      citation_label: "Public access controls",
+      status: "valid",
+      last_validated_at: "2026-05-05T00:00:00.000Z",
+    },
+    {
+      id: "legacy-public-access",
+      source_id: "legacy-s3-policy",
+      anchor_strategy: "document-clause",
+      title: "Legacy public access",
+      selector: { locator: "clause-1.4" },
+      citation_label: "Legacy public access",
+      status: "valid",
+      last_validated_at: "2026-05-05T00:00:00.000Z",
+    },
+    {
+      id: "vpc-endpoints",
+      source_id: "private-networking-policy",
+      anchor_strategy: "document-clause",
+      title: "VPC endpoints",
+      selector: { locator: "missing-clause-4.2" },
+      citation_label: "VPC endpoints",
+      status: "broken",
+      last_validated_at: "2026-05-05T00:00:00.000Z",
+    },
+    {
+      id: "delegated-roles",
+      source_id: "iam-boundary-policy",
+      anchor_strategy: "document-clause",
+      title: "Delegated roles",
+      selector: { locator: "clause-3.1" },
+      citation_label: "Delegated roles",
+      status: "valid",
+      last_validated_at: "2026-05-05T00:00:00.000Z",
+    },
+    {
+      id: "required-signals",
+      source_id: "logging-standard-doc",
+      anchor_strategy: "document-clause",
+      title: "Required signals",
+      selector: { locator: "clause-1.2" },
+      citation_label: "Required signals",
+      status: "valid",
+      last_validated_at: "2026-05-05T00:00:00.000Z",
+    },
+    {
+      id: "pilot-limitations",
+      source_id: "platform-reference-guide",
+      anchor_strategy: "confluence-section",
+      title: "Pilot limitations",
+      selector: { locator: "pilot-limitations" },
+      citation_label: "Pilot limitations",
+      status: "valid",
+      last_validated_at: "2026-05-05T00:00:00.000Z",
+    },
+  ],
+  feedback: [
+    {
+      id: "feedback-private-networking-anchor",
+      target_type: "anchor",
+      target_id: "vpc-endpoints",
+      feedback_type: "broken",
+      message: "The VPC endpoints clause is missing in the pilot source.",
+      submitted_at: "2026-05-06T00:00:00.000Z",
     },
   ],
   mappings: [
