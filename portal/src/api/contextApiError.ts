@@ -1,6 +1,6 @@
-import { apiErrorCodes, type ApiErrorResponse } from "@atlas/schema";
+import type { ApiErrorCode, ApiErrorResponse } from "@atlas/schema";
 
-export type ContextApiErrorCode = (typeof apiErrorCodes)[number];
+export type ContextApiErrorCode = ApiErrorCode;
 
 /**
  * Error thrown by the Portal Context API client when the underlying handler

@@ -7,12 +7,63 @@ import {
   IconMessageReport,
   IconShieldCheck,
 } from "@tabler/icons-react";
+import type {
+  Source,
+  SourceDiscoveryResponse,
+  Topic,
+  TopicDiscoveryResponse,
+} from "@atlas/schema";
 
+import {
+  fetchSourceDiscovery,
+  fetchTopicDiscovery,
+} from "@/api/server/contextApi";
 import { Badge } from "@/components/ui/badge";
 import { PageBody, PageHeader, PageSection } from "@/components/page-section";
+import { classifyFreshness } from "@/lib/evidence";
 import { cn } from "@/lib/utils";
 
+type HomeLoaderData = {
+  topics: ReadonlyArray<Topic>;
+  sources: ReadonlyArray<Source>;
+  signals: {
+    capabilityCount: number;
+    landingZoneCount: number;
+    sourceCount: number;
+    staleSourceCount: number;
+    deprecatedSourceCount: number;
+    restrictedSourceCount: number;
+  };
+};
+
 export const Route = createFileRoute("/")({
+  loader: async (): Promise<HomeLoaderData> => {
+    const [topicsResp, sourcesResp]: [TopicDiscoveryResponse, SourceDiscoveryResponse] =
+      await Promise.all([fetchTopicDiscovery(), fetchSourceDiscovery()]);
+
+    return {
+      topics: topicsResp.topics,
+      sources: sourcesResp.sources,
+      signals: {
+        capabilityCount: topicsResp.topics.filter(
+          (topic) => topic.topic_type === "capability",
+        ).length,
+        landingZoneCount: topicsResp.topics.filter(
+          (topic) => topic.topic_type === "landing-zone",
+        ).length,
+        sourceCount: sourcesResp.sources.length,
+        staleSourceCount: sourcesResp.sources.filter(
+          (source) => classifyFreshness(source) !== "current",
+        ).length,
+        deprecatedSourceCount: sourcesResp.sources.filter(
+          (source) => source.authority_level === "deprecated",
+        ).length,
+        restrictedSourceCount: sourcesResp.sources.filter(
+          (source) => source.visibility === "restricted",
+        ).length,
+      },
+    };
+  },
   component: HomeRoute,
 });
 
@@ -20,40 +71,40 @@ type Entry = {
   to: string;
   label: string;
   description: string;
+  count: number;
   icon: typeof IconCircleDashedCheck;
-  // Phase P3 will populate counts and signals from real Context API loaders.
-  // Today we keep the entry static so we never invent source truth.
-  loaderHint?: string;
 };
 
-const PRIMARY_ENTRIES: Entry[] = [
-  {
-    to: "/capabilities",
-    label: "Find a capability",
-    description:
-      "Approved cloud platform capabilities with owners, support paths, and authoritative module evidence.",
-    icon: IconCircleDashedCheck,
-    loaderHint: "Counts and review signals load from /topics?topic_type=capability",
-  },
-  {
-    to: "/landing-zones",
-    label: "Choose a landing zone",
-    description:
-      "Compare environments, guardrails, and provisioning entry tools across landing zones.",
-    icon: IconBuildingFactory,
-    loaderHint: "Loads from /topics?topic_type=landing-zone",
-  },
-  {
-    to: "/sources",
-    label: "Look up a source",
-    description:
-      "Discover authoritative source owners, anchors, freshness, and warning state.",
-    icon: IconShieldCheck,
-    loaderHint: "Loads from /sources",
-  },
-];
-
 function HomeRoute() {
+  const { signals } = Route.useLoaderData();
+
+  const entries: Entry[] = [
+    {
+      to: "/capabilities",
+      label: "Find a capability",
+      description:
+        "Approved cloud platform capabilities with owners, support paths, and authoritative module evidence.",
+      count: signals.capabilityCount,
+      icon: IconCircleDashedCheck,
+    },
+    {
+      to: "/landing-zones",
+      label: "Choose a landing zone",
+      description:
+        "Compare environments, guardrails, and provisioning entry tools across landing zones.",
+      count: signals.landingZoneCount,
+      icon: IconBuildingFactory,
+    },
+    {
+      to: "/sources",
+      label: "Look up a source",
+      description:
+        "Discover authoritative source owners, anchors, freshness, and warning state.",
+      count: signals.sourceCount,
+      icon: IconShieldCheck,
+    },
+  ];
+
   return (
     <PageBody>
       <PageHeader
@@ -61,27 +112,25 @@ function HomeRoute() {
         title="Pick the right cloud platform context, fast"
         description="Atlas governs cloud capabilities, landing zones, and authoritative sources so application teams stop guessing which document, module, or owner is current."
         actions={
-          <>
-            <Link
-              to="/ask"
-              className="inline-flex items-center gap-2 rounded-md border border-border bg-card px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <IconMessage2 className="size-4 text-muted-foreground" />
-              Ask Atlas
-              <Badge variant="outline" className="border-border">
-                Deferred
-              </Badge>
-            </Link>
-          </>
+          <Link
+            to="/ask"
+            className="inline-flex items-center gap-2 rounded-md border border-border bg-card px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <IconMessage2 className="size-4 text-muted-foreground" />
+            Ask Atlas
+            <Badge variant="outline" className="border-border">
+              Deferred
+            </Badge>
+          </Link>
         }
       />
 
       <PageSection
         title="Start a task"
-        description="Three primary entries cover the V1 pilot. Browse first, then drill into evidence."
+        description="Three primary entries cover the V1 pilot. Counts come from the live Context API."
       >
         <ul className="grid grid-cols-1 gap-3 lg:grid-cols-3">
-          {PRIMARY_ENTRIES.map((entry) => (
+          {entries.map((entry) => (
             <li key={entry.to}>
               <PrimaryEntryLink entry={entry} />
             </li>
@@ -91,38 +140,27 @@ function HomeRoute() {
 
       <PageSection
         title="Today's signals"
-        description="Loader-backed in Phase P3. Until then we surface the contract, not invented numbers."
+        description="Live counts from the Context API source discovery response."
       >
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          {[
-            {
-              label: "Stale review backlog",
-              hint: "Topics whose authoritative source is past review_frequency.",
-            },
-            {
-              label: "Broken anchors",
-              hint: "Anchors marked broken, weak, or unvalidated by the registry.",
-            },
-            {
-              label: "Authority conflicts",
-              hint: "Topics with overlapping authoritative sources to reconcile.",
-            },
-          ].map((signal) => (
-            <article
-              key={signal.label}
-              className="flex flex-col gap-2 rounded-md border border-border bg-card p-4"
-            >
-              <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
-                {signal.label}
-              </p>
-              <p className="text-sm text-foreground">
-                Awaiting Phase P3 loader.
-              </p>
-              <p className="text-xs leading-5 text-muted-foreground">
-                {signal.hint}
-              </p>
-            </article>
-          ))}
+          <SignalRow
+            label="Stale or due-for-review sources"
+            value={signals.staleSourceCount}
+            hint="Sources at or past their review_frequency window."
+            tone={signals.staleSourceCount > 0 ? "warning" : "neutral"}
+          />
+          <SignalRow
+            label="Deprecated sources still mapped"
+            value={signals.deprecatedSourceCount}
+            hint="Sources marked authority_level=deprecated still in the registry."
+            tone={signals.deprecatedSourceCount > 0 ? "critical" : "neutral"}
+          />
+          <SignalRow
+            label="Restricted sources"
+            value={signals.restrictedSourceCount}
+            hint="Visible as restricted metadata; content fetch returns access_denied."
+            tone={signals.restrictedSourceCount > 0 ? "warning" : "neutral"}
+          />
         </div>
       </PageSection>
 
@@ -139,8 +177,8 @@ function HomeRoute() {
             Report missing, stale, broken, or unclear guidance
           </span>
           <span className="text-xs text-muted-foreground">
-            Feedback is inline on capability, landing zone, source, and Ask
-            surfaces. Use the source lookup to find the right target.
+            Feedback is inline on capability, landing zone, and source detail
+            pages. Use the source lookup to find the right target.
           </span>
         </Link>
       </PageSection>
@@ -168,11 +206,44 @@ function PrimaryEntryLink({ entry }: { entry: Entry }) {
       <p className="text-sm leading-6 text-muted-foreground">
         {entry.description}
       </p>
-      {entry.loaderHint ? (
-        <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground/80">
-          {entry.loaderHint}
-        </p>
-      ) : null}
+      <p className="text-xs text-muted-foreground">
+        <span className="font-mono text-foreground">{entry.count}</span>{" "}
+        registered
+      </p>
     </Link>
+  );
+}
+
+function SignalRow({
+  label,
+  value,
+  hint,
+  tone,
+}: {
+  label: string;
+  value: number;
+  hint: string;
+  tone: "neutral" | "warning" | "critical";
+}) {
+  const toneClass: Record<typeof tone, string> = {
+    neutral: "text-foreground",
+    warning: "text-warning-foreground",
+    critical: "text-critical",
+  };
+  return (
+    <article className="flex flex-col gap-2 rounded-md border border-border bg-card p-4">
+      <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
+        {label}
+      </p>
+      <p
+        className={cn(
+          "text-2xl font-semibold tabular-nums tracking-tight",
+          toneClass[tone],
+        )}
+      >
+        {value}
+      </p>
+      <p className="text-xs leading-5 text-muted-foreground">{hint}</p>
+    </article>
   );
 }

@@ -1,44 +1,111 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute } from "@tanstack/react-router";
+import { IconArrowRight } from "@tabler/icons-react";
+import type { Source } from "@atlas/schema";
 
+import { fetchSourceDiscovery } from "@/api/server/contextApi";
+import {
+  AuthorityBadge,
+  FreshnessIndicator,
+  SourceClassBadge,
+  VisibilityBadge,
+} from "@/components/evidence/badges";
 import { Badge } from "@/components/ui/badge";
 import { PageBody, PageHeader, PageSection } from "@/components/page-section";
+import { compareByAuthority } from "@/lib/evidence";
+import { cn } from "@/lib/utils";
+
+type LoaderData = {
+  sources: ReadonlyArray<Source>;
+};
 
 export const Route = createFileRoute("/sources/")({
+  loader: async (): Promise<LoaderData> => {
+    const response = await fetchSourceDiscovery();
+    return { sources: response.sources };
+  },
   component: SourcesListRoute,
 });
 
 function SourcesListRoute() {
+  const { sources } = Route.useLoaderData();
+  const sorted = [...sources].sort(
+    (a, b) => compareByAuthority(a, b) || a.title.localeCompare(b.title),
+  );
+
   return (
     <PageBody>
       <PageHeader
         eyebrow="Discovery"
         title="Sources"
-        description="Authoritative source lookup. Filter by source class, authority level, visibility, steward, and warning state. Phase P3 wires this list to live source discovery."
-        actions={
-          <Badge variant="brand">/sources</Badge>
-        }
+        description="Authoritative source lookup. Authority, freshness, and restricted visibility are visible inline so you can verify evidence before committing to a citation."
+        actions={<Badge variant="brand">/sources</Badge>}
       />
-      <PageSection
-        title="Source registry"
-        description="Each row will carry source class, steward, authority, freshness, visibility, anchor count, and any warnings tied to source identity."
-      >
-        <div className="rounded-md border border-dashed border-border bg-card p-6 text-sm text-muted-foreground">
-          <p className="font-medium text-foreground">
-            Awaiting Phase P3 data binding.
-          </p>
-          <p className="mt-1 leading-6">
-            Sources load from{" "}
-            <code className="rounded bg-muted px-1.5 py-0.5 text-xs text-foreground">
-              GET /sources
-            </code>{" "}
-            parsed through{" "}
-            <code className="rounded bg-muted px-1.5 py-0.5 text-xs text-foreground">
-              SourceDiscoveryResponseSchema
-            </code>
-            .
-          </p>
-        </div>
+      <PageSection title="Source registry">
+        {sorted.length === 0 ? (
+          <EmptyState />
+        ) : (
+          <ul className="overflow-hidden rounded-md border border-border bg-card">
+            {sorted.map((source, index) => (
+              <li
+                key={source.id}
+                className={cn("border-border", index > 0 && "border-t")}
+              >
+                <SourceRow source={source} />
+              </li>
+            ))}
+          </ul>
+        )}
       </PageSection>
     </PageBody>
+  );
+}
+
+function SourceRow({ source }: { source: Source }) {
+  return (
+    <Link
+      to="/sources/$sourceId"
+      params={{ sourceId: source.id }}
+      className={cn(
+        "group grid grid-cols-1 gap-3 px-4 py-3 transition-colors lg:grid-cols-[minmax(0,2.4fr)_minmax(0,1fr)_minmax(0,1.6fr)_auto]",
+        "hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+      )}
+    >
+      <div className="flex flex-col gap-1">
+        <p className="flex items-center gap-2 text-sm font-semibold text-foreground">
+          {source.title}
+          <span className="font-mono text-[11px] font-normal text-muted-foreground">
+            {source.id}
+          </span>
+        </p>
+        <p className="text-xs leading-5 text-muted-foreground">
+          steward · {source.steward} · scope · {source.authority_scope.join(", ")}
+        </p>
+      </div>
+      <div className="flex flex-col gap-1 text-xs text-muted-foreground">
+        <span className="text-[11px] uppercase tracking-[0.12em]">Class</span>
+        <SourceClassBadge value={source.source_class} />
+      </div>
+      <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+        <AuthorityBadge level={source.authority_level} />
+        <VisibilityBadge value={source.visibility} />
+        <FreshnessIndicator source={source} />
+      </div>
+      <div className="flex items-center justify-end gap-1 text-xs text-primary">
+        Inspect
+        <IconArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
+      </div>
+    </Link>
+  );
+}
+
+function EmptyState() {
+  return (
+    <div className="rounded-md border border-dashed border-border bg-card p-6 text-sm text-muted-foreground">
+      <p className="font-medium text-foreground">No registered sources.</p>
+      <p className="mt-1 leading-6">
+        The Context API returned an empty discovery response. Use the feedback
+        action to suggest a source for the registry.
+      </p>
+    </div>
   );
 }
