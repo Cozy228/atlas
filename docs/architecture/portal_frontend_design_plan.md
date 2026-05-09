@@ -16,19 +16,38 @@ Impeccable context note: this repository does not currently have `PRODUCT.md` or
 
 ## Goal
 
-Build Atlas Portal as a work-focused Cloud Platform DevEx Portal: a scoped catalog, guidance surface, and governed evidence experience for application teams.
+Build Atlas Portal as a work-focused Cloud Platform DevEx Portal: a wayfinding system that helps application engineers quickly locate the right platform capability, landing zone, guardrail, owner, support path, and tool entry without reading scattered documentation or asking the platform team to route them manually.
 
 Portal V1 should make these jobs obvious:
 
 - Find an approved platform capability.
+- Check availability across regions and outposts.
 - Compare landing zones, guardrails, tools, and support paths.
-- Browse a scoped cloud platform catalog without turning Atlas into a full CMDB.
 - Understand ownership, readiness, health, and operational context for catalog objects.
-- Locate authoritative sources, source owners, and source health signals.
+- Follow a guided journey from intent to entry tool.
 - Ask a cited platform question grounded in catalog objects and registered evidence.
 - Report missing, stale, broken, conflicting, or unclear guidance.
 
 The Portal must feel like a real operating surface, not a marketing page, provisioning wizard, documentation clone, passive document index, or admin console.
+
+## Design Philosophy
+
+Atlas is a **wayfinding system**. Users arrive with a destination in mind: a capability, a landing zone, a tool link, an owner, a policy answer. Every design decision optimizes for **shortening the distance from "I have a question" to "I found the answer"**.
+
+Design principles in priority order:
+
+1. **Intent-first, not taxonomy-first.** Start from user tasks, not object type menus.
+2. **Progressive revelation.** Simple entry → click to expand → full detail on demand.
+3. **Evidence is verification, not discovery.** Source info is inline expandable, not a persistent panel.
+4. **Adaptive density.** Compact grouped cards for small catalogs, dense table mode when data grows.
+5. **Operational, not decorative.** Zero motion choreography; only loading, expand, and state feedback animate.
+
+Reference models:
+
+- [Claude API Docs](https://platform.claude.com/docs/en/home): intent entry, developer journey lifecycle, progressive detail.
+- [Stripe Docs](https://docs.stripe.com/): use-case entry, product-organized browse, quick actions.
+- [Atlassian Compass](https://www.atlassian.com/software/compass): developer portal, component catalog, scorecards.
+- [Port](https://www.getport.io/): blueprint-based catalog, relations, configurable discovery.
 
 ## Working Assumptions
 
@@ -72,11 +91,11 @@ Design implications:
 - Prefer a quiet, light, high-density interface.
 - Use restrained color with one accent for primary action, current selection, and important state.
 - Make warnings visible without making the whole interface feel broken.
-- Use familiar product patterns: sidebar, top search, catalog filters, breadcrumbs, tabs, tables, relationship panels, badges, health summaries, action menus, and inline feedback.
+- Use familiar product patterns: top navigation bar, global search, catalog filters, breadcrumbs, tabs, tables, relationship panels, badges, health summaries, action menus, and inline feedback.
 - Reserve a stable brand area for the company logo, but keep the first viewport task-oriented.
 - Use `#001aff` as a controlled accent for action and selection only. Do not let brand color overpower evidence scanning.
-- Avoid a hero landing page. The first viewport should be the usable Portal.
-- Avoid identical decorative card grids. Use lists, tables, comparison matrices, and detail panels where they fit the task better.
+- The first viewport should be intent-driven: search and guided journeys, not a feature directory.
+- Avoid identical decorative card grids. Use domain-grouped cards with inline status, tables, comparison matrices, and detail panels where they fit the task better.
 - Avoid nested cards. Use full-width sections, table rows, split panes, and inline panels instead.
 - Treat motion as operational feedback only. Catalog row expansion, evidence reveal, and inline save states can move; decorative page choreography should not.
 
@@ -86,20 +105,18 @@ These decisions come from the Portal design brainstorm and should guide implemen
 
 | Area | Decision |
 |---|---|
-| Product direction | DevEx Portal with a scoped cloud platform catalog. The first impression should be clear, credible, and usable, while deeper screens retain evidence-first rigor. |
-| Visual density | Guided Product by default. Catalog lists can be Calm Dense. Source, health, and evidence views can become Evidence Console when users expand details. |
-| Home | Primary entries: Catalog, Capabilities, Landing Zones, Guardrails, Sources. Ask Atlas, feedback, health gaps, and tool links are supporting surfaces. |
-| Navigation | Fixed left sidebar with a stable company logo slot. Top bar carries catalog search, environment, and lightweight health/status summary. |
-| Search | Browse-first with catalog search. Later add command palette for fast lookup, owner lookup, evidence reveal, and navigation. Do not turn search into a general-purpose enterprise search engine. |
-| Catalog | First-class work surface for scoped cloud platform objects. It should show type, owner, lifecycle, support, tool links, evidence coverage, and warning state. |
-| Capability discovery | Catalog-filtered capability view. Entry previews may be product-like, but comparison surfaces should use dense rows, tables, grouped sections, and relationship panels. |
-| Detail pages | Guided Catalog Detail plus expandable Split Evidence View. Main content explains the object and next actions; evidence rail supports verification. |
-| Landing zones | Comparison matrix or dense comparison rows plus guided landing zone detail. No V1 decision flow or recommendation engine. |
-| Guardrails | First-class browse and detail surface for policy areas when pilot data supports it. Guardrails are catalog objects backed by policy sources, not long-form copied policy pages. |
-| Sources | First-level evidence and governance lookup surface, not an admin registry or passive docs library. |
-| Health | V1 health means guidance and evidence health: authority coverage, stale sources, broken anchors, missing owner/support, and conflicts. It does not score all service reliability. |
-| Ask Atlas | Catalog-aware, citation-bound assistant surface. It can be visible before full implementation, but it must not become the default way to use the Portal. |
-| Evidence | Key authority, freshness, visibility, ownership, and warning badges are inline. Full sources, anchors, citations, and expansion paths live in an expandable rail or panel. |
+| Product direction | DevEx Portal as wayfinding system. The first impression should be intent-driven and guided, while deeper screens retain evidence-first rigor. |
+| Visual density | Adaptive: compact grouped cards by default, dense table mode on demand or when data exceeds 15 items per group. |
+| Home | Intent-first entry: hero with search, platform entry cards (Evaluate / Decide / Onboard) as clickable cards with inline expand panels, developer journey grid (Get started → Build → Validate → Operate), catalog highlights, recent activity, health band, and resource links. |
+| Navigation | Top navigation bar with brand mark, inline nav links, health indicator, and sync status. No sidebar. Global search with ⌘K in the hero area. |
+| Search | Catalog-aware intent resolution (not AI chat). Supports synonyms, routes to catalog objects, owners, and guided journeys. |
+| Explore | Unified catalog and availability surface. Browse all object types with availability context inline, following the domain-grouped card + inline expand + matrix toggle pattern. |
+| Guided journeys | Integrated into Home as platform entry cards. Clicking a card expands an inline panel with phase-specific content. Not a separate wizard or overlay. A second layer, the developer journey grid, provides lifecycle-stage navigation with direct links. |
+| Capability detail | Answer-first layout: what it is, when to use, get started tools, availability, guardrails, then evidence expandable inline. |
+| Landing zones | Comparison matrix or dense comparison rows plus guided landing zone detail. |
+| Evidence | Inline expandable sections on detail pages. No persistent right rail. Evidence expands on demand to show sources, authority, freshness, anchors, and warnings. |
+| Health | Ambient compact band on home; dedicated page uses progress indicators and actionable issue list. |
+| Ask Atlas | Catalog-aware, citation-bound assistant surface. Visible as deferred capability until implementation is ready. |
 
 ## Information Architecture
 
@@ -113,7 +130,7 @@ Portal UI should expose user-facing catalog objects without leaking backend impl
 | Landing Zone | `Topic` with `topic_type=landing-zone` | Deployment environment option with guardrails, tools, support, and onboarding path |
 | Guardrail Area | `Topic` with `topic_type=guardrail-area` | Policy or control area such as networking, IAM, data protection, logging, or approved AI usage |
 | Tool Entry | `Topic.entry_tools` or related link metadata | Operational entry point such as TFE module, Harness pipeline, dashboard, request form, or runbook |
-| Availability Map | Catalog projection over capability and region data | Secondary discovery surface for service or capability availability across regions, outposts, and landing zone levels |
+| Availability Record | Catalog projection over capability and region data | Availability status per capability, region, and outpost |
 | Source | `Source` plus `Anchor` | Governed evidence location with authority, ownership, visibility, freshness, and addressability |
 | Owner or Team | Topic owner team and source steward metadata | Human routing path for support, content stewardship, and escalation |
 
@@ -129,38 +146,42 @@ Frontend naming rules:
 
 | Route | Purpose | Primary data |
 |---|---|---|
-| `/` | Portal home and task entry | Catalog summaries, guided journeys, health signals, warning summaries |
-| `/catalog` | Cross-type cloud platform catalog explorer | Capabilities, landing zones, guardrails, tool entries, owner/support metadata, evidence coverage |
-| `/catalog/$objectId` | Generic catalog object detail when the object type does not need a specialized route | Object metadata, relationships, actions, context bundle, sources, warnings |
-| `/capabilities` | Capability discovery | `topic_type=capability` topics |
-| `/capabilities/$topicId` | Capability detail | Topic metadata, context bundle, sources, expansion paths |
+| `/` | Portal home: intent entry, guided journeys, ambient health | Catalog summaries, journey paths, health signals |
+| `/explore` | Unified catalog and availability explorer | All catalog objects, availability status, domain grouping, region strip, card and matrix views |
+| `/explore/$objectId` | Catalog object detail with inline evidence | Object metadata, relationships, actions, context bundle, sources, warnings |
+| `/capabilities` | Capability discovery (type-filtered explore view) | `topic_type=capability` topics |
+| `/capabilities/$topicId` | Capability detail | Topic metadata, availability, guardrails, context bundle, sources, expansion paths |
 | `/landing-zones` | Landing zone navigator | `topic_type=landing-zone` topics |
 | `/landing-zones/$topicId` | Landing zone detail | Environment matrix, guardrail excerpts, tool links |
-| `/guardrails` | Guardrail area discovery | `topic_type=guardrail-area` topics, policy coverage, owner/support metadata |
-| `/guardrails/$topicId` | Guardrail detail | Guardrail summary, related capabilities and landing zones, policy sources, warning state |
-| `/availability` | Regional availability map | Service or capability availability by region, outpost, landing zone level, owner, source evidence, next-step links |
-| `/sources` | Authoritative source lookup | Source discovery response |
-| `/sources/$sourceId` | Source evidence detail | Source metadata, anchors, warnings, expansion paths |
 | `/health` | Guidance health and coverage dashboard | Authority coverage, stale sources, broken anchors, conflicts, missing owner/support |
 | `/ask` | Ask Atlas entry | Question composer, resolved catalog objects, context bundle, cited answer or deferred state |
 
-Feedback should be inline on detail, source, and Ask surfaces. Do not create a V1 admin route.
+Notes on routing:
+
+- Guardrails are accessed through capability detail, landing zone detail, and the Explore filter. They share a detail route: `/explore/$objectId` when `topic_type=guardrail-area`.
+- Sources are accessed through evidence expansion on detail pages, health issues, and the Explore filter. They share a detail route: `/explore/$objectId` when viewing a source.
+- Guided journeys are inline expandable sections on Home, not separate routes or modal overlays.
 
 ### Global Shell
 
 Use a stable product shell:
 
-- Left navigation: logo slot, Home, Catalog, Capabilities, Landing Zones, Guardrails, Sources, Health, Ask Atlas. Availability can appear as a secondary nav item, quick link, or contextual entry from capability and landing zone detail pages.
-- Top bar: global catalog query, environment indicator, lightweight health/status summary.
-- Main content: route-specific work surface.
-- Right evidence rail only when a page needs citations, warnings, or expansion paths.
+- Top navigation bar: brand mark + name, inline nav links (Home, Capabilities, Landing Zones, Availability, Health), health indicator, sync status.
+- Global catalog search with ⌘K shortcut placed in the Home hero area. Deeper pages may surface a compact search in the top bar.
+- Main content: centered route-specific work surface.
+- Evidence sections expand inline within the page, not as a persistent side panel.
 
-The shell should not use decorative hero treatment. Atlas as the product name belongs in the shell and page title, not in oversized marketing copy.
+The shell should not use decorative hero treatment. Atlas as the product name belongs in the top bar and page title, not in oversized marketing copy.
+
+Top bar behavior:
+
+- Desktop: brand mark, inline nav links, spacer, health indicator, and sync status in a single 52px sticky bar with backdrop blur.
+- Tablet and narrow desktop: nav links may collapse into a menu affordance.
+- Mobile: nav links collapse; bottom navigation bar with 4-5 key destinations as an alternative.
 
 Logo slot rules:
 
-- Reserve a stable top-left logo area that supports icon-only and wordmark variants without changing sidebar width.
-- Recommended desktop slot: 32px mark height or 160px by 32px wordmark area. Mobile can collapse to the icon mark.
+- Reserve a stable left position in the top bar for the brand mark (24px icon) and brand name.
 - Do not stretch, recolor, crop, or place the logo over busy backgrounds.
 - Do not repeat the logo as decoration in cards, empty states, or section headers.
 - If the logo asset is unavailable during implementation, use a neutral reserved placeholder with the accessible label `Company logo`, then replace it when the asset is provided.
@@ -169,84 +190,181 @@ Logo slot rules:
 
 ### Home
 
-Home should be a task dashboard, not a welcome page or documentation hero.
+Home is an intent-resolution surface, not a feature directory or welcome page. Its design learns from Claude API Docs: search is intent, decision paths are visible below, and the page lifecycle guides users from question to answer.
 
-Required content:
+Layout priority (top to bottom):
 
-- Primary entries: Catalog, Capabilities, Landing Zones, Guardrails, Sources.
-- Guided journeys: onboard an application, choose a platform capability, check landing zone fit, verify guardrails, find owner/support.
-- Secondary links: Availability, Ask Atlas, report stale guidance, common tool entry points.
-- Supporting search for registered catalog objects, owners, and sources.
-- Recently updated or commonly used catalog objects.
-- Health summary for missing authority coverage, stale sources, broken anchors, restricted sources, unavailable sources, and conflicts.
-- Owner/support callouts for pilot coverage.
+1. **Hero: framing statement and intent search** — a bold left-aligned heading ("Find the right platform path"), a one-line description, and a catalog-aware search input with ⌘K. The search routes to catalog objects, owners, and journey steps on input. Max-width constrained to ~520px to avoid stretching.
+2. **Platform entry cards** — the core interaction. Three clickable cards (Evaluate and Decide side by side, Onboard full-width below) that expand inline panels when clicked. Each card is framed as the user's question, not Atlas's feature name. Only one card can be expanded at a time. Clicking the active card collapses its panel. Each card has a section-eyebrow label ("Platform"), section title, and description above the grid.
+3. **Developer journey grid** — a 2×2 grid of lifecycle steps (Get started → Build → Validate → Operate), each with a step number, title, description, and action links. This follows the Claude docs "From idea to production" pattern and provides a second orientation layer.
+4. **Catalog highlights** — an asymmetric 2fr/1fr grid showing key catalog stats (service count, region count) with large monospace numbers. Provides ambient catalog awareness.
+5. **Recent activity** — compact inline chips for recently viewed catalog objects (local storage, no backend personalization).
+6. **Health band** — one-line ambient summary: "2 stale sources · 1 missing owner · 0 broken anchors". Links to `/health`.
+7. **Resource links** — a 2×2 grid of resource link cards (All capabilities, Landing zones, Availability map, Health dashboard) with icons and descriptions. Replaces plain quick links with richer affordances.
+
+Platform entry cards detail:
+
+| Card | User question | Expand panel content |
+|---|---|---|
+| **Evaluate** (half-width) | "Which capability should I use?" | Searchable capability list with inline availability chips and domain grouping. Selecting a capability routes to its detail page. |
+| **Decide** (half-width) | "Which landing zone fits my workload?" | Landing zone comparison cards with guardrail summary, tags, and support paths. Selecting a landing zone routes to its detail page. |
+| **Onboard** (full-width) | "How do I start?" | 2×2 tool card grid (TFE module, Harness pipeline, onboarding form, guardrail checker), plus owner contact row with team name and Slack channel. |
+
+Visual structure:
+
+```
+Find the right platform path
+Search across capabilities, landing zones, tools, and owners.
+
+┌────────────────────────────────────────────┐
+│ 🔍  What are you looking for?         ⌘K  │
+└────────────────────────────────────────────┘
+
+PLATFORM
+Choose your starting point
+
+┌─────────────────────┐  ┌─────────────────────┐
+│ [icon] Evaluate     │  │ [icon] Decide       │
+│ Which capability?   │  │ Which landing zone? │
+└─────────────────────┘  └─────────────────────┘
+┌─────────────────────────────────────────────┐
+│ [icon] Onboard                              │
+│ How do I start?                             │
+└─────────────────────────────────────────────┘
+
+┌─ Inline expand panel (active card) ──────────┐
+│ Phase-specific content with close button      │
+└───────────────────────────────────────────────┘
+
+DEVELOPER JOURNEY
+From idea to production
+
+┌──────────────────┬──────────────────┐
+│ 01 Get started   │ 02 Build         │
+│ Understand the   │ Provision and    │
+│ catalog          │ configure        │
+│ → links          │ → links          │
+├──────────────────┼──────────────────┤
+│ 03 Validate      │ 04 Operate       │
+│ Check guardrails │ Monitor & evolve │
+│ → links          │ → links          │
+└──────────────────┴──────────────────┘
+
+CATALOG
+Capability highlights
+┌───── 27 ─────────┬──── 5 ────────┐
+│ Services         │ Regions       │
+└──────────────────┴───────────────┘
+
+RECENTLY VIEWED
+[S3 capability] [EKS capability] [L3 Production landing zone] ...
+
+HEALTH  2 stale sources · 1 missing owner · 0 broken anchors  →
+
+RESOURCES — Keep exploring
+┌─────────────────┬──────────────────┐
+│ All capabilities│ Landing zones    │
+│ Availability map│ Health dashboard │
+└─────────────────┴──────────────────┘
+```
 
 Implementation notes:
 
-- Use dense rows or compact task tiles, not large marketing cards.
-- Do not create a static directory page. The first viewport should combine catalog entry, journey entry, and evidence health signals.
-- Keep Ask Atlas visible as a secondary entry, but do not present it as the primary way to use Atlas.
-- Keep text direct. Do not explain what a portal is.
-- Show empty pilot states as actionable gaps, for example no registered authoritative source, not generic empty content.
+- Entry cards are not a progress wizard. Users can click any card at any time. Cards do not need to be activated in order.
+- Each card expands an inline panel below the card grid. Only one panel is expanded at a time. A close button dismisses the panel.
+- The expanded panel is a lightweight inline section, not a modal or overlay. Users stay on the home page.
+- The transition between "search" and "entry cards" is fluid: searching within an expanded panel filters its content. Searching at the hero level routes globally.
+- Entry card labels use the user's question framing ("Which capability should I use?"), not Atlas's feature name ("Capability discovery").
+- Section-eyebrow labels (e.g., "Platform", "Developer journey", "Catalog", "Resources") use IBM Plex Mono uppercase for visual separation.
+- The developer journey grid provides lifecycle orientation and direct links, complementing the interactive entry cards.
+- Catalog highlights use large monospace stat numbers as ambient signals, not hero metrics.
+- Do not create a static directory page with nav links.
+- Do not explain what a portal is.
+- Show empty pilot states as actionable gaps.
+- Keep Ask Atlas visible as a nav item but not as the home search behavior.
 
-### Catalog Explorer
+### Guided Journey Behavior
 
-Catalog Explorer is the default browse surface for cloud platform objects. It borrows the useful parts of Compass and Backstage catalogs, but remains scoped to Atlas V1.
+The platform entry cards on Home are the primary V1 interaction pattern. They integrate lifecycle visibility with inline guided content, following the principle from Claude docs: "Follow the lifecycle or jump to what you need."
+
+Design rules:
+
+- Journeys do not create resources. They resolve information.
+- Each expanded phase shows only what the user needs to decide at that phase.
+- The final resolution provides concrete next actions: tool links, owner contacts, policy references, and detail page routing.
+- Journeys can be exited at any point. Users can also bypass them entirely via direct catalog search or nav.
+- Inline expansion, not full-page wizard or modal overlay. The home page remains the context.
+- V1 journeys are structured navigation. Post-V1, Ask Atlas can auto-resolve journey steps using LLM context.
+
+Journey resolution paths:
+
+| Phase | User selects | Resolves to |
+|---|---|---|
+| Evaluate | A capability from the list | Capability detail page with availability, guardrails, and tools |
+| Decide | A landing zone from comparison | Landing zone detail page with environment, guardrails, and onboarding |
+| Onboard | An entry tool or support path | External tool (TFE, Harness) or owner/support contact |
+
+Advanced interaction (post-V1):
+
+- The search input at the top can understand intent and auto-activate the relevant phase: typing "EKS availability" expands Evaluate with EKS pre-filtered.
+- Ask Atlas can be offered as a secondary path within any phase: "Can't find what you need? Ask Atlas →".
+
+### Explore
+
+Explore is the unified catalog and availability surface. It merges what traditional portals split into "catalog" and "availability map" into a single browseable, filterable, domain-grouped surface.
+
+Design pattern: follows `catalog_availability_preview_v2.html` — domain-grouped cards with inline availability chips, region strip orientation, inline expand panel for detail, and matrix toggle for dense comparison.
 
 Required behavior:
 
-- Browse across capabilities, landing zones, guardrail areas, tool entries, sources, and owners.
-- Filter by object type, category, lifecycle/status, owner team, support path, authority coverage, health warning, and related source class.
-- Show object name, type, short description, owner, lifecycle/status, support path, primary tool links, evidence coverage, and warning count.
-- Let users switch between all objects and type-specific views without losing filters.
-- Allow favorites or recently used objects only if the data can be local UI state. Do not add backend personalization for V1.
+- Browse all catalog objects: capabilities, landing zones, guardrail areas, and tool entries.
+- Region strip at top: clickable region/outpost cells showing availability counts, acting as a location filter.
+- Filter by object type, domain, status (available/planned/interim/not planned), owner team, and warning state.
+- Show each object as a compact card with: icon, name, domain label, and inline availability status chips.
+- Click a card to open an inline expand panel (within the grid, full-width) showing: full location breakdown, ETA, guidance notes, next-step actions, and evidence freshness.
+- Provide a view toggle: Cards (default) and Matrix (dense table with service rows and region columns).
+- Domain-based grouping with sticky section headers for browse orientation.
+- Results count and active filter display.
 
 Recommended layout:
 
-- Use a dense table or list as the primary surface.
-- Use compact object previews only for home and high-level orientation.
-- Keep a side or top filter surface. Filters must not collapse into an opaque search-only experience.
-- Use relationship chips for linked landing zones, guardrails, sources, and tools.
-- A selected row can open an inline detail panel or navigate to a detail route. Do not use a modal as the first detail surface.
+- Region strip: horizontal grid of clickable location cells, each showing name, subtitle, and availability counts.
+- Controls: status filter, domain filter, result count, view toggle.
+- Card grid: `auto-fill, minmax(280px, 1fr)` responsive grid, grouped by domain with sticky domain headers.
+- Expand panel: appears inline after selected card (grid-column: 1 / -1), split into location detail (left) and next-step actions (right).
+- Matrix view: compact table with service column and one column per location, status chips inline.
 
-### Capability Discovery
+State coverage:
 
-This surface is a filtered catalog view for approved platform capabilities. It should help users compare capabilities quickly and decide where to go next.
-
-Required behavior:
-
-- Filter by category, status, authority coverage, owner team, related landing zone, related guardrail, entry tool, and warning state.
-- Show capability name, one-line description, owner team, support path, authority coverage, latest review signal, entry tools, and related landing zones.
-- Preserve topic status: active, deprecated, planned.
-- Highlight missing authoritative source coverage as a visible risk.
-
-Recommended layout:
-
-- Card + list hybrid: compact entry cards for orientation, then dense list or table rows for comparison.
-- Filter rail or compact toolbar above the comparison list.
-- Group headings may organize categories, but do not create a decorative card grid.
-- Rows should show badges and source coverage indicators.
-- Optional grouped sections by category if the pilot data is easier to scan that way.
+- Default: all objects visible, no region filter active.
+- Region filtered: region cell selected, grid shows only objects with availability in that region.
+- Type filtered: objects narrowed to capabilities, landing zones, or guardrails.
+- Expanded: one card selected, expand panel visible with full detail.
+- Empty: clear messaging with reset action.
+- Loading: skeleton cards matching grid layout.
 
 ### Capability Detail
 
 This page should answer what the capability is, when to use it, how to start, what it connects to, who owns it, and which evidence is authoritative.
 
-Required sections:
+Layout priority (top to bottom):
 
-- Detail header: capability name, status, owner team, support channel.
-- Decision summary: what it is, when to use it, when not to use it.
-- Getting started: entry tools from API data, such as TFE or Harness links.
-- Relationships: supported landing zones, related guardrails, required tools, source evidence, and support paths.
-- Health summary: authority coverage, stale evidence, broken anchors, restricted evidence, and conflicts.
-- Inline evidence summary: authority level, freshness, visibility, and warning badges.
-- Evidence panel: sources, authority level, authority scope, freshness, visibility, anchor status.
-- Excerpts and expansion paths from the context bundle.
-- Inline feedback for missing, stale, broken, or unclear guidance.
+1. **Header**: capability name, status badge, owner team, support channel.
+2. **Decision summary**: when to use, when NOT to use (concise, not long-form docs).
+3. **Get started**: entry tool cards (TFE module, Harness pipeline) with direct links.
+4. **Availability**: compact region status (inline chips or mini-grid), link to full explore view.
+5. **Landing zones**: which landing zones support this capability, with level indicators.
+6. **Guardrails**: applicable guardrail areas with links to policy evidence.
+7. **Sources and evidence** (expandable): authority badges, freshness, inline expand to show anchors, excerpts, and expansion paths.
 
 Do not duplicate long-form documentation. The page should route users to source-native evidence and cite exact excerpts.
 
-Use the same Guided Detail plus expandable evidence pattern for landing zone details and source details. When a user expands evidence, the page can shift into a split view with the main content on the left and evidence rail on the right.
+Evidence expansion behavior:
+
+- Default state: collapsed source list showing title, authority badge, and freshness indicator.
+- Expanded state: full evidence panel showing anchors, excerpts, warnings, and expansion paths.
+- Evidence is inline (below main content), not a persistent side rail.
+- Model: Wikipedia reference markers [1][2] → expand to see source detail.
 
 ### Landing Zone Navigator
 
@@ -263,82 +381,32 @@ Recommended layout:
 
 - Use a comparison matrix or dense comparison rows for environment and guardrail coverage.
 - Use guided detail pages for individual landing zones.
-- Use compact summary rows when the matrix would be too dense on mobile.
 - Keep operational links as entry points, not embedded workflow actions.
 - Do not build a decision flow in V1. That would imply recommendation logic the Context Layer does not own.
-
-### Guardrail Areas
-
-Guardrails should be discoverable as catalog objects, not hidden inside source documents.
-
-Required behavior:
-
-- List guardrail areas by category, owner, related capabilities, related landing zones, authority coverage, policy source, and warning state.
-- Show whether a guardrail has authoritative policy evidence or only reference guidance.
-- Connect each guardrail to supported capabilities, affected landing zones, and relevant tool entries.
-- Surface missing or stale guardrail evidence as a first-class risk.
-
-Recommended layout:
-
-- Use grouped rows by policy area or lifecycle stage.
-- Use relationship panels on detail pages to show affected capabilities and landing zones.
-- Keep policy excerpts in the evidence rail. Do not copy long-form policy content into the main page.
-
-### Availability Map
-
-Availability is a portal-native decision surface for capability and service availability. It should not render a raw source matrix as the default experience.
-
-Required behavior:
-
-- Let users search and filter by service or capability, region, outpost, landing zone level, domain, status, owner, and warning state.
-- Show availability status with text-first labels such as available, interim, planned, and not planned.
-- Show next-step routing for each meaningful state: catalog object link, user guide, onboarding path, fallback path, owner, or support route.
-- Show source evidence and last-observed or last-reviewed signals so users can trust the availability data.
-- Support deep links from capability detail, landing zone detail, and home quick links with a preselected service, region, or domain.
-
-Recommended layout:
-
-- Use a map-grid hybrid: search and filters at top, structured service or capability cards for browsing, and a focused detail panel for selected availability.
-- Keep the dense matrix available only as a focused comparison or evidence expansion, not the default page.
-- Group cards by domain when the result set is large.
-- Allow lightweight comparison for two or three selected services only if the interaction remains bounded and does not become a spreadsheet replacement.
-- Do not rely on color, symbols, or emoji alone for status meaning.
-
-### Source Lookup
-
-Source lookup is the evidence and governance surface. It is not the primary catalog browse surface.
-
-Required behavior:
-
-- List sources by title, source class, ownership mode, steward, authority level, authority scope, visibility, review freshness, and warning count.
-- Let users filter by source class, ownership mode, authority level, visibility, steward, and warning state.
-- Show anchors and expansion paths without making the Portal a source content mirror.
-- Support internal Atlas-managed sources, external source-system sources, and hybrid sources in the same table.
-- Restricted sources remain visible as restricted metadata. The Portal must not fetch around the Context API or hide the warning to make the page look clean.
-
-Recommended layout:
-
-- Use a table for source discovery.
-- Use an evidence detail pane for selected source metadata, anchors, excerpts, and warnings.
-- Tie each warning to source or anchor identity.
 
 ### Health and Scorecards
 
 Health in V1 means guidance health and evidence readiness, not full service reliability.
+
+Layout priority:
+
+1. **Coverage indicators**: compact progress bars showing authority coverage by object type.
+2. **Issue list**: actionable rows — each row shows the affected object, issue type, and age.
+3. **Navigation**: each issue links to the affected catalog object or source.
 
 Required behavior:
 
 - Show authority coverage by catalog object type.
 - Show stale sources, broken anchors, missing owner/support, restricted evidence, unavailable evidence, and authority conflicts.
 - Show affected catalog objects for each health issue.
-- Let users navigate from a health row to the affected catalog object or source.
-- Provide inline feedback or report issue entry points for missing, stale, broken, and unclear guidance.
+- Provide inline feedback or report issue entry points.
 
-Recommended layout:
+Design rules:
 
-- Use compact summary bands plus dense issue tables.
-- Avoid hero metrics. Health metrics are operational signals, not marketing proof.
-- Use scorecard language carefully: `Guidance readiness` or `Evidence health` is safer than generic `Service health`.
+- Do not use hero metrics. Health metrics are operational signals, not marketing proof.
+- Progress bars use compact inline display (not large radial charts).
+- Numbers in IBM Plex Mono for alignment.
+- Use scorecard language carefully: `Guidance readiness` or `Evidence health`, not generic `Service health`.
 - Do not introduce weighting, criteria builders, or scorecard configuration in V1.
 
 ### Ask Atlas
@@ -347,7 +415,7 @@ Ask Atlas is a catalog-aware, citation-bound AI consumer example, not the archit
 
 V1 behavior:
 
-- Keep Ask Atlas in the sidebar or secondary home links so the product narrative remains visible.
+- Keep Ask Atlas in the top navigation so the product narrative remains visible.
 - Show a clear deferred state if the full cited-answer workflow is not implemented yet.
 - Preserve the future boundary: Ask Atlas will resolve catalog objects, use context bundles, citations, warnings, and server-side LLM adapter logic.
 - Do not make Ask Atlas the default home search behavior.
@@ -369,7 +437,7 @@ Recommended layout:
 - Question composer at top.
 - Resolved object strip below the composer, such as related capability, landing zone, guardrail, source, or owner.
 - Answer body with claim-level citations.
-- Evidence rail with source cards, authority badges, excerpts, and expansion paths.
+- Inline evidence expansion for cited sources.
 - Warning stack above the answer when the bundle includes stale, broken, conflict, restricted, unavailable, or missing-source signals.
 
 ## Component System
@@ -378,30 +446,38 @@ Use a small component vocabulary. Add components only when at least two screens 
 
 | Component | Purpose |
 |---|---|
-| `PortalShell` | Stable navigation, top query, and route content region |
-| `CatalogSearch` | Shared query entry for catalog objects, owners, sources, and Ask intent |
-| `CatalogObjectList` | Cross-type catalog rows with type, owner, lifecycle, tools, evidence coverage, and warning state |
-| `CatalogObjectPreview` | Compact preview for home and journey entry points |
-| `CatalogObjectDetailHeader` | Name, type, status, owner, support, lifecycle, and primary tool actions |
-| `RelationshipPanel` | Related capabilities, landing zones, guardrails, sources, owners, and tool entries |
-| `GuidanceHealthSummary` | Authority coverage, stale sources, broken anchors, missing owner/support, conflicts |
+| `PortalShell` | Top navigation bar with brand, nav links, health indicator, and route content region |
+| `TopNav` | Horizontal nav links in the top bar with active state |
+| `IntentSearch` | Catalog-aware search input with synonym support and ⌘K shortcut |
+| `EntryCardGrid` | Clickable platform entry cards (Evaluate / Decide / Onboard) with active state |
+| `EntryCardPanel` | Expandable inline content panel for each entry card phase |
+| `DeveloperJourneyGrid` | 2×2 lifecycle step grid (Get started → Build → Validate → Operate) with links |
+| `CatalogHighlights` | Asymmetric stat blocks showing catalog service and region counts |
+| `ResourceLinkGrid` | 2×2 grid of resource link cards with icons and descriptions |
+| `ExploreGrid` | Domain-grouped card grid with region strip and filters |
+| `RegionStrip` | Clickable location cells with availability counts |
+| `ServiceCard` | Compact card with icon, name, domain, and status chips |
+| `ExpandPanel` | Inline full-width detail panel after selected card |
+| `MatrixView` | Dense table view with service rows and location columns |
+| `CatalogObjectDetailHeader` | Name, type, status, owner, support, and primary tool actions |
+| `DecisionSummary` | When to use / when not to use compact section |
+| `EntryToolCard` | Compact tool link card (TFE, Harness, etc.) |
+| `RelationshipPanel` | Related capabilities, landing zones, guardrails, and tool entries |
+| `GuidanceHealthBand` | Compact one-line health summary for home |
+| `GuidanceHealthDashboard` | Full health page with coverage bars and issue list |
 | `HealthIssueList` | Actionable health and evidence readiness rows |
-| `AvailabilityExplorer` | Availability search, filters, service or capability cards, and selected detail panel |
-| `AvailabilityStatusStrip` | Compact status labels for regions, outposts, and landing zone levels |
-| `TopicList` | Type-specific capability, landing zone, and guardrail discovery rows |
-| `TopicDetailHeader` | Implementation-facing detail header for API-backed topic routes |
 | `AuthorityBadge` | `authoritative`, `reference`, `example`, `draft`, `deprecated` |
-| `VisibilityBadge` | `internal` or `restricted` source visibility |
-| `SourceOwnershipBadge` | Atlas-managed, external-owned, or hybrid source ownership mode |
 | `FreshnessIndicator` | Review freshness, needs-review, stale |
+| `StatusChip` | Availability status: available, interim, planned, not planned |
 | `WarningStack` | Stale, broken, conflict, restricted, unavailable, missing-source warnings |
-| `EvidencePanel` | Sources, anchors, excerpts, citations, expansion paths |
+| `EvidenceSection` | Expandable inline evidence: sources, anchors, excerpts, citations |
 | `ExpansionPathList` | Progressive disclosure actions |
 | `FeedbackInlineForm` | Missing, stale, broken, unclear feedback |
+| `AskDeferredEntry` | Visible deferred state with boundary copy |
 | `ResolvedObjectStrip` | Ask Atlas related catalog objects before answer generation |
 | `AskComposer` | Future Ask Atlas question input and submit state |
 | `CitedAnswer` | Future claim list with citation mapping |
-| `EmptyEvidenceState` | No registered source or no authoritative source |
+| `EmptyState` | Contextual empty state with actionable guidance |
 | `SkeletonBlock` | Route and panel loading states |
 
 State coverage per interactive component:
@@ -460,21 +536,19 @@ Atlas should not import a full visual system blindly. Treat shadcn as a componen
 
 | Atlas component | Base UI or shadcn reference | Implementation rule |
 |---|---|---|
-| `PortalShell` | `sidebar`, `breadcrumb`, `separator` | Use the sidebar pattern as a starting point, but own logo slot, nav density, active state, and responsive behavior locally. |
-| `GlobalSearch` | `input`, `button`, `popover` | Search registered catalog objects, owners, and sources only. Do not route general full-text search or Ask Atlas through this by default. |
-| `CommandPalette` | `command` | Later enhancement for `Cmd+K` navigation, lookup, and evidence reveal. No workflow execution in V1. |
-| `CatalogObjectList` | `table`, `badge`, `tabs`, `select`, `popover` | Use dense rows for cross-type catalog comparison. Cards are only for entry previews. |
-| `RelationshipPanel` | `tabs`, `table`, `badge`, `collapsible` | Show connected capabilities, landing zones, guardrails, tools, owners, and sources without building a graph visualization in V1. |
-| `GuidanceHealthSummary` | `table`, `badge`, `progress`, `tooltip` | Show evidence readiness and coverage. Do not implement configurable scorecard builders in V1. |
-| `AvailabilityExplorer` | `input`, `select`, `table`, `badge`, `popover`, `collapsible` | Use a map-grid hybrid for availability discovery. Keep matrix comparison bounded and secondary. |
-| `TopicList` | `table`, `badge`, `tabs`, `select` | Use dense rows for type-specific comparison. Cards are only for entry previews. |
-| `CapabilityEntryPreview` | `card`, `badge`, `button` | Use compact cards sparingly on Home or section overview. Do not repeat identical icon cards across the app. |
-| `LandingZoneMatrix` | `table`, `badge`, `tooltip` | Prefer matrix or dense comparison rows for environment and guardrail coverage. |
-| `EvidenceRail` | `collapsible`, `scroll-area`, `separator`, `tooltip` | Expandable rail or panel with sources, anchors, citations, and expansion paths. |
-| `WarningStack` | `alert`, `badge`, `collapsible` | Warnings must be inline and tied to source or anchor identity. No side-stripe alert styling. |
-| `FeedbackInlineForm` | `field`, `textarea`, `button`, `select` | Inline form first. Do not default to a modal. |
-| `AskDeferredEntry` | `empty`, `button`, `badge` | Visible deferred state with boundary copy. Do not imply a working AI answer flow before implementation exists. |
-| `ResolvedObjectStrip` | `badge`, `button`, `separator` | Show the objects Ask Atlas resolved before answer generation or no-source handling. |
+| `PortalShell` | `breadcrumb`, `separator` | Top bar with brand, nav links, and content region. Own active state, responsive collapse, and mobile menu locally. |
+| `IntentSearch` | `input`, `command`, `popover` | Catalog-aware search with synonym support. Not a general enterprise search. |
+| `EntryCardGrid` + `EntryCardPanel` | `card`, `collapsible`, `button`, `separator` | Clickable entry cards with inline expandable panels on home. Not a modal or wizard. |
+| `ExploreGrid` | `table`, `badge`, `tabs`, `select`, `popover` | Unified catalog + availability. Domain-grouped cards with matrix toggle. |
+| `RegionStrip` | custom | Clickable location cells. No shadcn equivalent. |
+| `ServiceCard` | `card`, `badge` | Compact card with status chips. Not decorative. |
+| `ExpandPanel` | `collapsible`, `badge`, `button`, `separator` | Inline full-width detail. Not a modal. |
+| `RelationshipPanel` | `tabs`, `table`, `badge`, `collapsible` | Show connected objects without graph visualization. |
+| `GuidanceHealthDashboard` | `table`, `badge`, `progress`, `tooltip` | Evidence readiness and coverage. Not a scorecard builder. |
+| `EvidenceSection` | `collapsible`, `scroll-area`, `separator`, `tooltip` | Inline expandable evidence. Not a persistent rail. |
+| `WarningStack` | `alert`, `badge`, `collapsible` | Inline, tied to source or anchor identity. No side-stripe styling. |
+| `FeedbackInlineForm` | `field`, `textarea`, `button`, `select` | Inline form first. Not a modal. |
+| `AskDeferredEntry` | `empty`, `button`, `badge` | Visible deferred state with boundary copy. |
 
 ### shadcn CLI and Skill Usage
 
@@ -519,49 +593,97 @@ Use OKLCH tokens when implementing CSS.
 Brand source color:
 
 - Source value: `#001aff`.
-- Approximate OKLCH: `oklch(46.28% 0.3059 264.18)`.
+- CSS variable: `--brand: #001aff`.
+- All accent tokens derive from `--brand` using `color-mix()` for maintainability.
 - Treat this as the brand accent source, not a general background color.
 
-Recommended roles:
+Neutral hue direction:
 
-| Role | Usage |
-|---|---|
-| Surface | App background and content surface, tinted neutral |
-| Surface muted | Sidebar, toolbar, filter rows |
-| Border | Section separation and table row boundaries |
-| Text primary | Main labels and body text |
-| Text secondary | Metadata, helper text, timestamps |
-| Accent | Primary action, current nav item, selected filter |
-| Success | Valid anchors and current sources |
-| Warning | Stale, weak, restricted, or needs-review signals |
-| Critical | Broken anchor, unavailable source, access-denied style states |
-| Info | Reference or example evidence |
+- Neutral surfaces, borders, text, and shadows use hue `267` with very low chroma (0.003–0.015). This keeps neutrals slightly cool-tinted toward the brand blue without washing the canvas.
+
+Color tokens:
+
+| Token | Value | Usage |
+|---|---|---|
+| `--bg` | `oklch(97.5% 0.004 267)` | Page background |
+| `--surface` | `oklch(99.5% 0.003 267)` | Card and panel backgrounds |
+| `--surface-elevated` | `oklch(99.8% 0.002 267)` | Search bar, elevated controls |
+| `--border` | `oklch(90.5% 0.01 267)` | Section separation and table rows |
+| `--border-strong` | `oklch(82% 0.012 267)` | Hover state borders |
+| `--text` | `oklch(15% 0.014 267)` | Main labels and body text |
+| `--text-secondary` | `oklch(42% 0.014 267)` | Metadata, helper text, timestamps |
+| `--text-soft` | `oklch(56% 0.012 267)` | Placeholder text, disabled labels |
+| `--brand` | `#001aff` | Brand source color (not used directly on surfaces) |
+| `--accent` | `var(--brand)` | Primary action, active nav marker, selected filter |
+| `--accent-soft` | `oklch(96.2% 0.026 267)` | Active nav background, selected row tint |
+| `--accent-hover` | `color-mix(in srgb, var(--brand) 78%, #0a0a12)` | Hover state for accent elements |
+| `--accent-text` | `oklch(99% 0.01 267)` | Text on accent-colored backgrounds |
+| `--accent-focus` | `color-mix(in srgb, var(--brand) 12%, transparent)` | Focus ring fill |
+| `--accent-glow` | `color-mix(in srgb, var(--brand) 8%, transparent)` | Outer glow on focused inputs |
+| `--accent-sheen` | `color-mix(in srgb, var(--brand) 4%, transparent)` | Subtle gradient overlay on active cards |
+| `--available` | `oklch(52% 0.14 155)` | Available status |
+| `--available-bg` | `oklch(95.5% 0.035 155)` | Available chip background |
+| `--planned` | `oklch(50% 0.12 280)` | Planned status |
+| `--planned-bg` | `oklch(95.5% 0.025 280)` | Planned chip background |
+| `--interim` | `oklch(58% 0.15 70)` | Interim status |
+| `--interim-bg` | `oklch(96% 0.04 70)` | Interim chip background |
+| `--warning` | `oklch(60% 0.14 55)` | Stale, needs-review signals |
+| `--critical` | `oklch(55% 0.2 25)` | Broken, unavailable, access-denied |
+| `--success` | `oklch(65% 0.15 155)` | Valid anchors, fresh sources |
 
 Rules:
 
 - Do not use pure black or pure white.
 - Keep accent usage under control. `#001aff` marks action and selection, not decoration.
-- Use full-strength `#001aff` only for primary actions, active navigation, selected filters, focused controls, important links, and small selection indicators.
+- Use full-strength accent only for primary actions, active navigation, selected filters, focused controls, and small selection indicators.
 - Keep brand accent coverage below 10% of any normal viewport.
-- For large fills, hover backgrounds, selected-row tints, and focus halos, use reduced-chroma brand tints derived from the same hue instead of full `#001aff`.
-- Do not use `#001aff` for warning, success, critical, or restricted-source semantics. Those states need separate semantic tokens.
-- Do not use `#001aff` as the sidebar background, page background, large panel fill, table header fill, or Ask Atlas answer background.
-- Warnings should be legible and tied to evidence identity.
-- Authority badges should be color plus label, never color alone.
+- For large fills, hover backgrounds, selected-row tints, and focus halos, use `--accent-soft`.
+- Do not use accent for warning, success, critical, or status semantics. Those states have dedicated tokens.
+- Do not use accent as the top bar background, page background, panel fill, table header fill, or Ask Atlas answer background.
+- Availability status colors (available, planned, interim, not-planned) are independent from semantic warning/success/critical colors.
+- Authority badges use color plus label, never color alone.
 
 ### Typography
 
-- Use a system UI or Inter-like sans font stack.
-- Keep a tight product scale, with clear contrast between page title, section title, row title, metadata, and labels.
+Use IBM Plex Sans as the primary UI font. Use IBM Plex Mono for data values, code references, region names, and status labels.
+
+Type scale (compact product scale):
+
+| Role | Size | Weight | Tracking | Font |
+|---|---|---|---|---|
+| Page title | 22-24px | 700 | -0.03em | Plex Sans |
+| Section title | 18px | 600 | -0.01em | Plex Sans |
+| Card title / Row title | 13-14px | 600 | -0.01em | Plex Sans |
+| Body text | 14px | 400 | normal | Plex Sans |
+| Metadata / Label | 12px | 500 | normal | Plex Sans |
+| Data value / Status | 11-12px | 600 | 0.04em uppercase | Plex Mono |
+| Code reference | 13px | 400 | normal | Plex Mono |
+
+Rules:
+
 - Do not use display fonts for labels, buttons, tables, or badges.
 - Keep prose blocks under 75ch.
+- Use Plex Mono for all numeric values in health, availability, and evidence contexts.
+- Section labels and domain headers use 10-11px uppercase with letter-spacing for visual separation.
+- Do not mix font families within a single label or badge.
 
 ### Layout
 
-- Desktop: left nav plus main content, optional right evidence rail.
-- Tablet: collapsible nav, evidence rail moves below primary content.
-- Mobile: top nav drawer, stacked content, source tables become grouped rows.
+- Desktop: top navigation bar (52px sticky) plus centered main content (max-width 860px for focused pages like Home, max-width 1200px for browse pages like Explore), evidence expands inline.
+- Tablet and narrow desktop: top bar nav links may collapse to a menu; evidence moves below primary content.
+- Mobile: top bar collapses to brand + menu; stacked content; source tables become grouped rows. Bottom navigation bar with 4-5 key destinations as an alternative.
 - Use stable dimensions for badges, icon buttons, filters, and warning chips to prevent layout shift.
+- Main content area uses `max-width: 1200px` with auto margins.
+- Card grids use `auto-fill, minmax(280px, 1fr)` for responsive behavior.
+
+### Spacing and Radius
+
+- Content padding: 24px desktop, 16px mobile.
+- Card padding: 12-14px.
+- Card gap: 8px.
+- Section gap: 24px.
+- Border radius: 8px cards, 12px panels, 6px inputs and buttons, 999px pills and chips.
+- Transition timing: 0.16s cubic-bezier(0.22, 1, 0.36, 1).
 
 ## Data and Runtime Boundaries
 
@@ -609,13 +731,15 @@ Deliver:
 
 - Route map and component ownership confirmed.
 - Catalog object presentation model confirmed, including relationship to backend `Topic`, `Source`, and `Anchor` records.
-- Logo slot contract for desktop, tablet, and mobile shell states.
+- Logo slot contract for top bar desktop, tablet, and mobile states.
 - Base UI plus shadcn local component strategy confirmed.
 - Initial `components.json` plan for the `portal` package, with `base` selected as the base library.
 - Tailwind CSS setup scoped to the `portal` package and wired to Atlas token variables.
 - Tabler Icons configured as the Portal icon library.
+- IBM Plex Sans and IBM Plex Mono font loading configured.
 - Design tokens for color, spacing, typography, radius, focus, and state.
 - Brand token mapping for `#001aff`, including restrained accent usage and reduced-chroma tints.
+- Availability status token set: available, planned, interim, not-planned.
 - Shared UI state vocabulary for loading, empty, warning, error, and restricted evidence.
 - Impeccable anti-pattern checklist added to the implementation review template.
 
@@ -628,22 +752,26 @@ Verify:
 - Brand color appears only through approved accent or tint tokens.
 - Logo slot remains stable with icon-only, wordmark, and placeholder variants.
 - Product copy says catalog object, capability, landing zone, guardrail, source, or owner. It does not expose `Topic` as a primary user-facing term.
+- IBM Plex fonts load correctly and fallback to system sans-serif and monospace.
 
 ### Phase P1: TanStack Start App Shell
 
 Deliver:
 
 - TanStack Start root route and document shell.
-- Route tree for home, catalog, capabilities, landing zones, guardrails, availability, sources, health, and Ask.
-- Portal shell with fixed left sidebar, logo slot, navigation, top query, content region, and optional evidence rail.
-- shadcn/Base UI sidebar wrapper owned by Atlas, not a copied block left unmodified.
+- Route tree for home, explore, capabilities, landing zones, health, and ask.
+- Portal shell with top navigation bar (brand, nav links, health indicator), and content region.
+- Top bar responsive collapse behavior for tablet and mobile.
+- shadcn/Base UI primitives owned by Atlas, adapted for top bar pattern.
 
 Verify:
 
 - Typecheck passes.
 - Root route includes required script hydration.
 - Navigation routes render without hardcoded Context Layer internals.
-- Sidebar works with full wordmark, icon-only, and missing-logo placeholder states.
+- Top bar renders brand mark, nav links, health indicator, and sync status correctly.
+- Brand mark works with icon + wordmark (desktop) and icon-only (mobile) states, including missing-logo placeholder.
+- Home hero search input renders with ⌘K indicator.
 
 ### Phase P2: Context API Loader Boundary
 
@@ -651,7 +779,7 @@ Deliver:
 
 - Schema-backed API client.
 - Server-side data access boundary for Context API calls.
-- Loader data shapes for catalog list, catalog detail, topic list, topic detail, availability, source list, source detail, health summary, and Ask context retrieval.
+- Loader data shapes for explore list, catalog detail, topic list, topic detail, availability, source detail, health summary, and Ask context retrieval.
 
 Verify:
 
@@ -659,50 +787,81 @@ Verify:
 - Tests prove API error codes map to UI states.
 - Browser bundle does not contain source-system or LLM credentials.
 
-### Phase P3: Discovery Surfaces
+### Phase P3: Home and Decision Journey
 
 Deliver:
 
-- Home with primary entries for Catalog, Capabilities, Landing Zones, Guardrails, and Sources.
-- Secondary home entries for Ask Atlas, feedback, health gaps, and common tool links.
-- Catalog Explorer with cross-type filtering and dense rows.
-- Capability discovery as a type-filtered catalog view.
-- Landing zone navigator with comparison matrix or dense comparison rows.
-- Guardrail area discovery with policy/evidence coverage.
-- Availability map as a secondary discovery surface when pilot data includes regional or outpost availability.
-- Source lookup table.
+- Home with hero (framing statement + intent search), platform entry cards, developer journey grid, catalog highlights, recent activity, health band, and resource links.
+- IntentSearch with catalog-aware routing and synonym support.
+- EntryCardGrid with Evaluate / Decide / Onboard cards, clickable with active state and inline expand panels.
+- EntryCardPanel for each phase: inline expandable content with search, filtered lists, and resolution paths.
+- Evaluate panel: searchable capability list with inline availability.
+- Decide panel: landing zone comparison with guardrails and tools.
+- Onboard panel: entry tool card grid and owner/support contacts.
+- DeveloperJourneyGrid with 4 lifecycle steps and action links.
+- CatalogHighlights with service count and region count stats.
+- ResourceLinkGrid with icon cards for key surfaces.
 
 Verify:
 
-- Pilot catalog, capability, landing zone, guardrail, availability, and source data render from API responses.
-- Filter and empty states are covered by tests.
-- Warning counts remain visible on list rows.
-- Home does not become a static directory, docs hero, or Ask-first experience.
+- Home first viewport shows hero search and entry cards, not a static directory.
+- Clicking an entry card expands its panel inline.
+- Only one panel expanded at a time.
+- Panel content resolves to catalog object detail pages on selection.
+- Search routes to correct catalog objects on keyword and synonym input.
+- Health band reflects real API data when available.
+- Empty states guide users toward available content.
+- No modal, overlay, or wizard behavior.
+- Developer journey grid and catalog highlights render with correct data.
+- Resource link grid navigates to correct routes.
 
-### Phase P4: Detail, Relationships, and Evidence Surfaces
+### Phase P4: Explore Surface
 
 Deliver:
 
-- Catalog object detail pattern.
-- Capability detail page.
-- Landing zone detail page.
-- Guardrail detail page.
-- Source detail page.
-- Relationship panels for related capabilities, landing zones, guardrails, sources, owners, and tool entries.
-- Evidence panel, authority badges, warning stack, expansion paths, and inline feedback.
+- Unified explore page with region strip, domain-grouped card grid, and matrix toggle.
+- Service cards with inline availability status chips.
+- Inline expand panel with location detail, guidance notes, and next-step actions.
+- Matrix view with service rows and region columns.
+- Type filter to narrow to capabilities, landing zones, or guardrails.
+- Domain filter, status filter, and search within explore.
+- Sticky domain section headers.
+
+Verify:
+
+- Pilot data renders from API responses in both card and matrix views.
+- Region strip filters card grid correctly.
+- Expand panel shows correct availability per location with ETA for planned states.
+- Matrix view shows status chips per cell.
+- Filter and empty states are covered by tests.
+- View toggle preserves filter state.
+
+### Phase P5: Detail and Evidence Surfaces
+
+Deliver:
+
+- Capability detail page with answer-first layout.
+- Landing zone detail page with comparison focus.
+- Guardrail detail page (accessed via `/explore/$objectId`).
+- Source detail view (accessed via evidence expansion or `/explore/$objectId`).
+- Inline evidence sections with expandable source detail.
+- Relationship panels for connected objects.
+- Authority badges, freshness indicators, warning stack.
+- Inline feedback form.
 
 Verify:
 
 - Tests cover authoritative, reference, draft, deprecated, stale, broken, restricted, unavailable, conflict, and no-registered-source states.
 - Restricted and broken states are visible and tied to source or anchor identity.
 - Detail pages do not duplicate long-form source content.
+- Evidence sections expand and collapse correctly.
 - Relationship panels do not imply recommendation logic or provisioning authority.
 
-### Phase P5: Health and Scorecard Surfaces
+### Phase P6: Health Surface
 
 Deliver:
 
-- Guidance health dashboard.
+- Guidance health dashboard with coverage progress bars and issue list.
 - Authority coverage summary by catalog object type.
 - Issue lists for stale sources, broken anchors, missing owner/support, restricted evidence, unavailable evidence, and authority conflicts.
 - Navigation from health issue to affected catalog object or source.
@@ -712,8 +871,9 @@ Verify:
 - Health does not present generic service reliability scores.
 - Health issues remain tied to concrete catalog objects, sources, or anchors.
 - No configurable scorecard builder is introduced in V1.
+- Numbers render in Plex Mono.
 
-### Phase P6: Ask Atlas UI
+### Phase P7: Ask Atlas UI
 
 Deliver:
 
@@ -728,31 +888,32 @@ Verify:
 - UI does not route normal global search into Ask Atlas.
 - Future Ask tests remain listed as post-core work: prompt content, citation validation, uncited claim handling, and rate limits.
 
-### Phase P7: Browser Interaction and Accessibility Hardening
+### Phase P8: Browser Interaction and Accessibility Hardening
 
 Deliver:
 
-- Keyboard navigation for global search, filters, nav, and feedback.
+- Keyboard navigation for global search, top navigation, filters, expand panels, and feedback.
 - Focus-visible states for every interactive control.
 - Responsive behavior for desktop, tablet, and mobile.
 - Playwright coverage for critical user paths once routes are wired.
 
 Verify:
 
-- Playwright covers catalog exploration, capability discovery, landing zone navigation, guardrail discovery, availability filtering, source warning visibility, health issue navigation, feedback submission, and deferred Ask entry visibility.
+- Playwright covers: home intent search, entry card expansion and resolution, developer journey link navigation, explore card selection and expand, matrix view toggle, capability detail, landing zone navigation, health issue navigation, feedback submission, and deferred Ask entry visibility.
 - No text overlaps at mobile and desktop widths.
 - Skeletons do not shift layout when data resolves.
-- Logo slot and brand accent usage remain stable across desktop, tablet, and mobile screenshots.
+- Logo and brand accent usage remain stable across desktop, tablet, and mobile screenshots.
+- Top navigation responsive collapse is keyboard accessible.
 
 ## Testing Strategy
 
 | Layer | Coverage |
 |---|---|
-| Unit | Data mappers, catalog object projections, warning classification, badge labels, feedback payloads |
-| Component | Catalog rows, relationship panels, health summaries, evidence panels, warning stack, cited answer, empty states |
+| Unit | Data mappers, catalog object projections, warning classification, badge labels, feedback payloads, synonym matching |
+| Component | Service cards, expand panel, region strip, health dashboard, evidence sections, warning stack, entry cards, entry card panels, developer journey grid |
 | Route | Loader success, structured error mapping, no-source states, health issue states |
-| Interaction | Filters, keyboard focus, relationship expansion, expansion paths, feedback submission |
-| End-to-end | Catalog exploration, capability discovery, landing zone navigation, guardrail discovery, availability filtering, source lookup, health navigation, deferred Ask entry |
+| Interaction | Filters, keyboard focus, expand/collapse, view toggle, entry card navigation, feedback submission |
+| End-to-end | Home intent search, entry card expand and resolve, developer journey links, explore card and matrix views, capability detail, landing zone comparison, health navigation, deferred Ask entry |
 
 Do not rely on snapshots alone. Assertions must check visible authority, warning, citation, and expansion behavior.
 
@@ -764,25 +925,29 @@ Every frontend implementation batch must explicitly check for these patterns bef
 |---|---|
 | Side-stripe borders | Do not use thick `border-left` or `border-right` accents on cards, alerts, rows, or callouts. Use full borders, icons, background tints, or inline warning labels. |
 | Gradient text | Do not use gradient text for Atlas, Ask Atlas, metrics, page titles, or source labels. Use solid text color and hierarchy. |
-| Glassmorphism as default | Do not use blurred glass panels for the shell, evidence rail, Ask answers, or source cards. Portal is an evidence tool, not a decorative surface. |
-| Hero-metric template | Do not build the home page around oversized metrics, supporting stat cards, or a brand-colored hero band. Home starts with user tasks and evidence signals. |
-| Identical card grids | Do not make every capability, landing zone, guardrail, source, and tool an identical icon card. Use dense lists, tables, matrices, relationship panels, and detail panes when comparison matters. |
+| Glassmorphism as default | Do not use blurred glass panels for the shell, evidence sections, Ask answers, or service cards. Portal is an evidence tool, not a decorative surface. |
+| Hero-metric template | Do not build the home page around oversized metrics, supporting stat cards, or a brand-colored hero band. Home starts with intent entry. |
+| Identical card grids | Do not make every capability, landing zone, and guardrail an identical icon card. Use domain-grouped cards with status context, dense lists, matrices, and detail panels. |
 | Modal as first thought | Do not default to modals for feedback, citations, expansion paths, or warnings. Prefer inline forms, popovers tied to controls, or progressive disclosure panels. |
-| Decorative motion | Do not add motion unless it communicates state, loading, reveal, or feedback. Keep transitions between 150ms and 250ms. |
+| Decorative motion | Do not add motion unless it communicates state, loading, reveal, or feedback. Keep transitions under 200ms with ease-out curves. |
 | Heavy inactive brand color | Do not use full-strength `#001aff` on inactive nav items, empty states, large backgrounds, or disabled controls. |
 | Inconsistent controls | Buttons, filters, tabs, tables, and forms must share the same shape, focus, hover, disabled, and loading vocabulary across routes. |
 | Reinvented standard affordances | Do not invent custom scrollbars, unusual form controls, or non-standard navigation just for flavor. |
+| Feature directory home | Do not make the home page a list of nav links or object-type entries. Start from user intent. |
+| Persistent empty rail | Do not show a persistent right evidence rail when evidence is sparse. Use inline expandable sections. |
 
 ## Do and Don't
 
 ### Do
 
 - Keep Portal information-centric.
-- Make the scoped cloud platform catalog the main work surface.
+- Start from user intent on the home page.
+- Use the platform entry cards (clickable cards + inline expand panels) as the primary V1 interaction pattern on Home.
+- Use the unified Explore surface for catalog browse and availability.
 - Distinguish catalog objects from source evidence.
 - Show source authority, freshness, visibility, and warning state everywhere evidence is used.
 - Show relationships among capabilities, landing zones, guardrails, tools, sources, and owners.
-- Treat availability as a decision surface with next-step routing, not as a copied source table.
+- Treat availability as a first-class status dimension on catalog objects, not a separate disconnected surface.
 - Treat health as guidance readiness and evidence quality in V1.
 - Treat Ask Atlas as one consumer surface.
 - Keep UI labels direct and task-oriented.
@@ -791,17 +956,19 @@ Every frontend implementation batch must explicitly check for these patterns bef
 - Use Base UI primitives for accessible behavior and local Atlas wrappers for product styling.
 - Use shadcn search, docs, and dry-run flows before adding components.
 - Use Tabler Icons for navigation, status, feedback, and action icons.
+- Use IBM Plex Sans and IBM Plex Mono as the type system.
 - Use familiar controls for filters, tabs, tables, buttons, and forms.
-- Leave stable space for the company logo.
+- Leave stable space for the company logo in the top bar.
 - Use `#001aff` with restraint through approved brand tokens.
 - Run the impeccable anti-pattern checks before requesting review.
 
 ### Don't
 
 - Do not build a marketing landing page.
+- Do not build a feature directory as the home page.
 - Do not build provisioning workflows.
 - Do not build a full company service catalog or CMDB.
-- Do not turn availability into a spreadsheet-first matrix unless the user explicitly enters a bounded comparison flow.
+- Do not split catalog browse and availability into separate disconnected surfaces.
 - Do not imply service reliability scoring when the data only supports guidance health.
 - Do not hide restricted, stale, broken, or conflicting evidence.
 - Do not place Context Layer logic in Portal components.
@@ -815,19 +982,24 @@ Every frontend implementation batch must explicitly check for these patterns bef
 - Do not use the logo as repeated decoration.
 - Do not use `#001aff` as a large-area background or semantic warning color.
 - Do not ship side-stripe accents, gradient text, default glass panels, hero metrics, or identical decorative card grids.
+- Do not show a persistent right evidence rail.
+- Do not use Inter, system UI, or generic sans-serif as the primary font.
 
 ## Definition of Done
 
 Portal frontend work is ready for V1 pilot review when:
 
-- Users can start from Home and reach catalog, capability, landing zone, guardrail, availability, source, health, and Ask surfaces.
+- Users can start from Home intent entry and reach explore, capability, landing zone, health, and Ask surfaces.
+- Platform entry cards (Evaluate, Decide, Onboard) expand inline panels on Home and resolve users to catalog object detail with entry tools. Developer journey grid provides lifecycle orientation with direct links.
+- Explore surface shows domain-grouped cards with inline availability, region strip filtering, expand panels, and matrix toggle.
 - All primary pages consume schema-backed API data.
 - Catalog objects show type, owner, lifecycle/status, support path, relationship signals, evidence coverage, and warning state.
-- Availability surfaces show clear status labels, source evidence, and next-step paths for available, interim, planned, and not-planned states.
-- Source authority, freshness, visibility, citations, warnings, and expansion paths are visible.
-- Health surfaces show guidance readiness and evidence quality without becoming a generic service reliability scorecard.
-- The company logo has a stable reserved shell slot across desktop and mobile.
+- Availability status is visible inline on service cards with available, planned, interim, and not-planned states.
+- Source authority, freshness, visibility, citations, warnings, and expansion paths are visible through inline evidence sections.
+- Health surface shows guidance readiness and evidence quality without becoming a generic service reliability scorecard.
+- The company logo has a stable reserved top bar slot across desktop and mobile.
 - `#001aff` is used only as restrained brand accent or reduced-chroma tint.
+- IBM Plex Sans and IBM Plex Mono are loaded and applied correctly.
 - Base UI is the selected primitive layer, and shadcn-generated local wrappers follow Atlas tokens and component ownership rules.
 - Feedback can be submitted from the surfaces where users discover gaps.
 - Ask Atlas is visible as a deferred capability and does not misrepresent unimplemented AI behavior as live.
@@ -840,13 +1012,14 @@ Portal frontend work is ready for V1 pilot review when:
 Keep frontend work in small Conventional Commit batches:
 
 1. `docs:` Portal frontend design plan.
-2. `feat:` TanStack Start shell and route tree.
-3. `feat:` Base UI and shadcn local component foundation.
+2. `feat:` TanStack Start shell, top navigation bar, and route tree.
+3. `feat:` Base UI and shadcn local component foundation with IBM Plex fonts.
 4. `feat:` schema-backed Portal API loaders.
-5. `feat:` catalog and discovery surfaces.
-6. `feat:` detail, relationship, and evidence surfaces.
-7. `feat:` guidance health surfaces.
-8. `feat:` deferred Ask Atlas entry.
-9. `test:` browser interaction and accessibility coverage.
+5. `feat:` home intent entry and decision journey.
+6. `feat:` unified explore surface with availability.
+7. `feat:` detail and evidence surfaces.
+8. `feat:` guidance health surface.
+9. `feat:` deferred Ask Atlas entry.
+10. `test:` browser interaction and accessibility coverage.
 
 Do not combine visual system setup with Context Layer data-model changes unless the change is strictly contract integration.
