@@ -23,8 +23,8 @@ export function MatrixView({
 }: MatrixViewProps) {
   const totalCols = locations.length + 1;
   return (
-    <div className="overflow-x-auto rounded-lg border border-border bg-card">
-      <table className="w-full min-w-[720px] table-fixed border-collapse text-[12px]">
+    <div className="overflow-clip rounded-lg border border-border bg-card">
+      <table className="w-full table-fixed border-collapse text-[12px]">
         <colgroup>
           <col style={{ width: "30%" }} />
           {locations.map((location) => (
@@ -35,10 +35,13 @@ export function MatrixView({
           ))}
         </colgroup>
         <thead>
-          <tr className="bg-background">
+          <tr>
             <th
               scope="col"
-              className="border-b border-border px-2.5 py-2 text-left font-mono text-[10px] font-bold uppercase tracking-[0.04em] text-muted-foreground"
+              className={cn(
+                "sticky top-[52px] z-20 border-b border-border bg-background px-2.5 py-2 text-left",
+                "font-mono text-[10px] font-bold uppercase tracking-[0.04em] text-muted-foreground",
+              )}
             >
               Service
             </th>
@@ -46,7 +49,10 @@ export function MatrixView({
               <th
                 key={location.id}
                 scope="col"
-                className="whitespace-nowrap border-b border-border px-2.5 py-2 text-left font-mono text-[10px] font-bold uppercase tracking-[0.04em] text-muted-foreground"
+                className={cn(
+                  "sticky top-[52px] z-20 whitespace-nowrap border-b border-border bg-background px-2.5 py-2 text-left",
+                  "font-mono text-[10px] font-bold uppercase tracking-[0.04em] text-muted-foreground",
+                )}
               >
                 {location.label}
               </th>
