@@ -29,10 +29,7 @@ import { ContextApiError } from "../contextApiError.js";
 
 type HandlerResult = { status: number; body: unknown };
 
-function unwrap<TBody>(
-  result: HandlerResult,
-  schema: { parse(input: unknown): TBody },
-): TBody {
+function unwrap<TBody>(result: HandlerResult, schema: { parse(input: unknown): TBody }): TBody {
   if (result.status >= 400) {
     const parsedError = ApiErrorResponseSchema.safeParse(result.body);
     if (parsedError.success) {
@@ -51,25 +48,13 @@ function unwrap<TBody>(
 }
 
 export const serverContextApiClient: ContextApiClient = {
-  async getContextBundle(
-    request: ContextRequest,
-  ): Promise<ContextBundleResponse> {
+  async getContextBundle(request: ContextRequest): Promise<ContextBundleResponse> {
     return unwrap(handleContextRequest(request), ContextBundleResponseSchema);
   },
-  async discoverSources(
-    request: SourceDiscoveryRequest = {},
-  ): Promise<SourceDiscoveryResponse> {
-    return unwrap(
-      handleSourceDiscoveryRequest(request),
-      SourceDiscoveryResponseSchema,
-    );
+  async discoverSources(request: SourceDiscoveryRequest = {}): Promise<SourceDiscoveryResponse> {
+    return unwrap(handleSourceDiscoveryRequest(request), SourceDiscoveryResponseSchema);
   },
-  async discoverTopics(
-    request: TopicDiscoveryRequest = {},
-  ): Promise<TopicDiscoveryResponse> {
-    return unwrap(
-      handleTopicDiscoveryRequest(request),
-      TopicDiscoveryResponseSchema,
-    );
+  async discoverTopics(request: TopicDiscoveryRequest = {}): Promise<TopicDiscoveryResponse> {
+    return unwrap(handleTopicDiscoveryRequest(request), TopicDiscoveryResponseSchema);
   },
 };

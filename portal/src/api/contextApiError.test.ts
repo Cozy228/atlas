@@ -1,9 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  ContextApiError,
-  mapErrorCodeToUiState,
-} from "./contextApiError.js";
+import { ContextApiError, mapErrorCodeToUiState } from "./contextApiError.js";
 
 describe("ContextApiError", () => {
   it("constructs from a structured ApiErrorResponse body", () => {
@@ -20,9 +17,7 @@ describe("ContextApiError", () => {
     expect(error).toBeInstanceOf(ContextApiError);
     expect(error.code).toBe("topic_not_found");
     expect(error.status).toBe(404);
-    expect(error.message).toBe(
-      "Topic was not found in the Atlas registry.",
-    );
+    expect(error.message).toBe("Topic was not found in the Atlas registry.");
   });
 });
 

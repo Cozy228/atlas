@@ -39,8 +39,7 @@ export const capabilityBundle: ContextBundleResponse = {
             source_id: "textract-module-readme",
             anchor_id: "private-subnet-usage",
             label: "Private subnet usage",
-            location:
-              "github.com/acme/terraform-aws-textract#private-subnet-usage",
+            location: "github.com/acme/terraform-aws-textract#private-subnet-usage",
           },
         },
       ],
