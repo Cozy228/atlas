@@ -1,4 +1,5 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
+import { IconArrowUpRight } from "@tabler/icons-react";
 import type {
   ContextBundleResponse,
   Topic,
@@ -14,10 +15,15 @@ import {
   fetchTopicDiscovery,
 } from "@/api/server/contextApi";
 import { ContextApiError } from "@/api/contextApiError";
-import { BackLink, DetailHeader, DetailSection } from "@/components/detail/detail-shell";
+import {
+  BackLink,
+  DetailHeader,
+  DetailLayout,
+  DetailMetaCard,
+  DetailSection,
+} from "@/components/detail/detail-shell";
 import { EntryToolsGrid } from "@/components/detail/entry-tools-grid";
 import { EvidenceSection } from "@/components/detail/evidence-section";
-import { OwnerRow } from "@/components/detail/owner-row";
 import { FeedbackInlineForm } from "@/components/evidence/feedback-inline-form";
 import { useRecordRecent } from "@/components/home/recently-viewed";
 import { Badge } from "@/components/ui/badge";
@@ -74,9 +80,10 @@ function LandingZoneDetailRoute() {
 
   const guardrails = related.filter((entry) => entry.topic_type === "guardrail-area");
   const capabilities = related.filter((entry) => entry.topic_type === "capability");
+  const primaryTool = topic.entry_tools[0];
 
   return (
-    <PageBody width="comfortable">
+    <PageBody width="comfortable" gap="compact">
       <BackLink to="/landing-zones" label="All landing zones" />
 
       <DetailHeader
@@ -91,79 +98,114 @@ function LandingZoneDetailRoute() {
             </Badge>
           </>
         }
-        meta={<OwnerRow team={topic.owner_team} channel={topic.support_channel} />}
+        actions={
+          primaryTool ? (
+            <a
+              href={primaryTool.url}
+              target="_blank"
+              rel="noreferrer noopener"
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-[12px] font-semibold text-primary-foreground transition-colors",
+                "hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              )}
+            >
+              {primaryTool.label}
+              <IconArrowUpRight className="size-3.5" />
+            </a>
+          ) : null
+        }
       />
 
-      <DetailSection
-        eyebrow="Comparison"
-        title="Environment summary"
-        description="Lift this row into the comparison matrix on the landing zones index. Use the entry tools below to provision."
-      >
-        <ComparisonRow topic={topic} />
-      </DetailSection>
+      <DetailLayout
+        main={
+          <>
+            <DetailSection eyebrow="Provisioning" title="Entry tools">
+              <EntryToolsGrid tools={topic.entry_tools} />
+            </DetailSection>
 
-      <DetailSection
-        eyebrow="Get started"
-        title="Provisioning entry"
-        description="Registered Terraform modules, Harness pipelines, and onboarding paths."
-      >
-        <EntryToolsGrid tools={topic.entry_tools} />
-      </DetailSection>
-
-      {availability.services.length > 0 ? (
-        <DetailSection
-          eyebrow="Capabilities"
-          title="Services typically deployed here"
-          description="Snapshot from the availability projection. Use the availability map for region-level context."
-        >
-          <ServicesPreview locations={availability.locations.length} services={availability.services.length} />
-        </DetailSection>
-      ) : null}
-
-      {capabilities.length > 0 || guardrails.length > 0 ? (
-        <DetailSection
-          eyebrow="Relationships"
-          title="Connected catalog objects"
-          description="Capabilities and guardrails registered against the same domain."
-        >
-          <div className="grid gap-3 sm:grid-cols-2">
-            {capabilities.length > 0 ? (
-              <RelatedColumn
-                title="Capabilities"
-                description="Approved services frequently deployed in this zone."
-                topics={capabilities}
-              />
+            {availability.services.length > 0 ? (
+              <DetailSection eyebrow="Capabilities" title="Catalog scope">
+                <p className="rounded-lg border border-border bg-card px-3.5 py-2.5 text-[12px] text-muted-foreground">
+                  <span className="font-mono font-bold text-foreground">
+                    {availability.services.length}
+                  </span>{" "}
+                  services across{" "}
+                  <span className="font-mono font-bold text-foreground">
+                    {availability.locations.length}
+                  </span>{" "}
+                  regions and outposts. Filter to this zone on the availability map.
+                </p>
+              </DetailSection>
             ) : null}
-            {guardrails.length > 0 ? (
-              <RelatedColumn
-                title="Guardrail areas"
-                description="Controls that apply to workloads in this zone."
-                topics={guardrails}
-              />
+
+            {capabilities.length > 0 || guardrails.length > 0 ? (
+              <DetailSection eyebrow="Relationships" title="Related catalog">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {capabilities.length > 0 ? (
+                    <RelatedColumn
+                      title="Capabilities"
+                      topics={capabilities}
+                      kind="capability"
+                    />
+                  ) : null}
+                  {guardrails.length > 0 ? (
+                    <RelatedColumn
+                      title="Guardrail areas"
+                      topics={guardrails}
+                      kind="capability"
+                    />
+                  ) : null}
+                </div>
+              </DetailSection>
             ) : null}
-          </div>
-        </DetailSection>
-      ) : null}
 
-      <DetailSection
-        eyebrow="Evidence"
-        title="Sources cited for this landing zone"
-        description="Guardrail and provisioning evidence with anchors, freshness, and warnings."
-      >
-        {bundle ? (
-          <EvidenceSection bundle={bundle} />
-        ) : (
-          <div className="rounded-lg border border-dashed border-border bg-card p-4 text-[13px] text-muted-foreground">
-            No registered sources resolved for this landing zone.
-          </div>
-        )}
-      </DetailSection>
+            <DetailSection eyebrow="Evidence" title="Sources cited">
+              {bundle ? (
+                <EvidenceSection bundle={bundle} />
+              ) : (
+                <div className="rounded-lg border border-dashed border-border bg-card p-3.5 text-[12px] text-muted-foreground">
+                  No registered sources resolved for this landing zone.
+                </div>
+              )}
+            </DetailSection>
 
-      <DetailSection eyebrow="Feedback" title="Help Atlas stay accurate">
-        <FeedbackInlineForm
-          target={{ target_type: "topic", target_id: topic.id }}
-        />
-      </DetailSection>
+            <DetailSection eyebrow="Feedback" title="Help Atlas stay accurate">
+              <FeedbackInlineForm
+                target={{ target_type: "topic", target_id: topic.id }}
+              />
+            </DetailSection>
+          </>
+        }
+        side={
+          <DetailMetaCard
+            items={[
+              { label: "Status", value: topic.status, mono: true },
+              { label: "Domain", value: topic.category },
+              { label: "Owner", value: topic.owner_team },
+              { label: "Support", value: topic.support_channel, mono: true },
+              { label: "ID", value: topic.id, mono: true },
+            ]}
+            actions={
+              <>
+                {primaryTool ? (
+                  <a
+                    href={primaryTool.url}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className={cn(
+                      "inline-flex items-center justify-between gap-2 rounded-md bg-primary px-3 py-2 text-[12px] font-semibold text-primary-foreground transition-colors",
+                      "hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                    )}
+                  >
+                    <span>{primaryTool.label}</span>
+                    <IconArrowUpRight className="size-3.5" />
+                  </a>
+                ) : null}
+              </>
+            }
+          />
+        }
+      />
     </PageBody>
   );
 }
@@ -178,82 +220,28 @@ function StatusBadge({ status }: { status: Topic["status"] }) {
   return <Badge variant={variant}>{status}</Badge>;
 }
 
-function ComparisonRow({ topic }: { topic: Topic }) {
-  return (
-    <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-lg bg-border sm:grid-cols-4">
-      <Cell label="Domain" value={topic.category} />
-      <Cell label="Status" value={topic.status} />
-      <Cell label="Owner" value={topic.owner_team} mono />
-      <Cell label="Support" value={topic.support_channel} mono />
-    </dl>
-  );
-}
-
-function Cell({
-  label,
-  value,
-  mono,
-}: {
-  label: string;
-  value: string;
-  mono?: boolean;
-}) {
-  return (
-    <div className="flex flex-col gap-0.5 bg-card px-3 py-2.5">
-      <dt className="font-mono text-[10px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">
-        {label}
-      </dt>
-      <dd
-        className={cn(
-          "text-[13px] font-semibold text-foreground",
-          mono && "font-mono text-[12px]",
-        )}
-      >
-        {value}
-      </dd>
-    </div>
-  );
-}
-
-function ServicesPreview({
-  services,
-  locations,
-}: {
-  services: number;
-  locations: number;
-}) {
-  return (
-    <p className="rounded-lg border border-border bg-card px-4 py-3 text-[13px] text-muted-foreground">
-      <span className="font-mono font-bold text-foreground">{services}</span>{" "}
-      services registered across{" "}
-      <span className="font-mono font-bold text-foreground">{locations}</span>{" "}
-      regions and outposts. Filter to a specific landing zone level on the
-      availability map for precise placement context.
-    </p>
-  );
-}
-
 function RelatedColumn({
   title,
-  description,
   topics,
+  kind,
 }: {
   title: string;
-  description: string;
   topics: ReadonlyArray<Topic>;
+  kind: "landing-zone" | "capability";
 }) {
   return (
-    <div className="rounded-lg border border-border bg-card p-4">
-      <p className="text-[13px] font-bold text-foreground">{title}</p>
-      <p className="text-[11px] text-muted-foreground">{description}</p>
-      <ul className="mt-3 flex flex-col gap-1">
+    <div className="rounded-lg border border-border bg-card p-3">
+      <p className="mb-2 font-mono text-[10px] font-bold uppercase tracking-[0.05em] text-muted-foreground">
+        {title}
+      </p>
+      <ul className="flex flex-col gap-0.5">
         {topics.map((topic) => (
           <li key={topic.id}>
             <a
               href={
-                topic.topic_type === "capability"
-                  ? `/capabilities/${topic.id}`
-                  : `/landing-zones/${topic.id}`
+                kind === "landing-zone"
+                  ? `/landing-zones/${topic.id}`
+                  : `/capabilities/${topic.id}`
               }
               className={cn(
                 "flex items-center justify-between gap-2 rounded-md px-2 py-1.5 transition-colors",

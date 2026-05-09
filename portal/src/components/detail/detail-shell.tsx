@@ -95,15 +95,15 @@ export function DetailSection({
   className,
 }: DetailSectionProps) {
   return (
-    <section className={cn("flex flex-col gap-4", className)}>
+    <section className={cn("flex flex-col gap-3", className)}>
       <div className="flex items-end justify-between gap-3">
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-0.5">
           {eyebrow ? (
             <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">
               {eyebrow}
             </span>
           ) : null}
-          <h2 className="text-[18px] font-bold tracking-[-0.02em] text-foreground">
+          <h2 className="text-[15px] font-bold tracking-[-0.02em] text-foreground">
             {title}
           </h2>
           {description ? (
@@ -116,5 +116,64 @@ export function DetailSection({
       </div>
       {children}
     </section>
+  );
+}
+
+type DetailLayoutProps = {
+  main: ReactNode;
+  side: ReactNode;
+};
+
+export function DetailLayout({ main, side }: DetailLayoutProps) {
+  return (
+    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_280px] lg:gap-8">
+      <div className="flex min-w-0 flex-col gap-6">{main}</div>
+      <aside className="flex flex-col gap-3 lg:sticky lg:top-[68px] lg:self-start">
+        {side}
+      </aside>
+    </div>
+  );
+}
+
+type DetailMetaItem = {
+  label: string;
+  value: ReactNode;
+  mono?: boolean;
+};
+
+type DetailMetaCardProps = {
+  items: ReadonlyArray<DetailMetaItem>;
+  actions?: ReactNode;
+};
+
+export function DetailMetaCard({ items, actions }: DetailMetaCardProps) {
+  return (
+    <div className="overflow-hidden rounded-lg border border-border bg-card">
+      <dl className="flex flex-col divide-y divide-border">
+        {items.map((item) => (
+          <div
+            key={item.label}
+            className="flex items-baseline justify-between gap-3 px-3.5 py-2.5"
+          >
+            <dt className="font-mono text-[10px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">
+              {item.label}
+            </dt>
+            <dd
+              className={cn(
+                "min-w-0 flex-1 truncate text-right text-[12px] font-semibold text-foreground",
+                item.mono && "font-mono text-[11px]",
+              )}
+            >
+              {item.value}
+            </dd>
+          </div>
+        ))}
+      </dl>
+      {actions ? (
+        <div className="flex flex-col gap-1.5 border-t border-border bg-background p-3">
+          {actions}
+        </div>
+      ) : null}
+    </div>
   );
 }
