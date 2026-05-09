@@ -2,6 +2,7 @@ import { Fragment, useMemo, useState } from "react";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { IconSearch } from "@tabler/icons-react";
+import Fuse from "fuse.js";
 
 import { availabilityQueryOptions } from "@/api/queries";
 import {
@@ -13,6 +14,15 @@ import { MatrixView } from "@/components/explore/matrix-view";
 import { RegionStrip } from "@/components/explore/region-strip";
 import { ServiceCard } from "@/components/explore/service-card";
 import { PageBody } from "@/components/page-section";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/utils";
 
 type ViewMode = "cards" | "matrix";
@@ -48,13 +58,22 @@ function ExploreRoute() {
     return ["all", ...[...set].sort()];
   }, [services]);
 
+  const fuse = useMemo(
+    () =>
+      new Fuse(services as ReadonlyArray<AvailabilityRecord>, {
+        keys: ["name", "domain", "iconKey"],
+        threshold: 0.35,
+        ignoreLocation: true,
+      }),
+    [services],
+  );
+
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return services.filter((service) => {
-      if (q) {
-        const haystack = `${service.name} ${service.domain} ${service.iconKey}`.toLowerCase();
-        if (!haystack.includes(q)) return false;
-      }
+    const q = query.trim();
+    const matched = q.length > 0
+      ? fuse.search(q).map((result) => result.item)
+      : services;
+    return matched.filter((service) => {
       if (domainFilter !== "all" && service.domain !== domainFilter) return false;
       if (statusFilter !== "all") {
         const matches = locations.some(
@@ -68,7 +87,7 @@ function ExploreRoute() {
       }
       return true;
     });
-  }, [services, query, domainFilter, statusFilter, activeLocation, locations]);
+  }, [fuse, services, query, domainFilter, statusFilter, activeLocation, locations]);
 
   const groups = useMemo(() => {
     const map = new Map<string, AvailabilityRecord[]>();
@@ -280,93 +299,64 @@ function Controls({
 }) {
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <PillSelect
-        label="Status"
+      <Select
         value={statusFilter}
-        onChange={(value) => onStatusChange(value as LocationStatus | "all")}
+        onValueChange={(value) =>
+          onStatusChange(value as LocationStatus | "all")
+        }
       >
-        {STATUS_OPTIONS.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </PillSelect>
-      <PillSelect
-        label="Domain"
-        value={domainFilter}
-        onChange={onDomainChange}
-      >
-        {domainOptions.map((domain) => (
-          <option key={domain} value={domain}>
-            {domain === "all" ? "All domains" : domain}
-          </option>
-        ))}
-      </PillSelect>
+        <SelectTrigger
+          size="sm"
+          aria-label="Status"
+          className="rounded-full text-[12px]"
+        >
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {STATUS_OPTIONS.map((option) => (
+            <SelectItem key={option.value} value={option.value}>
+              {option.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <Select value={domainFilter} onValueChange={onDomainChange}>
+        <SelectTrigger
+          size="sm"
+          aria-label="Domain"
+          className="rounded-full text-[12px]"
+        >
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {domainOptions.map((domain) => (
+            <SelectItem key={domain} value={domain}>
+              {domain === "all" ? "All domains" : domain}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
       <span className="ml-auto font-mono text-[11px] text-muted-foreground">
         {resultsLabel}
       </span>
-      <div
-        role="tablist"
+      <ToggleGroup
+        type="single"
+        value={view}
+        onValueChange={(value) => {
+          if (value === "cards" || value === "matrix") onViewChange(value);
+        }}
+        variant="outline"
+        size="sm"
         aria-label="View mode"
-        className="flex overflow-hidden rounded-md border border-border"
       >
-        {(["cards", "matrix"] as const).map((mode) => (
-          <button
-            key={mode}
-            type="button"
-            role="tab"
-            aria-selected={view === mode}
-            onClick={() => onViewChange(mode)}
-            className={cn(
-              "px-2.5 py-1 text-[11px] font-semibold transition-colors",
-              "border-r border-border last:border-r-0",
-              view === mode
-                ? "bg-brand-tint text-primary"
-                : "bg-card text-muted-foreground hover:bg-muted",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-            )}
-          >
-            {mode === "cards" ? "Cards" : "Matrix"}
-          </button>
-        ))}
-      </div>
+        <ToggleGroupItem value="cards" className="text-[11px] font-semibold">
+          Cards
+        </ToggleGroupItem>
+        <ToggleGroupItem value="matrix" className="text-[11px] font-semibold">
+          Matrix
+        </ToggleGroupItem>
+      </ToggleGroup>
     </div>
-  );
-}
-
-function PillSelect({
-  label,
-  value,
-  onChange,
-  children,
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="relative inline-flex items-center">
-      <span className="sr-only">{label}</span>
-      <select
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className={cn(
-          "h-7 cursor-pointer appearance-none rounded-full border border-border bg-card pl-3 pr-7",
-          "text-[12px] font-medium text-muted-foreground transition-colors",
-          "hover:border-border-strong",
-          "focus:border-primary focus:outline-none",
-        )}
-      >
-        {children}
-      </select>
-      <span
-        aria-hidden
-        className="pointer-events-none absolute right-2.5 text-[10px] text-muted-foreground"
-      >
-        ▾
-      </span>
-    </label>
   );
 }
 
@@ -438,17 +428,14 @@ function EmptyState({ onReset }: { onReset: () => void }) {
       <p className="text-[12px] text-muted-foreground">
         Broaden your search or clear filters.
       </p>
-      <button
+      <Button
         type="button"
+        size="sm"
         onClick={onReset}
-        className={cn(
-          "mt-2 rounded-md bg-primary px-3 py-1.5 text-[12px] font-semibold text-primary-foreground",
-          "transition-colors hover:bg-primary/90",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-        )}
+        className="mt-2"
       >
         Reset filters
-      </button>
+      </Button>
     </div>
   );
 }

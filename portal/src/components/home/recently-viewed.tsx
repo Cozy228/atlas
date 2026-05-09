@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 
+import { ClientOnly } from "@/components/client-only";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
 export type RecentItem =
@@ -61,6 +63,26 @@ function isRecentItem(value: unknown): value is RecentItem {
 }
 
 export function RecentlyViewed() {
+  return (
+    <ClientOnly fallback={<RecentlyViewedSkeleton />}>
+      <RecentlyViewedClient />
+    </ClientOnly>
+  );
+}
+
+function RecentlyViewedSkeleton() {
+  return (
+    <ul className="flex flex-wrap gap-1.5" aria-hidden>
+      {Array.from({ length: 4 }).map((_, idx) => (
+        <li key={idx}>
+          <Skeleton className="h-7 w-32 rounded-full" />
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function RecentlyViewedClient() {
   const [items, setItems] = useState<ReadonlyArray<RecentItem>>([]);
 
   useEffect(() => {
