@@ -10,6 +10,7 @@ import {
 
 import { PortalShell } from "@/components/portal-shell";
 import { Toaster } from "@/components/ui/sonner";
+import { themeInitScript } from "@/lib/theme-script";
 import globalsCss from "@/styles/globals.css?url";
 
 export interface RouterContext {
@@ -24,7 +25,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
         name: "viewport",
         content: "width=device-width, initial-scale=1, viewport-fit=cover",
       },
-      { name: "color-scheme", content: "light" },
+      { name: "color-scheme", content: "light dark" },
       {
         name: "description",
         content: "Atlas Portal: governed cloud platform context for application teams.",
@@ -85,9 +86,10 @@ function RootComponent() {
 
 function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <HeadContent />
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
       <body>
         <div id="app">{children}</div>

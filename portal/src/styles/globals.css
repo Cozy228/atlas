@@ -83,7 +83,11 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
 }
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
+  color-scheme: light;
+
   /* Tinted neutrals: hue 264 (matching brand), low chroma. Never pure white. */
   --background: oklch(98.6% 0.005 264.18);
   --foreground: oklch(20% 0.02 264.18);
@@ -141,6 +145,79 @@
   --sidebar-border: oklch(91% 0.01 264.18);
   --sidebar-accent: oklch(94% 0.05 264.18);
   --sidebar-accent-foreground: oklch(46.28% 0.3059 264.18);
+}
+
+/*
+ * Dark palette.
+ *
+ * Same brand hue 264.18. Chroma reduced at low lightness to avoid garish
+ * extremes (per OKLCH perceptual rules). Surfaces step in 2-4% lightness
+ * increments to create subtle elevation without heavy borders.
+ */
+.dark {
+  color-scheme: dark;
+
+  --background: oklch(14% 0.008 264.18);
+  --foreground: oklch(93% 0.006 264.18);
+
+  --card: oklch(18% 0.01 264.18);
+  --card-foreground: oklch(93% 0.006 264.18);
+  --popover: oklch(20% 0.01 264.18);
+  --popover-foreground: oklch(93% 0.006 264.18);
+
+  --primary: oklch(58% 0.26 264.18);
+  --primary-foreground: oklch(14% 0.008 264.18);
+
+  --secondary: oklch(22% 0.014 264.18);
+  --secondary-foreground: oklch(88% 0.008 264.18);
+
+  --muted: oklch(20% 0.01 264.18);
+  --muted-foreground: oklch(62% 0.012 264.18);
+
+  --accent: oklch(22% 0.014 264.18);
+  --accent-foreground: oklch(88% 0.008 264.18);
+
+  --destructive: oklch(58% 0.16 25);
+  --destructive-foreground: oklch(93% 0.006 264.18);
+
+  --border: oklch(26% 0.01 264.18);
+  --border-strong: oklch(36% 0.012 264.18);
+  --input: oklch(26% 0.01 264.18);
+  --ring: oklch(58% 0.26 264.18);
+
+  --brand: oklch(58% 0.26 264.18);
+  --brand-tint: oklch(24% 0.035 264.18);
+  --brand-foreground: oklch(14% 0.008 264.18);
+
+  --success: oklch(62% 0.11 152);
+  --success-foreground: oklch(14% 0.008 152);
+  --warning: oklch(74% 0.14 75);
+  --warning-foreground: oklch(14% 0.008 75);
+  --critical: oklch(60% 0.16 25);
+  --critical-foreground: oklch(93% 0.006 25);
+  --info: oklch(66% 0.10 230);
+  --info-foreground: oklch(14% 0.008 230);
+
+  --sidebar: oklch(16% 0.008 264.18);
+  --sidebar-foreground: oklch(88% 0.008 264.18);
+  --sidebar-muted: oklch(20% 0.01 264.18);
+  --sidebar-muted-foreground: oklch(62% 0.012 264.18);
+  --sidebar-border: oklch(26% 0.01 264.18);
+  --sidebar-accent: oklch(24% 0.035 264.18);
+  --sidebar-accent-foreground: oklch(58% 0.26 264.18);
+}
+
+/*
+ * Theme transition: circle-reveal via View Transitions API.
+ *
+ * Disable the default cross-fade so the programmatic clip-path animation
+ * (driven by document.documentElement.animate() in theme.tsx) is the only
+ * transition effect. Falls back to instant swap on unsupported browsers.
+ */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
 }
 
 @layer base {

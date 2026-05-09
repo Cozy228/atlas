@@ -3,6 +3,8 @@ import { Link } from "@tanstack/react-router";
 
 import { AskAtlasFab } from "@/components/ask-atlas-fab";
 import { AskAtlasProvider } from "@/components/ask-atlas/context";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { ThemeProvider } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
 type PortalShellProps = {
@@ -24,13 +26,15 @@ const PRIMARY_NAV: ReadonlyArray<NavItem> = [
 
 export function PortalShell({ children }: PortalShellProps) {
   return (
-    <AskAtlasProvider>
-      <div className="flex min-h-dvh w-full flex-col bg-background text-foreground">
-        <TopBar />
-        <main className="min-w-0 flex-1">{children}</main>
-        <AskAtlasFab />
-      </div>
-    </AskAtlasProvider>
+    <ThemeProvider>
+      <AskAtlasProvider>
+        <div className="flex min-h-dvh w-full flex-col bg-background text-foreground">
+          <TopBar />
+          <main className="min-w-0 flex-1">{children}</main>
+          <AskAtlasFab />
+        </div>
+      </AskAtlasProvider>
+    </ThemeProvider>
   );
 }
 
@@ -52,6 +56,7 @@ function TopBar() {
       <div className="flex items-center justify-end gap-2">
         <HealthIndicator />
         <SyncPill />
+        <ThemeToggle />
       </div>
     </header>
   );
