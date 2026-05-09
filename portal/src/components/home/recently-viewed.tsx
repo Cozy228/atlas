@@ -35,6 +35,13 @@ export function pushRecent(item: RecentItem) {
   }
 }
 
+export function useRecordRecent(item: RecentItem | null) {
+  useEffect(() => {
+    if (!item) return;
+    pushRecent(item);
+  }, [item?.kind, item?.kind === "source" ? item.sourceId : item?.topicId, item?.name]);
+}
+
 function recentKey(item: RecentItem): string {
   return item.kind === "source"
     ? `source:${item.sourceId}`
