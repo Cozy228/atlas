@@ -36,20 +36,20 @@ function TopBar() {
     <header
       role="banner"
       className={cn(
-        "sticky top-0 z-40 flex h-[52px] items-center gap-1 border-b border-border px-4 sm:px-8",
+        "sticky top-0 z-40 grid h-[52px] grid-cols-[auto_1fr_auto] items-center gap-2 border-b border-border px-4 sm:px-8",
         "bg-background/85 backdrop-blur-md backdrop-saturate-150",
       )}
     >
       <BrandLink />
       <nav
         aria-label="Primary"
-        className="hidden items-center gap-0.5 md:flex"
+        className="hidden items-center justify-center gap-0.5 md:flex"
       >
         {PRIMARY_NAV.map((item) => (
           <TopNavLink key={item.to} item={item} />
         ))}
       </nav>
-      <div className="ml-auto flex items-center gap-2">
+      <div className="flex items-center justify-end gap-2">
         <HealthIndicator />
         <SyncPill />
       </div>
