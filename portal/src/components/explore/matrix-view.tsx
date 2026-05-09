@@ -23,13 +23,22 @@ export function MatrixView({
 }: MatrixViewProps) {
   const totalCols = locations.length + 1;
   return (
-    <div className="overflow-hidden rounded-lg border border-border bg-card">
-      <table className="w-full border-collapse text-[12px]">
+    <div className="overflow-x-auto rounded-lg border border-border bg-card">
+      <table className="w-full min-w-[720px] table-fixed border-collapse text-[12px]">
+        <colgroup>
+          <col style={{ width: "30%" }} />
+          {locations.map((location) => (
+            <col
+              key={location.id}
+              style={{ width: `${70 / locations.length}%` }}
+            />
+          ))}
+        </colgroup>
         <thead>
           <tr className="bg-background">
             <th
               scope="col"
-              className="sticky top-[52px] z-[5] border-b border-border px-2.5 py-2 text-left font-mono text-[10px] font-bold uppercase tracking-[0.04em] text-muted-foreground"
+              className="border-b border-border px-2.5 py-2 text-left font-mono text-[10px] font-bold uppercase tracking-[0.04em] text-muted-foreground"
             >
               Service
             </th>
@@ -37,7 +46,7 @@ export function MatrixView({
               <th
                 key={location.id}
                 scope="col"
-                className="sticky top-[52px] z-[5] border-b border-border px-2.5 py-2 text-left font-mono text-[10px] font-bold uppercase tracking-[0.04em] text-muted-foreground"
+                className="whitespace-nowrap border-b border-border px-2.5 py-2 text-left font-mono text-[10px] font-bold uppercase tracking-[0.04em] text-muted-foreground"
               >
                 {location.label}
               </th>
@@ -104,24 +113,24 @@ function DomainRows({
               )}
               aria-expanded={isSelected}
             >
-              <td className="px-2.5 py-2">
-                <span className="flex items-center gap-2">
+              <td className="px-2.5 py-2 align-middle">
+                <span className="flex min-w-0 items-center gap-2">
                   <span
                     aria-hidden
                     className={cn(
-                      "flex size-5 items-center justify-center rounded border border-border bg-background",
+                      "flex size-5 shrink-0 items-center justify-center rounded border border-border bg-background",
                       "font-mono text-[7px] font-bold uppercase text-primary",
                     )}
                   >
                     {service.iconKey}
                   </span>
-                  <span className="font-semibold text-foreground">
+                  <span className="min-w-0 flex-1 truncate font-semibold text-foreground">
                     {service.name}
                   </span>
                   <IconChevronDown
                     aria-hidden
                     className={cn(
-                      "ml-auto size-3 text-muted-foreground transition-transform",
+                      "size-3 shrink-0 text-muted-foreground transition-transform",
                       isSelected && "rotate-180 text-primary",
                     )}
                   />
@@ -137,7 +146,10 @@ function DomainRows({
                       ? `${statusLabel(status)} ${cell.note}`
                       : statusLabel(status);
                 return (
-                  <td key={location.id} className="px-2.5 py-2">
+                  <td
+                    key={location.id}
+                    className="whitespace-nowrap px-2.5 py-2 align-middle"
+                  >
                     {status === "not-planned" ? (
                       <span className="font-mono text-[11px] text-muted-foreground/70">
                         —
@@ -194,14 +206,18 @@ function MatrixExpandRow({
         "[animation:expandRowIn_180ms_cubic-bezier(0.22,1,0.36,1)]",
       )}
     >
-      <td colSpan={totalCols} className="px-2.5 py-2.5">
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+      <td colSpan={totalCols} className="px-3 py-2.5">
+        <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between md:gap-3">
           {guidance ? (
-            <span className="font-mono text-[11px] text-foreground/80">
+            <span className="font-mono text-[11px] leading-5 text-foreground/80">
               {guidance}
             </span>
-          ) : null}
-          <span className="ml-auto flex flex-wrap items-center gap-1">
+          ) : (
+            <span className="font-mono text-[11px] text-muted-foreground">
+              {service.name}
+            </span>
+          )}
+          <span className="flex flex-wrap items-center gap-1">
             <MatrixAction primary>Open catalog</MatrixAction>
             <MatrixAction>User guide</MatrixAction>
             <MatrixAction>Onboarding</MatrixAction>
