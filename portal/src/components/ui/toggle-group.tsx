@@ -1,24 +1,24 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { Toggle as TogglePrimitive } from "@base-ui/react/toggle"
-import { ToggleGroup as ToggleGroupPrimitive } from "@base-ui/react/toggle-group"
-import { type VariantProps } from "class-variance-authority"
+import * as React from "react";
+import { Toggle as TogglePrimitive } from "@base-ui/react/toggle";
+import { ToggleGroup as ToggleGroupPrimitive } from "@base-ui/react/toggle-group";
+import { type VariantProps } from "class-variance-authority";
 
-import { cn } from "@/lib/utils"
-import { toggleVariants } from "@/components/ui/toggle"
+import { cn } from "@/lib/utils";
+import { toggleVariants } from "@/components/ui/toggle";
 
 const ToggleGroupContext = React.createContext<
   VariantProps<typeof toggleVariants> & {
-    spacing?: number
-    orientation?: "horizontal" | "vertical"
+    spacing?: number;
+    orientation?: "horizontal" | "vertical";
   }
 >({
   size: "default",
   variant: "default",
   spacing: 0,
   orientation: "horizontal",
-})
+});
 
 function ToggleGroup({
   className,
@@ -32,32 +32,25 @@ function ToggleGroup({
   onValueChange,
   children,
   ...props
-}: Omit<
-  ToggleGroupPrimitive.Props,
-  "defaultValue" | "multiple" | "onValueChange" | "value"
-> &
+}: Omit<ToggleGroupPrimitive.Props, "defaultValue" | "multiple" | "onValueChange" | "value"> &
   VariantProps<typeof toggleVariants> & {
-    spacing?: number
-    orientation?: "horizontal" | "vertical"
-    type?: "multiple" | "single"
-    value?: readonly string[] | string
-    defaultValue?: readonly string[] | string
+    spacing?: number;
+    orientation?: "horizontal" | "vertical";
+    type?: "multiple" | "single";
+    value?: readonly string[] | string;
+    defaultValue?: readonly string[] | string;
     onValueChange?: (
       value: readonly string[] | string,
-      eventDetails: ToggleGroupPrimitive.ChangeEventDetails
-    ) => void
+      eventDetails: ToggleGroupPrimitive.ChangeEventDetails,
+    ) => void;
   }) {
-  const multiple = type === "multiple"
-  const normalizedValue = Array.isArray(value)
-    ? value
-    : value
-      ? [value]
-      : undefined
+  const multiple = type === "multiple";
+  const normalizedValue = Array.isArray(value) ? value : value ? [value] : undefined;
   const normalizedDefaultValue = Array.isArray(defaultValue)
     ? defaultValue
     : defaultValue
       ? [defaultValue]
-      : undefined
+      : undefined;
 
   return (
     <ToggleGroupPrimitive
@@ -71,24 +64,19 @@ function ToggleGroup({
       value={normalizedValue}
       defaultValue={normalizedDefaultValue}
       onValueChange={(groupValue, eventDetails) => {
-        onValueChange?.(
-          multiple ? groupValue : (groupValue[0] ?? ""),
-          eventDetails
-        )
+        onValueChange?.(multiple ? groupValue : (groupValue[0] ?? ""), eventDetails);
       }}
       className={cn(
         "group/toggle-group flex w-fit flex-row items-center gap-[--spacing(var(--gap))] rounded-lg data-[size=sm]:rounded-[min(var(--radius-md),10px)] data-vertical:flex-col data-vertical:items-stretch",
-        className
+        className,
       )}
       {...props}
     >
-      <ToggleGroupContext.Provider
-        value={{ variant, size, spacing, orientation }}
-      >
+      <ToggleGroupContext.Provider value={{ variant, size, spacing, orientation }}>
         {children}
       </ToggleGroupContext.Provider>
     </ToggleGroupPrimitive>
-  )
+  );
 }
 
 function ToggleGroupItem({
@@ -98,7 +86,7 @@ function ToggleGroupItem({
   size = "default",
   ...props
 }: TogglePrimitive.Props & VariantProps<typeof toggleVariants>) {
-  const context = React.useContext(ToggleGroupContext)
+  const context = React.useContext(ToggleGroupContext);
 
   return (
     <TogglePrimitive
@@ -112,13 +100,13 @@ function ToggleGroupItem({
           variant: context.variant || variant,
           size: context.size || size,
         }),
-        className
+        className,
       )}
       {...props}
     >
       {children}
     </TogglePrimitive>
-  )
+  );
 }
 
-export { ToggleGroup, ToggleGroupItem }
+export { ToggleGroup, ToggleGroupItem };
