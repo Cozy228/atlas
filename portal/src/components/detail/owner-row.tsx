@@ -18,17 +18,12 @@ export function OwnerRow({
         className,
       )}
     >
-      <IconUsers
-        aria-hidden
-        className="size-3.5 text-muted-foreground"
-      />
+      <IconUsers aria-hidden className="size-3.5 text-muted-foreground" />
       <span className="text-[12px] font-semibold text-foreground">{team}</span>
       <span aria-hidden className="text-muted-foreground/50">
         ·
       </span>
-      <span className="font-mono text-[11px] text-muted-foreground">
-        {channel}
-      </span>
+      <span className="font-mono text-[11px] text-muted-foreground">{channel}</span>
     </span>
   );
 }

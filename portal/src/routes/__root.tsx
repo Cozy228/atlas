@@ -27,8 +27,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       { name: "color-scheme", content: "light" },
       {
         name: "description",
-        content:
-          "Atlas Portal: governed cloud platform context for application teams.",
+        content: "Atlas Portal: governed cloud platform context for application teams.",
       },
       { title: "Atlas Portal" },
     ],
@@ -48,10 +47,9 @@ function NotFoundComponent() {
         Atlas could not resolve that record.
       </h1>
       <p className="text-[14px] leading-[1.6] text-muted-foreground">
-        The topic, source, or path you followed is not registered in the
-        Context API. Browse capabilities, landing zones, or sources to find
-        what you need, or report the gap from the feedback form on any detail
-        page.
+        The topic, source, or path you followed is not registered in the Context API. Browse
+        capabilities, landing zones, or sources to find what you need, or report the gap from the
+        feedback form on any detail page.
       </p>
       <div className="flex flex-wrap gap-2">
         <Link

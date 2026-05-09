@@ -1,15 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import type {
-  Source,
-  SourceDiscoveryResponse,
-  Topic,
-  TopicDiscoveryResponse,
-} from "@atlas/schema";
+import type { Source, SourceDiscoveryResponse, Topic, TopicDiscoveryResponse } from "@atlas/schema";
 
-import {
-  fetchSourceDiscovery,
-  fetchTopicDiscovery,
-} from "@/api/server/contextApi";
+import { fetchSourceDiscovery, fetchTopicDiscovery } from "@/api/server/contextApi";
 import { CatalogHighlights } from "@/components/home/catalog-highlights";
 import { EntryCards } from "@/components/home/entry-cards";
 import { HealthBand } from "@/components/home/health-band";
@@ -39,17 +31,11 @@ type HomeSignals = {
 
 export const Route = createFileRoute("/")({
   loader: async (): Promise<HomeLoaderData> => {
-    const [topicsResp, sourcesResp]: [
-      TopicDiscoveryResponse,
-      SourceDiscoveryResponse,
-    ] = await Promise.all([fetchTopicDiscovery(), fetchSourceDiscovery()]);
+    const [topicsResp, sourcesResp]: [TopicDiscoveryResponse, SourceDiscoveryResponse] =
+      await Promise.all([fetchTopicDiscovery(), fetchSourceDiscovery()]);
 
-    const capabilities = topicsResp.topics.filter(
-      (topic) => topic.topic_type === "capability",
-    );
-    const landingZones = topicsResp.topics.filter(
-      (topic) => topic.topic_type === "landing-zone",
-    );
+    const capabilities = topicsResp.topics.filter((topic) => topic.topic_type === "capability");
+    const landingZones = topicsResp.topics.filter((topic) => topic.topic_type === "landing-zone");
 
     const signals: HomeSignals = {
       capabilityCount: capabilities.length,
@@ -80,15 +66,27 @@ function HomeRoute() {
   return (
     <PageBody width="comfortable">
       <Hero />
-      <Section eyebrow="Platform" title="Choose your starting point" description="Pick the question that matches where you are in your platform journey.">
+      <Section
+        eyebrow="Platform"
+        title="Choose your starting point"
+        description="Pick the question that matches where you are in your platform journey."
+      >
         <EntryCards capabilities={capabilities} landingZones={landingZones} />
       </Section>
 
-      <Section eyebrow="Developer journey" title="From idea to production" description="Follow the lifecycle or jump to what you need right now.">
+      <Section
+        eyebrow="Developer journey"
+        title="From idea to production"
+        description="Follow the lifecycle or jump to what you need right now."
+      >
         <JourneyGrid />
       </Section>
 
-      <Section eyebrow="Catalog" title="Capability highlights" description="A snapshot of the current catalog across regions and domains.">
+      <Section
+        eyebrow="Catalog"
+        title="Capability highlights"
+        description="A snapshot of the current catalog across regions and domains."
+      >
         <CatalogHighlights
           serviceCount={signals.capabilityCount}
           regionCount={REGIONS.length}
@@ -125,8 +123,8 @@ function Hero() {
           Find the right platform path
         </h1>
         <p className="max-w-[52ch] text-[15px] leading-[1.6] text-muted-foreground">
-          Search across capabilities, landing zones, tools, and owners. Start
-          from a question or browse the catalog.
+          Search across capabilities, landing zones, tools, and owners. Start from a question or
+          browse the catalog.
         </p>
       </div>
       <IntentSearch />
@@ -147,11 +145,7 @@ function Section({
 }) {
   return (
     <section className="flex flex-col gap-4">
-      <SectionEyebrow
-        eyebrow={eyebrow}
-        title={title}
-        description={description}
-      />
+      <SectionEyebrow eyebrow={eyebrow} title={title} description={description} />
       {children}
     </section>
   );

@@ -2,10 +2,7 @@ import { Fragment } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { IconArrowUpRight, IconChevronDown } from "@tabler/icons-react";
 
-import type {
-  AvailabilityRecord,
-  Location,
-} from "@/api/server/availability";
+import type { AvailabilityRecord, Location } from "@/api/server/availability";
 import { StatusChip, statusLabel } from "@/components/explore/status-chip";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -17,12 +14,7 @@ type MatrixViewProps = {
   onSelect: (id: string) => void;
 };
 
-export function MatrixView({
-  locations,
-  groups,
-  selectedServiceId,
-  onSelect,
-}: MatrixViewProps) {
+export function MatrixView({ locations, groups, selectedServiceId, onSelect }: MatrixViewProps) {
   const totalCols = locations.length + 1;
   return (
     <div className="overflow-clip rounded-lg border border-border bg-card">
@@ -30,10 +22,7 @@ export function MatrixView({
         <colgroup>
           <col style={{ width: "30%" }} />
           {locations.map((location) => (
-            <col
-              key={location.id}
-              style={{ width: `${70 / locations.length}%` }}
-            />
+            <col key={location.id} style={{ width: `${70 / locations.length}%` }} />
           ))}
         </colgroup>
         <thead>
@@ -154,14 +143,9 @@ function DomainRows({
                       ? `${statusLabel(status)} ${cell.note}`
                       : statusLabel(status);
                 return (
-                  <td
-                    key={location.id}
-                    className="whitespace-nowrap px-2.5 py-2 align-middle"
-                  >
+                  <td key={location.id} className="whitespace-nowrap px-2.5 py-2 align-middle">
                     {status === "not-planned" ? (
-                      <span className="font-mono text-[11px] text-muted-foreground/70">
-                        —
-                      </span>
+                      <span className="font-mono text-[11px] text-muted-foreground/70">—</span>
                     ) : (
                       <StatusChip status={status} text={text} size="sm" />
                     )}
@@ -171,11 +155,7 @@ function DomainRows({
             </tr>
             <AnimatePresence initial={false}>
               {isSelected ? (
-                <MatrixExpandRow
-                  service={service}
-                  locations={locations}
-                  totalCols={totalCols}
-                />
+                <MatrixExpandRow service={service} locations={locations} totalCols={totalCols} />
               ) : null}
             </AnimatePresence>
           </Fragment>
@@ -196,16 +176,12 @@ function MatrixExpandRow({
 }) {
   const planned = locations
     .map((location) => service.availability[location.id])
-    .filter(
-      (cell) => cell?.status === "planned" && cell.note && cell.note !== "TBD",
-    )
+    .filter((cell) => cell?.status === "planned" && cell.note && cell.note !== "TBD")
     .map((cell) => cell!.note!);
   const guidance =
     planned.length > 0
       ? `Rollout in progress. Next expected: ${planned[0]}.`
-      : locations.some(
-            (l) => service.availability[l.id]?.status === "available",
-          )
+      : locations.some((l) => service.availability[l.id]?.status === "available")
         ? "Available now. Proceed to catalog or onboarding."
         : null;
 
@@ -221,13 +197,9 @@ function MatrixExpandRow({
       <td colSpan={totalCols} className="px-3 py-2.5">
         <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between md:gap-3">
           {guidance ? (
-            <span className="font-mono text-[11px] leading-5 text-foreground/80">
-              {guidance}
-            </span>
+            <span className="font-mono text-[11px] leading-5 text-foreground/80">{guidance}</span>
           ) : (
-            <span className="font-mono text-[11px] text-muted-foreground">
-              {service.name}
-            </span>
+            <span className="font-mono text-[11px] text-muted-foreground">{service.name}</span>
           )}
           <span className="flex flex-wrap items-center gap-1">
             <MatrixAction primary>Open catalog</MatrixAction>
@@ -241,13 +213,7 @@ function MatrixExpandRow({
   );
 }
 
-function MatrixAction({
-  children,
-  primary,
-}: {
-  children: React.ReactNode;
-  primary?: boolean;
-}) {
+function MatrixAction({ children, primary }: { children: React.ReactNode; primary?: boolean }) {
   return (
     <Button
       type="button"
@@ -257,9 +223,7 @@ function MatrixAction({
       className="font-mono"
     >
       {children}
-      {primary ? (
-        <IconArrowUpRight aria-hidden className="size-3" />
-      ) : null}
+      {primary ? <IconArrowUpRight aria-hidden className="size-3" /> : null}
     </Button>
   );
 }

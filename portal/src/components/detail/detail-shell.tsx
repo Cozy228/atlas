@@ -52,11 +52,7 @@ export function DetailHeader({
             <h1 className="text-[26px] font-bold tracking-[-0.03em] text-foreground sm:text-[28px]">
               {title}
             </h1>
-            {badges ? (
-              <div className="flex flex-wrap items-center gap-1.5">
-                {badges}
-              </div>
-            ) : null}
+            {badges ? <div className="flex flex-wrap items-center gap-1.5">{badges}</div> : null}
           </div>
           {description ? (
             <p className="max-w-[68ch] text-[14px] leading-[1.6] text-muted-foreground">
@@ -64,9 +60,7 @@ export function DetailHeader({
             </p>
           ) : null}
         </div>
-        {actions ? (
-          <div className="flex flex-wrap items-center gap-2">{actions}</div>
-        ) : null}
+        {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
       </div>
       {meta ? (
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[12px] text-muted-foreground">
@@ -103,9 +97,7 @@ export function DetailSection({
               {eyebrow}
             </span>
           ) : null}
-          <h2 className="text-[15px] font-bold tracking-[-0.02em] text-foreground">
-            {title}
-          </h2>
+          <h2 className="text-[15px] font-bold tracking-[-0.02em] text-foreground">{title}</h2>
           {description ? (
             <p className="max-w-[68ch] text-[13px] leading-[1.6] text-muted-foreground">
               {description}
@@ -128,9 +120,7 @@ export function DetailLayout({ main, side }: DetailLayoutProps) {
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_280px] lg:gap-8">
       <div className="flex min-w-0 flex-col gap-6">{main}</div>
-      <aside className="flex flex-col gap-3 lg:sticky lg:top-[68px] lg:self-start">
-        {side}
-      </aside>
+      <aside className="flex flex-col gap-3 lg:sticky lg:top-[68px] lg:self-start">{side}</aside>
     </div>
   );
 }
@@ -151,10 +141,7 @@ export function DetailMetaCard({ items, actions }: DetailMetaCardProps) {
     <div className="overflow-hidden rounded-lg border border-border bg-card">
       <dl className="flex flex-col divide-y divide-border">
         {items.map((item) => (
-          <div
-            key={item.label}
-            className="flex items-baseline justify-between gap-3 px-3.5 py-2.5"
-          >
+          <div key={item.label} className="flex items-baseline justify-between gap-3 px-3.5 py-2.5">
             <dt className="font-mono text-[10px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">
               {item.label}
             </dt>

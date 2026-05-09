@@ -1,8 +1,4 @@
-import type {
-  AvailabilityRecord,
-  Location,
-  LocationStatus,
-} from "@/api/server/availability";
+import type { AvailabilityRecord, Location, LocationStatus } from "@/api/server/availability";
 import { cn } from "@/lib/utils";
 
 type RegionStripProps = {
@@ -12,12 +8,7 @@ type RegionStripProps = {
   onSelect: (locationId: string | null) => void;
 };
 
-export function RegionStrip({
-  locations,
-  services,
-  active,
-  onSelect,
-}: RegionStripProps) {
+export function RegionStrip({ locations, services, active, onSelect }: RegionStripProps) {
   return (
     <div
       role="radiogroup"
@@ -47,9 +38,7 @@ export function RegionStrip({
             <p className="text-[12px] font-bold tracking-[-0.01em] text-foreground">
               {location.label}
             </p>
-            <p className="mb-1.5 text-[10px] text-muted-foreground">
-              {location.sub}
-            </p>
+            <p className="mb-1.5 text-[10px] text-muted-foreground">{location.sub}</p>
             <p className="flex flex-wrap gap-2 font-mono text-[10px] font-semibold">
               {counts.available > 0 ? (
                 <span className="text-success">{counts.available} avail</span>

@@ -23,8 +23,7 @@ type EntryCardsProps = {
 export function EntryCards({ capabilities, landingZones }: EntryCardsProps) {
   const [active, setActive] = useState<Phase | null>("evaluate");
 
-  const toggle = (phase: Phase) => () =>
-    setActive((current) => (current === phase ? null : phase));
+  const toggle = (phase: Phase) => () => setActive((current) => (current === phase ? null : phase));
   const close = () => setActive(null);
 
   return (
@@ -58,15 +57,9 @@ export function EntryCards({ capabilities, landingZones }: EntryCardsProps) {
 
       {active ? (
         <PhasePanel phase={active} onClose={close}>
-          {active === "evaluate" ? (
-            <EvaluatePanel capabilities={capabilities} />
-          ) : null}
-          {active === "decide" ? (
-            <DecidePanel landingZones={landingZones} />
-          ) : null}
-          {active === "onboard" ? (
-            <OnboardPanel landingZones={landingZones} />
-          ) : null}
+          {active === "evaluate" ? <EvaluatePanel capabilities={capabilities} /> : null}
+          {active === "decide" ? <DecidePanel landingZones={landingZones} /> : null}
+          {active === "onboard" ? <OnboardPanel landingZones={landingZones} /> : null}
         </PhasePanel>
       ) : null}
     </div>
@@ -82,14 +75,7 @@ type EntryCardProps = {
   icon: typeof IconSearch;
 };
 
-function EntryCard({
-  phase,
-  active,
-  onClick,
-  label,
-  description,
-  icon: Icon,
-}: EntryCardProps) {
+function EntryCard({ phase, active, onClick, label, description, icon: Icon }: EntryCardProps) {
   return (
     <button
       type="button"
@@ -118,9 +104,7 @@ function EntryCard({
         <span className="flex size-7 items-center justify-center rounded-md bg-brand-tint">
           <Icon className="size-3.5 text-primary" />
         </span>
-        <span className="text-[14px] font-bold tracking-[-0.01em] text-foreground">
-          {label}
-        </span>
+        <span className="text-[14px] font-bold tracking-[-0.01em] text-foreground">{label}</span>
       </span>
       <span className="relative z-10 text-[13px] leading-[1.5] text-muted-foreground">
         {description}
@@ -175,32 +159,22 @@ function PhasePanel({
   );
 }
 
-const PANEL_HEADING: Record<
-  Phase,
-  { title: string; description: string }
-> = {
+const PANEL_HEADING: Record<Phase, { title: string; description: string }> = {
   evaluate: {
     title: "Which capability should I use?",
-    description:
-      "Browse approved services with availability and guardrails across regions.",
+    description: "Browse approved services with availability and guardrails across regions.",
   },
   decide: {
     title: "Which landing zone fits my workload?",
-    description:
-      "Compare environments, guardrails, and onboarding paths side by side.",
+    description: "Compare environments, guardrails, and onboarding paths side by side.",
   },
   onboard: {
     title: "How do I start?",
-    description:
-      "Entry tools, pipelines, and support channels for your chosen stack.",
+    description: "Entry tools, pipelines, and support channels for your chosen stack.",
   },
 };
 
-function EvaluatePanel({
-  capabilities,
-}: {
-  capabilities: ReadonlyArray<Topic>;
-}) {
+function EvaluatePanel({ capabilities }: { capabilities: ReadonlyArray<Topic> }) {
   const [query, setQuery] = useState("");
   const grouped = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -320,11 +294,7 @@ function StatusPill({ status }: { status: Topic["status"] }) {
   );
 }
 
-function DecidePanel({
-  landingZones,
-}: {
-  landingZones: ReadonlyArray<Topic>;
-}) {
+function DecidePanel({ landingZones }: { landingZones: ReadonlyArray<Topic> }) {
   if (landingZones.length === 0) {
     return (
       <p className="px-5 py-8 text-center text-[13px] text-muted-foreground">
@@ -346,12 +316,8 @@ function DecidePanel({
           )}
         >
           <div>
-            <p className="text-[14px] font-bold tracking-[-0.01em] text-foreground">
-              {zone.name}
-            </p>
-            <p className="mt-0.5 text-[12px] leading-5 text-muted-foreground">
-              {zone.description}
-            </p>
+            <p className="text-[14px] font-bold tracking-[-0.01em] text-foreground">{zone.name}</p>
+            <p className="mt-0.5 text-[12px] leading-5 text-muted-foreground">{zone.description}</p>
             <div className="mt-2 flex flex-wrap gap-1">
               <ZoneTag>{zone.category}</ZoneTag>
               <ZoneTag>{zone.owner_team}</ZoneTag>
@@ -391,11 +357,7 @@ function safeHost(url: string): string {
   }
 }
 
-function OnboardPanel({
-  landingZones,
-}: {
-  landingZones: ReadonlyArray<Topic>;
-}) {
+function OnboardPanel({ landingZones }: { landingZones: ReadonlyArray<Topic> }) {
   const tools: ReadonlyArray<EntryTool> = useMemo(() => {
     const seen = new Map<string, EntryTool>();
     for (const zone of landingZones) {
@@ -412,9 +374,7 @@ function OnboardPanel({
     <div className="flex flex-col gap-3 p-5">
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
         {tools.length === 0 ? (
-          <p className="text-[13px] text-muted-foreground">
-            No entry tools registered yet.
-          </p>
+          <p className="text-[13px] text-muted-foreground">No entry tools registered yet.</p>
         ) : (
           tools.map((tool) => (
             <a
@@ -428,12 +388,8 @@ function OnboardPanel({
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
               )}
             >
-              <p className="text-[13px] font-bold text-foreground">
-                {tool.label}
-              </p>
-              <p className="text-[12px] leading-5 text-muted-foreground">
-                {safeHost(tool.url)}
-              </p>
+              <p className="text-[13px] font-bold text-foreground">{tool.label}</p>
+              <p className="text-[12px] leading-5 text-muted-foreground">{safeHost(tool.url)}</p>
               <span className="inline-flex items-center gap-1 text-[12px] font-semibold text-primary">
                 Open <IconArrowRight className="size-3.5" />
               </span>
@@ -453,9 +409,7 @@ function OnboardPanel({
             <IconUsers className="size-3.5" />
           </span>
           <span className="flex flex-col">
-            <span className="text-[12px] font-bold text-foreground">
-              {owner.owner_team}
-            </span>
+            <span className="text-[12px] font-bold text-foreground">{owner.owner_team}</span>
             <span className="font-mono text-[11px] text-muted-foreground">
               {owner.support_channel}
             </span>
@@ -464,8 +418,7 @@ function OnboardPanel({
       ) : null}
       <p className="font-mono text-[10px] text-muted-foreground">
         <IconInfoCircle className="mr-1 inline size-3 align-text-bottom" />
-        Tools are registered per landing zone. Owners shown reflect the first
-        registered zone.
+        Tools are registered per landing zone. Owners shown reflect the first registered zone.
       </p>
     </div>
   );

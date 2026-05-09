@@ -1,11 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { IconArrowUpRight } from "@tabler/icons-react";
 
-import type {
-  AvailabilityRecord,
-  Location,
-  LocationStatus,
-} from "@/api/server/availability";
+import type { AvailabilityRecord, Location, LocationStatus } from "@/api/server/availability";
 import { StatusChip, statusLabel } from "@/components/explore/status-chip";
 import { cn } from "@/lib/utils";
 
@@ -14,18 +10,12 @@ type AvailabilityStripProps = {
   locations: ReadonlyArray<Location>;
 };
 
-export function AvailabilityStrip({
-  service,
-  locations,
-}: AvailabilityStripProps) {
+export function AvailabilityStrip({ service, locations }: AvailabilityStripProps) {
   if (!service) {
     return (
       <div className="rounded-lg border border-dashed border-border bg-card p-4 text-[13px] text-muted-foreground">
         No availability projection registered for this capability.{" "}
-        <Link
-          to="/explore"
-          className="text-primary underline-offset-2 hover:underline"
-        >
+        <Link to="/explore" className="text-primary underline-offset-2 hover:underline">
           Browse availability map
         </Link>
         .
@@ -44,10 +34,7 @@ export function AvailabilityStrip({
         {locations.map((location) => {
           const cell = service.availability[location.id];
           const status: LocationStatus = cell?.status ?? "not-planned";
-          const sub =
-            status === "planned" && cell?.note
-              ? `ETA: ${cell.note}`
-              : location.sub;
+          const sub = status === "planned" && cell?.note ? `ETA: ${cell.note}` : location.sub;
           return (
             <li key={location.id} className="flex flex-col gap-1.5 px-3 py-2.5">
               <span className="text-[12px] font-bold tracking-[-0.01em] text-foreground">

@@ -94,9 +94,7 @@ export function WarningStack({
                   </span>
                 ) : null}
               </p>
-              <p className="text-sm leading-5 text-muted-foreground">
-                {warning.message}
-              </p>
+              <p className="text-sm leading-5 text-muted-foreground">{warning.message}</p>
             </div>
           </li>
         );

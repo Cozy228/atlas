@@ -1,19 +1,9 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import { IconArrowUpRight } from "@tabler/icons-react";
-import type {
-  ContextBundleResponse,
-  Topic,
-  TopicDiscoveryResponse,
-} from "@atlas/schema";
+import type { ContextBundleResponse, Topic, TopicDiscoveryResponse } from "@atlas/schema";
 
-import {
-  fetchAvailability,
-  type AvailabilityResponse,
-} from "@/api/server/availability";
-import {
-  fetchContextBundle,
-  fetchTopicDiscovery,
-} from "@/api/server/contextApi";
+import { fetchAvailability, type AvailabilityResponse } from "@/api/server/availability";
+import { fetchContextBundle, fetchTopicDiscovery } from "@/api/server/contextApi";
 import { ContextApiError } from "@/api/contextApiError";
 import {
   BackLink,
@@ -39,10 +29,8 @@ type LoaderData = {
 
 export const Route = createFileRoute("/landing-zones/$topicId")({
   loader: async ({ params }): Promise<LoaderData> => {
-    const [topicsResp, availability]: [
-      TopicDiscoveryResponse,
-      AvailabilityResponse,
-    ] = await Promise.all([fetchTopicDiscovery(), fetchAvailability()]);
+    const [topicsResp, availability]: [TopicDiscoveryResponse, AvailabilityResponse] =
+      await Promise.all([fetchTopicDiscovery(), fetchAvailability()]);
 
     const topic = topicsResp.topics.find((entry) => entry.id === params.topicId);
     if (!topic || topic.topic_type !== "landing-zone") {
@@ -64,8 +52,7 @@ export const Route = createFileRoute("/landing-zones/$topicId")({
     }
 
     const related = topicsResp.topics.filter(
-      (entry) =>
-        entry.topic_type !== "landing-zone" && entry.category === topic.category,
+      (entry) => entry.topic_type !== "landing-zone" && entry.category === topic.category,
     );
 
     return { topic, related, availability, bundle };
@@ -142,18 +129,10 @@ function LandingZoneDetailRoute() {
               <DetailSection eyebrow="Relationships" title="Related catalog">
                 <div className="grid gap-3 sm:grid-cols-2">
                   {capabilities.length > 0 ? (
-                    <RelatedColumn
-                      title="Capabilities"
-                      topics={capabilities}
-                      kind="capability"
-                    />
+                    <RelatedColumn title="Capabilities" topics={capabilities} kind="capability" />
                   ) : null}
                   {guardrails.length > 0 ? (
-                    <RelatedColumn
-                      title="Guardrail areas"
-                      topics={guardrails}
-                      kind="capability"
-                    />
+                    <RelatedColumn title="Guardrail areas" topics={guardrails} kind="capability" />
                   ) : null}
                 </div>
               </DetailSection>
@@ -170,9 +149,7 @@ function LandingZoneDetailRoute() {
             </DetailSection>
 
             <DetailSection eyebrow="Feedback" title="Help Atlas stay accurate">
-              <FeedbackInlineForm
-                target={{ target_type: "topic", target_id: topic.id }}
-              />
+              <FeedbackInlineForm target={{ target_type: "topic", target_id: topic.id }} />
             </DetailSection>
           </>
         }
@@ -212,11 +189,7 @@ function LandingZoneDetailRoute() {
 
 function StatusBadge({ status }: { status: Topic["status"] }) {
   const variant: React.ComponentProps<typeof Badge>["variant"] =
-    status === "deprecated"
-      ? "critical"
-      : status === "planned"
-        ? "warning"
-        : "success";
+    status === "deprecated" ? "critical" : status === "planned" ? "warning" : "success";
   return <Badge variant={variant}>{status}</Badge>;
 }
 
@@ -239,18 +212,14 @@ function RelatedColumn({
           <li key={topic.id}>
             <a
               href={
-                kind === "landing-zone"
-                  ? `/landing-zones/${topic.id}`
-                  : `/capabilities/${topic.id}`
+                kind === "landing-zone" ? `/landing-zones/${topic.id}` : `/capabilities/${topic.id}`
               }
               className={cn(
                 "flex items-center justify-between gap-2 rounded-md px-2 py-1.5 transition-colors",
                 "hover:bg-muted",
               )}
             >
-              <span className="text-[12px] font-semibold text-foreground">
-                {topic.name}
-              </span>
+              <span className="text-[12px] font-semibold text-foreground">{topic.name}</span>
               <span className="font-mono text-[10px] text-muted-foreground">
                 {topic.owner_team}
               </span>

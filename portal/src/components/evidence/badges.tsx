@@ -10,21 +10,10 @@ import {
 } from "@tabler/icons-react";
 
 import { Badge } from "@/components/ui/badge";
-import {
-  classifyFreshness,
-  type FreshnessState,
-} from "@/lib/evidence";
-import type {
-  AnchorStatus,
-  AuthorityLevel,
-  Source,
-  Visibility,
-} from "@atlas/schema";
+import { classifyFreshness, type FreshnessState } from "@/lib/evidence";
+import type { AnchorStatus, AuthorityLevel, Source, Visibility } from "@atlas/schema";
 
-const AUTHORITY_VARIANT: Record<
-  AuthorityLevel,
-  React.ComponentProps<typeof Badge>["variant"]
-> = {
+const AUTHORITY_VARIANT: Record<AuthorityLevel, React.ComponentProps<typeof Badge>["variant"]> = {
   authoritative: "brand",
   reference: "info",
   example: "neutral",
@@ -41,10 +30,7 @@ export function AuthorityBadge({ level }: { level: AuthorityLevel }) {
   );
 }
 
-const VISIBILITY_VARIANT: Record<
-  Visibility,
-  React.ComponentProps<typeof Badge>["variant"]
-> = {
+const VISIBILITY_VARIANT: Record<Visibility, React.ComponentProps<typeof Badge>["variant"]> = {
   internal: "neutral",
   restricted: "warning",
 };
@@ -59,10 +45,7 @@ export function VisibilityBadge({ value }: { value: Visibility }) {
   );
 }
 
-const FRESHNESS_VARIANT: Record<
-  FreshnessState,
-  React.ComponentProps<typeof Badge>["variant"]
-> = {
+const FRESHNESS_VARIANT: Record<FreshnessState, React.ComponentProps<typeof Badge>["variant"]> = {
   current: "success",
   "needs-review": "warning",
   stale: "critical",
@@ -74,13 +57,7 @@ const FRESHNESS_LABEL: Record<FreshnessState, string> = {
   stale: "stale",
 };
 
-export function FreshnessIndicator({
-  source,
-  now,
-}: {
-  source: Source;
-  now?: Date;
-}) {
+export function FreshnessIndicator({ source, now }: { source: Source; now?: Date }) {
   const state = classifyFreshness(source, now);
   return (
     <Badge variant={FRESHNESS_VARIANT[state]}>
@@ -90,10 +67,7 @@ export function FreshnessIndicator({
   );
 }
 
-const ANCHOR_VARIANT: Record<
-  AnchorStatus,
-  React.ComponentProps<typeof Badge>["variant"]
-> = {
+const ANCHOR_VARIANT: Record<AnchorStatus, React.ComponentProps<typeof Badge>["variant"]> = {
   valid: "success",
   weak: "warning",
   broken: "critical",

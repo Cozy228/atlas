@@ -1,15 +1,8 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import { IconExternalLink } from "@tabler/icons-react";
-import type {
-  ContextBundleResponse,
-  Source,
-  SourceDiscoveryResponse,
-} from "@atlas/schema";
+import type { ContextBundleResponse, Source, SourceDiscoveryResponse } from "@atlas/schema";
 
-import {
-  fetchContextBundle,
-  fetchSourceDiscovery,
-} from "@/api/server/contextApi";
+import { fetchContextBundle, fetchSourceDiscovery } from "@/api/server/contextApi";
 import { ContextApiError } from "@/api/contextApiError";
 import {
   BackLink,
@@ -105,14 +98,10 @@ function SourceDetailRoute() {
 
       {restricted ? (
         <div className="rounded-lg border border-warning/30 bg-warning/10 px-4 py-3">
-          <p className="text-[13px] font-bold text-warning-foreground">
-            Restricted source
-          </p>
+          <p className="text-[13px] font-bold text-warning-foreground">Restricted source</p>
           <p className="mt-1 text-[12px] leading-5 text-muted-foreground">
             Atlas surfaces metadata only. Direct fetches return{" "}
-            <code className="rounded bg-card px-1 py-0.5 font-mono text-[11px]">
-              access_denied
-            </code>
+            <code className="rounded bg-card px-1 py-0.5 font-mono text-[11px]">access_denied</code>
             . Contact the steward for access.
           </p>
         </div>
@@ -123,8 +112,7 @@ function SourceDetailRoute() {
           <>
             <DetailSection eyebrow="Anchors" title="Citations from this source">
               {bundle ? (
-                bundle.sources.length === 0 &&
-                bundle.anchor_references.length > 0 ? (
+                bundle.sources.length === 0 && bundle.anchor_references.length > 0 ? (
                   <AnchorList bundle={bundle} />
                 ) : (
                   <EvidenceSection bundle={bundle} defaultOpen />
@@ -137,9 +125,7 @@ function SourceDetailRoute() {
             </DetailSection>
 
             <DetailSection eyebrow="Feedback" title="Help Atlas stay accurate">
-              <FeedbackInlineForm
-                target={{ target_type: "source", target_id: source.id }}
-              />
+              <FeedbackInlineForm target={{ target_type: "source", target_id: source.id }} />
             </DetailSection>
           </>
         }
@@ -170,9 +156,7 @@ function SourceDetailRoute() {
               },
               { label: "ID", value: source.id, mono: true },
             ]}
-            actions={
-              <SourceClassBadge value={source.source_class} />
-            }
+            actions={<SourceClassBadge value={source.source_class} />}
           />
         }
       />
@@ -189,9 +173,7 @@ function AnchorList({ bundle }: { bundle: ContextBundleResponse }) {
           className="flex items-center justify-between gap-3 rounded-md border border-border bg-card px-3 py-2"
         >
           <span className="flex flex-col">
-            <span className="font-mono text-[11px] text-muted-foreground">
-              {anchor.anchor_id}
-            </span>
+            <span className="font-mono text-[11px] text-muted-foreground">{anchor.anchor_id}</span>
             <span className="text-[12px] font-semibold text-foreground">
               {anchor.citation_label}
             </span>

@@ -40,14 +40,10 @@ function SourcesListRoute() {
             source.title.toLowerCase().includes(q) ||
             source.steward.toLowerCase().includes(q) ||
             source.id.toLowerCase().includes(q) ||
-            source.authority_scope.some((scope) =>
-              scope.toLowerCase().includes(q),
-            ),
+            source.authority_scope.some((scope) => scope.toLowerCase().includes(q)),
         )
       : sources;
-    return [...filtered].sort(
-      (a, b) => compareByAuthority(a, b) || a.title.localeCompare(b.title),
-    );
+    return [...filtered].sort((a, b) => compareByAuthority(a, b) || a.title.localeCompare(b.title));
   }, [sources, query]);
 
   return (
@@ -74,10 +70,7 @@ function SourcesListRoute() {
       ) : (
         <ul className="overflow-hidden rounded-lg border border-border bg-card">
           {sorted.map((source, index) => (
-            <li
-              key={source.id}
-              className={cn(index > 0 && "border-t border-border")}
-            >
+            <li key={source.id} className={cn(index > 0 && "border-t border-border")}>
               <SourceRow source={source} />
             </li>
           ))}
@@ -99,8 +92,8 @@ function SearchField({
   return (
     <label
       className={cn(
-        "flex h-9 w-full max-w-[420px] items-center gap-2 rounded-md border border-border bg-card px-2.5 transition-[border-color,box-shadow]",
-        "focus-within:border-primary focus-within:shadow-[0_0_0_3px_color-mix(in_srgb,var(--primary)_8%,transparent)]",
+        "flex h-9 w-full max-w-[420px] items-center gap-2 rounded-lg border border-input bg-card px-2.5 shadow-xs transition-[border-color,box-shadow]",
+        "focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/50",
       )}
     >
       <IconSearch className="size-3.5 text-muted-foreground" />
@@ -156,8 +149,8 @@ function EmptyState() {
     <div className="rounded-lg border border-dashed border-border bg-card p-6 text-[13px] text-muted-foreground">
       <p className="font-bold text-foreground">No registered sources.</p>
       <p className="mt-1 leading-6">
-        The Context API returned an empty discovery response. Suggest a source
-        from any detail page feedback form.
+        The Context API returned an empty discovery response. Suggest a source from any detail page
+        feedback form.
       </p>
     </div>
   );

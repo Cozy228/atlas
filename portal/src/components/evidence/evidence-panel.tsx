@@ -9,11 +9,7 @@ import {
 } from "@/components/evidence/badges";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import type {
-  ContextBundleResponse,
-  ContextBundleSource,
-  ExpansionPath,
-} from "@atlas/schema";
+import type { ContextBundleResponse, ContextBundleSource, ExpansionPath } from "@atlas/schema";
 
 type EvidencePanelProps = {
   bundle: ContextBundleResponse;
@@ -50,9 +46,7 @@ export function EvidencePanel({ bundle, className }: EvidencePanelProps) {
           <SourceHeader entry={entry} />
           <RationaleAndExcerpts entry={entry} />
           <ExpansionPathList
-            paths={bundle.expansion_paths.filter(
-              (path) => path.source_id === entry.source.id,
-            )}
+            paths={bundle.expansion_paths.filter((path) => path.source_id === entry.source.id)}
           />
         </li>
       ))}
@@ -65,9 +59,7 @@ function SourceHeader({ entry }: { entry: ContextBundleSource }) {
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-wrap items-center gap-2">
-        <h3 className="text-base font-semibold leading-6 text-foreground">
-          {source.title}
-        </h3>
+        <h3 className="text-base font-semibold leading-6 text-foreground">{source.title}</h3>
         <AuthorityBadge level={source.authority_level} />
         <VisibilityBadge value={source.visibility} />
         <FreshnessIndicator source={source} />
@@ -81,10 +73,8 @@ function SourceHeader({ entry }: { entry: ContextBundleSource }) {
         <span>·</span>
         <span>
           reviewed{" "}
-          <time dateTime={source.last_reviewed_at}>
-            {source.last_reviewed_at.slice(0, 10)}
-          </time>
-          {" "}every {source.review_frequency}
+          <time dateTime={source.last_reviewed_at}>{source.last_reviewed_at.slice(0, 10)}</time>{" "}
+          every {source.review_frequency}
         </span>
       </p>
     </div>
@@ -94,9 +84,7 @@ function SourceHeader({ entry }: { entry: ContextBundleSource }) {
 function RationaleAndExcerpts({ entry }: { entry: ContextBundleSource }) {
   return (
     <div className="flex flex-col gap-3">
-      <p className="text-sm leading-6 text-muted-foreground">
-        {entry.selection_rationale}
-      </p>
+      <p className="text-sm leading-6 text-muted-foreground">{entry.selection_rationale}</p>
       {entry.excerpts.length > 0 ? (
         <div className="flex flex-col gap-3 border-l-0 border-t border-border pt-3">
           {entry.excerpts.map((excerpt, index) => (
@@ -109,9 +97,7 @@ function RationaleAndExcerpts({ entry }: { entry: ContextBundleSource }) {
               </blockquote>
               <figcaption className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                 <Badge variant="outline">cite</Badge>
-                <span className="font-mono text-[11px]">
-                  {excerpt.citation.label}
-                </span>
+                <span className="font-mono text-[11px]">{excerpt.citation.label}</span>
                 <a
                   className="inline-flex items-center gap-1 text-primary underline-offset-2 hover:underline"
                   href={excerpt.citation.location}
@@ -143,11 +129,7 @@ function RationaleAndExcerpts({ entry }: { entry: ContextBundleSource }) {
   );
 }
 
-export function ExpansionPathList({
-  paths,
-}: {
-  paths: ReadonlyArray<ExpansionPath>;
-}) {
+export function ExpansionPathList({ paths }: { paths: ReadonlyArray<ExpansionPath> }) {
   if (paths.length === 0) return null;
   return (
     <div className="flex flex-col gap-2 border-t border-border pt-3">
@@ -160,9 +142,7 @@ export function ExpansionPathList({
             key={`${path.source_id}-${path.anchor_id ?? index}`}
             className="flex items-center gap-2 rounded-md border border-border bg-card px-2 py-1 text-xs"
           >
-            <span className="font-mono text-muted-foreground">
-              level {path.disclosure_level}
-            </span>
+            <span className="font-mono text-muted-foreground">level {path.disclosure_level}</span>
             <span className="text-foreground">{path.label}</span>
           </li>
         ))}

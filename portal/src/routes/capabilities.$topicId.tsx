@@ -1,19 +1,9 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import { IconArrowUpRight, IconLink } from "@tabler/icons-react";
-import type {
-  ContextBundleResponse,
-  Topic,
-  TopicDiscoveryResponse,
-} from "@atlas/schema";
+import type { ContextBundleResponse, Topic, TopicDiscoveryResponse } from "@atlas/schema";
 
-import {
-  fetchAvailability,
-  type AvailabilityResponse,
-} from "@/api/server/availability";
-import {
-  fetchContextBundle,
-  fetchTopicDiscovery,
-} from "@/api/server/contextApi";
+import { fetchAvailability, type AvailabilityResponse } from "@/api/server/availability";
+import { fetchContextBundle, fetchTopicDiscovery } from "@/api/server/contextApi";
 import { ContextApiError } from "@/api/contextApiError";
 import { AvailabilityStrip } from "@/components/detail/availability-strip";
 import {
@@ -40,10 +30,8 @@ type LoaderData = {
 
 export const Route = createFileRoute("/capabilities/$topicId")({
   loader: async ({ params }): Promise<LoaderData> => {
-    const [topicsResp, availability]: [
-      TopicDiscoveryResponse,
-      AvailabilityResponse,
-    ] = await Promise.all([fetchTopicDiscovery(), fetchAvailability()]);
+    const [topicsResp, availability]: [TopicDiscoveryResponse, AvailabilityResponse] =
+      await Promise.all([fetchTopicDiscovery(), fetchAvailability()]);
 
     const topic = topicsResp.topics.find((entry) => entry.id === params.topicId);
     if (!topic || topic.topic_type !== "capability") {
@@ -65,8 +53,7 @@ export const Route = createFileRoute("/capabilities/$topicId")({
     }
 
     const related = topicsResp.topics.filter(
-      (entry) =>
-        entry.topic_type !== "capability" && entry.category === topic.category,
+      (entry) => entry.topic_type !== "capability" && entry.category === topic.category,
     );
 
     return { topic, related, bundle, availability };
@@ -79,14 +66,9 @@ function CapabilityDetailRoute() {
 
   useRecordRecent({ kind: "capability", topicId: topic.id, name: topic.name });
 
-  const service =
-    availability.services.find((entry) => entry.id === topic.id) ?? null;
-  const guardrails = related.filter(
-    (entry) => entry.topic_type === "guardrail-area",
-  );
-  const landingZones = related.filter(
-    (entry) => entry.topic_type === "landing-zone",
-  );
+  const service = availability.services.find((entry) => entry.id === topic.id) ?? null;
+  const guardrails = related.filter((entry) => entry.topic_type === "guardrail-area");
+  const landingZones = related.filter((entry) => entry.topic_type === "landing-zone");
   const primaryTool = topic.entry_tools[0];
 
   return (
@@ -131,18 +113,12 @@ function CapabilityDetailRoute() {
             </DetailSection>
 
             <DetailSection eyebrow="Availability" title="Where this is available">
-              <AvailabilityStrip
-                service={service}
-                locations={availability.locations}
-              />
+              <AvailabilityStrip service={service} locations={availability.locations} />
             </DetailSection>
 
             {landingZones.length > 0 || guardrails.length > 0 ? (
               <DetailSection eyebrow="Relationships" title="Related catalog">
-                <RelationshipPanel
-                  landingZones={landingZones}
-                  guardrails={guardrails}
-                />
+                <RelationshipPanel landingZones={landingZones} guardrails={guardrails} />
               </DetailSection>
             ) : null}
 
@@ -157,9 +133,7 @@ function CapabilityDetailRoute() {
             </DetailSection>
 
             <DetailSection eyebrow="Feedback" title="Help Atlas stay accurate">
-              <FeedbackInlineForm
-                target={{ target_type: "topic", target_id: topic.id }}
-              />
+              <FeedbackInlineForm target={{ target_type: "topic", target_id: topic.id }} />
             </DetailSection>
           </>
         }
@@ -216,11 +190,7 @@ function CapabilityDetailRoute() {
 
 function StatusBadge({ status }: { status: Topic["status"] }) {
   const variant: React.ComponentProps<typeof Badge>["variant"] =
-    status === "deprecated"
-      ? "critical"
-      : status === "planned"
-        ? "warning"
-        : "success";
+    status === "deprecated" ? "critical" : status === "planned" ? "warning" : "success";
   return <Badge variant={variant}>{status}</Badge>;
 }
 
@@ -262,18 +232,14 @@ function RelatedColumn({
           <li key={topic.id}>
             <a
               href={
-                kind === "landing-zone"
-                  ? `/landing-zones/${topic.id}`
-                  : `/capabilities/${topic.id}`
+                kind === "landing-zone" ? `/landing-zones/${topic.id}` : `/capabilities/${topic.id}`
               }
               className={cn(
                 "flex items-center justify-between gap-2 rounded-md px-2 py-1.5 transition-colors",
                 "hover:bg-muted",
               )}
             >
-              <span className="text-[12px] font-semibold text-foreground">
-                {topic.name}
-              </span>
+              <span className="text-[12px] font-semibold text-foreground">{topic.name}</span>
               <span className="font-mono text-[10px] text-muted-foreground">
                 {topic.owner_team}
               </span>

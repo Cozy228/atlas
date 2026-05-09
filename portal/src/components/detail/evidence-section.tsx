@@ -2,11 +2,7 @@ import { useState } from "react";
 import { IconChevronDown } from "@tabler/icons-react";
 import type { ContextBundleResponse } from "@atlas/schema";
 
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { EvidencePanel } from "@/components/evidence/evidence-panel";
 import { WarningStack } from "@/components/evidence/warning-stack";
 import { cn } from "@/lib/utils";
@@ -16,10 +12,7 @@ type EvidenceSectionProps = {
   defaultOpen?: boolean;
 };
 
-export function EvidenceSection({
-  bundle,
-  defaultOpen = false,
-}: EvidenceSectionProps) {
+export function EvidenceSection({ bundle, defaultOpen = false }: EvidenceSectionProps) {
   const [open, setOpen] = useState(defaultOpen);
   const sourceCount = bundle.sources.length;
 
