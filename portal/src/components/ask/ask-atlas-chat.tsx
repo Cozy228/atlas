@@ -1,24 +1,17 @@
 import { useId, useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { IconArrowUp, IconExclamationCircle } from "@tabler/icons-react";
+import { IconArrowUp, IconBook, IconExclamationCircle } from "@tabler/icons-react";
 import { toast } from "sonner";
 
 import { askAtlas, type AskAtlasResponse } from "@/api/server/ask";
 import {
   Conversation,
   ConversationContent,
-  ConversationEmptyState,
   ConversationScrollButton,
 } from "@/components/ai-elements/conversation";
 import { Message, MessageContent } from "@/components/ai-elements/message";
 import { Shimmer } from "@/components/ai-elements/shimmer";
-import {
-  Source,
-  Sources,
-  SourcesContent,
-  SourcesTrigger,
-} from "@/components/ai-elements/sources";
-import { Suggestion, Suggestions } from "@/components/ai-elements/suggestion";
+import { Source, Sources, SourcesContent, SourcesTrigger } from "@/components/ai-elements/sources";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
@@ -40,10 +33,22 @@ type ChatMessage =
     };
 
 const DEFAULT_SUGGESTIONS = [
-  { category: "Capability", prompt: "Which storage service for a multi-region workload?" },
-  { category: "Landing zone", prompt: "Compare DC16 and US-East-1 for a payments service." },
-  { category: "Onboarding", prompt: "How do I provision a sandbox EKS cluster?" },
-  { category: "Guardrails", prompt: "What policies apply to data exports out of GDC?" },
+  {
+    category: "Capability",
+    prompt: "Which storage service for a multi-region workload?",
+  },
+  {
+    category: "Landing zone",
+    prompt: "Compare DC16 and US-East-1 for a payments service.",
+  },
+  {
+    category: "Onboarding",
+    prompt: "How do I provision a sandbox EKS cluster?",
+  },
+  {
+    category: "Guardrails",
+    prompt: "What policies apply to data exports out of GDC?",
+  },
 ] as const;
 
 const DEFAULT_TOPIC_ID = "capability:ask-atlas";
@@ -59,12 +64,10 @@ export function AskAtlasChat({
   const formId = useId();
 
   const mutation = useMutation({
-    mutationFn: async (question: string) =>
-      askAtlas({ data: { topicId, question } }),
+    mutationFn: async (question: string) => askAtlas({ data: { topicId, question } }),
     onError: (error) => {
       toast.error("Ask Atlas failed", {
-        description:
-          error instanceof Error ? error.message : "Unknown error",
+        description: error instanceof Error ? error.message : "Unknown error",
       });
     },
   });
@@ -98,37 +101,25 @@ export function AskAtlasChat({
       });
   }
 
+  const hasMessages = messages.length > 0;
+
   return (
-    <div
-      className={cn(
-        "flex h-full min-h-[480px] flex-col gap-3",
-        className,
-      )}
-    >
-      <Conversation className="min-h-[240px] flex-1 rounded-lg border border-border bg-background">
+    <div className={cn("flex h-full min-h-0 flex-col", className)}>
+      <Conversation className="min-h-0 flex-1">
         <ConversationContent>
-          {messages.length === 0 ? (
-            <ConversationEmptyState
-              title="What can Atlas help you find?"
-              description="Cited platform answers from authoritative context. Pick a starter question or ask your own."
-            />
-          ) : (
+          {hasMessages ? (
             messages.map((message) =>
               message.role === "user" ? (
                 <Message key={message.id} from="user">
-                  <MessageContent className="rounded-lg bg-primary px-3 py-2 text-primary-foreground">
-                    {message.text}
-                  </MessageContent>
+                  <MessageContent>{message.text}</MessageContent>
                 </Message>
               ) : (
                 <Message key={message.id} from="assistant">
-                  <MessageContent className="px-3 py-2">
+                  <MessageContent>
                     {message.warnings.length > 0 && message.text === "" ? (
                       <NoAnswerNotice warnings={message.warnings} />
                     ) : (
-                      <p className="whitespace-pre-wrap text-[13px] leading-[1.6]">
-                        {message.text}
-                      </p>
+                      <p className="whitespace-pre-wrap text-sm leading-relaxed">{message.text}</p>
                     )}
                     {message.sources.length > 0 ? (
                       <Sources className="mt-3">
@@ -148,6 +139,14 @@ export function AskAtlasChat({
                 </Message>
               ),
             )
+          ) : (
+            <EmptyGreeting
+              suggestions={suggestions}
+              onSelect={(prompt) => {
+                setInput(prompt);
+                inputRef.current?.focus();
+              }}
+            />
           )}
           {mutation.isPending ? (
             <Message from="assistant">
@@ -160,76 +159,96 @@ export function AskAtlasChat({
         <ConversationScrollButton />
       </Conversation>
 
-      {messages.length === 0 ? (
-        <Suggestions>
-          {suggestions.map((item) => (
-            <Suggestion
-              key={item.prompt}
-              suggestion={item.prompt}
-              onClick={(prompt) => {
-                setInput(prompt);
-                inputRef.current?.focus();
-              }}
-            >
-              <span className="font-mono text-[10px] uppercase tracking-[0.05em] text-muted-foreground">
-                {item.category}
-              </span>
-              <span className="ml-2 text-[12px]">{item.prompt}</span>
-            </Suggestion>
-          ))}
-        </Suggestions>
-      ) : null}
-
-      <form
-        id={formId}
-        onSubmit={(event) => {
-          event.preventDefault();
-          send(input);
-        }}
-        className={cn(
-          "rounded-xl border border-[1.5px] border-border bg-card p-3",
-          "focus-within:border-primary focus-within:shadow-[0_0_0_3px_color-mix(in_srgb,var(--primary)_8%,transparent)]",
-        )}
-      >
-        <Textarea
-          ref={inputRef}
-          value={input}
-          onChange={(event) => setInput(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter" && !event.shiftKey) {
-              event.preventDefault();
-              send(input);
-            }
+      <div className="shrink-0 px-5 py-3">
+        <form
+          id={formId}
+          onSubmit={(event) => {
+            event.preventDefault();
+            send(input);
           }}
-          rows={2}
-          placeholder="Ask anything about capabilities, landing zones, sources…"
-          className="min-h-0 resize-none border-0 bg-transparent px-0 py-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
-        />
-        <div className="mt-2 flex items-center justify-between gap-2">
-          <p className="font-mono text-[10px] text-muted-foreground">
-            Atlas cites authoritative sources only · Enter sends, Shift+Enter newline
-          </p>
+          className={cn(
+            "flex items-center gap-2 rounded-xl border border-input bg-background px-4 py-2.5",
+            "shadow-xs transition-[border-color,box-shadow]",
+            "focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/50",
+          )}
+        >
+          <Textarea
+            ref={inputRef}
+            value={input}
+            onChange={(event) => setInput(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+                send(input);
+              }
+            }}
+            rows={1}
+            placeholder="How do I get started?"
+            className="!min-h-0 flex-1 resize-none border-none bg-transparent p-0 text-base leading-6 !shadow-none focus-visible:ring-0 dark:bg-transparent"
+          />
           <Button
             type="submit"
             size="icon-sm"
             aria-label="Send question"
             disabled={input.trim().length === 0 || mutation.isPending}
+            className="shrink-0 rounded-lg"
           >
             <IconArrowUp className="size-4" />
           </Button>
-        </div>
-      </form>
+        </form>
+      </div>
     </div>
   );
 }
 
-function NoAnswerNotice({
-  warnings,
+function EmptyGreeting({
+  suggestions,
+  onSelect,
 }: {
-  warnings: ReadonlyArray<string>;
+  suggestions: ReadonlyArray<{ category: string; prompt: string }>;
+  onSelect: (prompt: string) => void;
 }) {
   return (
-    <div className="flex items-start gap-2 rounded-md border border-warning/30 bg-warning/10 p-2 text-[12px] text-foreground">
+    <div className="flex flex-col gap-5 px-5 py-6">
+      <div className="flex items-start gap-3">
+        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-border bg-card">
+          <IconBook className="size-4 text-muted-foreground" />
+        </span>
+        <div className="flex flex-col gap-1.5">
+          <p className="text-sm font-semibold text-foreground">Hi!</p>
+          <p className="text-[13px] leading-relaxed text-foreground">
+            I'm an AI assistant trained on platform documentation, runbooks,
+            and source registry data. Ask me anything about{" "}
+            <span className="rounded bg-muted px-1.5 py-0.5 font-semibold">Atlas Platform</span>.
+          </p>
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-1.5 pl-11">
+        <span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+          Example questions
+        </span>
+        {suggestions.map((item) => (
+          <button
+            key={item.prompt}
+            type="button"
+            onClick={() => onSelect(item.prompt)}
+            className={cn(
+              "rounded-lg border border-border px-3 py-2 text-left text-[13px] text-foreground transition-colors",
+              "hover:border-border-strong hover:bg-accent",
+            )}
+          >
+            {item.prompt}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function NoAnswerNotice({ warnings }: { warnings: ReadonlyArray<string> }) {
+  return (
+    <div className="flex items-start gap-2 rounded-lg border border-warning/30 bg-warning/10 p-3 text-sm text-foreground">
       <IconExclamationCircle aria-hidden className="mt-0.5 size-4 text-warning" />
       <div className="flex flex-col gap-1">
         <p className="font-semibold">Atlas could not answer.</p>

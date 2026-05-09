@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 
 import { AskAtlasFab } from "@/components/ask-atlas-fab";
+import { AskAtlasProvider } from "@/components/ask-atlas/context";
 import { cn } from "@/lib/utils";
 
 type PortalShellProps = {
@@ -23,11 +24,13 @@ const PRIMARY_NAV: ReadonlyArray<NavItem> = [
 
 export function PortalShell({ children }: PortalShellProps) {
   return (
-    <div className="flex min-h-dvh w-full flex-col bg-background text-foreground">
-      <TopBar />
-      <main className="min-w-0 flex-1">{children}</main>
-      <AskAtlasFab />
-    </div>
+    <AskAtlasProvider>
+      <div className="flex min-h-dvh w-full flex-col bg-background text-foreground">
+        <TopBar />
+        <main className="min-w-0 flex-1">{children}</main>
+        <AskAtlasFab />
+      </div>
+    </AskAtlasProvider>
   );
 }
 
@@ -41,10 +44,7 @@ function TopBar() {
       )}
     >
       <BrandLink />
-      <nav
-        aria-label="Primary"
-        className="hidden items-center justify-center gap-0.5 md:flex"
-      >
+      <nav aria-label="Primary" className="hidden items-center justify-center gap-0.5 md:flex">
         {PRIMARY_NAV.map((item) => (
           <TopNavLink key={item.to} item={item} />
         ))}
@@ -76,9 +76,7 @@ function BrandLink() {
       >
         A
       </span>
-      <span className="text-[15px] font-bold tracking-[-0.03em] text-foreground">
-        Atlas
-      </span>
+      <span className="text-[15px] font-bold tracking-[-0.03em] text-foreground">Atlas</span>
     </Link>
   );
 }
@@ -114,9 +112,7 @@ function HealthIndicator() {
         <span className="absolute inset-0 animate-ping rounded-full bg-success/60" />
         <span className="relative size-1.5 rounded-full bg-success" />
       </span>
-      <span className="text-[11px] font-semibold text-muted-foreground">
-        Live
-      </span>
+      <span className="text-[11px] font-semibold text-muted-foreground">Live</span>
     </span>
   );
 }
@@ -125,7 +121,7 @@ function SyncPill() {
   return (
     <span
       className={cn(
-        "hidden items-center rounded-full border border-border bg-card px-2 py-0.5 lg:inline-flex",
+        "hidden items-center rounded-lg border border-border bg-card px-2 py-0.5 lg:inline-flex",
         "font-mono text-[10px] font-medium text-muted-foreground",
       )}
     >

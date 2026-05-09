@@ -87,11 +87,7 @@ export async function askAtlas(input: {
   userId: string;
   rateLimiter: RateLimiter;
 }): Promise<AskAtlasAnswer> {
-  if (
-    !input.bundle.sources.some(
-      (source) => source.source.authority_level === "authoritative",
-    )
-  ) {
+  if (!input.bundle.sources.some((source) => source.source.authority_level === "authoritative")) {
     return {
       claims: [],
       rejected_claims: [],
