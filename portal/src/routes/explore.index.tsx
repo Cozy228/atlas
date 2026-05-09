@@ -94,81 +94,137 @@ function ExploreRoute() {
     setSelectedServiceId(null);
   }
 
-  return (
-    <PageBody width="wide">
-      <header className="flex flex-col gap-1">
-        <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">
-          Availability
-        </span>
-        <h1 className="text-[22px] font-bold tracking-[-0.03em] text-foreground">
-          Regional Availability Map
-        </h1>
-        <p className="max-w-[56ch] text-[13px] leading-6 text-muted-foreground">
-          Locate services across STT regions and outposts. Click any service for
-          detailed status and next steps.
-        </p>
-      </header>
+  function toggleSelection(id: string) {
+    setSelectedServiceId((current) => (current === id ? null : id));
+  }
 
-      <SearchField
-        value={query}
-        onChange={(value) => {
+  return (
+    <PageBody width="comfortable">
+      <Hero
+        searchValue={query}
+        onSearchChange={(value) => {
           setQuery(value);
           resetSelection();
         }}
       />
 
-      <RegionStrip
-        locations={locations}
-        services={services}
-        active={activeLocation}
-        onSelect={(id) => {
-          setActiveLocation(id);
-          resetSelection();
-        }}
-      />
-
-      <Controls
-        statusFilter={statusFilter}
-        onStatusChange={(value) => {
-          setStatusFilter(value);
-          resetSelection();
-        }}
-        domainFilter={domainFilter}
-        onDomainChange={(value) => {
-          setDomainFilter(value);
-          resetSelection();
-        }}
-        domainOptions={domainOptions}
-        view={view}
-        onViewChange={setView}
-        resultsLabel={`${filtered.length} service${filtered.length === 1 ? "" : "s"}${
-          activeLocationLabel ? ` in ${activeLocationLabel}` : ""
-        }`}
-      />
-
-      {filtered.length === 0 ? (
-        <EmptyState onReset={resetAll} />
-      ) : view === "cards" ? (
-        <CardsView
-          groups={groups}
+      <Section
+        eyebrow="Geography"
+        title="Regions and outposts"
+        description="Pick a location to filter the catalog. Counts reflect available and planned services."
+      >
+        <RegionStrip
           locations={locations}
-          selectedServiceId={selectedServiceId}
-          onSelect={(id) =>
-            setSelectedServiceId((current) => (current === id ? null : id))
-          }
-          selectedService={selectedService}
-        />
-      ) : (
-        <MatrixView
-          locations={locations}
-          groups={groups}
+          services={services}
+          active={activeLocation}
           onSelect={(id) => {
-            setSelectedServiceId(id);
-            setView("cards");
+            setActiveLocation(id);
+            resetSelection();
           }}
         />
-      )}
+      </Section>
+
+      <Section
+        eyebrow="Catalog"
+        title="Services"
+        description="Switch between domain-grouped cards and a dense matrix. Click any service for next steps."
+      >
+        <Controls
+          statusFilter={statusFilter}
+          onStatusChange={(value) => {
+            setStatusFilter(value);
+            resetSelection();
+          }}
+          domainFilter={domainFilter}
+          onDomainChange={(value) => {
+            setDomainFilter(value);
+            resetSelection();
+          }}
+          domainOptions={domainOptions}
+          view={view}
+          onViewChange={setView}
+          resultsLabel={`${filtered.length} service${filtered.length === 1 ? "" : "s"}${
+            activeLocationLabel ? ` in ${activeLocationLabel}` : ""
+          }`}
+        />
+
+        {filtered.length === 0 ? (
+          <EmptyState onReset={resetAll} />
+        ) : view === "cards" ? (
+          <CardsView
+            groups={groups}
+            locations={locations}
+            selectedServiceId={selectedServiceId}
+            onSelect={toggleSelection}
+            selectedService={selectedService}
+          />
+        ) : (
+          <MatrixView
+            locations={locations}
+            groups={groups}
+            selectedServiceId={selectedServiceId}
+            onSelect={toggleSelection}
+          />
+        )}
+      </Section>
     </PageBody>
+  );
+}
+
+function Hero({
+  searchValue,
+  onSearchChange,
+}: {
+  searchValue: string;
+  onSearchChange: (value: string) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-6 pt-2">
+      <div className="flex flex-col gap-2">
+        <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">
+          Availability
+        </span>
+        <h1 className="max-w-[20ch] text-[32px] font-bold leading-[1.1] tracking-[-0.03em] text-foreground sm:text-[34px]">
+          Regional availability map
+        </h1>
+        <p className="max-w-[52ch] text-[15px] leading-[1.6] text-muted-foreground">
+          Locate services across STT regions and outposts. Click any service
+          for detailed status and next steps.
+        </p>
+      </div>
+      <SearchField value={searchValue} onChange={onSearchChange} />
+    </div>
+  );
+}
+
+function Section({
+  eyebrow,
+  title,
+  description,
+  children,
+}: {
+  eyebrow: string;
+  title: string;
+  description?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="flex flex-col gap-4">
+      <header className="flex flex-col gap-1.5">
+        <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">
+          {eyebrow}
+        </span>
+        <h2 className="text-[20px] font-bold tracking-[-0.03em] text-foreground">
+          {title}
+        </h2>
+        {description ? (
+          <p className="max-w-[52ch] text-[14px] leading-6 text-muted-foreground">
+            {description}
+          </p>
+        ) : null}
+      </header>
+      {children}
+    </section>
   );
 }
 
@@ -182,19 +238,19 @@ function SearchField({
   return (
     <label
       className={cn(
-        "flex h-9 max-w-[420px] items-center gap-2 rounded-md border border-border bg-card px-2.5",
-        "transition-[border-color,box-shadow]",
+        "flex h-[52px] w-full max-w-[520px] items-center gap-2.5 rounded-xl border border-[1.5px] border-border bg-card px-[18px]",
+        "shadow-sm transition-[border-color,box-shadow]",
         "focus-within:border-primary focus-within:shadow-[0_0_0_3px_color-mix(in_srgb,var(--primary)_8%,transparent)]",
       )}
     >
-      <IconSearch className="size-3.5 text-muted-foreground" />
+      <IconSearch className="size-[18px] shrink-0 text-muted-foreground" />
       <input
         value={value}
         onChange={(event) => onChange(event.target.value)}
         type="search"
         placeholder="Search services… S3, EKS, Bedrock"
         aria-label="Search services"
-        className="h-full flex-1 bg-transparent text-[13px] outline-none placeholder:text-muted-foreground"
+        className="h-full flex-1 bg-transparent text-[15px] text-foreground outline-none placeholder:text-muted-foreground"
       />
     </label>
   );
