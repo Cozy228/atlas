@@ -17,11 +17,7 @@ type AtlasLogoProps = ComponentPropsWithoutRef<"div"> & {
  * `docs/architecture/portal_frontend_design_plan.md` (32px mark height,
  * 160px x 32px wordmark area). Replace this component when the asset lands.
  */
-export function AtlasLogo({
-  variant = "wordmark",
-  className,
-  ...props
-}: AtlasLogoProps) {
+export function AtlasLogo({ variant = "wordmark", className, ...props }: AtlasLogoProps) {
   const isMark = variant === "mark";
   return (
     <div
@@ -45,10 +41,7 @@ export function AtlasLogo({
         Co
       </span>
       {!isMark && (
-        <span
-          aria-hidden
-          className="ml-2 text-sm font-semibold tracking-tight text-foreground"
-        >
+        <span aria-hidden className="ml-2 text-sm font-semibold tracking-tight text-foreground">
           Atlas Portal
         </span>
       )}

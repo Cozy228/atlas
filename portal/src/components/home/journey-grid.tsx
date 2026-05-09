@@ -52,9 +52,7 @@ const STEPS: ReadonlyArray<JourneyStep> = [
 export function JourneyGrid() {
   return (
     <div
-      className={cn(
-        "grid grid-cols-1 gap-px overflow-hidden rounded-xl bg-border sm:grid-cols-2",
-      )}
+      className={cn("grid grid-cols-1 gap-px overflow-hidden rounded-xl bg-border sm:grid-cols-2")}
     >
       {STEPS.map((step) => (
         <Step key={step.num} step={step} />
@@ -69,12 +67,8 @@ function Step({ step }: { step: JourneyStep }) {
       <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.04em] text-muted-foreground">
         {step.num}
       </p>
-      <h3 className="text-[14px] font-bold tracking-[-0.01em] text-foreground">
-        {step.title}
-      </h3>
-      <p className="text-[12px] leading-5 text-muted-foreground">
-        {step.description}
-      </p>
+      <h3 className="text-[14px] font-bold tracking-[-0.01em] text-foreground">{step.title}</h3>
+      <p className="text-[12px] leading-5 text-muted-foreground">{step.description}</p>
       {step.links.length > 0 ? (
         <ul className="mt-1.5 flex flex-col">
           {step.links.map((link) => (
@@ -88,13 +82,7 @@ function Step({ step }: { step: JourneyStep }) {
   );
 }
 
-function JourneyLinkItem({
-  label,
-  to,
-}: {
-  label: ReactNode;
-  to: JourneyLink["to"];
-}) {
+function JourneyLinkItem({ label, to }: { label: ReactNode; to: JourneyLink["to"] }) {
   return (
     <Link
       to={to}

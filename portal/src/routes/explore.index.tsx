@@ -1,14 +1,11 @@
 import { Fragment, useMemo, useState } from "react";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { IconSearch } from "@tabler/icons-react";
+import { IconLayoutGrid, IconSearch, IconTable } from "@tabler/icons-react";
 import Fuse from "fuse.js";
 
 import { availabilityQueryOptions } from "@/api/queries";
-import {
-  type AvailabilityRecord,
-  type LocationStatus,
-} from "@/api/server/availability";
+import { type AvailabilityRecord, type LocationStatus } from "@/api/server/availability";
 import { ExpandPanel } from "@/components/explore/expand-panel";
 import { MatrixView } from "@/components/explore/matrix-view";
 import { RegionStrip } from "@/components/explore/region-strip";
@@ -28,8 +25,7 @@ import { cn } from "@/lib/utils";
 type ViewMode = "cards" | "matrix";
 
 export const Route = createFileRoute("/explore/")({
-  loader: ({ context }) =>
-    context.queryClient.ensureQueryData(availabilityQueryOptions),
+  loader: ({ context }) => context.queryClient.ensureQueryData(availabilityQueryOptions),
   component: ExploreRoute,
 });
 
@@ -42,9 +38,9 @@ const STATUS_OPTIONS: ReadonlyArray<{ value: LocationStatus | "all"; label: stri
 ];
 
 function ExploreRoute() {
-  const { data: { locations, services } } = useSuspenseQuery(
-    availabilityQueryOptions,
-  );
+  const {
+    data: { locations, services },
+  } = useSuspenseQuery(availabilityQueryOptions);
 
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<LocationStatus | "all">("all");
@@ -70,9 +66,7 @@ function ExploreRoute() {
 
   const filtered = useMemo(() => {
     const q = query.trim();
-    const matched = q.length > 0
-      ? fuse.search(q).map((result) => result.item)
-      : services;
+    const matched = q.length > 0 ? fuse.search(q).map((result) => result.item) : services;
     return matched.filter((service) => {
       if (domainFilter !== "all" && service.domain !== domainFilter) return false;
       if (statusFilter !== "all") {
@@ -96,7 +90,9 @@ function ExploreRoute() {
       if (list) list.push(service);
       else map.set(service.domain, [service]);
     }
-    return [...map.entries()] as ReadonlyArray<readonly [string, ReadonlyArray<AvailabilityRecord>]>;
+    return [...map.entries()] as ReadonlyArray<
+      readonly [string, ReadonlyArray<AvailabilityRecord>]
+    >;
   }, [filtered]);
 
   const selectedService = filtered.find((s) => s.id === selectedServiceId) ?? null;
@@ -210,8 +206,8 @@ function Hero({
           Regional availability map
         </h1>
         <p className="max-w-[52ch] text-[15px] leading-[1.6] text-muted-foreground">
-          Locate services across STT regions and outposts. Click any service
-          for detailed status and next steps.
+          Locate services across STT regions and outposts. Click any service for detailed status and
+          next steps.
         </p>
       </div>
       <SearchField value={searchValue} onChange={onSearchChange} />
@@ -236,13 +232,9 @@ function Section({
         <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">
           {eyebrow}
         </span>
-        <h2 className="text-[20px] font-bold tracking-[-0.03em] text-foreground">
-          {title}
-        </h2>
+        <h2 className="text-[20px] font-bold tracking-[-0.03em] text-foreground">{title}</h2>
         {description ? (
-          <p className="max-w-[52ch] text-[14px] leading-6 text-muted-foreground">
-            {description}
-          </p>
+          <p className="max-w-[52ch] text-[14px] leading-6 text-muted-foreground">{description}</p>
         ) : null}
       </header>
       {children}
@@ -250,29 +242,23 @@ function Section({
   );
 }
 
-function SearchField({
-  value,
-  onChange,
-}: {
-  value: string;
-  onChange: (value: string) => void;
-}) {
+function SearchField({ value, onChange }: { value: string; onChange: (value: string) => void }) {
   return (
     <label
       className={cn(
-        "flex h-[52px] w-full max-w-[520px] items-center gap-2.5 rounded-xl border border-[1.5px] border-border bg-card px-[18px]",
-        "shadow-sm transition-[border-color,box-shadow]",
-        "focus-within:border-primary focus-within:shadow-[0_0_0_3px_color-mix(in_srgb,var(--primary)_8%,transparent)]",
+        "flex h-10 w-full max-w-[520px] items-center gap-2.5 rounded-lg border border-input bg-card px-3",
+        "shadow-xs transition-[border-color,box-shadow]",
+        "focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/50",
       )}
     >
-      <IconSearch className="size-[18px] shrink-0 text-muted-foreground" />
+      <IconSearch className="size-4 shrink-0 text-muted-foreground" />
       <input
         value={value}
         onChange={(event) => onChange(event.target.value)}
         type="search"
         placeholder="Search services… S3, EKS, Bedrock"
         aria-label="Search services"
-        className="h-full flex-1 bg-transparent text-[15px] text-foreground outline-none placeholder:text-muted-foreground"
+        className="h-full flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
       />
     </label>
   );
@@ -299,65 +285,71 @@ function Controls({
 }) {
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <Select
-        value={statusFilter}
-        onValueChange={(value) =>
-          onStatusChange(value as LocationStatus | "all")
-        }
-      >
-        <SelectTrigger
-          size="sm"
-          aria-label="Status"
-          className="rounded-full text-[12px]"
+      <div className="flex items-center gap-1.5">
+        <span className="text-[12px] font-medium text-muted-foreground">Status</span>
+        <Select
+          value={statusFilter}
+          onValueChange={(value) => onStatusChange(value as LocationStatus | "all")}
         >
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {STATUS_OPTIONS.map((option) => (
-            <SelectItem key={option.value} value={option.value}>
-              {option.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      <Select
-        value={domainFilter}
-        onValueChange={(value) => {
-          if (value) onDomainChange(value);
-        }}
-      >
-        <SelectTrigger
-          size="sm"
-          aria-label="Domain"
-          className="rounded-full text-[12px]"
+          <SelectTrigger size="sm" aria-label="Status" className="text-[12px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent alignItemWithTrigger={false}>
+            {STATUS_OPTIONS.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="flex items-center gap-1.5">
+        <span className="text-[12px] font-medium text-muted-foreground">Domain</span>
+        <Select
+          value={domainFilter}
+          onValueChange={(value) => {
+            if (value) onDomainChange(value);
+          }}
         >
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {domainOptions.map((domain) => (
-            <SelectItem key={domain} value={domain}>
-              {domain === "all" ? "All domains" : domain}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      <span className="ml-auto font-mono text-[11px] text-muted-foreground">
-        {resultsLabel}
-      </span>
+          <SelectTrigger size="sm" aria-label="Domain" className="text-[12px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent alignItemWithTrigger={false}>
+            {domainOptions.map((domain) => (
+              <SelectItem key={domain} value={domain}>
+                {domain === "all" ? "All domains" : domain}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <span className="ml-auto font-mono text-[11px] text-muted-foreground">{resultsLabel}</span>
+
       <ToggleGroup
         type="single"
         value={view}
         onValueChange={(value) => {
           if (value === "cards" || value === "matrix") onViewChange(value);
         }}
-        variant="outline"
         size="sm"
+        spacing={1}
         aria-label="View mode"
+        className="gap-0.5 rounded-lg bg-muted p-0.5"
       >
-        <ToggleGroupItem value="cards" className="text-[11px] font-semibold">
+        <ToggleGroupItem
+          value="cards"
+          className="rounded-md border-0 bg-transparent text-[11px] font-semibold aria-pressed:bg-background aria-pressed:shadow-sm"
+        >
+          <IconLayoutGrid className="size-3.5" data-icon="inline-start" />
           Cards
         </ToggleGroupItem>
-        <ToggleGroupItem value="matrix" className="text-[11px] font-semibold">
+        <ToggleGroupItem
+          value="matrix"
+          className="rounded-md border-0 bg-transparent text-[11px] font-semibold aria-pressed:bg-background aria-pressed:shadow-sm"
+        >
+          <IconTable className="size-3.5" data-icon="inline-start" />
           Matrix
         </ToggleGroupItem>
       </ToggleGroup>
@@ -430,15 +422,8 @@ function EmptyState({ onReset }: { onReset: () => void }) {
   return (
     <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed border-border bg-card p-10 text-center">
       <p className="text-[14px] font-bold text-foreground">No services match</p>
-      <p className="text-[12px] text-muted-foreground">
-        Broaden your search or clear filters.
-      </p>
-      <Button
-        type="button"
-        size="sm"
-        onClick={onReset}
-        className="mt-2"
-      >
+      <p className="text-[12px] text-muted-foreground">Broaden your search or clear filters.</p>
+      <Button type="button" size="sm" onClick={onReset} className="mt-2">
         Reset filters
       </Button>
     </div>

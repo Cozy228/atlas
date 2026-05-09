@@ -72,9 +72,7 @@ function ZoneCard({ zone }: { zone: Topic }) {
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex min-w-0 flex-col gap-1">
-          <p className="text-[14px] font-bold tracking-[-0.01em] text-foreground">
-            {zone.name}
-          </p>
+          <p className="text-[14px] font-bold tracking-[-0.01em] text-foreground">{zone.name}</p>
           <p className="line-clamp-2 text-[12px] leading-5 text-muted-foreground">
             {zone.description}
           </p>
@@ -117,26 +115,13 @@ function ZoneCard({ zone }: { zone: Topic }) {
   );
 }
 
-function DefRow({
-  label,
-  value,
-  mono,
-}: {
-  label: string;
-  value: string;
-  mono?: boolean;
-}) {
+function DefRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
     <>
       <dt className="font-mono text-[10px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">
         {label}
       </dt>
-      <dd
-        className={cn(
-          "truncate text-[11px] text-foreground",
-          mono && "font-mono text-[11px]",
-        )}
-      >
+      <dd className={cn("truncate text-[11px] text-foreground", mono && "font-mono text-[11px]")}>
         {value}
       </dd>
     </>
@@ -148,8 +133,7 @@ function EmptyState() {
     <div className="rounded-lg border border-dashed border-border bg-card p-6 text-[13px] text-muted-foreground">
       <p className="font-bold text-foreground">No registered landing zones.</p>
       <p className="mt-1 leading-6">
-        Add a landing zone to the registry or report the gap from a source
-        detail page.
+        Add a landing zone to the registry or report the gap from a source detail page.
       </p>
     </div>
   );

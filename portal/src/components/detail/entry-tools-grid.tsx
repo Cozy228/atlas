@@ -3,16 +3,12 @@ import type { EntryTool } from "@atlas/schema";
 
 import { cn } from "@/lib/utils";
 
-export function EntryToolsGrid({
-  tools,
-}: {
-  tools: ReadonlyArray<EntryTool>;
-}) {
+export function EntryToolsGrid({ tools }: { tools: ReadonlyArray<EntryTool> }) {
   if (tools.length === 0) {
     return (
       <div className="rounded-lg border border-dashed border-border bg-card p-4 text-[13px] text-muted-foreground">
-        No entry tools registered. Use feedback below if you expect Terraform
-        modules, Harness pipelines, or onboarding forms here.
+        No entry tools registered. Use feedback below if you expect Terraform modules, Harness
+        pipelines, or onboarding forms here.
       </div>
     );
   }

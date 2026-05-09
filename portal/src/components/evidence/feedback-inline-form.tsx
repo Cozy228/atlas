@@ -35,10 +35,7 @@ const formSchema = z.object({
   target_id: z.string().min(1),
 });
 
-export function FeedbackInlineForm({
-  target,
-  className,
-}: FeedbackInlineFormProps) {
+export function FeedbackInlineForm({ target, className }: FeedbackInlineFormProps) {
   const form = useForm({
     defaultValues: {
       feedback_type: "missing" as FeedbackType,
@@ -60,10 +57,7 @@ export function FeedbackInlineForm({
 
   return (
     <form
-      className={cn(
-        "rounded-md border border-border bg-card p-4",
-        className,
-      )}
+      className={cn("rounded-md border border-border bg-card p-4", className)}
       onSubmit={(event) => {
         event.preventDefault();
         event.stopPropagation();
@@ -94,8 +88,7 @@ export function FeedbackInlineForm({
                     className={cn(
                       "cursor-pointer rounded-md border px-2.5 py-1 text-xs font-medium transition-colors",
                       "border-border bg-card text-foreground hover:bg-secondary",
-                      option === field.state.value &&
-                        "border-primary bg-brand-tint",
+                      option === field.state.value && "border-primary bg-brand-tint",
                     )}
                   >
                     <input
@@ -134,12 +127,9 @@ export function FeedbackInlineForm({
                   className="resize-y"
                 />
                 <FieldDescription>
-                  The steward owns the source content; Atlas only forwards the
-                  signal.
+                  The steward owns the source content; Atlas only forwards the signal.
                 </FieldDescription>
-                {isInvalid ? (
-                  <FieldError errors={field.state.meta.errors} />
-                ) : null}
+                {isInvalid ? <FieldError errors={field.state.meta.errors} /> : null}
               </Field>
             );
           }}
@@ -154,12 +144,7 @@ export function FeedbackInlineForm({
           })}
         >
           {({ canSubmit, isSubmitting }) => (
-            <Button
-              type="submit"
-              variant="default"
-              size="sm"
-              disabled={!canSubmit || isSubmitting}
-            >
+            <Button type="submit" variant="default" size="sm" disabled={!canSubmit || isSubmitting}>
               {isSubmitting ? "Sending…" : "Send feedback"}
             </Button>
           )}

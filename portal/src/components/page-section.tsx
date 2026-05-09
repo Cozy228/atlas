@@ -10,20 +10,9 @@ type PageHeaderProps = {
   className?: string;
 };
 
-export function PageHeader({
-  eyebrow,
-  title,
-  description,
-  actions,
-  className,
-}: PageHeaderProps) {
+export function PageHeader({ eyebrow, title, description, actions, className }: PageHeaderProps) {
   return (
-    <header
-      className={cn(
-        "flex flex-col gap-3 border-b border-border pb-6",
-        className,
-      )}
-    >
+    <header className={cn("flex flex-col gap-3 border-b border-border pb-6", className)}>
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div className="flex flex-col gap-1">
           {eyebrow ? (
@@ -31,18 +20,12 @@ export function PageHeader({
               {eyebrow}
             </span>
           ) : null}
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-            {title}
-          </h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">{title}</h1>
           {description ? (
-            <p className="max-w-[68ch] text-sm leading-6 text-muted-foreground">
-              {description}
-            </p>
+            <p className="max-w-[68ch] text-sm leading-6 text-muted-foreground">{description}</p>
           ) : null}
         </div>
-        {actions ? (
-          <div className="flex items-center gap-2 sm:self-end">{actions}</div>
-        ) : null}
+        {actions ? <div className="flex items-center gap-2 sm:self-end">{actions}</div> : null}
       </div>
     </header>
   );
@@ -71,9 +54,7 @@ export function PageSection({
             {title}
           </h2>
           {description ? (
-            <p className="max-w-[68ch] text-sm leading-6 text-muted-foreground">
-              {description}
-            </p>
+            <p className="max-w-[68ch] text-sm leading-6 text-muted-foreground">{description}</p>
           ) : null}
         </div>
       ) : null}
@@ -100,12 +81,7 @@ const PAGE_GAPS: Record<NonNullable<PageBodyProps["gap"]>, string> = {
   standard: "gap-12",
 };
 
-export function PageBody({
-  children,
-  className,
-  width = "wide",
-  gap = "standard",
-}: PageBodyProps) {
+export function PageBody({ children, className, width = "wide", gap = "standard" }: PageBodyProps) {
   return (
     <div
       className={cn(

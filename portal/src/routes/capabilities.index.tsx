@@ -3,10 +3,7 @@ import { Link, createFileRoute } from "@tanstack/react-router";
 import { IconArrowRight, IconSearch } from "@tabler/icons-react";
 import type { Topic } from "@atlas/schema";
 
-import {
-  fetchAvailability,
-  type AvailabilityResponse,
-} from "@/api/server/availability";
+import { fetchAvailability, type AvailabilityResponse } from "@/api/server/availability";
 import { fetchTopicDiscovery } from "@/api/server/contextApi";
 import { DetailHeader } from "@/components/detail/detail-shell";
 import { StatusChip } from "@/components/explore/status-chip";
@@ -51,7 +48,9 @@ function CapabilitiesListRoute() {
       else map.set(topic.category, [topic]);
     }
     return [...map.entries()]
-      .map(([key, items]) => [key, [...items].sort((a, b) => a.name.localeCompare(b.name))] as const)
+      .map(
+        ([key, items]) => [key, [...items].sort((a, b) => a.name.localeCompare(b.name))] as const,
+      )
       .sort(([a], [b]) => a.localeCompare(b));
   }, [topics, query]);
 
@@ -101,11 +100,7 @@ function CapabilitiesListRoute() {
                 }}
               >
                 {items.map((topic) => (
-                  <CapabilityCard
-                    key={topic.id}
-                    topic={topic}
-                    availability={availability}
-                  />
+                  <CapabilityCard key={topic.id} topic={topic} availability={availability} />
                 ))}
               </div>
             </section>
@@ -175,9 +170,7 @@ function CapabilityCard({
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex min-w-0 flex-col gap-1">
-          <p className="text-[14px] font-bold tracking-[-0.01em] text-foreground">
-            {topic.name}
-          </p>
+          <p className="text-[14px] font-bold tracking-[-0.01em] text-foreground">{topic.name}</p>
           <p className="line-clamp-2 text-[12px] leading-5 text-muted-foreground">
             {topic.description}
           </p>
@@ -211,9 +204,7 @@ function CapabilityCard({
         ) : null}
       </div>
       <div className="mt-auto flex items-center justify-between text-[11px] text-muted-foreground">
-        <span className="truncate font-semibold text-foreground">
-          {topic.owner_team}
-        </span>
+        <span className="truncate font-semibold text-foreground">{topic.owner_team}</span>
         <span className="font-mono">{topic.support_channel}</span>
       </div>
     </Link>

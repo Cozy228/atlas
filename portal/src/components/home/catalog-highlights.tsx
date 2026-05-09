@@ -18,24 +18,12 @@ export function CatalogHighlights({
         title="Services in the catalog"
         description="Across compute, storage, database, AI, analytics, integration, and migration domains."
       />
-      <Block
-        stat={regionCount}
-        title="Regions and outposts"
-        description={regionLabel}
-      />
+      <Block stat={regionCount} title="Regions and outposts" description={regionLabel} />
     </div>
   );
 }
 
-function Block({
-  stat,
-  title,
-  description,
-}: {
-  stat: number;
-  title: string;
-  description: string;
-}) {
+function Block({ stat, title, description }: { stat: number; title: string; description: string }) {
   return (
     <article
       className={cn(
@@ -50,12 +38,8 @@ function Block({
       >
         {stat}
       </p>
-      <p className="text-[14px] font-bold tracking-[-0.01em] text-foreground">
-        {title}
-      </p>
-      <p className="mt-0.5 text-[12px] leading-5 text-muted-foreground">
-        {description}
-      </p>
+      <p className="text-[14px] font-bold tracking-[-0.01em] text-foreground">{title}</p>
+      <p className="mt-0.5 text-[12px] leading-5 text-muted-foreground">{description}</p>
     </article>
   );
 }

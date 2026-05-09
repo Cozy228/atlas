@@ -1,9 +1,6 @@
 import { IconArrowUpRight, IconX } from "@tabler/icons-react";
 
-import type {
-  AvailabilityRecord,
-  Location,
-} from "@/api/server/availability";
+import type { AvailabilityRecord, Location } from "@/api/server/availability";
 import { StatusChip, statusLabel } from "@/components/explore/status-chip";
 import { cn } from "@/lib/utils";
 
@@ -75,10 +72,7 @@ export function ExpandPanel({ service, locations, onClose }: ExpandPanelProps) {
             {locations.map((location) => {
               const cell = service.availability[location.id];
               const status = cell?.status ?? "not-planned";
-              const sub =
-                status === "planned" && cell?.note
-                  ? `ETA: ${cell.note}`
-                  : location.sub;
+              const sub = status === "planned" && cell?.note ? `ETA: ${cell.note}` : location.sub;
               return (
                 <li
                   key={location.id}
@@ -88,9 +82,7 @@ export function ExpandPanel({ service, locations, onClose }: ExpandPanelProps) {
                     <span className="text-[12px] font-semibold text-foreground">
                       {location.label}
                     </span>
-                    <span className="text-[10px] text-muted-foreground">
-                      {sub}
-                    </span>
+                    <span className="text-[10px] text-muted-foreground">{sub}</span>
                   </span>
                   <StatusChip status={status} text={statusLabel(status)} />
                 </li>
@@ -100,7 +92,10 @@ export function ExpandPanel({ service, locations, onClose }: ExpandPanelProps) {
           <Guidance
             everyAvailable={everyAvailable}
             nextEta={planned[0]}
-            hasPlanned={planned.length > 0 || locations.some((l) => service.availability[l.id]?.status === "planned")}
+            hasPlanned={
+              planned.length > 0 ||
+              locations.some((l) => service.availability[l.id]?.status === "planned")
+            }
           />
         </section>
         <section className="p-5">
@@ -114,8 +109,8 @@ export function ExpandPanel({ service, locations, onClose }: ExpandPanelProps) {
             <ActionButton>Support</ActionButton>
           </div>
           <p className="mt-3 border-t border-border pt-2 font-mono text-[10px] text-muted-foreground">
-            Source projection: catalog.md. Production surfaces show anchors,
-            freshness, and warnings per cell.
+            Source projection: catalog.md. Production surfaces show anchors, freshness, and warnings
+            per cell.
           </p>
         </section>
       </div>
@@ -136,14 +131,10 @@ function Guidance({
   if (hasPlanned) {
     return (
       <div className="mt-3 rounded-md border border-info/20 bg-info/5 p-3">
-        <p className="text-[11px] font-bold text-foreground">
-          Rollout in progress
-        </p>
+        <p className="text-[11px] font-bold text-foreground">Rollout in progress</p>
         <p className="mt-0.5 text-[12px] leading-5 text-muted-foreground">
-          {nextEta
-            ? `Next expected: ${nextEta}.`
-            : "Timeline TBD."}{" "}
-          Contact the platform team for interim access.
+          {nextEta ? `Next expected: ${nextEta}.` : "Timeline TBD."} Contact the platform team for
+          interim access.
         </p>
       </div>
     );
@@ -161,13 +152,7 @@ function Guidance({
   return null;
 }
 
-function ActionButton({
-  children,
-  primary,
-}: {
-  children: React.ReactNode;
-  primary?: boolean;
-}) {
+function ActionButton({ children, primary }: { children: React.ReactNode; primary?: boolean }) {
   return (
     <button
       type="button"

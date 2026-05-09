@@ -38,16 +38,18 @@ export function pushRecent(item: RecentItem) {
 }
 
 export function useRecordRecent(item: RecentItem | null) {
+  const kind = item?.kind;
+  const topicOrSourceId = kind === "source" ? item?.sourceId : item?.topicId;
+  const name = item?.name;
+
   useEffect(() => {
     if (!item) return;
     pushRecent(item);
-  }, [item?.kind, item?.kind === "source" ? item.sourceId : item?.topicId, item?.name]);
+  }, [item, kind, topicOrSourceId, name]);
 }
 
 function recentKey(item: RecentItem): string {
-  return item.kind === "source"
-    ? `source:${item.sourceId}`
-    : `${item.kind}:${item.topicId}`;
+  return item.kind === "source" ? `source:${item.sourceId}` : `${item.kind}:${item.topicId}`;
 }
 
 function isRecentItem(value: unknown): value is RecentItem {
@@ -123,11 +125,7 @@ function RecentChip({ item }: { item: RecentItem }) {
 
   if (item.kind === "source") {
     return (
-      <Link
-        to="/sources/$sourceId"
-        params={{ sourceId: item.sourceId }}
-        className={className}
-      >
+      <Link to="/sources/$sourceId" params={{ sourceId: item.sourceId }} className={className}>
         <span>{item.name}</span>
         {type}
       </Link>

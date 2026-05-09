@@ -1,7 +1,4 @@
-import type {
-  AvailabilityRecord,
-  Location,
-} from "@/api/server/availability";
+import type { AvailabilityRecord, Location } from "@/api/server/availability";
 import { StatusChip } from "@/components/explore/status-chip";
 import { cn } from "@/lib/utils";
 
@@ -14,12 +11,7 @@ type ServiceCardProps = {
 
 const VISIBLE_CHIPS = 3;
 
-export function ServiceCard({
-  service,
-  locations,
-  selected,
-  onSelect,
-}: ServiceCardProps) {
+export function ServiceCard({ service, locations, selected, onSelect }: ServiceCardProps) {
   const active = locations.filter(
     (location) =>
       service.availability[location.id] &&
@@ -66,13 +58,7 @@ export function ServiceCard({
               cell.status === "planned" && cell.note
                 ? `${location.label} ${cell.note}`
                 : location.label;
-            return (
-              <StatusChip
-                key={location.id}
-                status={cell.status}
-                text={text}
-              />
-            );
+            return <StatusChip key={location.id} status={cell.status} text={text} />;
           })
         )}
         {overflow > 0 ? (
