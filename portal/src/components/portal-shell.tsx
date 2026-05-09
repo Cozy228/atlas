@@ -16,11 +16,9 @@ type NavItem = {
 
 const PRIMARY_NAV: ReadonlyArray<NavItem> = [
   { to: "/", label: "Home", exact: true },
-  { to: "/explore", label: "Availability" },
   { to: "/capabilities", label: "Capabilities" },
   { to: "/landing-zones", label: "Landing Zones" },
-  { to: "/sources", label: "Sources" },
-  { to: "/ask", label: "Ask Atlas" },
+  { to: "/explore", label: "Availability" },
 ];
 
 export function PortalShell({ children }: PortalShellProps) {
