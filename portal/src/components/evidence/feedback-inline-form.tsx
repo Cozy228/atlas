@@ -4,7 +4,15 @@ import { toast } from "sonner";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
+import {
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+  FieldLegend,
+  FieldSet,
+} from "@/components/ui/field";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import {
@@ -53,7 +61,7 @@ export function FeedbackInlineForm({
   return (
     <form
       className={cn(
-        "flex flex-col gap-3 rounded-md border border-border bg-card p-4",
+        "rounded-md border border-border bg-card p-4",
         className,
       )}
       onSubmit={(event) => {
@@ -62,11 +70,11 @@ export function FeedbackInlineForm({
         void form.handleSubmit();
       }}
     >
-      <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+      <div className="mb-4 flex items-center gap-2 text-sm font-medium text-foreground">
         <IconMessageReport className="size-4 text-muted-foreground" />
         Report missing, stale, broken, or unclear guidance
       </div>
-      <p className="text-xs text-muted-foreground">
+      <p className="mb-4 text-xs text-muted-foreground">
         Routed to{" "}
         <span className="font-mono">
           {target.target_type}:{target.target_id}
@@ -74,54 +82,71 @@ export function FeedbackInlineForm({
         . Atlas does not edit source content; the steward will follow up.
       </p>
 
-      <form.Field name="feedback_type">
-        {(field) => (
-          <fieldset className="flex flex-wrap gap-2">
-            <legend className="sr-only">Feedback type</legend>
-            {feedbackTypes.map((option) => (
-              <Label
-                key={option}
-                className={cn(
-                  "cursor-pointer rounded-md border px-2.5 py-1 text-xs font-medium transition-colors",
-                  "border-border bg-card text-foreground hover:bg-secondary",
-                  option === field.state.value && "border-primary bg-brand-tint",
-                )}
-              >
-                <input
-                  type="radio"
-                  name="feedback_type"
-                  value={option}
-                  checked={option === field.state.value}
-                  onChange={() => field.handleChange(option)}
-                  className="sr-only"
-                  aria-label={option}
+      <FieldGroup>
+        <form.Field name="feedback_type">
+          {(field) => (
+            <FieldSet>
+              <FieldLegend variant="label">Feedback type</FieldLegend>
+              <div className="flex flex-wrap gap-2" role="radiogroup">
+                {feedbackTypes.map((option) => (
+                  <label
+                    key={option}
+                    className={cn(
+                      "cursor-pointer rounded-md border px-2.5 py-1 text-xs font-medium transition-colors",
+                      "border-border bg-card text-foreground hover:bg-secondary",
+                      option === field.state.value &&
+                        "border-primary bg-brand-tint",
+                    )}
+                  >
+                    <input
+                      type="radio"
+                      name="feedback_type"
+                      value={option}
+                      checked={option === field.state.value}
+                      onChange={() => field.handleChange(option)}
+                      className="sr-only"
+                      aria-label={option}
+                    />
+                    {option}
+                  </label>
+                ))}
+              </div>
+            </FieldSet>
+          )}
+        </form.Field>
+
+        <form.Field name="message">
+          {(field) => {
+            const isInvalid = field.state.meta.errors.length > 0;
+            return (
+              <Field data-invalid={isInvalid}>
+                <FieldLabel htmlFor={field.name}>Feedback details</FieldLabel>
+                <Textarea
+                  id={field.name}
+                  name={field.name}
+                  value={field.state.value}
+                  onChange={(event) => field.handleChange(event.target.value)}
+                  onBlur={field.handleBlur}
+                  rows={3}
+                  required
+                  aria-invalid={isInvalid}
+                  placeholder="What is missing or wrong? Be specific so the steward can act."
+                  className="resize-y"
                 />
-                {option}
-              </Label>
-            ))}
-          </fieldset>
-        )}
-      </form.Field>
+                <FieldDescription>
+                  The steward owns the source content; Atlas only forwards the
+                  signal.
+                </FieldDescription>
+                {isInvalid ? (
+                  <FieldError errors={field.state.meta.errors} />
+                ) : null}
+              </Field>
+            );
+          }}
+        </form.Field>
+      </FieldGroup>
 
-      <form.Field name="message">
-        {(field) => (
-          <Label className="flex flex-col gap-1 text-xs text-muted-foreground">
-            <span className="sr-only">Feedback details</span>
-            <Textarea
-              value={field.state.value}
-              onChange={(event) => field.handleChange(event.target.value)}
-              onBlur={field.handleBlur}
-              rows={3}
-              required
-              placeholder="What is missing or wrong? Be specific so the steward can act."
-              aria-invalid={field.state.meta.errors.length > 0}
-              className="resize-y"
-            />
-          </Label>
-        )}
-      </form.Field>
-
-      <div className="flex items-center justify-between gap-3">
+      <div className="mt-4 flex items-center justify-between gap-3">
         <form.Subscribe
           selector={(state) => ({
             canSubmit: state.canSubmit,
