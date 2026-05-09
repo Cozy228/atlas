@@ -78,7 +78,7 @@ function HomeRoute() {
   const { capabilities, landingZones, signals } = Route.useLoaderData();
 
   return (
-    <PageBody width="narrow">
+    <PageBody width="comfortable">
       <Hero />
       <Section eyebrow="Platform" title="Choose your starting point" description="Pick the question that matches where you are in your platform journey.">
         <EntryCards capabilities={capabilities} landingZones={landingZones} />

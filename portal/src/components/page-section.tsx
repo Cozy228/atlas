@@ -85,12 +85,13 @@ export function PageSection({
 type PageBodyProps = {
   children: ReactNode;
   className?: string;
-  width?: "narrow" | "wide";
+  width?: "narrow" | "comfortable" | "wide";
 };
 
 const PAGE_WIDTHS: Record<NonNullable<PageBodyProps["width"]>, string> = {
   narrow: "max-w-[860px]",
-  wide: "max-w-[1200px]",
+  comfortable: "max-w-[1100px]",
+  wide: "max-w-[1280px]",
 };
 
 export function PageBody({ children, className, width = "wide" }: PageBodyProps) {
