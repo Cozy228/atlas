@@ -29,13 +29,13 @@ export function EntryCards({ capabilities, landingZones }: EntryCardsProps) {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
         <EntryCard
           phase="evaluate"
           active={active === "evaluate"}
           onClick={toggle("evaluate")}
           label="Evaluate"
-          description="Which capability should I use? Browse approved services with availability across regions."
+          description="Which capability should I use?"
           icon={IconSearch}
         />
         <EntryCard
@@ -43,7 +43,7 @@ export function EntryCards({ capabilities, landingZones }: EntryCardsProps) {
           active={active === "decide"}
           onClick={toggle("decide")}
           label="Decide"
-          description="Which landing zone fits my workload? Compare environments, guardrails, and onboarding paths."
+          description="Which landing zone fits my workload?"
           icon={IconLayoutGrid}
         />
         <EntryCard
@@ -51,9 +51,8 @@ export function EntryCards({ capabilities, landingZones }: EntryCardsProps) {
           active={active === "onboard"}
           onClick={toggle("onboard")}
           label="Onboard"
-          description="How do I start? Get entry tools, pipelines, modules, and the right support channels for your stack."
+          description="How do I provision and ship?"
           icon={IconRocket}
-          wide
         />
       </div>
 
@@ -81,7 +80,6 @@ type EntryCardProps = {
   label: string;
   description: string;
   icon: typeof IconSearch;
-  wide?: boolean;
 };
 
 function EntryCard({
@@ -91,7 +89,6 @@ function EntryCard({
   label,
   description,
   icon: Icon,
-  wide,
 }: EntryCardProps) {
   return (
     <button
@@ -102,12 +99,11 @@ function EntryCard({
       aria-controls={`phase-panel-${phase}`}
       onClick={onClick}
       className={cn(
-        "group relative overflow-hidden rounded-xl border border-border bg-card p-5 text-left transition-[border-color,box-shadow,transform]",
+        "group relative flex h-full flex-col gap-2 overflow-hidden rounded-xl border border-border bg-card p-4 text-left transition-[border-color,box-shadow,transform]",
         "hover:border-border-strong hover:shadow-sm",
         "active:scale-[0.99]",
         "data-[active=true]:border-primary data-[active=true]:shadow-[0_0_0_2px_color-mix(in_srgb,var(--primary)_12%,transparent)]",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-        wide ? "sm:col-span-2" : undefined,
       )}
     >
       <span
@@ -118,13 +114,15 @@ function EntryCard({
           "group-hover:opacity-100 group-data-[active=true]:opacity-100",
         )}
       />
-      <span className="relative z-10 mb-3 flex size-8 items-center justify-center rounded-lg bg-brand-tint">
-        <Icon className="size-4 text-primary" />
+      <span className="relative z-10 flex items-center gap-2.5">
+        <span className="flex size-7 items-center justify-center rounded-md bg-brand-tint">
+          <Icon className="size-3.5 text-primary" />
+        </span>
+        <span className="text-[14px] font-bold tracking-[-0.01em] text-foreground">
+          {label}
+        </span>
       </span>
-      <span className="relative z-10 mb-1 block text-[14px] font-bold tracking-[-0.01em] text-foreground">
-        {label}
-      </span>
-      <span className="relative z-10 block text-[13px] leading-[1.5] text-muted-foreground">
+      <span className="relative z-10 text-[13px] leading-[1.5] text-muted-foreground">
         {description}
       </span>
     </button>
