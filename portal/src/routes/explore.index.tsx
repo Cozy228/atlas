@@ -1,11 +1,11 @@
 import { Fragment, useMemo, useState } from "react";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { IconSearch } from "@tabler/icons-react";
 
+import { availabilityQueryOptions } from "@/api/queries";
 import {
-  fetchAvailability,
   type AvailabilityRecord,
-  type AvailabilityResponse,
   type LocationStatus,
 } from "@/api/server/availability";
 import { ExpandPanel } from "@/components/explore/expand-panel";
@@ -18,7 +18,8 @@ import { cn } from "@/lib/utils";
 type ViewMode = "cards" | "matrix";
 
 export const Route = createFileRoute("/explore/")({
-  loader: async (): Promise<AvailabilityResponse> => fetchAvailability(),
+  loader: ({ context }) =>
+    context.queryClient.ensureQueryData(availabilityQueryOptions),
   component: ExploreRoute,
 });
 
@@ -31,7 +32,9 @@ const STATUS_OPTIONS: ReadonlyArray<{ value: LocationStatus | "all"; label: stri
 ];
 
 function ExploreRoute() {
-  const { locations, services } = Route.useLoaderData();
+  const { data: { locations, services } } = useSuspenseQuery(
+    availabilityQueryOptions,
+  );
 
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<LocationStatus | "all">("all");
