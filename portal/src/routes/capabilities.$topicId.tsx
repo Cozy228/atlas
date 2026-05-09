@@ -1,5 +1,5 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
-import { IconArrowUpRight } from "@tabler/icons-react";
+import { IconArrowUpRight, IconLink } from "@tabler/icons-react";
 import type {
   ContextBundleResponse,
   Topic,
@@ -16,10 +16,15 @@ import {
 } from "@/api/server/contextApi";
 import { ContextApiError } from "@/api/contextApiError";
 import { AvailabilityStrip } from "@/components/detail/availability-strip";
-import { BackLink, DetailHeader, DetailSection } from "@/components/detail/detail-shell";
+import {
+  BackLink,
+  DetailHeader,
+  DetailLayout,
+  DetailMetaCard,
+  DetailSection,
+} from "@/components/detail/detail-shell";
 import { EntryToolsGrid } from "@/components/detail/entry-tools-grid";
 import { EvidenceSection } from "@/components/detail/evidence-section";
-import { OwnerRow } from "@/components/detail/owner-row";
 import { FeedbackInlineForm } from "@/components/evidence/feedback-inline-form";
 import { useRecordRecent } from "@/components/home/recently-viewed";
 import { Badge } from "@/components/ui/badge";
@@ -82,9 +87,10 @@ function CapabilityDetailRoute() {
   const landingZones = related.filter(
     (entry) => entry.topic_type === "landing-zone",
   );
+  const primaryTool = topic.entry_tools[0];
 
   return (
-    <PageBody width="comfortable">
+    <PageBody width="comfortable" gap="compact">
       <BackLink to="/capabilities" label="All capabilities" />
 
       <DetailHeader
@@ -99,11 +105,10 @@ function CapabilityDetailRoute() {
             </Badge>
           </>
         }
-        meta={<OwnerRow team={topic.owner_team} channel={topic.support_channel} />}
         actions={
-          topic.entry_tools[0] ? (
+          primaryTool ? (
             <a
-              href={topic.entry_tools[0].url}
+              href={primaryTool.url}
               target="_blank"
               rel="noreferrer noopener"
               className={cn(
@@ -111,76 +116,100 @@ function CapabilityDetailRoute() {
                 "hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
               )}
             >
-              {topic.entry_tools[0].label}
+              {primaryTool.label}
               <IconArrowUpRight className="size-3.5" />
             </a>
           ) : null
         }
       />
 
-      <DetailSection
-        eyebrow="Decision"
-        title="When to use this capability"
-        description="The summary below is sourced from the registered topic description. Authoritative when-to-use guidance lives on the source surfaces below."
-      >
-        <p className="max-w-[68ch] text-[14px] leading-[1.7] text-foreground">
-          {topic.description}
-        </p>
-      </DetailSection>
+      <DetailLayout
+        main={
+          <>
+            <DetailSection eyebrow="Get started" title="Entry tools">
+              <EntryToolsGrid tools={topic.entry_tools} />
+            </DetailSection>
 
-      <DetailSection
-        eyebrow="Get started"
-        title="Entry tools"
-        description="Open the registered Terraform module, Harness pipeline, or onboarding form."
-      >
-        <EntryToolsGrid tools={topic.entry_tools} />
-      </DetailSection>
+            <DetailSection eyebrow="Availability" title="Where this is available">
+              <AvailabilityStrip
+                service={service}
+                locations={availability.locations}
+              />
+            </DetailSection>
 
-      <DetailSection
-        eyebrow="Availability"
-        title="Where this is available"
-        description="Status across STT regions and outposts. Open the availability map for full context and next-step actions."
-      >
-        <AvailabilityStrip service={service} locations={availability.locations} />
-      </DetailSection>
+            {landingZones.length > 0 || guardrails.length > 0 ? (
+              <DetailSection eyebrow="Relationships" title="Related catalog">
+                <RelationshipPanel
+                  landingZones={landingZones}
+                  guardrails={guardrails}
+                />
+              </DetailSection>
+            ) : null}
 
-      {landingZones.length > 0 || guardrails.length > 0 ? (
-        <DetailSection
-          eyebrow="Relationships"
-          title="Connected catalog objects"
-          description="Landing zones and guardrail areas registered against the same domain."
-        >
-          <RelationshipPanel
-            landingZones={landingZones}
-            guardrails={guardrails}
+            <DetailSection eyebrow="Evidence" title="Sources cited">
+              {bundle ? (
+                <EvidenceSection bundle={bundle} />
+              ) : (
+                <div className="rounded-lg border border-dashed border-border bg-card p-3.5 text-[12px] text-muted-foreground">
+                  No registered sources resolved. Use feedback below to suggest one.
+                </div>
+              )}
+            </DetailSection>
+
+            <DetailSection eyebrow="Feedback" title="Help Atlas stay accurate">
+              <FeedbackInlineForm
+                target={{ target_type: "topic", target_id: topic.id }}
+              />
+            </DetailSection>
+          </>
+        }
+        side={
+          <DetailMetaCard
+            items={[
+              { label: "Status", value: topic.status, mono: true },
+              { label: "Domain", value: topic.category },
+              { label: "Owner", value: topic.owner_team },
+              { label: "Support", value: topic.support_channel, mono: true },
+              { label: "ID", value: topic.id, mono: true },
+            ]}
+            actions={
+              <>
+                {primaryTool ? (
+                  <a
+                    href={primaryTool.url}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className={cn(
+                      "inline-flex items-center justify-between gap-2 rounded-md bg-primary px-3 py-2 text-[12px] font-semibold text-primary-foreground transition-colors",
+                      "hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                    )}
+                  >
+                    <span>{primaryTool.label}</span>
+                    <IconArrowUpRight className="size-3.5" />
+                  </a>
+                ) : null}
+                {topic.entry_tools.slice(1, 3).map((tool) => (
+                  <a
+                    key={tool.url}
+                    href={tool.url}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className={cn(
+                      "inline-flex items-center justify-between gap-2 rounded-md border border-border bg-card px-3 py-1.5 text-[11px] font-semibold text-foreground transition-colors",
+                      "hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                    )}
+                  >
+                    <span className="flex items-center gap-1.5">
+                      <IconLink className="size-3 text-muted-foreground" aria-hidden />
+                      {tool.label}
+                    </span>
+                  </a>
+                ))}
+              </>
+            }
           />
-        </DetailSection>
-      ) : null}
-
-      <DetailSection
-        eyebrow="Evidence"
-        title="Sources cited for this capability"
-        description="Authority, visibility, freshness, anchors, and excerpts expand inline. Restricted sources are visible as metadata only."
-      >
-        {bundle ? (
-          <EvidenceSection bundle={bundle} />
-        ) : (
-          <div className="rounded-lg border border-dashed border-border bg-card p-4 text-[13px] text-muted-foreground">
-            No registered sources resolved for this topic. Use the feedback
-            below to suggest one.
-          </div>
-        )}
-      </DetailSection>
-
-      <DetailSection
-        eyebrow="Feedback"
-        title="Help Atlas stay accurate"
-        description="Reports route to the topic steward. Atlas does not edit source content."
-      >
-        <FeedbackInlineForm
-          target={{ target_type: "topic", target_id: topic.id }}
-        />
-      </DetailSection>
+        }
+      />
     </PageBody>
   );
 }
@@ -205,20 +234,10 @@ function RelationshipPanel({
   return (
     <div className="grid gap-3 sm:grid-cols-2">
       {landingZones.length > 0 ? (
-        <RelatedColumn
-          title="Landing zones"
-          description="Environments registered in the same domain."
-          topics={landingZones}
-          basePath="/landing-zones/$topicId"
-        />
+        <RelatedColumn title="Landing zones" topics={landingZones} kind="landing-zone" />
       ) : null}
       {guardrails.length > 0 ? (
-        <RelatedColumn
-          title="Guardrail areas"
-          description="Policy and control areas that govern this domain."
-          topics={guardrails}
-          basePath="/capabilities/$topicId"
-        />
+        <RelatedColumn title="Guardrail areas" topics={guardrails} kind="capability" />
       ) : null}
     </div>
   );
@@ -226,25 +245,24 @@ function RelationshipPanel({
 
 function RelatedColumn({
   title,
-  description,
   topics,
-  basePath,
+  kind,
 }: {
   title: string;
-  description: string;
   topics: ReadonlyArray<Topic>;
-  basePath: "/landing-zones/$topicId" | "/capabilities/$topicId";
+  kind: "landing-zone" | "capability";
 }) {
   return (
-    <div className="rounded-lg border border-border bg-card p-4">
-      <p className="text-[13px] font-bold text-foreground">{title}</p>
-      <p className="text-[11px] text-muted-foreground">{description}</p>
-      <ul className="mt-3 flex flex-col gap-1">
+    <div className="rounded-lg border border-border bg-card p-3">
+      <p className="mb-2 font-mono text-[10px] font-bold uppercase tracking-[0.05em] text-muted-foreground">
+        {title}
+      </p>
+      <ul className="flex flex-col gap-0.5">
         {topics.map((topic) => (
           <li key={topic.id}>
             <a
               href={
-                basePath === "/landing-zones/$topicId"
+                kind === "landing-zone"
                   ? `/landing-zones/${topic.id}`
                   : `/capabilities/${topic.id}`
               }

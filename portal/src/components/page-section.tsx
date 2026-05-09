@@ -86,6 +86,7 @@ type PageBodyProps = {
   children: ReactNode;
   className?: string;
   width?: "narrow" | "comfortable" | "wide";
+  gap?: "compact" | "standard";
 };
 
 const PAGE_WIDTHS: Record<NonNullable<PageBodyProps["width"]>, string> = {
@@ -94,12 +95,23 @@ const PAGE_WIDTHS: Record<NonNullable<PageBodyProps["width"]>, string> = {
   wide: "max-w-[1280px]",
 };
 
-export function PageBody({ children, className, width = "wide" }: PageBodyProps) {
+const PAGE_GAPS: Record<NonNullable<PageBodyProps["gap"]>, string> = {
+  compact: "gap-7",
+  standard: "gap-12",
+};
+
+export function PageBody({
+  children,
+  className,
+  width = "wide",
+  gap = "standard",
+}: PageBodyProps) {
   return (
     <div
       className={cn(
-        "mx-auto flex w-full flex-col gap-12 px-6 pb-16 pt-12 sm:px-8",
+        "mx-auto flex w-full flex-col px-6 pb-16 pt-12 sm:px-8",
         PAGE_WIDTHS[width],
+        PAGE_GAPS[gap],
         className,
       )}
     >
