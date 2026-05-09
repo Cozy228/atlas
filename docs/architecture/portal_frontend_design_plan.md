@@ -118,6 +118,17 @@ These decisions come from the Portal design brainstorm and should guide implemen
 | Health | Ambient compact band on home; dedicated page uses progress indicators and actionable issue list. |
 | Ask Atlas | Catalog-aware, citation-bound assistant surface. Visible as deferred capability until implementation is ready. |
 
+### Pilot slice adjustments
+
+These sequence the **first Portal UI slice** against the full IA above. They do not remove long-term routes or patterns; they steer what ships before later phases.
+
+| Topic | Pilot decision |
+|---|---|
+| Primary surfaces | **Home** and the **catalog / regional availability** surface (see `catalog_design.md` and explore previews). Capability discovery, landing-zone comparison, and unified browse—with filters, domain grouping, and matrix-style density—should be reachable from **those two pillars** unless a standalone route is needed for stable deep links. |
+| `/explore` naming | `/explore` and a catalog-only route name are **one logical surface** for planning: pick the canonical path in implementation and keep preselect filters in the URL contract. |
+| `/health` | **Deferred** in the pilot slice. Prefer **ambient** guidance signals on Home (counts, summaries) **without** a dedicated dashboard or top-nav destination until Phase P6 is active. |
+| Ask Atlas entry | Primary entry is a **floating action button (FAB)** that opens a **modal** with deferred boundary copy. Keep optional `/ask` for bookmarks and future full-page parity. Ask is **not** a primary **top-navigation** item in the pilot shell. |
+
 ## Information Architecture
 
 ### Product Object Model
@@ -154,7 +165,13 @@ Frontend naming rules:
 | `/landing-zones` | Landing zone navigator | `topic_type=landing-zone` topics |
 | `/landing-zones/$topicId` | Landing zone detail | Environment matrix, guardrail excerpts, tool links |
 | `/health` | Guidance health and coverage dashboard | Authority coverage, stale sources, broken anchors, conflicts, missing owner/support |
-| `/ask` | Ask Atlas entry | Question composer, resolved catalog objects, context bundle, cited answer or deferred state |
+| `/ask` | Ask Atlas bookmark / future full-page entry (optional in pilot) | Same as deferred modal; reserved for parity when composer ships |
+
+Pilot routing note:
+
+- Prefer catalog **filters and deep-links** (e.g. type, domain, region query params) instead of multiplying top-level browse routes where Home + catalog already cover the job.
+- **`/health` is optional** until the pilot explicitly schedules Phase P6. Home may still summarize stale or missing-owner counts without linking to a dashboard.
+- **Ask Atlas** primary UX in pilot: **FAB → modal**. The `/ask` row remains for deep links and later full implementation.
 
 Notes on routing:
 
@@ -166,7 +183,7 @@ Notes on routing:
 
 Use a stable product shell:
 
-- Top navigation bar: brand mark + name, inline nav links (Home, Capabilities, Landing Zones, Availability, Health), health indicator, sync status.
+- Top navigation bar: brand mark + name, inline nav links (Home, Capabilities, Landing Zones, Availability). **Pilot:** omit dedicated **Health** and **Ask** links; surface guidance signals on Home if needed, and Ask via **FAB + modal** (see pilot slice adjustments).
 - Global catalog search with ⌘K shortcut placed in the Home hero area. Deeper pages may surface a compact search in the top bar.
 - Main content: centered route-specific work surface.
 - Evidence sections expand inline within the page, not as a persistent side panel.
@@ -175,7 +192,7 @@ The shell should not use decorative hero treatment. Atlas as the product name be
 
 Top bar behavior:
 
-- Desktop: brand mark, inline nav links, spacer, health indicator, and sync status in a single 52px sticky bar with backdrop blur.
+- Desktop: brand mark, inline nav links, spacer, ambient sync/status **and pilot-appropriate readiness hints** (e.g. stale source count when data exists) in a single 52px sticky bar with backdrop blur. Omit a dedicated `/health` link until Phase P6.
 - Tablet and narrow desktop: nav links may collapse into a menu affordance.
 - Mobile: nav links collapse; bottom navigation bar with 4-5 key destinations as an alternative.
 
@@ -199,8 +216,8 @@ Layout priority (top to bottom):
 3. **Developer journey grid** — a 2×2 grid of lifecycle steps (Get started → Build → Validate → Operate), each with a step number, title, description, and action links. This follows the Claude docs "From idea to production" pattern and provides a second orientation layer.
 4. **Catalog highlights** — an asymmetric 2fr/1fr grid showing key catalog stats (service count, region count) with large monospace numbers. Provides ambient catalog awareness.
 5. **Recent activity** — compact inline chips for recently viewed catalog objects (local storage, no backend personalization).
-6. **Health band** — one-line ambient summary: "2 stale sources · 1 missing owner · 0 broken anchors". Links to `/health`.
-7. **Resource links** — a 2×2 grid of resource link cards (All capabilities, Landing zones, Availability map, Health dashboard) with icons and descriptions. Replaces plain quick links with richer affordances.
+6. **Health band** — one-line ambient summary: "2 stale sources · 1 missing owner · 0 broken anchors". **Pilot:** display only; **no link** to `/health` until the health dashboard ships.
+7. **Resource links** — a 2×2 grid of resource link cards (e.g. All capabilities, Landing zones, Availability map, and a fourth surface such as sources or documentation). **Pilot:** replace "Health dashboard" with another destination until `/health` exists.
 
 Platform entry cards detail:
 
@@ -264,7 +281,7 @@ HEALTH  2 stale sources · 1 missing owner · 0 broken anchors  →
 RESOURCES — Keep exploring
 ┌─────────────────┬──────────────────┐
 │ All capabilities│ Landing zones    │
-│ Availability map│ Health dashboard │
+│ Availability map│ (pilot: not health) │
 └─────────────────┴──────────────────┘
 ```
 
@@ -281,7 +298,7 @@ Implementation notes:
 - Do not create a static directory page with nav links.
 - Do not explain what a portal is.
 - Show empty pilot states as actionable gaps.
-- Keep Ask Atlas visible as a nav item but not as the home search behavior.
+- Keep Ask Atlas discoverable via **FAB + modal** in the pilot (and optional `/ask`), but not as the home search behavior and not as a primary top-nav item until the full composer ships.
 
 ### Guided Journey Behavior
 
@@ -413,12 +430,17 @@ Design rules:
 
 Ask Atlas is a catalog-aware, citation-bound AI consumer example, not the architecture.
 
-V1 behavior:
+Pilot / V1 deferred entry:
 
-- Keep Ask Atlas in the top navigation so the product narrative remains visible.
-- Show a clear deferred state if the full cited-answer workflow is not implemented yet.
+- Provide a persistent **FAB** that opens a **modal** containing deferred-boundary copy (`AskAtlasFab` pattern). Closing returns to the prior surface without navigation.
+- Optional **`/ask` route** carries the same content for bookmarks and parity with future full-page layout.
+- Do **not** place Ask Atlas in the **primary top navigation** in the pilot shell.
+- Do not make Ask Atlas the default **home hero** search behavior.
 - Preserve the future boundary: Ask Atlas will resolve catalog objects, use context bundles, citations, warnings, and server-side LLM adapter logic.
-- Do not make Ask Atlas the default home search behavior.
+
+Long-term navigation (post-pilot):
+
+- When the composer and cited-answer flow are real, reconsider a top-nav or secondary nav entry alongside FAB if research supports it.
 
 Later required behavior:
 
@@ -446,7 +468,7 @@ Use a small component vocabulary. Add components only when at least two screens 
 
 | Component | Purpose |
 |---|---|
-| `PortalShell` | Top navigation bar with brand, nav links, health indicator, and route content region |
+| `PortalShell` | Top navigation bar with brand, nav links, health indicator where applicable, route region, pilot **FAB** slot for Ask |
 | `TopNav` | Horizontal nav links in the top bar with active state |
 | `IntentSearch` | Catalog-aware search input with synonym support and ⌘K shortcut |
 | `EntryCardGrid` | Clickable platform entry cards (Evaluate / Decide / Onboard) with active state |
@@ -473,7 +495,8 @@ Use a small component vocabulary. Add components only when at least two screens 
 | `EvidenceSection` | Expandable inline evidence: sources, anchors, excerpts, citations |
 | `ExpansionPathList` | Progressive disclosure actions |
 | `FeedbackInlineForm` | Missing, stale, broken, unclear feedback |
-| `AskDeferredEntry` | Visible deferred state with boundary copy |
+| `AskAtlasFab` | Floating button + modal wrapper for deferred Ask entry (pilot) |
+| `AskDeferredEntry` | Deferred boundary copy used inside modal and optional `/ask` page |
 | `ResolvedObjectStrip` | Ask Atlas related catalog objects before answer generation |
 | `AskComposer` | Future Ask Atlas question input and submit state |
 | `CitedAnswer` | Future claim list with citation mapping |
@@ -548,7 +571,8 @@ Atlas should not import a full visual system blindly. Treat shadcn as a componen
 | `EvidenceSection` | `collapsible`, `scroll-area`, `separator`, `tooltip` | Inline expandable evidence. Not a persistent rail. |
 | `WarningStack` | `alert`, `badge`, `collapsible` | Inline, tied to source or anchor identity. No side-stripe styling. |
 | `FeedbackInlineForm` | `field`, `textarea`, `button`, `select` | Inline form first. Not a modal. |
-| `AskDeferredEntry` | `empty`, `button`, `badge` | Visible deferred state with boundary copy. |
+| `AskAtlasFab` | `button`, `dialog` (when adopted) | FAB + modal for deferred Ask entry in pilot; `/ask` shares content. |
+| `AskDeferredEntry` | `empty`, `button`, `badge` | Deferred boundary copy inside modal and optional page. |
 
 ### shadcn CLI and Skill Usage
 
@@ -759,7 +783,7 @@ Verify:
 Deliver:
 
 - TanStack Start root route and document shell.
-- Route tree for home, explore, capabilities, landing zones, health, and ask.
+- Route tree for home, pilot catalog/unified browse (see `/explore` or canonical catalog path), capability and landing-zone detail routes as needed for deep linking, optional `/ask`; **defer `/health`** until Phase P6 unless already implemented.
 - Portal shell with top navigation bar (brand, nav links, health indicator), and content region.
 - Top bar responsive collapse behavior for tablet and mobile.
 - shadcn/Base UI primitives owned by Atlas, adapted for top bar pattern.
@@ -809,7 +833,7 @@ Verify:
 - Only one panel expanded at a time.
 - Panel content resolves to catalog object detail pages on selection.
 - Search routes to correct catalog objects on keyword and synonym input.
-- Health band reflects real API data when available.
+- Health band reflects real API-derived **counts** where available; dashboard link omitted in pilot unless `/health` is live.
 - Empty states guide users toward available content.
 - No modal, overlay, or wizard behavior.
 - Developer journey grid and catalog highlights render with correct data.
@@ -857,9 +881,9 @@ Verify:
 - Evidence sections expand and collapse correctly.
 - Relationship panels do not imply recommendation logic or provisioning authority.
 
-### Phase P6: Health Surface
+### Phase P6: Health Surface (deferred past the pilot slice unless explicitly scheduled)
 
-Deliver:
+Deliver when this phase is in scope:
 
 - Guidance health dashboard with coverage progress bars and issue list.
 - Authority coverage summary by catalog object type.
@@ -877,14 +901,15 @@ Verify:
 
 Deliver:
 
-- Deferred Ask Atlas entry surface.
+- Deferred Ask Atlas entry via **FAB + modal** (`AskAtlasFab`); optional **`/ask`** page for deep links and parity.
 - Boundary copy that explains Ask Atlas will answer from governed context when enabled.
 - Disabled or unavailable state that does not imply a working AI answer flow.
 - Future integration point for catalog-object resolution, context bundle retrieval, server-side LLM adapter, prompt construction, citation validation, and rate limits.
 
 Verify:
 
-- Ask Atlas appears as visible but deferred.
+- Ask Atlas appears as visible but deferred from FAB (and optional `/ask`).
+- Modal traps focus, supports Escape to close, and returns to the underlying page without implying a live answer flow.
 - UI does not route normal global search into Ask Atlas.
 - Future Ask tests remain listed as post-core work: prompt content, citation validation, uncited claim handling, and rate limits.
 
@@ -899,7 +924,7 @@ Deliver:
 
 Verify:
 
-- Playwright covers: home intent search, entry card expansion and resolution, developer journey link navigation, explore card selection and expand, matrix view toggle, capability detail, landing zone navigation, health issue navigation, feedback submission, and deferred Ask entry visibility.
+- Playwright covers: home intent search, entry card expansion and resolution, developer journey link navigation, explore card selection and expand, matrix view toggle, capability detail, landing zone navigation, feedback submission, **deferred Ask entry (FAB/modal)**, and — when **`/health` ships** — health issue navigation.
 - No text overlaps at mobile and desktop widths.
 - Skeletons do not shift layout when data resolves.
 - Logo and brand accent usage remain stable across desktop, tablet, and mobile screenshots.
@@ -913,7 +938,7 @@ Verify:
 | Component | Service cards, expand panel, region strip, health dashboard, evidence sections, warning stack, entry cards, entry card panels, developer journey grid |
 | Route | Loader success, structured error mapping, no-source states, health issue states |
 | Interaction | Filters, keyboard focus, expand/collapse, view toggle, entry card navigation, feedback submission |
-| End-to-end | Home intent search, entry card expand and resolve, developer journey links, explore card and matrix views, capability detail, landing zone comparison, health navigation, deferred Ask entry |
+| End-to-end | Home intent search, entry card expand and resolve, developer journey links, explore card and matrix views, capability detail, landing zone comparison, deferred Ask FAB/modal, health navigation **when Phase P6 is active** |
 
 Do not rely on snapshots alone. Assertions must check visible authority, warning, citation, and expansion behavior.
 
@@ -928,7 +953,7 @@ Every frontend implementation batch must explicitly check for these patterns bef
 | Glassmorphism as default | Do not use blurred glass panels for the shell, evidence sections, Ask answers, or service cards. Portal is an evidence tool, not a decorative surface. |
 | Hero-metric template | Do not build the home page around oversized metrics, supporting stat cards, or a brand-colored hero band. Home starts with intent entry. |
 | Identical card grids | Do not make every capability, landing zone, and guardrail an identical icon card. Use domain-grouped cards with status context, dense lists, matrices, and detail panels. |
-| Modal as first thought | Do not default to modals for feedback, citations, expansion paths, or warnings. Prefer inline forms, popovers tied to controls, or progressive disclosure panels. |
+| Modal as first thought | Do not default to modals for feedback, citations, expansion paths, or warnings. Prefer inline forms, popovers tied to controls, or progressive disclosure panels. **Exception:** deferred **Ask Atlas** entry may use a **FAB-triggered modal** as an explicit carve-out until the composer ships. |
 | Decorative motion | Do not add motion unless it communicates state, loading, reveal, or feedback. Keep transitions under 200ms with ease-out curves. |
 | Heavy inactive brand color | Do not use full-strength `#001aff` on inactive nav items, empty states, large backgrounds, or disabled controls. |
 | Inconsistent controls | Buttons, filters, tabs, tables, and forms must share the same shape, focus, hover, disabled, and loading vocabulary across routes. |
@@ -989,20 +1014,20 @@ Every frontend implementation batch must explicitly check for these patterns bef
 
 Portal frontend work is ready for V1 pilot review when:
 
-- Users can start from Home intent entry and reach explore, capability, landing zone, health, and Ask surfaces.
+- Users can start from Home intent entry and reach the **catalog / explore** surface, capability routes, landing zone routes, and **Ask Atlas (FAB/modal)**. **`/health` is optional** until Phase P6 is in scope for the pilot.
 - Platform entry cards (Evaluate, Decide, Onboard) expand inline panels on Home and resolve users to catalog object detail with entry tools. Developer journey grid provides lifecycle orientation with direct links.
 - Explore surface shows domain-grouped cards with inline availability, region strip filtering, expand panels, and matrix toggle.
 - All primary pages consume schema-backed API data.
 - Catalog objects show type, owner, lifecycle/status, support path, relationship signals, evidence coverage, and warning state.
 - Availability status is visible inline on service cards with available, planned, interim, and not-planned states.
 - Source authority, freshness, visibility, citations, warnings, and expansion paths are visible through inline evidence sections.
-- Health surface shows guidance readiness and evidence quality without becoming a generic service reliability scorecard.
+- When `/health` is in scope: health surface shows guidance readiness and evidence quality without becoming a generic service reliability scorecard. **Pilot without `/health`:** ambient signals only.
 - The company logo has a stable reserved top bar slot across desktop and mobile.
 - `#001aff` is used only as restrained brand accent or reduced-chroma tint.
 - IBM Plex Sans and IBM Plex Mono are loaded and applied correctly.
 - Base UI is the selected primitive layer, and shadcn-generated local wrappers follow Atlas tokens and component ownership rules.
 - Feedback can be submitted from the surfaces where users discover gaps.
-- Ask Atlas is visible as a deferred capability and does not misrepresent unimplemented AI behavior as live.
+- Ask Atlas is visible as a deferred capability (**FAB/modal**, optional `/ask`) and does not misrepresent unimplemented AI behavior as live.
 - Browser code contains no source-system credentials, LLM credentials, DynamoDB access, or Context Layer internals.
 - Tests cover happy paths and degraded evidence states.
 - Impeccable anti-pattern checks are part of the frontend review checklist.
