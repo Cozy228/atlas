@@ -320,7 +320,12 @@ function Controls({
           ))}
         </SelectContent>
       </Select>
-      <Select value={domainFilter} onValueChange={onDomainChange}>
+      <Select
+        value={domainFilter}
+        onValueChange={(value) => {
+          if (value) onDomainChange(value);
+        }}
+      >
         <SelectTrigger
           size="sm"
           aria-label="Domain"
