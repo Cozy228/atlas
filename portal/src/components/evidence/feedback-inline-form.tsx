@@ -95,7 +95,7 @@ export function FeedbackInlineForm({
       <div className="flex items-center justify-between gap-3">
         <Button
           type="submit"
-          variant="primary"
+          variant="default"
           size="sm"
           disabled={message.trim().length === 0}
         >
