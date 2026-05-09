@@ -1,23 +1,34 @@
-import { IconLockBolt, IconMessage2 } from "@tabler/icons-react";
+import { IconArrowUp, IconLockBolt } from "@tabler/icons-react";
 
-import { Badge } from "@/components/ui/badge";
-import { PageSection } from "@/components/page-section";
+import { cn } from "@/lib/utils";
+
+const SUGGESTIONS: ReadonlyArray<{ category: string; prompt: string }> = [
+  {
+    category: "Capability",
+    prompt: "Which storage service for a multi-region workload?",
+  },
+  {
+    category: "Landing zone",
+    prompt: "Compare DC16 and US-East-1 for a payments service.",
+  },
+  {
+    category: "Onboarding",
+    prompt: "How do I provision a sandbox EKS cluster?",
+  },
+];
 
 export function AskAtlasDeferredHeading() {
   return (
-    <div className="flex flex-col gap-1">
-      <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
+    <div className="flex flex-col gap-1.5">
+      <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">
         Ask Atlas
-      </p>
-      <div className="flex flex-wrap items-center gap-2">
-        <h2 className="text-lg font-semibold text-foreground">
-          Cited platform answers
-        </h2>
-        <Badge variant="outline">Deferred</Badge>
-      </div>
-      <p className="text-sm leading-6 text-muted-foreground">
-        Ask Atlas is one consumer of the Atlas Context API. The full
-        cited-answer flow is deferred until evidence surfaces are stable.
+      </span>
+      <h2 className="text-[18px] font-bold tracking-[-0.02em] text-foreground">
+        What can Atlas help you find?
+      </h2>
+      <p className="text-[12px] leading-5 text-muted-foreground">
+        Cited platform answers from authoritative context. Composer ships
+        with Phase&nbsp;P5 evidence guarantees.
       </p>
     </div>
   );
@@ -26,40 +37,74 @@ export function AskAtlasDeferredHeading() {
 export function AskAtlasDeferredBody() {
   return (
     <>
-      <PageSection title="Boundary">
-        <ul className="grid gap-3 text-sm leading-6 text-muted-foreground sm:grid-cols-2">
-          <li className="flex flex-col gap-1 rounded-md border border-border bg-card p-4">
-            <span className="flex items-center gap-2 text-foreground">
-              <IconMessage2 className="size-4 text-muted-foreground" />
-              Question scope
-            </span>
-            Answers are built only from authoritative context bundles plus the
-            user question. No browsing, no general retrieval.
-          </li>
-          <li className="flex flex-col gap-1 rounded-md border border-border bg-card p-4">
-            <span className="flex items-center gap-2 text-foreground">
-              <IconLockBolt className="size-4 text-muted-foreground" />
-              Evidence first
-            </span>
-            Claims without a citation are blocked. Restricted, stale, broken,
-            and conflict warnings appear above the answer.
-          </li>
-        </ul>
-      </PageSection>
-
-      <PageSection title="Deferred state">
-        <div className="rounded-md border border-dashed border-border bg-card p-6 text-sm text-muted-foreground">
-          <p className="font-medium text-foreground">
-            Composer disabled until evidence surfaces are ready.
+      <form
+        onSubmit={(event) => event.preventDefault()}
+        className={cn(
+          "rounded-xl border border-[1.5px] border-border bg-background p-3",
+          "transition-[border-color,box-shadow]",
+          "focus-within:border-primary focus-within:shadow-[0_0_0_3px_color-mix(in_srgb,var(--primary)_8%,transparent)]",
+        )}
+      >
+        <label className="block">
+          <span className="sr-only">Ask Atlas a question</span>
+          <textarea
+            rows={2}
+            disabled
+            placeholder="Ask anything about capabilities, landing zones, sources…"
+            className={cn(
+              "block w-full resize-none bg-transparent text-[13px] leading-[1.6] text-foreground outline-none",
+              "placeholder:text-muted-foreground disabled:cursor-not-allowed",
+            )}
+          />
+        </label>
+        <div className="mt-1.5 flex items-center justify-between gap-2">
+          <p className="font-mono text-[10px] text-muted-foreground">
+            <IconLockBolt
+              aria-hidden
+              className="mr-1 inline size-3 align-text-bottom text-muted-foreground"
+            />
+            Composer disabled
           </p>
-          <p className="mt-1 leading-6">
-            The question composer, server-side prompt construction, citation
-            validation, and per-user rate limits ship with the evidence layers.
-            We do not show a working answer surface until those guarantees are
-            in place.
-          </p>
+          <button
+            type="submit"
+            disabled
+            aria-label="Send question"
+            className={cn(
+              "inline-flex size-7 items-center justify-center rounded-md bg-foreground/10 text-muted-foreground",
+              "disabled:cursor-not-allowed",
+            )}
+          >
+            <IconArrowUp className="size-3.5" />
+          </button>
         </div>
-      </PageSection>
+      </form>
+
+      <section className="flex flex-col gap-1.5">
+        <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">
+          Try asking
+        </p>
+        <ul className="flex flex-col divide-y divide-border overflow-hidden rounded-lg border border-border bg-background">
+          {SUGGESTIONS.map((item) => (
+            <li key={item.prompt}>
+              <button
+                type="button"
+                disabled
+                className={cn(
+                  "flex w-full items-center gap-2.5 px-3 py-2 text-left",
+                  "disabled:cursor-not-allowed",
+                )}
+              >
+                <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">
+                  {item.category}
+                </span>
+                <span className="text-[12px] text-foreground">
+                  {item.prompt}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      </section>
     </>
   );
 }
