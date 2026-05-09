@@ -1,35 +1,54 @@
-import { useState } from "react";
+import { useForm } from "@tanstack/react-form";
 import { IconMessageReport } from "@tabler/icons-react";
+import { toast } from "sonner";
+import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import {
+  FeedbackTargetTypeSchema,
+  FeedbackTypeSchema,
   feedbackTypes,
   type FeedbackTargetType,
   type FeedbackType,
 } from "@atlas/schema";
 
 type FeedbackInlineFormProps = {
-  /** target_type and target_id come from the surface that mounts the form. */
   target: { target_type: FeedbackTargetType; target_id: string };
   className?: string;
 };
 
-/**
- * Inline feedback form for missing / stale / broken / unclear evidence.
- * The submit handler is intentionally local-only in V1 — the design plan
- * stages the real POST /feedback wiring with the rest of the API surface
- * in Phase 6 of docs/architecture/implementation_plan.md. The shape we
- * collect already matches the shared FeedbackSchema so wiring is a one-
- * line swap when the route lands.
- */
+const formSchema = z.object({
+  feedback_type: FeedbackTypeSchema,
+  message: z.string().min(1, "Describe what is missing or wrong."),
+  target_type: FeedbackTargetTypeSchema,
+  target_id: z.string().min(1),
+});
+
 export function FeedbackInlineForm({
   target,
   className,
 }: FeedbackInlineFormProps) {
-  const [feedbackType, setFeedbackType] = useState<FeedbackType>("missing");
-  const [message, setMessage] = useState("");
-  const [submitted, setSubmitted] = useState(false);
+  const form = useForm({
+    defaultValues: {
+      feedback_type: "missing" as FeedbackType,
+      message: "",
+      target_type: target.target_type as FeedbackTargetType,
+      target_id: target.target_id,
+    },
+    validators: {
+      onChange: formSchema,
+    },
+    onSubmit: async ({ value, formApi }) => {
+      // TODO Phase 6: POST /feedback with shared FeedbackSchema body.
+      toast.success("Feedback recorded locally", {
+        description: `Routed to ${value.target_type}:${value.target_id}. Backend write lands with /feedback in Phase 6.`,
+      });
+      formApi.reset();
+    },
+  });
 
   return (
     <form
@@ -39,12 +58,8 @@ export function FeedbackInlineForm({
       )}
       onSubmit={(event) => {
         event.preventDefault();
-        if (message.trim().length === 0) return;
-        // TODO Phase 6: POST /feedback with shared FeedbackSchema body.
-        // Today the form just reflects success state so the surface UX is
-        // testable. We never invent registry writes from the browser.
-        setSubmitted(true);
-        setMessage("");
+        event.stopPropagation();
+        void form.handleSubmit();
       }}
     >
       <div className="flex items-center gap-2 text-sm font-medium text-foreground">
@@ -58,54 +73,72 @@ export function FeedbackInlineForm({
         </span>
         . Atlas does not edit source content; the steward will follow up.
       </p>
-      <fieldset className="flex flex-wrap gap-2">
-        {feedbackTypes.map((option) => (
-          <label
-            key={option}
-            className={cn(
-              "cursor-pointer rounded-md border px-2.5 py-1 text-xs font-medium transition-colors",
-              "border-border bg-card text-foreground hover:bg-secondary",
-              option === feedbackType && "border-primary bg-brand-tint",
-            )}
-          >
-            <input
-              type="radio"
-              name="feedback_type"
-              value={option}
-              checked={option === feedbackType}
-              onChange={() => setFeedbackType(option)}
-              className="sr-only"
-              aria-label={option}
+
+      <form.Field name="feedback_type">
+        {(field) => (
+          <fieldset className="flex flex-wrap gap-2">
+            <legend className="sr-only">Feedback type</legend>
+            {feedbackTypes.map((option) => (
+              <Label
+                key={option}
+                className={cn(
+                  "cursor-pointer rounded-md border px-2.5 py-1 text-xs font-medium transition-colors",
+                  "border-border bg-card text-foreground hover:bg-secondary",
+                  option === field.state.value && "border-primary bg-brand-tint",
+                )}
+              >
+                <input
+                  type="radio"
+                  name="feedback_type"
+                  value={option}
+                  checked={option === field.state.value}
+                  onChange={() => field.handleChange(option)}
+                  className="sr-only"
+                  aria-label={option}
+                />
+                {option}
+              </Label>
+            ))}
+          </fieldset>
+        )}
+      </form.Field>
+
+      <form.Field name="message">
+        {(field) => (
+          <Label className="flex flex-col gap-1 text-xs text-muted-foreground">
+            <span className="sr-only">Feedback details</span>
+            <Textarea
+              value={field.state.value}
+              onChange={(event) => field.handleChange(event.target.value)}
+              onBlur={field.handleBlur}
+              rows={3}
+              required
+              placeholder="What is missing or wrong? Be specific so the steward can act."
+              aria-invalid={field.state.meta.errors.length > 0}
+              className="resize-y"
             />
-            {option}
-          </label>
-        ))}
-      </fieldset>
-      <label className="flex flex-col gap-1 text-xs text-muted-foreground">
-        <span className="sr-only">Feedback details</span>
-        <textarea
-          value={message}
-          onChange={(event) => setMessage(event.target.value)}
-          rows={3}
-          required
-          placeholder="What is missing or wrong? Be specific so the steward can act."
-          className="resize-y rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-        />
-      </label>
+          </Label>
+        )}
+      </form.Field>
+
       <div className="flex items-center justify-between gap-3">
-        <Button
-          type="submit"
-          variant="default"
-          size="sm"
-          disabled={message.trim().length === 0}
+        <form.Subscribe
+          selector={(state) => ({
+            canSubmit: state.canSubmit,
+            isSubmitting: state.isSubmitting,
+          })}
         >
-          Send feedback
-        </Button>
-        {submitted ? (
-          <span className="text-xs text-success">
-            Recorded locally. Backend write lands with /feedback in Phase 6.
-          </span>
-        ) : null}
+          {({ canSubmit, isSubmitting }) => (
+            <Button
+              type="submit"
+              variant="default"
+              size="sm"
+              disabled={!canSubmit || isSubmitting}
+            >
+              {isSubmitting ? "Sending…" : "Send feedback"}
+            </Button>
+          )}
+        </form.Subscribe>
       </div>
     </form>
   );

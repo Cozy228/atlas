@@ -1,4 +1,5 @@
 import { Fragment } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import { IconArrowUpRight, IconChevronDown } from "@tabler/icons-react";
 
 import type {
@@ -6,6 +7,7 @@ import type {
   Location,
 } from "@/api/server/availability";
 import { StatusChip, statusLabel } from "@/components/explore/status-chip";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 type MatrixViewProps = {
@@ -167,13 +169,15 @@ function DomainRows({
                 );
               })}
             </tr>
-            {isSelected ? (
-              <MatrixExpandRow
-                service={service}
-                locations={locations}
-                totalCols={totalCols}
-              />
-            ) : null}
+            <AnimatePresence initial={false}>
+              {isSelected ? (
+                <MatrixExpandRow
+                  service={service}
+                  locations={locations}
+                  totalCols={totalCols}
+                />
+              ) : null}
+            </AnimatePresence>
           </Fragment>
         );
       })}
@@ -206,11 +210,13 @@ function MatrixExpandRow({
         : null;
 
   return (
-    <tr
-      className={cn(
-        "border-b border-border bg-brand-tint/40",
-        "[animation:expandRowIn_180ms_cubic-bezier(0.22,1,0.36,1)]",
-      )}
+    <motion.tr
+      key={`${service.id}-expand`}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+      className="border-b border-border bg-brand-tint/40"
     >
       <td colSpan={totalCols} className="px-3 py-2.5">
         <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between md:gap-3">
@@ -230,9 +236,8 @@ function MatrixExpandRow({
             <MatrixAction>Support</MatrixAction>
           </span>
         </div>
-        <style>{`@keyframes expandRowIn { from { opacity: 0; } to { opacity: 1; } }`}</style>
       </td>
-    </tr>
+    </motion.tr>
   );
 }
 
@@ -244,21 +249,17 @@ function MatrixAction({
   primary?: boolean;
 }) {
   return (
-    <button
+    <Button
       type="button"
       onClick={(event) => event.stopPropagation()}
-      className={cn(
-        "inline-flex items-center gap-1 rounded-md px-2 py-1 font-mono text-[11px] font-semibold transition-colors",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-        primary
-          ? "bg-primary text-primary-foreground hover:bg-primary/90"
-          : "border border-border bg-background text-foreground hover:bg-muted",
-      )}
+      variant={primary ? "default" : "outline"}
+      size="xs"
+      className="font-mono"
     >
       {children}
       {primary ? (
         <IconArrowUpRight aria-hidden className="size-3" />
       ) : null}
-    </button>
+    </Button>
   );
 }
