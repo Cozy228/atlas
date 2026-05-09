@@ -27,19 +27,17 @@ import { serverContextApiClient } from "./inProcessContextApi.js";
 const SERVER_FN_OPTIONS = { method: "GET", strict: { output: false } } as const;
 
 export const fetchContextBundle = createServerFn(SERVER_FN_OPTIONS)
-  .inputValidator((input: unknown): ContextRequest =>
-    ContextRequestSchema.parse(input),
-  )
+  .inputValidator((input: unknown): ContextRequest => ContextRequestSchema.parse(input))
   .handler(async ({ data }) => serverContextApiClient.getContextBundle(data));
 
 export const fetchTopicDiscovery = createServerFn(SERVER_FN_OPTIONS)
-  .inputValidator((input: unknown): TopicDiscoveryRequest =>
-    TopicDiscoveryRequestSchema.parse(input ?? {}),
+  .inputValidator(
+    (input: unknown): TopicDiscoveryRequest => TopicDiscoveryRequestSchema.parse(input ?? {}),
   )
   .handler(async ({ data }) => serverContextApiClient.discoverTopics(data));
 
 export const fetchSourceDiscovery = createServerFn(SERVER_FN_OPTIONS)
-  .inputValidator((input: unknown): SourceDiscoveryRequest =>
-    SourceDiscoveryRequestSchema.parse(input ?? {}),
+  .inputValidator(
+    (input: unknown): SourceDiscoveryRequest => SourceDiscoveryRequestSchema.parse(input ?? {}),
   )
   .handler(async ({ data }) => serverContextApiClient.discoverSources(data));

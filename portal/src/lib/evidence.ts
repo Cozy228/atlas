@@ -1,9 +1,4 @@
-import type {
-  AuthorityLevel,
-  Source,
-  Topic,
-  Warning,
-} from "@atlas/schema";
+import type { AuthorityLevel, Source, Topic, Warning } from "@atlas/schema";
 
 /**
  * Authority ranking used wherever the Portal sorts or compares sources.
@@ -44,11 +39,7 @@ export function parseDurationToMs(value: string): number | undefined {
   }
   const [, years, months, days] = match;
   const ms =
-    (Number(years ?? 0) * 365 + Number(months ?? 0) * 30 + Number(days ?? 0)) *
-    24 *
-    60 *
-    60 *
-    1000;
+    (Number(years ?? 0) * 365 + Number(months ?? 0) * 30 + Number(days ?? 0)) * 24 * 60 * 60 * 1000;
   return Number.isFinite(ms) && ms > 0 ? ms : undefined;
 }
 
@@ -57,10 +48,7 @@ export function parseDurationToMs(value: string): number | undefined {
  * `current` is within the window, `needs-review` is in the soft warning band
  * (>=80% of the window elapsed), `stale` is past the window.
  */
-export function classifyFreshness(
-  source: Source,
-  now: Date = new Date(),
-): FreshnessState {
+export function classifyFreshness(source: Source, now: Date = new Date()): FreshnessState {
   const reviewedAt = Date.parse(source.last_reviewed_at);
   const window = parseDurationToMs(source.review_frequency);
   if (!Number.isFinite(reviewedAt) || window === undefined) {
@@ -90,13 +78,9 @@ const WARNING_PRIORITY: Record<Warning["code"], number> = {
   no_registered_source: 6,
 };
 
-export function highestPriorityWarning(
-  warnings: ReadonlyArray<Warning>,
-): Warning | undefined {
+export function highestPriorityWarning(warnings: ReadonlyArray<Warning>): Warning | undefined {
   if (warnings.length === 0) return undefined;
-  return [...warnings].sort(
-    (a, b) => WARNING_PRIORITY[a.code] - WARNING_PRIORITY[b.code],
-  )[0];
+  return [...warnings].sort((a, b) => WARNING_PRIORITY[a.code] - WARNING_PRIORITY[b.code])[0];
 }
 
 export function topicSlug(topic: Topic): string {

@@ -11,21 +11,14 @@ export class ContextApiError extends Error {
   readonly code: ContextApiErrorCode;
   readonly status: number;
 
-  constructor(input: {
-    code: ContextApiErrorCode;
-    message: string;
-    status: number;
-  }) {
+  constructor(input: { code: ContextApiErrorCode; message: string; status: number }) {
     super(input.message);
     this.name = "ContextApiError";
     this.code = input.code;
     this.status = input.status;
   }
 
-  static fromResponse(input: {
-    status: number;
-    body: ApiErrorResponse;
-  }): ContextApiError {
+  static fromResponse(input: { status: number; body: ApiErrorResponse }): ContextApiError {
     return new ContextApiError({
       code: input.body.error.code,
       message: input.body.error.message,
@@ -47,9 +40,7 @@ export type ContextApiUiState =
  * components. Centralised so every surface stays consistent with the design
  * plan's evidence-first contract.
  */
-export function mapErrorCodeToUiState(
-  code: ContextApiErrorCode,
-): ContextApiUiState {
+export function mapErrorCodeToUiState(code: ContextApiErrorCode): ContextApiUiState {
   switch (code) {
     case "topic_not_found":
     case "source_not_found":

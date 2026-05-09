@@ -16,7 +16,4 @@ export {
   renderPortalHome,
   renderSourceLookup,
 } from "./views/portalViews.js";
-export {
-  createStaticContextApiClient,
-  type ContextApiClient,
-} from "./api/contextApiClient.js";
+export { createStaticContextApiClient, type ContextApiClient } from "./api/contextApiClient.js";

@@ -51,22 +51,18 @@ describe("freshness classification", () => {
   };
 
   it("returns current when within the window", () => {
-    expect(
-      classifyFreshness(baseSource, new Date("2026-01-15T00:00:00.000Z")),
-    ).toBe("current");
+    expect(classifyFreshness(baseSource, new Date("2026-01-15T00:00:00.000Z"))).toBe("current");
   });
 
   it("returns needs-review when in the soft warning band", () => {
     // 80% of 90 days = 72 days
-    expect(
-      classifyFreshness(baseSource, new Date("2026-03-15T00:00:00.000Z")),
-    ).toBe("needs-review");
+    expect(classifyFreshness(baseSource, new Date("2026-03-15T00:00:00.000Z"))).toBe(
+      "needs-review",
+    );
   });
 
   it("returns stale when the review window is past", () => {
-    expect(
-      classifyFreshness(baseSource, new Date("2026-05-01T00:00:00.000Z")),
-    ).toBe("stale");
+    expect(classifyFreshness(baseSource, new Date("2026-05-01T00:00:00.000Z"))).toBe("stale");
   });
 
   it("falls back to needs-review for an unparseable duration", () => {
