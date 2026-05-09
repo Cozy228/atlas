@@ -1,0 +1,87 @@
+import { Link } from "@tanstack/react-router";
+import {
+  IconBuildingFactory2,
+  IconFolderOpen,
+  IconShieldCheck,
+  IconWorld,
+} from "@tabler/icons-react";
+
+import { cn } from "@/lib/utils";
+
+type ResourceLink = {
+  to: "/capabilities" | "/landing-zones" | "/explore" | "/sources";
+  title: string;
+  description: string;
+  icon: typeof IconWorld;
+};
+
+const RESOURCES: ReadonlyArray<ResourceLink> = [
+  {
+    to: "/capabilities",
+    title: "All capabilities",
+    description: "Full service catalog by domain.",
+    icon: IconFolderOpen,
+  },
+  {
+    to: "/landing-zones",
+    title: "Landing zones",
+    description: "Compare environments and guardrails.",
+    icon: IconBuildingFactory2,
+  },
+  {
+    to: "/explore",
+    title: "Availability map",
+    description: "Regional status across all services.",
+    icon: IconWorld,
+  },
+  {
+    to: "/sources",
+    title: "Source registry",
+    description: "Authoritative evidence with anchors and freshness.",
+    icon: IconShieldCheck,
+  },
+];
+
+export function ResourceLinkGrid() {
+  return (
+    <ul className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+      {RESOURCES.map((resource) => (
+        <li key={resource.to}>
+          <ResourceCard resource={resource} />
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function ResourceCard({ resource }: { resource: ResourceLink }) {
+  const Icon = resource.icon;
+  return (
+    <Link
+      to={resource.to}
+      className={cn(
+        "flex items-center gap-3 rounded-lg border border-border bg-card px-4 py-3.5 transition-[border-color,box-shadow,transform]",
+        "hover:border-border-strong hover:shadow-sm",
+        "active:scale-[0.99]",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+      )}
+    >
+      <span
+        aria-hidden
+        className={cn(
+          "flex size-8 shrink-0 items-center justify-center rounded-md border border-border bg-background",
+        )}
+      >
+        <Icon className="size-4 text-muted-foreground" />
+      </span>
+      <span className="flex flex-col">
+        <span className="text-[13px] font-bold text-foreground">
+          {resource.title}
+        </span>
+        <span className="text-[12px] leading-5 text-muted-foreground">
+          {resource.description}
+        </span>
+      </span>
+    </Link>
+  );
+}

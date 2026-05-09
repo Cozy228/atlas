@@ -82,17 +82,23 @@ export function PageSection({
   );
 }
 
-export function PageBody({
-  children,
-  className,
-}: {
+type PageBodyProps = {
   children: ReactNode;
   className?: string;
-}) {
+  width?: "narrow" | "wide";
+};
+
+const PAGE_WIDTHS: Record<NonNullable<PageBodyProps["width"]>, string> = {
+  narrow: "max-w-[860px]",
+  wide: "max-w-[1200px]",
+};
+
+export function PageBody({ children, className, width = "wide" }: PageBodyProps) {
   return (
     <div
       className={cn(
-        "mx-auto flex w-full max-w-7xl flex-col gap-8 px-6 py-8",
+        "mx-auto flex w-full flex-col gap-12 px-6 pb-16 pt-12 sm:px-8",
+        PAGE_WIDTHS[width],
         className,
       )}
     >
