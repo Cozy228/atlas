@@ -2,7 +2,7 @@ import { createFileRoute, notFound } from "@tanstack/react-router";
 import { IconExternalLink } from "@tabler/icons-react";
 import type { ContextBundleResponse, Source, SourceDiscoveryResponse } from "@atlas/schema";
 
-import { fetchContextBundle, fetchSourceDiscovery } from "@/api/server/contextApi";
+import { contextBundleQueryOptions, sourceDiscoveryQueryOptions } from "@/api/queries";
 import { ContextApiError } from "@/api/contextApiError";
 import {
   BackLink,
@@ -31,8 +31,9 @@ type LoaderData = {
 };
 
 export const Route = createFileRoute("/sources/$sourceId")({
-  loader: async ({ params }): Promise<LoaderData> => {
-    const sourcesResp: SourceDiscoveryResponse = await fetchSourceDiscovery();
+  loader: async ({ context, params }): Promise<LoaderData> => {
+    const sourcesResp: SourceDiscoveryResponse =
+      await context.queryClient.ensureQueryData(sourceDiscoveryQueryOptions);
     const source = sourcesResp.sources.find((entry) => entry.id === params.sourceId);
     if (!source) {
       throw notFound();
@@ -40,7 +41,9 @@ export const Route = createFileRoute("/sources/$sourceId")({
 
     let bundle: ContextBundleResponse | null = null;
     try {
-      bundle = await fetchContextBundle({ data: { source_id: source.id } });
+      bundle = await context.queryClient.ensureQueryData(
+        contextBundleQueryOptions({ source_id: source.id }),
+      );
     } catch (error) {
       if (error instanceof ContextApiError) {
         bundle = null;

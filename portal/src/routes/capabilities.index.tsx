@@ -3,8 +3,8 @@ import { Link, createFileRoute } from "@tanstack/react-router";
 import { IconArrowRight, IconSearch } from "@tabler/icons-react";
 import type { Topic } from "@atlas/schema";
 
-import { fetchAvailability, type AvailabilityResponse } from "@/api/server/availability";
-import { fetchTopicDiscovery } from "@/api/server/contextApi";
+import { availabilityQueryOptions, topicDiscoveryQueryOptionsFor } from "@/api/queries";
+import type { AvailabilityResponse } from "@/api/server/availability";
 import { DetailHeader } from "@/components/detail/detail-shell";
 import { ServiceIcon } from "@/components/explore/service-icon";
 import { StatusChip } from "@/components/explore/status-chip";
@@ -19,10 +19,12 @@ type LoaderData = {
 };
 
 export const Route = createFileRoute("/capabilities/")({
-  loader: async (): Promise<LoaderData> => {
+  loader: async ({ context }): Promise<LoaderData> => {
     const [topicsResp, availability] = await Promise.all([
-      fetchTopicDiscovery({ data: { topic_type: "capability" } }),
-      fetchAvailability(),
+      context.queryClient.ensureQueryData(
+        topicDiscoveryQueryOptionsFor({ topic_type: "capability" }),
+      ),
+      context.queryClient.ensureQueryData(availabilityQueryOptions),
     ]);
     return { topics: topicsResp.topics, availability };
   },

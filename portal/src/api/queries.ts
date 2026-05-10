@@ -1,8 +1,19 @@
 import { queryOptions } from "@tanstack/react-query";
-import type { SourceDiscoveryResponse, TopicDiscoveryResponse } from "@atlas/schema";
+import type {
+  ContextRequest,
+  ContextBundleResponse,
+  SourceDiscoveryRequest,
+  SourceDiscoveryResponse,
+  TopicDiscoveryRequest,
+  TopicDiscoveryResponse,
+} from "@atlas/schema";
 
 import { fetchAvailability, type AvailabilityResponse } from "@/api/server/availability";
-import { fetchSourceDiscovery, fetchTopicDiscovery } from "@/api/server/contextApi";
+import {
+  fetchContextBundle,
+  fetchSourceDiscovery,
+  fetchTopicDiscovery,
+} from "@/api/server/contextApi";
 
 export const availabilityQueryKey = ["availability"] as const;
 
@@ -11,14 +22,29 @@ export const availabilityQueryOptions = queryOptions<AvailabilityResponse>({
   queryFn: () => fetchAvailability(),
 });
 
-export const topicDiscoveryQueryOptions = queryOptions<TopicDiscoveryResponse>({
-  queryKey: ["topics"],
-  queryFn: () => fetchTopicDiscovery(),
-  staleTime: 60_000,
-});
+export function topicDiscoveryQueryOptionsFor(request: TopicDiscoveryRequest = {}) {
+  return queryOptions<TopicDiscoveryResponse>({
+    queryKey: ["topics", request] as const,
+    queryFn: () => fetchTopicDiscovery({ data: request }),
+    staleTime: 60_000,
+  });
+}
 
-export const sourceDiscoveryQueryOptions = queryOptions<SourceDiscoveryResponse>({
-  queryKey: ["sources"],
-  queryFn: () => fetchSourceDiscovery(),
-  staleTime: 60_000,
-});
+export const topicDiscoveryQueryOptions = topicDiscoveryQueryOptionsFor();
+
+export function sourceDiscoveryQueryOptionsFor(request: SourceDiscoveryRequest = {}) {
+  return queryOptions<SourceDiscoveryResponse>({
+    queryKey: ["sources", request] as const,
+    queryFn: () => fetchSourceDiscovery({ data: request }),
+    staleTime: 60_000,
+  });
+}
+
+export const sourceDiscoveryQueryOptions = sourceDiscoveryQueryOptionsFor();
+
+export function contextBundleQueryOptions(request: ContextRequest) {
+  return queryOptions<ContextBundleResponse>({
+    queryKey: ["context-bundle", request] as const,
+    queryFn: () => fetchContextBundle({ data: request }),
+  });
+}
