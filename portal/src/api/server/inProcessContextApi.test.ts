@@ -52,4 +52,16 @@ describe("serverContextApiClient", () => {
     expect(response.sources.length).toBeGreaterThan(0);
     expect(response.sources.every((source) => source.id.length > 0)).toBe(true);
   });
+
+  it("submits feedback through the shared Context API contract", async () => {
+    const response = await serverContextApiClient.submitFeedback({
+      target_type: "topic",
+      target_id: "aws-textract",
+      feedback_type: "stale",
+      message: "The getting started guidance needs a new review.",
+    });
+
+    expect(response.feedback.target_id).toBe("aws-textract");
+    expect(response.feedback.id).toMatch(/^feedback-/);
+  });
 });

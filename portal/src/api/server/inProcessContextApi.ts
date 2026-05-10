@@ -8,16 +8,20 @@
  */
 import {
   handleContextRequest,
+  handleFeedbackRequest,
   handleSourceDiscoveryRequest,
   handleTopicDiscoveryRequest,
 } from "@atlas/context-layer";
 import {
   ApiErrorResponseSchema,
   ContextBundleResponseSchema,
+  FeedbackResponseSchema,
   SourceDiscoveryResponseSchema,
   TopicDiscoveryResponseSchema,
   type ContextBundleResponse,
   type ContextRequest,
+  type FeedbackResponse,
+  type FeedbackSubmission,
   type SourceDiscoveryRequest,
   type SourceDiscoveryResponse,
   type TopicDiscoveryRequest,
@@ -56,5 +60,8 @@ export const serverContextApiClient: ContextApiClient = {
   },
   async discoverTopics(request: TopicDiscoveryRequest = {}): Promise<TopicDiscoveryResponse> {
     return unwrap(handleTopicDiscoveryRequest(request), TopicDiscoveryResponseSchema);
+  },
+  async submitFeedback(request: FeedbackSubmission): Promise<FeedbackResponse> {
+    return unwrap(handleFeedbackRequest(request), FeedbackResponseSchema);
   },
 };

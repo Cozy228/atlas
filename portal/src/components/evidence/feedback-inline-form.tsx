@@ -1,8 +1,10 @@
 import { useForm } from "@tanstack/react-form";
+import { useMutation } from "@tanstack/react-query";
 import { IconMessageReport } from "@tabler/icons-react";
 import { toast } from "sonner";
 import { z } from "zod";
 
+import { submitFeedback } from "@/api/server/feedback";
 import { Button } from "@/components/ui/button";
 import {
   Field,
@@ -36,6 +38,9 @@ const formSchema = z.object({
 });
 
 export function FeedbackInlineForm({ target, className }: FeedbackInlineFormProps) {
+  const mutation = useMutation({
+    mutationFn: async (value: z.infer<typeof formSchema>) => submitFeedback({ data: value }),
+  });
   const form = useForm({
     defaultValues: {
       feedback_type: "missing" as FeedbackType,
@@ -47,9 +52,9 @@ export function FeedbackInlineForm({ target, className }: FeedbackInlineFormProp
       onChange: formSchema,
     },
     onSubmit: async ({ value, formApi }) => {
-      // TODO Phase 6: POST /feedback with shared FeedbackSchema body.
-      toast.success("Feedback recorded locally", {
-        description: `Routed to ${value.target_type}:${value.target_id}. Backend write lands with /feedback in Phase 6.`,
+      const response = await mutation.mutateAsync(value);
+      toast.success("Feedback sent", {
+        description: `Routed to ${response.feedback.target_type}:${response.feedback.target_id}.`,
       });
       formApi.reset();
     },
@@ -144,8 +149,13 @@ export function FeedbackInlineForm({ target, className }: FeedbackInlineFormProp
           })}
         >
           {({ canSubmit, isSubmitting }) => (
-            <Button type="submit" variant="default" size="sm" disabled={!canSubmit || isSubmitting}>
-              {isSubmitting ? "Sending…" : "Send feedback"}
+            <Button
+              type="submit"
+              variant="default"
+              size="sm"
+              disabled={!canSubmit || isSubmitting || mutation.isPending}
+            >
+              {isSubmitting || mutation.isPending ? "Sending..." : "Send feedback"}
             </Button>
           )}
         </form.Subscribe>

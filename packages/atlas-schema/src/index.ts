@@ -134,6 +134,17 @@ export const FeedbackSchema = z
   })
   .strict();
 
+export const FeedbackSubmissionSchema = FeedbackSchema.omit({
+  id: true,
+  submitted_at: true,
+});
+
+export const FeedbackResponseSchema = z
+  .object({
+    feedback: FeedbackSchema,
+  })
+  .strict();
+
 export const SourceDiscoveryRequestSchema = z
   .object({
     query: z.string().min(1).optional(),
@@ -274,6 +285,8 @@ export type Source = z.infer<typeof SourceSchema>;
 export type Topic = z.infer<typeof TopicSchema>;
 export type SourceTopicMapping = z.infer<typeof SourceTopicMappingSchema>;
 export type Feedback = z.infer<typeof FeedbackSchema>;
+export type FeedbackSubmission = z.infer<typeof FeedbackSubmissionSchema>;
+export type FeedbackResponse = z.infer<typeof FeedbackResponseSchema>;
 export type SourceDiscoveryRequest = z.infer<typeof SourceDiscoveryRequestSchema>;
 export type SourceDiscoveryResponse = z.infer<
   typeof SourceDiscoveryResponseSchema

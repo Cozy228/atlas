@@ -1,9 +1,12 @@
 import {
   ContextBundleResponseSchema,
+  FeedbackResponseSchema,
   SourceDiscoveryResponseSchema,
   TopicDiscoveryResponseSchema,
   type ContextBundleResponse,
   type ContextRequest,
+  type FeedbackResponse,
+  type FeedbackSubmission,
   type SourceDiscoveryRequest,
   type SourceDiscoveryResponse,
   type TopicDiscoveryRequest,
@@ -14,6 +17,7 @@ export type ContextApiClient = {
   getContextBundle(request: ContextRequest): Promise<ContextBundleResponse>;
   discoverSources(request?: SourceDiscoveryRequest): Promise<SourceDiscoveryResponse>;
   discoverTopics(request?: TopicDiscoveryRequest): Promise<TopicDiscoveryResponse>;
+  submitFeedback(request: FeedbackSubmission): Promise<FeedbackResponse>;
 };
 
 type StaticContextApiClientInput = {
@@ -37,6 +41,15 @@ export function createStaticContextApiClient({
     },
     async discoverTopics(): Promise<TopicDiscoveryResponse> {
       return TopicDiscoveryResponseSchema.parse(topicDiscovery);
+    },
+    async submitFeedback(request: FeedbackSubmission): Promise<FeedbackResponse> {
+      return FeedbackResponseSchema.parse({
+        feedback: {
+          id: `feedback-static-${request.target_type}-${request.target_id}`,
+          submitted_at: new Date().toISOString(),
+          ...request,
+        },
+      });
     },
   };
 }
