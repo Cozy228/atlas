@@ -51,10 +51,8 @@ const DEFAULT_SUGGESTIONS = [
   },
 ] as const;
 
-const DEFAULT_TOPIC_ID = "capability:ask-atlas";
-
 export function AskAtlasChat({
-  topicId = DEFAULT_TOPIC_ID,
+  topicId,
   suggestions = DEFAULT_SUGGESTIONS,
   className,
 }: AskAtlasChatProps) {

@@ -1,7 +1,13 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import type { ContextBundleResponse, ContextRequest } from "@atlas/schema";
 
-import { buildAskAtlasPrompt, createDailyRateLimiter } from "@/ask/askAtlas";
+import {
+  askAtlas as answerFromContextBundle,
+  createDailyRateLimiter,
+  type AskAtlasClaim,
+  type LlmAdapter,
+} from "@/ask/askAtlas";
 import { serverContextApiClient } from "./inProcessContextApi";
 
 const SYSTEM_PROMPT = [
@@ -13,8 +19,17 @@ const SYSTEM_PROMPT = [
 ].join(" ");
 
 const askInputSchema = z.object({
-  topicId: z.string().min(1),
+  topicId: z.string().min(1).optional(),
   question: z.string().min(1),
+});
+
+const claimResponseSchema = z.object({
+  claims: z.array(
+    z.object({
+      text: z.string().min(1),
+      citation_ids: z.array(z.string().min(1)),
+    }),
+  ),
 });
 
 export type AskAtlasSourceRef = {
@@ -35,75 +50,134 @@ const rateLimiter = createDailyRateLimiter(100);
 export const askAtlas = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => askInputSchema.parse(input))
   .handler(async ({ data }): Promise<AskAtlasResponse> => {
-    const bundle = await serverContextApiClient.getContextBundle({
-      topic_id: data.topicId,
-    });
-
-    const authoritativeSources = bundle.sources.filter(
-      (source) => source.source.authority_level === "authoritative",
+    const bundle = await serverContextApiClient.getContextBundle(
+      buildAskContextRequest(data),
     );
 
-    if (authoritativeSources.length === 0) {
-      return {
-        answer: "",
-        sources: [],
-        warnings: ["no registered authoritative source found"],
-      };
+    return createAskAtlasResponse({
+      question: data.question,
+      bundle,
+      adapter: createConfiguredAdapter(bundle),
+      userId: "anonymous",
+    });
+  });
+
+export type AskAtlasClaimsAdapter = LlmAdapter;
+
+export function buildAskContextRequest(input: {
+  topicId?: string;
+  question: string;
+}): ContextRequest {
+  return input.topicId ? { topic_id: input.topicId } : { question: input.question };
+}
+
+export async function createAskAtlasResponse(input: {
+  question: string;
+  bundle: ContextBundleResponse;
+  adapter: AskAtlasClaimsAdapter;
+  userId: string;
+}): Promise<AskAtlasResponse> {
+  try {
+    const result = await answerFromContextBundle({
+      question: input.question,
+      bundle: input.bundle,
+      adapter: input.adapter,
+      userId: input.userId,
+      rateLimiter,
+    });
+    const warnings = [...result.warnings];
+
+    if (result.rejected_claims.length > 0) {
+      warnings.push("uncited-claims-rejected");
     }
 
-    try {
-      rateLimiter.consume("anonymous");
-    } catch {
-      return {
-        answer: "",
-        sources: [],
-        warnings: ["rate-limit-exceeded"],
-      };
+    return {
+      answer: formatClaims(result.claims),
+      sources: authoritativeSourceRefs(input.bundle),
+      warnings,
+    };
+  } catch (error) {
+    if (error instanceof Error && error.message === "Ask Atlas daily limit exceeded.") {
+      return { answer: "", sources: [], warnings: ["rate-limit-exceeded"] };
     }
+    throw error;
+  }
+}
 
-    const sources: AskAtlasSourceRef[] = authoritativeSources.map((source) => ({
+function createConfiguredAdapter(bundle: ContextBundleResponse): AskAtlasClaimsAdapter {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    return createSimulatedAdapter(bundle);
+  }
+  return createOpenAiAdapter();
+}
+
+function createSimulatedAdapter(bundle: ContextBundleResponse): AskAtlasClaimsAdapter {
+  return {
+    async answer(): Promise<{ claims: AskAtlasClaim[] }> {
+      const excerpt = bundle.sources
+        .filter((source) => source.source.authority_level === "authoritative")
+        .flatMap((source) => source.excerpts)[0];
+
+      if (!excerpt) {
+        return { claims: [] };
+      }
+
+      return {
+        claims: [
+          {
+            text: excerpt.text,
+            citation_ids: [citationId(excerpt.citation.source_id, excerpt.citation.anchor_id)],
+          },
+        ],
+      };
+    },
+  };
+}
+
+function createOpenAiAdapter(): AskAtlasClaimsAdapter {
+  return {
+    async answer(prompt: string): Promise<{ claims: AskAtlasClaim[] }> {
+      const { generateText } = await import("ai");
+      const { openai } = await import("@ai-sdk/openai");
+      const result = await generateText({
+        model: openai("gpt-4o-mini"),
+        system: SYSTEM_PROMPT,
+        prompt: `${prompt}\n\nReturn strict JSON only: {"claims":[{"text":"...","citation_ids":["source#anchor"]}]}`,
+      });
+      const parsed = claimResponseSchema.safeParse(parseJsonObject(result.text));
+      return parsed.success ? parsed.data : { claims: [] };
+    },
+  };
+}
+
+function authoritativeSourceRefs(bundle: ContextBundleResponse): AskAtlasSourceRef[] {
+  return bundle.sources
+    .filter((source) => source.source.authority_level === "authoritative")
+    .map((source) => ({
       source_id: source.source.id,
       title: source.source.title,
       authority_level: source.source.authority_level,
       url: source.source.location,
     }));
-    const warnings = bundle.warnings.map((w) => w.code);
-    const prompt = buildAskAtlasPrompt({
-      question: data.question,
-      bundle,
-    });
+}
 
-    const apiKey = process.env.OPENAI_API_KEY;
-    if (!apiKey) {
-      return {
-        answer: simulatedAnswer(data.question, prompt),
-        sources,
-        warnings: [...warnings, "no-llm-provider-configured"],
-      };
-    }
+function formatClaims(claims: ReadonlyArray<AskAtlasClaim>): string {
+  return claims
+    .map((claim) => `${claim.text} ${claim.citation_ids.map((id) => `[${id}]`).join(" ")}`)
+    .join("\n\n");
+}
 
-    const { generateText } = await import("ai");
-    const { openai } = await import("@ai-sdk/openai");
-    const result = await generateText({
-      model: openai("gpt-4o-mini"),
-      system: SYSTEM_PROMPT,
-      prompt,
-    });
+function citationId(sourceId: string, anchorId: string | undefined): string {
+  return anchorId ? `${sourceId}#${anchorId}` : sourceId;
+}
 
-    return { answer: result.text, sources, warnings };
-  });
-
-function simulatedAnswer(question: string, prompt: string): string {
-  return [
-    `Atlas does not have an OPENAI_API_KEY in this environment, so this`,
-    `is a simulated answer for the question:`,
-    `"${question}".`,
-    "",
-    `Once a provider is configured, the model will receive the registered`,
-    `Atlas context bundle and answer with inline [source_id] citations.`,
-    "",
-    `Prompt preview (first 300 chars):`,
-    "",
-    prompt.slice(0, 300) + (prompt.length > 300 ? "…" : ""),
-  ].join(" ");
+function parseJsonObject(text: string): unknown {
+  const trimmed = text.trim();
+  const fenced = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/);
+  try {
+    return JSON.parse(fenced?.[1] ?? trimmed);
+  } catch {
+    return {};
+  }
 }
