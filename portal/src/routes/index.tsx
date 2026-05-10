@@ -1,67 +1,34 @@
 import { createFileRoute } from "@tanstack/react-router";
-import type { Source, SourceDiscoveryResponse, Topic, TopicDiscoveryResponse } from "@atlas/schema";
+import type { Topic, TopicDiscoveryResponse } from "@atlas/schema";
 
-import { fetchSourceDiscovery, fetchTopicDiscovery } from "@/api/server/contextApi";
-import { CatalogHighlights } from "@/components/home/catalog-highlights";
+import { fetchTopicDiscovery } from "@/api/server/contextApi";
 import { EntryCards } from "@/components/home/entry-cards";
-import { HealthBand } from "@/components/home/health-band";
 import { JourneyGrid } from "@/components/home/journey-grid";
 import { RecentlyViewed } from "@/components/home/recently-viewed";
 import { ResourceLinkGrid } from "@/components/home/resource-link-grid";
 import { IntentSearch } from "@/components/intent-search";
 import { PageBody } from "@/components/page-section";
 import { SectionEyebrow } from "@/components/section-eyebrow";
-import { classifyFreshness } from "@/lib/evidence";
 
 type HomeLoaderData = {
   capabilities: ReadonlyArray<Topic>;
   landingZones: ReadonlyArray<Topic>;
-  sources: ReadonlyArray<Source>;
-  signals: HomeSignals;
-};
-
-type HomeSignals = {
-  capabilityCount: number;
-  landingZoneCount: number;
-  sourceCount: number;
-  staleSourceCount: number;
-  restrictedSourceCount: number;
-  brokenAnchorCount: number;
 };
 
 export const Route = createFileRoute("/")({
   loader: async (): Promise<HomeLoaderData> => {
-    const [topicsResp, sourcesResp]: [TopicDiscoveryResponse, SourceDiscoveryResponse] =
-      await Promise.all([fetchTopicDiscovery(), fetchSourceDiscovery()]);
-
-    const capabilities = topicsResp.topics.filter((topic) => topic.topic_type === "capability");
-    const landingZones = topicsResp.topics.filter((topic) => topic.topic_type === "landing-zone");
-
-    const signals: HomeSignals = {
-      capabilityCount: capabilities.length,
-      landingZoneCount: landingZones.length,
-      sourceCount: sourcesResp.sources.length,
-      staleSourceCount: sourcesResp.sources.filter(
-        (source) => classifyFreshness(source) === "stale",
-      ).length,
-      restrictedSourceCount: sourcesResp.sources.filter(
-        (source) => source.visibility === "restricted",
-      ).length,
-      brokenAnchorCount: 0,
-    };
+    const topicsResp: TopicDiscoveryResponse = await fetchTopicDiscovery();
 
     return {
-      capabilities,
-      landingZones,
-      sources: sourcesResp.sources,
-      signals,
+      capabilities: topicsResp.topics.filter((topic) => topic.topic_type === "capability"),
+      landingZones: topicsResp.topics.filter((topic) => topic.topic_type === "landing-zone"),
     };
   },
   component: HomeRoute,
 });
 
 function HomeRoute() {
-  const { capabilities, landingZones, signals } = Route.useLoaderData();
+  const { capabilities, landingZones } = Route.useLoaderData();
 
   return (
     <PageBody width="comfortable">
@@ -82,28 +49,8 @@ function HomeRoute() {
         <JourneyGrid />
       </Section>
 
-      <Section
-        eyebrow="Catalog"
-        title="Capability highlights"
-        description="A snapshot of the current catalog across regions and domains."
-      >
-        <CatalogHighlights
-          serviceCount={signals.capabilityCount}
-          regionCount={REGIONS.length}
-          regionLabel={REGIONS.join(", ")}
-        />
-      </Section>
-
       <Section eyebrow="Recently viewed">
         <RecentlyViewed />
-      </Section>
-
-      <Section eyebrow="Health">
-        <HealthBand
-          staleSourceCount={signals.staleSourceCount}
-          restrictedSourceCount={signals.restrictedSourceCount}
-          brokenAnchorCount={signals.brokenAnchorCount}
-        />
       </Section>
 
       <Section eyebrow="Resources" title="Keep exploring">
@@ -112,8 +59,6 @@ function HomeRoute() {
     </PageBody>
   );
 }
-
-const REGIONS = ["US-East-1", "CA-Central-1", "GDC", "DC16", "MT10"] as const;
 
 function Hero() {
   return (
