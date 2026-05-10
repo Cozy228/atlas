@@ -1,3 +1,4 @@
+import type { LanguageModel } from "ai";
 import { describe, expect, it, vi } from "vitest";
 import { capabilityBundle } from "@/fixtures/contextBundles";
 import {
@@ -24,7 +25,7 @@ describe("Ask Atlas LLM provider selection", () => {
   });
 
   it("uses the Bedrock model with the shared claim schema", async () => {
-    const model = { provider: "bedrock", modelId: "us.anthropic.claude-sonnet-4-5" };
+    const model = { provider: "bedrock", modelId: "us.anthropic.claude-sonnet-4-5" } as LanguageModel;
     const adapter = createBedrockClaimsAdapter({
       modelId: "us.anthropic.claude-sonnet-4-5",
       model,
@@ -100,7 +101,7 @@ describe("Ask Atlas LLM provider selection", () => {
         headers: { "content-type": "application/json" },
       }),
     );
-    const model = { provider: "RAI", modelId: "rai-chat" };
+    const model = { provider: "RAI", modelId: "rai-chat" } as LanguageModel;
     const adapter = createRaiClaimsAdapter({
       baseUrl: "https://rai.example.com/v1",
       tokenUrl: "https://rai.example.com/oauth/token",
