@@ -18,26 +18,26 @@ type ResourceLink = {
 const RESOURCES: ReadonlyArray<ResourceLink> = [
   {
     to: "/capabilities",
-    title: "All capabilities",
-    description: "Full service catalog by domain.",
+    title: "Browse by domain",
+    description: "Filter capabilities by compute, storage, database, AI, or integration.",
     icon: IconFolderOpen,
   },
   {
     to: "/landing-zones",
-    title: "Landing zones",
-    description: "Compare environments and guardrails.",
+    title: "Compare environments",
+    description: "Match your workload's requirements to the right landing zone.",
     icon: IconBuildingFactory2,
   },
   {
     to: "/explore",
-    title: "Availability map",
-    description: "Regional status across all services.",
+    title: "Check regional coverage",
+    description: "See which services are available in US-East-1, GDC, DC16, and more.",
     icon: IconWorld,
   },
   {
     to: "/sources",
-    title: "Source registry",
-    description: "Authoritative evidence with anchors and freshness.",
+    title: "Review authoritative sources",
+    description: "Inspect authority level, review freshness, and broken-anchor status.",
     icon: IconShieldCheck,
   },
 ];

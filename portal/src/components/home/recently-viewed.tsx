@@ -93,7 +93,7 @@ function RecentlyViewedClient() {
 
   if (items.length === 0) {
     return (
-      <p className="font-mono text-[11px] text-muted-foreground">
+      <p className="text-[13px] leading-5 text-muted-foreground">
         Open a capability or landing zone to populate this list.
       </p>
     );

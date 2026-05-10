@@ -28,6 +28,7 @@ type DetailHeaderProps = {
   eyebrow: string;
   title: string;
   description?: ReactNode;
+  leading?: ReactNode;
   badges?: ReactNode;
   meta?: ReactNode;
   actions?: ReactNode;
@@ -37,6 +38,7 @@ export function DetailHeader({
   eyebrow,
   title,
   description,
+  leading,
   badges,
   meta,
   actions,
@@ -44,21 +46,26 @@ export function DetailHeader({
   return (
     <header className="flex flex-col gap-4 border-b border-border pb-6">
       <div className="flex flex-col gap-2.5 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
-        <div className="flex min-w-0 flex-col gap-2">
-          <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">
-            {eyebrow}
-          </span>
-          <div className="flex flex-wrap items-baseline gap-3">
-            <h1 className="text-[26px] font-bold tracking-[-0.03em] text-foreground sm:text-[28px]">
-              {title}
-            </h1>
-            {badges ? <div className="flex flex-wrap items-center gap-1.5">{badges}</div> : null}
+        <div className="flex min-w-0 items-start gap-3">
+          {leading ? <div className="mt-6 shrink-0">{leading}</div> : null}
+          <div className="flex min-w-0 flex-col gap-2">
+            <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">
+              {eyebrow}
+            </span>
+            <div className="flex flex-wrap items-baseline gap-3">
+              <h1 className="text-[26px] font-bold tracking-[-0.03em] text-foreground sm:text-[28px]">
+                {title}
+              </h1>
+              {badges ? (
+                <div className="flex flex-wrap items-center gap-1.5">{badges}</div>
+              ) : null}
+            </div>
+            {description ? (
+              <p className="max-w-[68ch] text-[14px] leading-[1.6] text-muted-foreground">
+                {description}
+              </p>
+            ) : null}
           </div>
-          {description ? (
-            <p className="max-w-[68ch] text-[14px] leading-[1.6] text-muted-foreground">
-              {description}
-            </p>
-          ) : null}
         </div>
         {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
       </div>
