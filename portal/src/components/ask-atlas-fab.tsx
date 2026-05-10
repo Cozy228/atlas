@@ -51,12 +51,11 @@ export function AskAtlasFab() {
   return (
     <>
       <Button
-        size="icon"
-        aria-label="Open Ask Atlas"
         onClick={openAsk}
-        className="fixed bottom-8 right-8 z-50 hidden size-12 rounded-lg shadow-lg lg:flex"
+        className="fixed bottom-8 right-8 z-50 hidden h-10 items-center gap-2 rounded-lg px-4 shadow-lg lg:flex"
       >
-        <IconMessageCircle className="size-5" aria-hidden />
+        <IconMessageCircle className="size-4" aria-hidden />
+        Ask Atlas
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>

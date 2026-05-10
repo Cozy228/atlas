@@ -8,6 +8,7 @@ import {
   IconUsers,
   IconX,
 } from "@tabler/icons-react";
+import type { Icon } from "@tabler/icons-react";
 import type { Topic } from "@atlas/schema";
 
 import { cn } from "@/lib/utils";
@@ -71,10 +72,10 @@ type EntryCardProps = {
   onClick: () => void;
   label: string;
   description: string;
-  icon: typeof IconSearch;
+  icon: Icon;
 };
 
-function EntryCard({ phase, active, onClick, label, description, icon: Icon }: EntryCardProps) {
+function EntryCard({ phase, active, onClick, label, description, icon: CardIcon }: EntryCardProps) {
   return (
     <button
       type="button"
@@ -84,29 +85,30 @@ function EntryCard({ phase, active, onClick, label, description, icon: Icon }: E
       aria-controls={`phase-panel-${phase}`}
       onClick={onClick}
       className={cn(
-        "group relative flex h-full flex-col gap-2 overflow-hidden rounded-xl border border-border bg-card p-4 text-left transition-[border-color,box-shadow,transform]",
-        "hover:border-border-strong hover:shadow-sm",
-        "active:scale-[0.99]",
-        "data-[active=true]:border-primary data-[active=true]:shadow-[0_0_0_2px_color-mix(in_srgb,var(--primary)_12%,transparent)]",
+        "group flex h-full flex-col gap-3 rounded-xl border border-border bg-card p-5 text-left",
+        "transition-[border-color,background-color] duration-150",
+        "hover:border-border-strong hover:bg-muted",
+        "data-[active=true]:border-primary data-[active=true]:bg-brand-tint",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
       )}
     >
-      <span
+      <CardIcon
         aria-hidden
         className={cn(
-          "pointer-events-none absolute inset-0 rounded-xl opacity-0 transition-opacity",
-          "bg-[linear-gradient(135deg,color-mix(in_srgb,var(--primary)_5%,transparent),transparent_60%)]",
-          "group-hover:opacity-100 group-data-[active=true]:opacity-100",
+          "size-5 text-muted-foreground transition-colors",
+          "group-data-[active=true]:text-primary",
         )}
       />
-      <span className="relative z-10 flex items-center gap-2.5">
-        <span className="flex size-7 items-center justify-center rounded-md bg-brand-tint">
-          <Icon className="size-3.5 text-primary" />
+      <span className="flex flex-col gap-1">
+        <span
+          className={cn(
+            "text-[14px] font-bold leading-[1.3] tracking-[-0.01em] text-foreground",
+            "group-data-[active=true]:text-primary",
+          )}
+        >
+          {label}
         </span>
-        <span className="text-[14px] font-bold tracking-[-0.01em] text-foreground">{label}</span>
-      </span>
-      <span className="relative z-10 text-[13px] leading-[1.5] text-muted-foreground">
-        {description}
+        <span className="text-[13px] leading-normal text-muted-foreground">{description}</span>
       </span>
     </button>
   );

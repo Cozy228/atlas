@@ -4,6 +4,7 @@ import type { Topic, TopicDiscoveryResponse } from "@atlas/schema";
 import { topicDiscoveryQueryOptions } from "@/api/queries";
 import { EntryCards } from "@/components/home/entry-cards";
 import { JourneyGrid } from "@/components/home/journey-grid";
+import { PlatformUpdates } from "@/components/home/platform-updates";
 import { RecentlyViewed } from "@/components/home/recently-viewed";
 import { ResourceLinkGrid } from "@/components/home/resource-link-grid";
 import { IntentSearch } from "@/components/intent-search";
@@ -53,6 +54,10 @@ function HomeRoute() {
 
       <Section eyebrow="Recently viewed">
         <RecentlyViewed />
+      </Section>
+
+      <Section eyebrow="Platform updates" title="What's new">
+        <PlatformUpdates />
       </Section>
 
       <Section eyebrow="Resources" title="Keep exploring">
