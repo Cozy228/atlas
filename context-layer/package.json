@@ -12,14 +12,18 @@
     }
   },
   "scripts": {
+    "build:lambda": "tsdown --config tsdown.lambda.config.ts",
     "lint": "tsc --noEmit --pretty false",
     "typecheck": "tsc --noEmit --pretty false",
     "test": "vitest run"
   },
   "dependencies": {
-    "@atlas/schema": "workspace:*"
+    "@atlas/schema": "workspace:*",
+    "@aws-sdk/client-dynamodb": "3.1045.0",
+    "@aws-sdk/lib-dynamodb": "3.1045.0"
   },
   "devDependencies": {
+    "tsdown": "0.22.0",
     "typescript": "6.0.3",
     "vite": "8.0.10",
     "vitest": "4.1.5"

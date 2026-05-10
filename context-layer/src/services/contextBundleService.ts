@@ -9,6 +9,11 @@ import type {
   TopicDiscoveryRequest,
   TopicDiscoveryResponse,
 } from "@atlas/schema";
+import { DynamoFeedbackRepository } from "../repositories/dynamoFeedbackRepository.js";
+import {
+  InMemoryFeedbackRepository,
+  type FeedbackRepository,
+} from "../repositories/feedbackRepository.js";
 import { loadPilotRegistry, pilotRegistrySeed, type PilotRegistry } from "../seeds/pilotRegistry.js";
 import { confluencePageResolver } from "../resolvers/confluencePageResolver.js";
 import { policyDocumentResolver } from "../resolvers/policyDocumentResolver.js";
@@ -24,9 +29,20 @@ export type ContextBundleService = {
   now: Date;
 };
 
-export function createDefaultContextBundleService(): ContextBundleService {
+export type ContextBundleServiceOptions = {
+  env?: Record<string, string | undefined>;
+  feedbackRepository?: FeedbackRepository;
+};
+
+export function createDefaultContextBundleService(
+  options: ContextBundleServiceOptions = {},
+): ContextBundleService {
+  const feedbackRepository =
+    options.feedbackRepository ??
+    createFeedbackRepository(options.env ?? readProcessEnv());
+
   return {
-    registry: loadPilotRegistry(pilotRegistrySeed),
+    registry: loadPilotRegistry(pilotRegistrySeed, { feedback: feedbackRepository }),
     resolvers: createResolverRegistry([
       terraformModuleResolver,
       confluencePageResolver,
@@ -35,6 +51,23 @@ export function createDefaultContextBundleService(): ContextBundleService {
     contentProvider: createPilotSourceContentProvider(),
     now: new Date("2026-05-06T00:00:00.000Z"),
   };
+}
+
+export function createFeedbackRepository(
+  env: Record<string, string | undefined>,
+): FeedbackRepository {
+  const tableName = env.ATLAS_FEEDBACK_TABLE;
+  if (tableName) {
+    return new DynamoFeedbackRepository({ tableName });
+  }
+  return new InMemoryFeedbackRepository(pilotRegistrySeed.feedback);
+}
+
+function readProcessEnv(): Record<string, string | undefined> {
+  const processLike = globalThis as typeof globalThis & {
+    process?: { env?: Record<string, string | undefined> };
+  };
+  return processLike.process?.env ?? {};
 }
 
 export function buildContextBundle(

@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { ContextBundleResponseSchema } from "@atlas/schema";
-import { buildContextBundle, createDefaultContextBundleService } from "./contextBundleService.js";
+import { DynamoFeedbackRepository } from "../repositories/dynamoFeedbackRepository.js";
+import { InMemoryFeedbackRepository } from "../repositories/feedbackRepository.js";
+import {
+  buildContextBundle,
+  createDefaultContextBundleService,
+  createFeedbackRepository,
+} from "./contextBundleService.js";
 
 describe("context bundle service", () => {
   it("builds a schema-compatible context bundle for a known topic", () => {
@@ -152,5 +158,19 @@ describe("context bundle service", () => {
     expect(bundle.sources.map((source) => source.source.id)).toContain(
       "private-networking-policy",
     );
+  });
+
+  it("uses in-memory feedback persistence when no DynamoDB table is configured", () => {
+    const repository = createFeedbackRepository({});
+
+    expect(repository).toBeInstanceOf(InMemoryFeedbackRepository);
+  });
+
+  it("uses DynamoDB feedback persistence when a table is configured", () => {
+    const repository = createFeedbackRepository({
+      ATLAS_FEEDBACK_TABLE: "atlas-feedback",
+    });
+
+    expect(repository).toBeInstanceOf(DynamoFeedbackRepository);
   });
 });

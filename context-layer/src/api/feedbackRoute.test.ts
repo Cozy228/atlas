@@ -3,8 +3,8 @@ import { ApiErrorResponseSchema, FeedbackResponseSchema } from "@atlas/schema";
 import { handleFeedbackRequest } from "./feedbackRoute.js";
 
 describe("feedback route", () => {
-  it("captures user feedback as a shared contract response", () => {
-    const response = handleFeedbackRequest({
+  it("captures user feedback as a shared contract response", async () => {
+    const response = await handleFeedbackRequest({
       target_type: "topic",
       target_id: "aws-textract",
       feedback_type: "stale",
@@ -22,8 +22,8 @@ describe("feedback route", () => {
     expect(parsed.feedback.id).toMatch(/^feedback-/);
   });
 
-  it("returns structured invalid_request errors", () => {
-    const response = handleFeedbackRequest({
+  it("returns structured invalid_request errors", async () => {
+    const response = await handleFeedbackRequest({
       target_type: "topic",
       target_id: "",
       feedback_type: "stale",
@@ -34,8 +34,8 @@ describe("feedback route", () => {
     expect(ApiErrorResponseSchema.parse(response.body).error.code).toBe("invalid_request");
   });
 
-  it("returns structured not-found errors for unknown targets", () => {
-    const response = handleFeedbackRequest({
+  it("returns structured not-found errors for unknown targets", async () => {
+    const response = await handleFeedbackRequest({
       target_type: "topic",
       target_id: "missing-topic",
       feedback_type: "missing",

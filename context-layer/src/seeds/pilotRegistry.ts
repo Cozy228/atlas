@@ -6,7 +6,10 @@ import {
   TopicSchema,
 } from "@atlas/schema";
 import { InMemoryAnchorRepository } from "../repositories/anchorRepository.js";
-import { InMemoryFeedbackRepository } from "../repositories/feedbackRepository.js";
+import {
+  InMemoryFeedbackRepository,
+  type FeedbackRepository,
+} from "../repositories/feedbackRepository.js";
 import { InMemorySourceRepository } from "../repositories/sourceRepository.js";
 import { InMemorySourceTopicMappingRepository } from "../repositories/sourceTopicMappingRepository.js";
 import { InMemoryTopicRepository } from "../repositories/topicRepository.js";
@@ -22,13 +25,20 @@ export type PilotRegistrySeed = {
 
 export type PilotRegistry = {
   anchors: InMemoryAnchorRepository;
-  feedback: InMemoryFeedbackRepository;
+  feedback: FeedbackRepository;
   sources: InMemorySourceRepository;
   topics: InMemoryTopicRepository;
   mappings: InMemorySourceTopicMappingRepository;
 };
 
-export function loadPilotRegistry(seed: PilotRegistrySeed): PilotRegistry {
+export type PilotRegistryOptions = {
+  feedback?: FeedbackRepository;
+};
+
+export function loadPilotRegistry(
+  seed: PilotRegistrySeed,
+  options: PilotRegistryOptions = {},
+): PilotRegistry {
   const anchors = seed.anchors.map((anchor) => AnchorSchema.parse(anchor));
   const feedback = seed.feedback.map((item) => FeedbackSchema.parse(item));
   const sources = seed.sources.map((source) => SourceSchema.parse(source));
@@ -70,7 +80,7 @@ export function loadPilotRegistry(seed: PilotRegistrySeed): PilotRegistry {
 
   return {
     anchors: new InMemoryAnchorRepository(anchors),
-    feedback: new InMemoryFeedbackRepository(feedback),
+    feedback: options.feedback ?? new InMemoryFeedbackRepository(feedback),
     sources: new InMemorySourceRepository(sources),
     topics: new InMemoryTopicRepository(topics),
     mappings: new InMemorySourceTopicMappingRepository(mappings),

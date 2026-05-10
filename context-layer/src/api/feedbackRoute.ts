@@ -10,9 +10,9 @@ import type { ContextBundleService } from "../services/contextBundleService.js";
 import type { ApiResponse } from "./routeTypes.js";
 import { errorResponse } from "./routeTypes.js";
 
-export function handleFeedbackRequest(
+export async function handleFeedbackRequest(
   input: unknown,
-): ApiResponse<ApiErrorResponse | FeedbackResponse> {
+): Promise<ApiResponse<ApiErrorResponse | FeedbackResponse>> {
   const parsed = FeedbackSubmissionSchema.safeParse(input);
   if (!parsed.success) {
     return errorResponse(400, "invalid_request", "Feedback request is invalid.");
@@ -24,7 +24,7 @@ export function handleFeedbackRequest(
     return targetError;
   }
 
-  const feedback = service.registry.feedback.put(toFeedback(parsed.data));
+  const feedback = await service.registry.feedback.put(toFeedback(parsed.data));
   return {
     status: 201,
     body: { feedback },

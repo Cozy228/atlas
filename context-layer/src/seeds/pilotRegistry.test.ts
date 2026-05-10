@@ -1,14 +1,15 @@
 import { describe, expect, it } from "vitest";
+import { InMemoryFeedbackRepository } from "../repositories/feedbackRepository.js";
 import { loadPilotRegistry, pilotRegistrySeed } from "./pilotRegistry.js";
 
 describe("pilot registry seed", () => {
-  it("loads validated repositories for V1 pilot topics and governed sources", () => {
+  it("loads validated repositories for V1 pilot topics and governed sources", async () => {
     const registry = loadPilotRegistry(pilotRegistrySeed);
 
     expect(registry.topics.list()).toHaveLength(10);
     expect(registry.sources.list()).toHaveLength(12);
     expect(registry.anchors.list().length).toBeGreaterThan(10);
-    expect(registry.feedback.list().length).toBeGreaterThan(0);
+    expect((await registry.feedback.list()).length).toBeGreaterThan(0);
     expect(registry.mappings.list().length).toBeGreaterThan(12);
   });
 
@@ -48,5 +49,13 @@ describe("pilot registry seed", () => {
         ],
       }),
     ).toThrow();
+  });
+
+  it("can use an injected feedback repository for runtime persistence", () => {
+    const feedback = new InMemoryFeedbackRepository();
+    const registry = loadPilotRegistry(pilotRegistrySeed, { feedback });
+
+    expect(registry.feedback).toBe(feedback);
+    expect(registry.feedback.list()).toEqual([]);
   });
 });

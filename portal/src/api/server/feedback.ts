@@ -5,7 +5,7 @@ import {
   type FeedbackSubmission,
 } from "@atlas/schema";
 
-import { serverContextApiClient } from "./inProcessContextApi";
+import { serverContextApiClient } from "./serverContextApiClient";
 
 export const submitFeedback = createServerFn({ method: "POST" })
   .inputValidator((input: unknown): FeedbackSubmission => FeedbackSubmissionSchema.parse(input))

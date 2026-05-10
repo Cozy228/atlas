@@ -16,7 +16,7 @@ import {
   type TopicDiscoveryRequest,
 } from "@atlas/schema";
 
-import { serverContextApiClient } from "./inProcessContextApi.js";
+import { serverContextApiClient } from "./serverContextApiClient.js";
 
 /**
  * Strict output validation is disabled because every response is already
