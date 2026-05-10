@@ -4,7 +4,9 @@ import {
   ContextBundleResponseSchema,
   ContextRequestSchema,
   ExpansionRequestSchema,
+  FeedbackResponseSchema,
   FeedbackSchema,
+  FeedbackSubmissionSchema,
   SourceDiscoveryRequestSchema,
   SourceSchema,
   SourceTopicMappingSchema,
@@ -180,6 +182,23 @@ describe("request and response schemas", () => {
       anchor_id: "textract-private-subnet",
       disclosure_level: 2,
     });
+  });
+
+  it("accepts feedback submissions and feedback responses", () => {
+    const submission = FeedbackSubmissionSchema.parse({
+      target_type: "topic",
+      target_id: "aws-textract",
+      feedback_type: "stale",
+      message: "The getting started guidance needs a new review.",
+    });
+    const feedback = {
+      id: "feedback-aws-textract-1",
+      submitted_at: "2026-05-10T00:00:00.000Z",
+      ...submission,
+    };
+
+    expect(submission.target_id).toBe("aws-textract");
+    expect(FeedbackResponseSchema.parse({ feedback })).toEqual({ feedback });
   });
 
   it("requires sources, warnings, and expansion_paths on every context bundle", () => {
