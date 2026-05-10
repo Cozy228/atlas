@@ -16,9 +16,11 @@ import {
 import { EntryToolsGrid } from "@/components/detail/entry-tools-grid";
 import { EvidenceSection } from "@/components/detail/evidence-section";
 import { FeedbackInlineForm } from "@/components/evidence/feedback-inline-form";
+import { ServiceIcon } from "@/components/explore/service-icon";
 import { useRecordRecent } from "@/components/home/recently-viewed";
 import { Badge } from "@/components/ui/badge";
 import { PageBody } from "@/components/page-section";
+import { findAvailabilityServiceForTopic } from "@/lib/capability-service";
 import { cn } from "@/lib/utils";
 
 type LoaderData = {
@@ -66,7 +68,7 @@ function CapabilityDetailRoute() {
 
   useRecordRecent({ kind: "capability", topicId: topic.id, name: topic.name });
 
-  const service = availability.services.find((entry) => entry.id === topic.id) ?? null;
+  const service = findAvailabilityServiceForTopic(topic, availability.services);
   const guardrails = related.filter((entry) => entry.topic_type === "guardrail-area");
   const landingZones = related.filter((entry) => entry.topic_type === "landing-zone");
   const primaryTool = topic.entry_tools[0];
@@ -79,6 +81,7 @@ function CapabilityDetailRoute() {
         eyebrow={`Capability · ${topic.category}`}
         title={topic.name}
         description={topic.description}
+        leading={service ? <ServiceIcon serviceId={service.id} size="hero" /> : undefined}
         badges={
           <>
             <StatusBadge status={topic.status} />

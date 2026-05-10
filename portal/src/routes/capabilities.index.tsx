@@ -6,9 +6,11 @@ import type { Topic } from "@atlas/schema";
 import { fetchAvailability, type AvailabilityResponse } from "@/api/server/availability";
 import { fetchTopicDiscovery } from "@/api/server/contextApi";
 import { DetailHeader } from "@/components/detail/detail-shell";
+import { ServiceIcon } from "@/components/explore/service-icon";
 import { StatusChip } from "@/components/explore/status-chip";
 import { PageBody } from "@/components/page-section";
 import { Badge } from "@/components/ui/badge";
+import { findAvailabilityServiceForTopic } from "@/lib/capability-service";
 import { cn } from "@/lib/utils";
 
 type LoaderData = {
@@ -147,7 +149,7 @@ function CapabilityCard({
   topic: Topic;
   availability: AvailabilityResponse;
 }) {
-  const service = availability.services.find((entry) => entry.id === topic.id);
+  const service = findAvailabilityServiceForTopic(topic, availability.services);
   const activeLocations = service
     ? availability.locations.filter(
         (location) =>
@@ -169,11 +171,16 @@ function CapabilityCard({
       )}
     >
       <div className="flex items-start justify-between gap-2">
-        <div className="flex min-w-0 flex-col gap-1">
-          <p className="text-[14px] font-bold tracking-[-0.01em] text-foreground">{topic.name}</p>
-          <p className="line-clamp-2 text-[12px] leading-5 text-muted-foreground">
-            {topic.description}
-          </p>
+        <div className="flex min-w-0 items-start gap-3">
+          {service ? <ServiceIcon serviceId={service.id} size="xl" /> : null}
+          <div className="flex min-w-0 flex-col gap-1">
+            <p className="text-[14px] font-bold tracking-[-0.01em] text-foreground">
+              {topic.name}
+            </p>
+            <p className="line-clamp-2 text-[12px] leading-5 text-muted-foreground">
+              {topic.description}
+            </p>
+          </div>
         </div>
         <IconArrowRight className="size-3.5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />
       </div>

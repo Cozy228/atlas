@@ -1,4 +1,5 @@
 import type { AvailabilityRecord, Location } from "@/api/server/availability";
+import { ServiceIcon } from "@/components/explore/service-icon";
 import { StatusChip } from "@/components/explore/status-chip";
 import { cn } from "@/lib/utils";
 
@@ -34,15 +35,7 @@ export function ServiceCard({ service, locations, selected, onSelect }: ServiceC
       )}
     >
       <div className="flex items-center gap-2.5">
-        <span
-          aria-hidden
-          className={cn(
-            "flex size-[30px] shrink-0 items-center justify-center rounded-md border border-border bg-background",
-            "font-mono text-[9px] font-bold uppercase tracking-tight text-primary",
-          )}
-        >
-          {service.iconKey}
-        </span>
+        <ServiceIcon serviceId={service.id} />
         <span className="text-[13px] font-semibold leading-tight text-foreground">
           {service.name}
         </span>
