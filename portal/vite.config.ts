@@ -5,10 +5,12 @@
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
+import { nitro } from "nitro/vite";
 import viteReact from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 
 const portalRoot = fileURLToPath(new URL(".", import.meta.url));
+const isVitest = process.env.VITEST === "true";
 
 /**
  * Rolldown manual code splitting. Higher `priority` wins when groups overlap.
@@ -38,6 +40,7 @@ export default defineConfig({
         generatedRouteTree: `${portalRoot}src/routeTree.gen.ts`,
       },
     }),
+    !isVitest && nitro(),
     viteReact(),
     tailwindcss(),
   ],
