@@ -13,11 +13,9 @@ function AskAtlasRoute() {
   return (
     <PageBody width="comfortable" gap="compact">
       <Hero />
-      <div className="mx-auto w-full max-w-[760px]">
-        <ClientOnly fallback={<Skeleton className="h-[480px] w-full rounded-xl" />}>
-          <AskAtlasChat className="min-h-[560px] overflow-hidden rounded-xl border border-border bg-card" />
-        </ClientOnly>
-      </div>
+      <ClientOnly fallback={<Skeleton className="h-[480px] w-full rounded-xl" />}>
+        <AskAtlasChat className="min-h-[560px] overflow-hidden rounded-xl border border-border bg-card" />
+      </ClientOnly>
       <Boundary />
     </PageBody>
   );
@@ -25,16 +23,15 @@ function AskAtlasRoute() {
 
 function Hero() {
   return (
-    <div className="flex flex-col items-center gap-3 pt-8 text-center">
+    <div className="flex flex-col gap-2 pt-2">
       <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">
         Ask Atlas
       </span>
-      <h1 className="max-w-[20ch] text-[36px] font-bold leading-[1.05] tracking-[-0.03em] text-foreground sm:text-[40px]">
-        What can Atlas help you find?
+      <h1 className="max-w-[26ch] text-[32px] font-bold leading-[1.1] tracking-[-0.03em] text-foreground sm:text-[34px]">
+        Ask a question about the platform
       </h1>
       <p className="max-w-[56ch] text-[15px] leading-[1.6] text-muted-foreground">
-        Cited platform answers from authoritative context. Every claim links back to its registered
-        source.
+        Cited answers from authoritative context. Every claim links back to its registered source.
       </p>
     </div>
   );
@@ -42,7 +39,7 @@ function Hero() {
 
 function Boundary() {
   return (
-    <section className="mx-auto w-full max-w-[760px] rounded-xl border border-border bg-card p-4">
+    <section className="rounded-xl border border-border bg-card p-4">
       <p className="text-[12px] font-bold text-foreground">How Ask Atlas behaves</p>
       <ul className="mt-2 grid gap-1.5 text-[12px] leading-[1.6] text-muted-foreground sm:grid-cols-2">
         <BoundaryLine
