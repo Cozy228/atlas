@@ -10,6 +10,7 @@ import { InMemoryFeedbackRepository } from "../repositories/feedbackRepository.j
 import { InMemorySourceRepository } from "../repositories/sourceRepository.js";
 import { InMemorySourceTopicMappingRepository } from "../repositories/sourceTopicMappingRepository.js";
 import { InMemoryTopicRepository } from "../repositories/topicRepository.js";
+import { pilotFeedbackSeed } from "./pilotFeedbackSeed.js";
 
 export type PilotRegistrySeed = {
   anchors: unknown[];
@@ -474,16 +475,7 @@ export const pilotRegistrySeed = {
       last_validated_at: "2026-05-05T00:00:00.000Z",
     },
   ],
-  feedback: [
-    {
-      id: "feedback-private-networking-anchor",
-      target_type: "anchor",
-      target_id: "vpc-endpoints",
-      feedback_type: "broken",
-      message: "The VPC endpoints clause is missing in the pilot source.",
-      submitted_at: "2026-05-06T00:00:00.000Z",
-    },
-  ],
+  feedback: pilotFeedbackSeed,
   mappings: [
     { id: "map-textract-module", source_id: "textract-module-readme", topic_id: "aws-textract" },
     { id: "map-textract-networking", source_id: "textract-module-readme", topic_id: "private-networking" },
