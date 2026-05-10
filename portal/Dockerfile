@@ -14,7 +14,9 @@ ENV PATH="${PNPM_HOME}:${PATH}"
 
 WORKDIR /app
 
-RUN corepack enable && corepack prepare "pnpm@${PNPM_VERSION}" --activate
+RUN corepack enable \
+  && corepack prepare "pnpm@${PNPM_VERSION}" --activate \
+  && pnpm config set store-dir /pnpm/store
 
 FROM base AS deps
 
@@ -25,7 +27,8 @@ COPY context-layer/package.json context-layer/package.json
 COPY portal/package.json portal/package.json
 COPY infra/package.json infra/package.json
 
-RUN pnpm install --frozen-lockfile
+RUN --mount=type=cache,id=atlas-pnpm-store,target=/pnpm/store \
+  pnpm install --frozen-lockfile
 
 FROM deps AS builder
 
