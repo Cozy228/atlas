@@ -2,18 +2,17 @@ import { useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import {
   IconArrowRight,
-  IconInfoCircle,
-  IconLayoutGrid,
+  IconArrowsExchange,
   IconRocket,
   IconSearch,
   IconUsers,
   IconX,
 } from "@tabler/icons-react";
-import type { EntryTool, Topic } from "@atlas/schema";
+import type { Topic } from "@atlas/schema";
 
 import { cn } from "@/lib/utils";
 
-type Phase = "evaluate" | "decide" | "onboard";
+type Phase = "find-service" | "migrate" | "new-app";
 
 type EntryCardsProps = {
   capabilities: ReadonlyArray<Topic>;
@@ -21,7 +20,7 @@ type EntryCardsProps = {
 };
 
 export function EntryCards({ capabilities, landingZones }: EntryCardsProps) {
-  const [active, setActive] = useState<Phase | null>("evaluate");
+  const [active, setActive] = useState<Phase | null>(null);
 
   const toggle = (phase: Phase) => () => setActive((current) => (current === phase ? null : phase));
   const close = () => setActive(null);
@@ -30,36 +29,36 @@ export function EntryCards({ capabilities, landingZones }: EntryCardsProps) {
     <div className="flex flex-col gap-4">
       <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
         <EntryCard
-          phase="evaluate"
-          active={active === "evaluate"}
-          onClick={toggle("evaluate")}
-          label="Evaluate"
-          description="Which capability should I use?"
+          phase="find-service"
+          active={active === "find-service"}
+          onClick={toggle("find-service")}
+          label="Find the right service"
+          description="Which approved service fits your use case?"
           icon={IconSearch}
         />
         <EntryCard
-          phase="decide"
-          active={active === "decide"}
-          onClick={toggle("decide")}
-          label="Decide"
-          description="Which landing zone fits my workload?"
-          icon={IconLayoutGrid}
+          phase="migrate"
+          active={active === "migrate"}
+          onClick={toggle("migrate")}
+          label="Migrate existing app"
+          description="Target environments and platform team contacts for your migration."
+          icon={IconArrowsExchange}
         />
         <EntryCard
-          phase="onboard"
-          active={active === "onboard"}
-          onClick={toggle("onboard")}
-          label="Onboard"
-          description="How do I provision and ship?"
+          phase="new-app"
+          active={active === "new-app"}
+          onClick={toggle("new-app")}
+          label="Onboard a new app"
+          description="Landing zones, provisioning tools, and support contacts."
           icon={IconRocket}
         />
       </div>
 
       {active ? (
         <PhasePanel phase={active} onClose={close}>
-          {active === "evaluate" ? <EvaluatePanel capabilities={capabilities} /> : null}
-          {active === "decide" ? <DecidePanel landingZones={landingZones} /> : null}
-          {active === "onboard" ? <OnboardPanel landingZones={landingZones} /> : null}
+          {active === "find-service" ? <FindServicePanel capabilities={capabilities} /> : null}
+          {active === "migrate" ? <MigratePanel landingZones={landingZones} /> : null}
+          {active === "new-app" ? <OnboardingPanel landingZones={landingZones} /> : null}
         </PhasePanel>
       ) : null}
     </div>
@@ -128,7 +127,7 @@ function PhasePanel({
       id={`phase-panel-${phase}`}
       className={cn(
         "overflow-hidden rounded-xl border border-border bg-card",
-        "[animation:slideIn_220ms_cubic-bezier(0.22,1,0.36,1)]",
+        "[animation:slideIn_220ms_cubic-bezier(0.22,1,0.36,1)] motion-reduce:animate-none",
       )}
     >
       <header className="flex items-center justify-between gap-3 border-b border-border px-5 py-4">
@@ -160,21 +159,21 @@ function PhasePanel({
 }
 
 const PANEL_HEADING: Record<Phase, { title: string; description: string }> = {
-  evaluate: {
-    title: "Which capability should I use?",
-    description: "Browse approved services with availability and guardrails across regions.",
+  "find-service": {
+    title: "Which service should I use?",
+    description: "Browse approved capabilities by domain or use case.",
   },
-  decide: {
-    title: "Which landing zone fits my workload?",
-    description: "Compare environments, guardrails, and onboarding paths side by side.",
+  migrate: {
+    title: "Migrate an existing app",
+    description: "Find the right target environment and connect with the platform migration team.",
   },
-  onboard: {
-    title: "How do I start?",
-    description: "Entry tools, pipelines, and support channels for your chosen stack.",
+  "new-app": {
+    title: "Onboard a new app",
+    description: "Choose a landing zone, access provisioning tools, and find your support contacts.",
   },
 };
 
-function EvaluatePanel({ capabilities }: { capabilities: ReadonlyArray<Topic> }) {
+function FindServicePanel({ capabilities }: { capabilities: ReadonlyArray<Topic> }) {
   const [query, setQuery] = useState("");
   const grouped = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -237,10 +236,10 @@ function EvaluatePanel({ capabilities }: { capabilities: ReadonlyArray<Topic> })
                         aria-hidden
                         className={cn(
                           "flex size-7 shrink-0 items-center justify-center rounded-md border border-border bg-background",
-                          "font-mono text-[8px] font-bold uppercase text-primary",
+                          "font-mono text-[14px] font-bold text-primary",
                         )}
                       >
-                        {topic.name.slice(0, 3)}
+                        {topic.name.charAt(0).toUpperCase()}
                       </span>
                       <span className="flex flex-1 flex-col min-w-0">
                         <span className="text-[13px] font-semibold text-foreground">
@@ -294,7 +293,74 @@ function StatusPill({ status }: { status: Topic["status"] }) {
   );
 }
 
-function DecidePanel({ landingZones }: { landingZones: ReadonlyArray<Topic> }) {
+function OnboardingPanel({ landingZones }: { landingZones: ReadonlyArray<Topic> }) {
+  if (landingZones.length === 0) {
+    return (
+      <p className="px-5 py-8 text-center text-[13px] text-muted-foreground">
+        No landing zones registered.
+      </p>
+    );
+  }
+  return (
+    <div className="divide-y divide-border">
+      {landingZones.map((zone) => (
+        <div key={zone.id} className="flex flex-col gap-3 p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <Link
+                to="/landing-zones/$topicId"
+                params={{ topicId: zone.id }}
+                className={cn(
+                  "inline-flex items-center gap-1 text-[14px] font-bold tracking-[-0.01em] text-foreground",
+                  "hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded",
+                )}
+              >
+                {zone.name}
+                <IconArrowRight className="size-3.5 opacity-50" />
+              </Link>
+              <p className="mt-0.5 text-[12px] leading-5 text-muted-foreground">
+                {zone.description}
+              </p>
+            </div>
+            <ZoneTag>{zone.category}</ZoneTag>
+          </div>
+
+          {zone.entry_tools.length > 0 ? (
+            <div className="flex flex-wrap gap-2">
+              {zone.entry_tools.map((tool) => (
+                <a
+                  key={tool.url}
+                  href={tool.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className={cn(
+                    "inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1 transition-[border-color,color]",
+                    "text-[12px] font-semibold text-foreground",
+                    "hover:border-primary hover:text-primary",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  )}
+                >
+                  {tool.label}
+                  <IconArrowRight className="size-3 opacity-60" />
+                </a>
+              ))}
+            </div>
+          ) : null}
+
+          <div className="flex items-center gap-2">
+            <IconUsers className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+            <span className="text-[12px] font-semibold text-foreground">{zone.owner_team}</span>
+            <span className="font-mono text-[11px] text-muted-foreground">
+              {zone.support_channel}
+            </span>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function MigratePanel({ landingZones }: { landingZones: ReadonlyArray<Topic> }) {
   if (landingZones.length === 0) {
     return (
       <p className="px-5 py-8 text-center text-[13px] text-muted-foreground">
@@ -305,32 +371,45 @@ function DecidePanel({ landingZones }: { landingZones: ReadonlyArray<Topic> }) {
   return (
     <div className="flex flex-col gap-2 p-5">
       {landingZones.map((zone) => (
-        <Link
+        <div
           key={zone.id}
-          to="/landing-zones/$topicId"
-          params={{ topicId: zone.id }}
-          className={cn(
-            "grid grid-cols-[1fr_auto] gap-3 rounded-lg border border-border bg-background px-4 py-3.5 transition-[border-color,box-shadow]",
-            "hover:border-border-strong hover:shadow-sm",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-          )}
+          className="flex flex-col gap-3 rounded-lg border border-border bg-background px-4 py-3.5"
         >
-          <div>
-            <p className="text-[14px] font-bold tracking-[-0.01em] text-foreground">{zone.name}</p>
-            <p className="mt-0.5 text-[12px] leading-5 text-muted-foreground">{zone.description}</p>
-            <div className="mt-2 flex flex-wrap gap-1">
-              <ZoneTag>{zone.category}</ZoneTag>
-              <ZoneTag>{zone.owner_team}</ZoneTag>
-              {zone.status !== "active" ? <ZoneTag>{zone.status}</ZoneTag> : null}
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <Link
+                to="/landing-zones/$topicId"
+                params={{ topicId: zone.id }}
+                className={cn(
+                  "inline-flex items-center gap-1 text-[14px] font-bold tracking-[-0.01em] text-foreground",
+                  "hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded",
+                )}
+              >
+                {zone.name}
+                <IconArrowRight className="size-3.5 opacity-50" />
+              </Link>
+              <p className="mt-0.5 text-[12px] leading-5 text-muted-foreground">
+                {zone.description}
+              </p>
+            </div>
+            <ZoneTag>{zone.category}</ZoneTag>
+          </div>
+
+          <div className="flex items-center gap-2.5 rounded-md bg-brand-tint/50 px-3 py-2">
+            <span
+              className="flex size-6 shrink-0 items-center justify-center rounded-full bg-brand-tint"
+              aria-hidden
+            >
+              <IconUsers className="size-3 text-primary" />
+            </span>
+            <div className="min-w-0">
+              <span className="text-[12px] font-bold text-foreground">{zone.owner_team}</span>
+              <span className="ml-2 font-mono text-[11px] text-muted-foreground">
+                {zone.support_channel}
+              </span>
             </div>
           </div>
-          <div className="flex flex-col items-end justify-center gap-1">
-            <span className="font-mono text-[10px] text-muted-foreground">
-              {zone.entry_tools.length} entry tools
-            </span>
-            <IconArrowRight className="size-4 text-muted-foreground" />
-          </div>
-        </Link>
+        </div>
       ))}
     </div>
   );
@@ -340,86 +419,11 @@ function ZoneTag({ children }: { children: React.ReactNode }) {
   return (
     <span
       className={cn(
-        "rounded border border-border bg-card px-1.5 py-0.5",
+        "shrink-0 rounded border border-border bg-card px-1.5 py-0.5",
         "font-mono text-[10px] font-medium text-muted-foreground",
       )}
     >
       {children}
     </span>
-  );
-}
-
-function safeHost(url: string): string {
-  try {
-    return new URL(url).host;
-  } catch {
-    return url;
-  }
-}
-
-function OnboardPanel({ landingZones }: { landingZones: ReadonlyArray<Topic> }) {
-  const tools: ReadonlyArray<EntryTool> = useMemo(() => {
-    const seen = new Map<string, EntryTool>();
-    for (const zone of landingZones) {
-      for (const tool of zone.entry_tools) {
-        if (!seen.has(tool.url)) seen.set(tool.url, tool);
-      }
-    }
-    return [...seen.values()].slice(0, 4);
-  }, [landingZones]);
-
-  const owner = landingZones[0];
-
-  return (
-    <div className="flex flex-col gap-3 p-5">
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-        {tools.length === 0 ? (
-          <p className="text-[13px] text-muted-foreground">No entry tools registered yet.</p>
-        ) : (
-          tools.map((tool) => (
-            <a
-              key={tool.url}
-              href={tool.url}
-              target="_blank"
-              rel="noreferrer"
-              className={cn(
-                "flex flex-col gap-2 rounded-lg border border-border bg-background px-4 py-3.5 transition-[border-color,box-shadow]",
-                "hover:border-primary hover:shadow-sm",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-              )}
-            >
-              <p className="text-[13px] font-bold text-foreground">{tool.label}</p>
-              <p className="text-[12px] leading-5 text-muted-foreground">{safeHost(tool.url)}</p>
-              <span className="inline-flex items-center gap-1 text-[12px] font-semibold text-primary">
-                Open <IconArrowRight className="size-3.5" />
-              </span>
-            </a>
-          ))
-        )}
-      </div>
-      {owner ? (
-        <div className="flex items-center gap-2.5 rounded-lg border border-border bg-background px-3.5 py-2.5">
-          <span
-            className={cn(
-              "flex size-7 items-center justify-center rounded-full bg-brand-tint",
-              "font-mono text-[11px] font-bold text-primary",
-            )}
-            aria-hidden
-          >
-            <IconUsers className="size-3.5" />
-          </span>
-          <span className="flex flex-col">
-            <span className="text-[12px] font-bold text-foreground">{owner.owner_team}</span>
-            <span className="font-mono text-[11px] text-muted-foreground">
-              {owner.support_channel}
-            </span>
-          </span>
-        </div>
-      ) : null}
-      <p className="font-mono text-[10px] text-muted-foreground">
-        <IconInfoCircle className="mr-1 inline size-3 align-text-bottom" />
-        Tools are registered per landing zone. Owners shown reflect the first registered zone.
-      </p>
-    </div>
   );
 }
