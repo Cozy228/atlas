@@ -8,28 +8,12 @@ import {
   type AskAtlasClaim,
   type LlmAdapter,
 } from "@/ask/askAtlas";
-import { serverContextApiClient } from "./inProcessContextApi";
-
-const SYSTEM_PROMPT = [
-  "You are Atlas, a governed cloud-platform assistant.",
-  "Answer ONLY using the provided Atlas context bundle excerpts.",
-  "Cite sources inline using the bracket form [source_id#anchor_id] that",
-  "matches the excerpts. If the excerpts do not contain the answer, say so",
-  "and do not invent claims.",
-].join(" ");
+import { createConfiguredClaimsAdapter } from "./llmProvider";
+import { serverContextApiClient } from "./serverContextApiClient";
 
 const askInputSchema = z.object({
   topicId: z.string().min(1).optional(),
   question: z.string().min(1),
-});
-
-const claimResponseSchema = z.object({
-  claims: z.array(
-    z.object({
-      text: z.string().min(1),
-      citation_ids: z.array(z.string().min(1)),
-    }),
-  ),
 });
 
 export type AskAtlasSourceRef = {
@@ -105,50 +89,7 @@ export async function createAskAtlasResponse(input: {
 }
 
 function createConfiguredAdapter(bundle: ContextBundleResponse): AskAtlasClaimsAdapter {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    return createSimulatedAdapter(bundle);
-  }
-  return createOpenAiAdapter();
-}
-
-function createSimulatedAdapter(bundle: ContextBundleResponse): AskAtlasClaimsAdapter {
-  return {
-    async answer(): Promise<{ claims: AskAtlasClaim[] }> {
-      const excerpt = bundle.sources
-        .filter((source) => source.source.authority_level === "authoritative")
-        .flatMap((source) => source.excerpts)[0];
-
-      if (!excerpt) {
-        return { claims: [] };
-      }
-
-      return {
-        claims: [
-          {
-            text: excerpt.text,
-            citation_ids: [citationId(excerpt.citation.source_id, excerpt.citation.anchor_id)],
-          },
-        ],
-      };
-    },
-  };
-}
-
-function createOpenAiAdapter(): AskAtlasClaimsAdapter {
-  return {
-    async answer(prompt: string): Promise<{ claims: AskAtlasClaim[] }> {
-      const { generateText } = await import("ai");
-      const { openai } = await import("@ai-sdk/openai");
-      const result = await generateText({
-        model: openai("gpt-4o-mini"),
-        system: SYSTEM_PROMPT,
-        prompt: `${prompt}\n\nReturn strict JSON only: {"claims":[{"text":"...","citation_ids":["source#anchor"]}]}`,
-      });
-      const parsed = claimResponseSchema.safeParse(parseJsonObject(result.text));
-      return parsed.success ? parsed.data : { claims: [] };
-    },
-  };
+  return createConfiguredClaimsAdapter({ bundle });
 }
 
 function authoritativeSourceRefs(bundle: ContextBundleResponse): AskAtlasSourceRef[] {
@@ -166,18 +107,4 @@ function formatClaims(claims: ReadonlyArray<AskAtlasClaim>): string {
   return claims
     .map((claim) => `${claim.text} ${claim.citation_ids.map((id) => `[${id}]`).join(" ")}`)
     .join("\n\n");
-}
-
-function citationId(sourceId: string, anchorId: string | undefined): string {
-  return anchorId ? `${sourceId}#${anchorId}` : sourceId;
-}
-
-function parseJsonObject(text: string): unknown {
-  const trimmed = text.trim();
-  const fenced = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/);
-  try {
-    return JSON.parse(fenced?.[1] ?? trimmed);
-  } catch {
-    return {};
-  }
 }

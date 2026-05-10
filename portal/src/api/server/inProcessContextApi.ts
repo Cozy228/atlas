@@ -62,6 +62,6 @@ export const serverContextApiClient: ContextApiClient = {
     return unwrap(handleTopicDiscoveryRequest(request), TopicDiscoveryResponseSchema);
   },
   async submitFeedback(request: FeedbackSubmission): Promise<FeedbackResponse> {
-    return unwrap(handleFeedbackRequest(request), FeedbackResponseSchema);
+    return unwrap(await handleFeedbackRequest(request), FeedbackResponseSchema);
   },
 };
