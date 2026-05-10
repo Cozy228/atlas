@@ -1,9 +1,9 @@
 import { useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
-import { IconMenu2 } from "@tabler/icons-react";
+import { IconMenu2, IconMessageCircle } from "@tabler/icons-react";
 
 import { AskAtlasFab } from "@/components/ask-atlas-fab";
-import { AskAtlasProvider } from "@/components/ask-atlas/context";
+import { AskAtlasProvider, useAskAtlas } from "@/components/ask-atlas/context";
 import { ThemeToggle } from "@/components/theme-toggle";
 import {
   Sheet,
@@ -64,8 +64,7 @@ function TopBar() {
       </nav>
       <div className="flex items-center justify-end gap-2">
         <NavMenu open={menuOpen} onOpenChange={(open) => setMenuOpen(open)} />
-        <HealthIndicator />
-        <SyncPill />
+        <InlineAskButton />
         <ThemeToggle />
       </div>
     </header>
@@ -114,34 +113,22 @@ function TopNavLink({ item }: { item: NavItem }) {
   );
 }
 
-function HealthIndicator() {
+function InlineAskButton() {
+  const { openAsk } = useAskAtlas();
   return (
-    <span
-      aria-label="Atlas Context API status: live"
+    <button
+      type="button"
+      aria-label="Open Ask Atlas"
+      onClick={openAsk}
       className={cn(
-        "hidden items-center gap-1.5 rounded-full px-2.5 py-1 sm:inline-flex",
-        "transition-colors hover:bg-muted",
+        "flex size-7 items-center justify-center rounded-md text-muted-foreground lg:hidden",
+        "transition-colors hover:bg-muted hover:text-foreground",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
       )}
     >
-      <span aria-hidden className="relative flex size-1.5">
-        <span className="absolute inset-0 animate-ping rounded-full bg-success/60" />
-        <span className="relative size-1.5 rounded-full bg-success" />
-      </span>
-      <span className="text-[11px] font-semibold text-muted-foreground">Live</span>
-    </span>
-  );
-}
-
-function SyncPill() {
-  return (
-    <span
-      className={cn(
-        "hidden items-center rounded-lg border border-border bg-card px-2 py-0.5 lg:inline-flex",
-        "font-mono text-[10px] font-medium text-muted-foreground",
-      )}
-    >
-      Synced just now
-    </span>
+      <IconMessageCircle size={15} strokeWidth={2} aria-hidden />
+      <span className="sr-only">Ask Atlas</span>
+    </button>
   );
 }
 

@@ -97,7 +97,16 @@ export function AskAtlasChat({
         setMessages((current) => [...current, assistantMessage]);
       })
       .catch(() => {
-        // toast handled in onError
+        // Toast is shown by onError; also push a visible error bubble so the thread
+        // never leaves a user message unanswered with no visible state.
+        const errorMessage: ChatMessage = {
+          id: `a-${Date.now()}`,
+          role: "assistant",
+          text: "",
+          sources: [],
+          warnings: ["request-failed"],
+        };
+        setMessages((current) => [...current, errorMessage]);
       });
   }
 
@@ -234,11 +243,14 @@ function EmptyGreeting({
             type="button"
             onClick={() => onSelect(item.prompt)}
             className={cn(
-              "rounded-lg border border-border px-3 py-2 text-left text-[13px] text-foreground transition-colors",
+              "flex flex-col gap-1 rounded-lg border border-border px-3 py-2.5 text-left transition-colors",
               "hover:border-border-strong hover:bg-accent",
             )}
           >
-            {item.prompt}
+            <span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              {item.category}
+            </span>
+            <span className="text-[13px] text-foreground">{item.prompt}</span>
           </button>
         ))}
       </div>

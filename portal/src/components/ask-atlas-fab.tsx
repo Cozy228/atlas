@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect } from "react";
-import { IconSearch, IconSparkles } from "@tabler/icons-react";
+import { IconMessageCircle, IconSearch } from "@tabler/icons-react";
 
 import { useAskAtlas } from "@/components/ask-atlas/context";
 import { ClientOnly } from "@/components/client-only";
@@ -54,9 +54,9 @@ export function AskAtlasFab() {
         size="icon"
         aria-label="Open Ask Atlas"
         onClick={openAsk}
-        className="fixed bottom-6 right-6 z-50 size-12 rounded-lg shadow-lg"
+        className="fixed bottom-8 right-8 z-50 hidden size-12 rounded-lg shadow-lg lg:flex"
       >
-        <IconSparkles className="size-5" aria-hidden />
+        <IconMessageCircle className="size-5" aria-hidden />
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
@@ -100,7 +100,7 @@ export function AskAtlasFab() {
                 value="ask"
                 className="rounded-md border-0 bg-transparent text-xs font-medium aria-pressed:bg-background aria-pressed:shadow-sm"
               >
-                <IconSparkles className="size-3.5" data-icon="inline-start" />
+                <IconMessageCircle className="size-3.5" data-icon="inline-start" />
                 Ask Atlas
               </ToggleGroupItem>
             </ToggleGroup>
