@@ -61,23 +61,29 @@ function LandingZonesListRoute() {
 
 function ZoneCard({ zone }: { zone: Topic }) {
   return (
-    <Link
-      to="/landing-zones/$topicId"
-      params={{ topicId: zone.id }}
+    <article
       className={cn(
         "group flex h-full flex-col gap-3 rounded-lg border border-border bg-card p-4 transition-[border-color,box-shadow]",
         "hover:border-border-strong hover:shadow-sm",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
       )}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex min-w-0 flex-col gap-1">
-          <p className="text-[14px] font-bold tracking-[-0.01em] text-foreground">{zone.name}</p>
+          <Link
+            to="/landing-zones/$topicId"
+            params={{ topicId: zone.id }}
+            className={cn(
+              "inline-flex items-center gap-1 text-[14px] font-bold tracking-[-0.01em] text-foreground",
+              "rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+            )}
+          >
+            {zone.name}
+            <IconArrowRight className="size-3.5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />
+          </Link>
           <p className="line-clamp-2 text-[12px] leading-5 text-muted-foreground">
             {zone.description}
           </p>
         </div>
-        <IconArrowRight className="size-3.5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />
       </div>
       <dl className="grid grid-cols-2 gap-x-3 gap-y-1.5 border-t border-border pt-3 text-[11px]">
         <DefRow label="Domain" value={zone.category} />
@@ -93,7 +99,6 @@ function ZoneCard({ zone }: { zone: Topic }) {
               href={tool.url}
               target="_blank"
               rel="noreferrer noopener"
-              onClick={(event) => event.stopPropagation()}
               className={cn(
                 "inline-flex items-center gap-1 rounded border border-border bg-background px-1.5 py-0.5",
                 "font-mono text-[10px] font-semibold text-muted-foreground transition-colors",
@@ -111,7 +116,7 @@ function ZoneCard({ zone }: { zone: Topic }) {
           ) : null}
         </div>
       ) : null}
-    </Link>
+    </article>
   );
 }
 
