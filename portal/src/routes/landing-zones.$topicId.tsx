@@ -2,8 +2,12 @@ import { createFileRoute, notFound } from "@tanstack/react-router";
 import { IconArrowUpRight } from "@tabler/icons-react";
 import type { ContextBundleResponse, Topic, TopicDiscoveryResponse } from "@atlas/schema";
 
-import { fetchAvailability, type AvailabilityResponse } from "@/api/server/availability";
-import { fetchContextBundle, fetchTopicDiscovery } from "@/api/server/contextApi";
+import {
+  availabilityQueryOptions,
+  contextBundleQueryOptions,
+  topicDiscoveryQueryOptions,
+} from "@/api/queries";
+import type { AvailabilityResponse } from "@/api/server/availability";
 import { ContextApiError } from "@/api/contextApiError";
 import {
   BackLink,
@@ -28,9 +32,12 @@ type LoaderData = {
 };
 
 export const Route = createFileRoute("/landing-zones/$topicId")({
-  loader: async ({ params }): Promise<LoaderData> => {
+  loader: async ({ context, params }): Promise<LoaderData> => {
     const [topicsResp, availability]: [TopicDiscoveryResponse, AvailabilityResponse] =
-      await Promise.all([fetchTopicDiscovery(), fetchAvailability()]);
+      await Promise.all([
+        context.queryClient.ensureQueryData(topicDiscoveryQueryOptions),
+        context.queryClient.ensureQueryData(availabilityQueryOptions),
+      ]);
 
     const topic = topicsResp.topics.find((entry) => entry.id === params.topicId);
     if (!topic || topic.topic_type !== "landing-zone") {
@@ -39,7 +46,9 @@ export const Route = createFileRoute("/landing-zones/$topicId")({
 
     let bundle: ContextBundleResponse | null = null;
     try {
-      bundle = await fetchContextBundle({ data: { topic_id: topic.id } });
+      bundle = await context.queryClient.ensureQueryData(
+        contextBundleQueryOptions({ topic_id: topic.id }),
+      );
     } catch (error) {
       if (
         error instanceof ContextApiError &&

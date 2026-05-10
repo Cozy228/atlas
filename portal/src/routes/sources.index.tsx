@@ -3,7 +3,7 @@ import { Link, createFileRoute } from "@tanstack/react-router";
 import { IconArrowRight, IconSearch } from "@tabler/icons-react";
 import type { Source } from "@atlas/schema";
 
-import { fetchSourceDiscovery } from "@/api/server/contextApi";
+import { sourceDiscoveryQueryOptions } from "@/api/queries";
 import { DetailHeader } from "@/components/detail/detail-shell";
 import {
   AuthorityBadge,
@@ -21,8 +21,8 @@ type LoaderData = {
 };
 
 export const Route = createFileRoute("/sources/")({
-  loader: async (): Promise<LoaderData> => {
-    const response = await fetchSourceDiscovery();
+  loader: async ({ context }): Promise<LoaderData> => {
+    const response = await context.queryClient.ensureQueryData(sourceDiscoveryQueryOptions);
     return { sources: response.sources };
   },
   component: SourcesListRoute,

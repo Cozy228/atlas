@@ -2,7 +2,7 @@ import { Link, createFileRoute } from "@tanstack/react-router";
 import { IconArrowRight, IconExternalLink } from "@tabler/icons-react";
 import type { Topic } from "@atlas/schema";
 
-import { fetchTopicDiscovery } from "@/api/server/contextApi";
+import { topicDiscoveryQueryOptionsFor } from "@/api/queries";
 import { DetailHeader } from "@/components/detail/detail-shell";
 import { PageBody } from "@/components/page-section";
 import { Badge } from "@/components/ui/badge";
@@ -13,10 +13,10 @@ type LoaderData = {
 };
 
 export const Route = createFileRoute("/landing-zones/")({
-  loader: async (): Promise<LoaderData> => {
-    const response = await fetchTopicDiscovery({
-      data: { topic_type: "landing-zone" },
-    });
+  loader: async ({ context }): Promise<LoaderData> => {
+    const response = await context.queryClient.ensureQueryData(
+      topicDiscoveryQueryOptionsFor({ topic_type: "landing-zone" }),
+    );
     return { topics: response.topics };
   },
   component: LandingZonesListRoute,

@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type { Topic, TopicDiscoveryResponse } from "@atlas/schema";
 
-import { fetchTopicDiscovery } from "@/api/server/contextApi";
+import { topicDiscoveryQueryOptions } from "@/api/queries";
 import { EntryCards } from "@/components/home/entry-cards";
 import { JourneyGrid } from "@/components/home/journey-grid";
 import { RecentlyViewed } from "@/components/home/recently-viewed";
@@ -16,8 +16,10 @@ type HomeLoaderData = {
 };
 
 export const Route = createFileRoute("/")({
-  loader: async (): Promise<HomeLoaderData> => {
-    const topicsResp: TopicDiscoveryResponse = await fetchTopicDiscovery();
+  loader: async ({ context }): Promise<HomeLoaderData> => {
+    const topicsResp: TopicDiscoveryResponse = await context.queryClient.ensureQueryData(
+      topicDiscoveryQueryOptions,
+    );
 
     return {
       capabilities: topicsResp.topics.filter((topic) => topic.topic_type === "capability"),

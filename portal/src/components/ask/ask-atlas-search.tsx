@@ -29,6 +29,8 @@ type AskAtlasSearchProps = {
   onSwitchToAsk: () => void;
 };
 
+type SearchDirection = "next" | "previous";
+
 type SearchResult = {
   id: string;
   label: string;
@@ -72,6 +74,17 @@ const TOPIC_ICON_MAP: Record<string, React.ComponentType<{ className?: string }>
 
 function topicIcon(type: string) {
   return TOPIC_ICON_MAP[type] ?? IconLayoutGrid;
+}
+
+export function getNextSearchIndex(
+  current: number,
+  itemCount: number,
+  direction: SearchDirection,
+) {
+  if (itemCount === 0) return 0;
+  return direction === "next"
+    ? (current + 1) % itemCount
+    : (current - 1 + itemCount) % itemCount;
 }
 
 export function AskAtlasSearch({
@@ -169,10 +182,10 @@ export function AskAtlasSearch({
   function handleKeyDown(event: React.KeyboardEvent) {
     if (event.key === "ArrowDown") {
       event.preventDefault();
-      setSelectedIndex((i) => (i + 1) % flatItems.length);
+      setSelectedIndex((i) => getNextSearchIndex(i, flatItems.length, "next"));
     } else if (event.key === "ArrowUp") {
       event.preventDefault();
-      setSelectedIndex((i) => (i - 1 + flatItems.length) % flatItems.length);
+      setSelectedIndex((i) => getNextSearchIndex(i, flatItems.length, "previous"));
     } else if (event.key === "Enter" && flatItems.length > 0) {
       event.preventDefault();
       go(flatItems[selectedIndex].to);

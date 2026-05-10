@@ -37,15 +37,28 @@ export function pushRecent(item: RecentItem) {
   }
 }
 
+export function recentItemFromParts(
+  kind: RecentItem["kind"] | undefined,
+  topicOrSourceId: string | undefined,
+  name: string | undefined,
+): RecentItem | null {
+  if (!kind || !topicOrSourceId || !name) return null;
+  if (kind === "source") {
+    return { kind, sourceId: topicOrSourceId, name };
+  }
+  return { kind, topicId: topicOrSourceId, name };
+}
+
 export function useRecordRecent(item: RecentItem | null) {
   const kind = item?.kind;
   const topicOrSourceId = kind === "source" ? item?.sourceId : item?.topicId;
   const name = item?.name;
 
   useEffect(() => {
-    if (!item) return;
-    pushRecent(item);
-  }, [item, kind, topicOrSourceId, name]);
+    const next = recentItemFromParts(kind, topicOrSourceId, name);
+    if (!next) return;
+    pushRecent(next);
+  }, [kind, topicOrSourceId, name]);
 }
 
 function recentKey(item: RecentItem): string {
