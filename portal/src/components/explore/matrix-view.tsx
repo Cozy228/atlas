@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { IconArrowUpRight, IconChevronDown } from "@tabler/icons-react";
 
 import type { AvailabilityRecord, Location } from "@/api/server/availability";
+import { ServiceIcon } from "@/components/explore/service-icon";
 import { StatusChip, statusLabel } from "@/components/explore/status-chip";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -112,15 +113,7 @@ function DomainRows({
             >
               <td className="px-2.5 py-2 align-middle">
                 <span className="flex min-w-0 items-center gap-2">
-                  <span
-                    aria-hidden
-                    className={cn(
-                      "flex size-5 shrink-0 items-center justify-center rounded border border-border bg-background",
-                      "font-mono text-[7px] font-bold uppercase text-primary",
-                    )}
-                  >
-                    {service.iconKey}
-                  </span>
+                  <ServiceIcon serviceId={service.id} size="sm" />
                   <span className="min-w-0 flex-1 truncate font-semibold text-foreground">
                     {service.name}
                   </span>

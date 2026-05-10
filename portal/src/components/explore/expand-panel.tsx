@@ -1,6 +1,7 @@
 import { IconArrowUpRight, IconX } from "@tabler/icons-react";
 
 import type { AvailabilityRecord, Location } from "@/api/server/availability";
+import { ServiceIcon } from "@/components/explore/service-icon";
 import { StatusChip, statusLabel } from "@/components/explore/status-chip";
 import { cn } from "@/lib/utils";
 
@@ -34,15 +35,7 @@ export function ExpandPanel({ service, locations, onClose }: ExpandPanelProps) {
     >
       <header className="flex items-center justify-between gap-3 border-b border-border px-5 py-3.5">
         <div className="flex items-center gap-2.5">
-          <span
-            aria-hidden
-            className={cn(
-              "flex size-9 items-center justify-center rounded-md border border-border bg-brand-tint",
-              "font-mono text-[11px] font-bold uppercase text-primary",
-            )}
-          >
-            {service.iconKey}
-          </span>
+          <ServiceIcon serviceId={service.id} size="lg" />
           <div>
             <p className="text-[15px] font-bold tracking-[-0.01em] text-foreground">
               {service.name}
