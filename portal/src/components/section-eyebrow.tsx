@@ -16,7 +16,7 @@ export function SectionEyebrow({ eyebrow, title, description, className }: Secti
         {eyebrow}
       </span>
       {title ? (
-        <h2 className="text-[20px] font-bold tracking-[-0.03em] text-foreground">{title}</h2>
+        <h2 className="text-[22px] font-bold tracking-[-0.03em] text-foreground">{title}</h2>
       ) : null}
       {description ? (
         <p className="max-w-[52ch] text-[14px] leading-6 text-muted-foreground">{description}</p>

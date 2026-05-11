@@ -5,7 +5,6 @@ import type { Topic } from "@atlas/schema";
 
 import { availabilityQueryOptions, topicDiscoveryQueryOptionsFor } from "@/api/queries";
 import type { AvailabilityResponse } from "@/api/server/availability";
-import { DetailHeader } from "@/components/detail/detail-shell";
 import { ServiceIcon } from "@/components/explore/service-icon";
 import { StatusChip } from "@/components/explore/status-chip";
 import { PageBody } from "@/components/page-section";
@@ -60,16 +59,23 @@ function CapabilitiesListRoute() {
 
   return (
     <PageBody width="comfortable">
-      <DetailHeader
-        eyebrow="Discovery"
-        title="Capabilities"
-        description="Approved cloud platform capabilities. Authority, owner, and entry tools stay scannable side by side."
-        badges={
+      <div className="flex flex-col gap-2 pt-2">
+        <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">
+          Discovery
+        </span>
+        <div className="flex flex-wrap items-baseline gap-3">
+          <h1 className="text-4xl font-bold leading-[1.1] tracking-[-0.03em] text-foreground sm:text-[40px]">
+            Capabilities
+          </h1>
           <Badge variant="outline" className="font-mono text-[10px]">
             topic_type = capability
           </Badge>
-        }
-      />
+        </div>
+        <p className="max-w-[56ch] text-[15px] leading-[1.6] text-muted-foreground">
+          Approved cloud platform capabilities. Authority, owner, and entry tools stay scannable side
+          by side.
+        </p>
+      </div>
 
       <SearchField
         value={query}
@@ -90,7 +96,7 @@ function CapabilitiesListRoute() {
                 <span
                   className={cn(
                     "rounded-full bg-border px-1.5 py-px",
-                    "font-mono text-[10px] font-bold text-muted-foreground",
+                    "font-mono text-[11px] font-bold text-muted-foreground",
                   )}
                 >
                   {items.length}
@@ -167,7 +173,7 @@ function CapabilityCard({
       to="/capabilities/$topicId"
       params={{ topicId: topic.id }}
       className={cn(
-        "group flex flex-col gap-3 rounded-lg border border-border bg-card p-4 transition-[border-color,box-shadow]",
+        "group flex flex-col gap-3 rounded-lg border border-border bg-card p-5 transition-[border-color,box-shadow]",
         "hover:border-border-strong hover:shadow-sm",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
       )}
@@ -176,10 +182,10 @@ function CapabilityCard({
         <div className="flex min-w-0 items-start gap-3">
           {service ? <ServiceIcon serviceId={service.id} size="xl" /> : null}
           <div className="flex min-w-0 flex-col gap-1">
-            <p className="text-[14px] font-bold tracking-[-0.01em] text-foreground">
+            <p className="text-[15px] font-bold tracking-[-0.01em] text-foreground">
               {topic.name}
             </p>
-            <p className="line-clamp-2 text-[12px] leading-5 text-muted-foreground">
+            <p className="line-clamp-2 text-[13px] leading-5 text-muted-foreground">
               {topic.description}
             </p>
           </div>
@@ -202,17 +208,17 @@ function CapabilityCard({
           );
         })}
         {overflow > 0 ? (
-          <span className="rounded border border-border bg-background px-1.5 py-0.5 font-mono text-[10px] font-semibold text-muted-foreground">
+          <span className="rounded border border-border bg-background px-1.5 py-0.5 font-mono text-[11px] font-semibold text-muted-foreground">
             +{overflow}
           </span>
         ) : null}
         {activeLocations.length === 0 ? (
-          <span className="font-mono text-[10px] text-muted-foreground">
+          <span className="font-mono text-[11px] text-muted-foreground">
             no availability projection
           </span>
         ) : null}
       </div>
-      <div className="mt-auto flex items-center justify-between text-[11px] text-muted-foreground">
+      <div className="mt-auto flex items-center justify-between text-[12px] text-muted-foreground">
         <span className="truncate font-semibold text-foreground">{topic.owner_team}</span>
         <span className="font-mono">{topic.support_channel}</span>
       </div>

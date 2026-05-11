@@ -52,7 +52,7 @@ function TopBar() {
     <header
       role="banner"
       className={cn(
-        "sticky top-0 z-40 grid h-[52px] grid-cols-[auto_1fr_auto] items-center gap-2 border-b border-border px-4 sm:px-8",
+        "sticky top-0 z-40 grid h-14 grid-cols-[auto_1fr_auto] items-center gap-2 border-b border-border px-4 sm:px-8",
         "bg-background/85 backdrop-blur-sm",
       )}
     >
@@ -102,7 +102,7 @@ function TopNavLink({ item }: { item: NavItem }) {
       activeOptions={{ exact: item.exact ?? false }}
       activeProps={{ "data-active": "true" } as Record<string, string>}
       className={cn(
-        "rounded-md px-3 py-1.5 text-[13px] font-medium text-muted-foreground transition-colors",
+        "rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors",
         "hover:bg-muted hover:text-foreground",
         "data-[active=true]:bg-brand-tint data-[active=true]:font-semibold data-[active=true]:text-primary",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
@@ -178,7 +178,7 @@ function SheetNavLink({ item, onNavigate }: { item: NavItem; onNavigate: () => v
       activeProps={{ "data-active": "true" } as Record<string, string>}
       onClick={onNavigate}
       className={cn(
-        "flex w-full items-center rounded-md px-3 py-2 text-[13px] font-medium text-muted-foreground transition-colors",
+        "flex w-full items-center rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors",
         "hover:bg-muted hover:text-foreground",
         "data-[active=true]:bg-brand-tint data-[active=true]:font-semibold data-[active=true]:text-primary",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",

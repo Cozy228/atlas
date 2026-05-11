@@ -10,17 +10,12 @@ type RegionStripProps = {
 
 export function RegionStrip({ locations, services, active, onSelect }: RegionStripProps) {
   return (
-    <div
-      role="radiogroup"
-      aria-label="Filter by location"
-      className="grid gap-2"
-      style={{
-        gridTemplateColumns: `repeat(${Math.min(locations.length, 5)}, minmax(0, 1fr))`,
-      }}
-    >
+    <div role="radiogroup" aria-label="Filter by location" className="flex flex-wrap items-center gap-1.5">
+      <span className="mr-1 text-[12px] font-medium text-muted-foreground">Region</span>
       {locations.map((location) => {
         const counts = countByStatus(services, location.id);
         const isActive = active === location.id;
+        const total = counts.available + counts.planned;
         return (
           <button
             key={location.id}
@@ -29,27 +24,24 @@ export function RegionStrip({ locations, services, active, onSelect }: RegionStr
             aria-checked={isActive}
             onClick={() => onSelect(isActive ? null : location.id)}
             className={cn(
-              "rounded-lg border border-border bg-card p-3 text-left transition-[border-color,background-color]",
-              "hover:border-border-strong",
+              "inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 transition-[border-color,background-color]",
+              "hover:border-border-strong hover:bg-muted",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
               isActive && "border-primary bg-brand-tint",
             )}
           >
-            <p className="text-[12px] font-bold tracking-[-0.01em] text-foreground">
-              {location.label}
-            </p>
-            <p className="mb-1.5 text-[10px] text-muted-foreground">{location.sub}</p>
-            <p className="flex flex-wrap gap-2 font-mono text-[10px] font-semibold">
-              {counts.available > 0 ? (
-                <span className="text-success">{counts.available} avail</span>
-              ) : null}
-              {counts.planned > 0 ? (
-                <span className="text-info">{counts.planned} planned</span>
-              ) : null}
-              {counts.available === 0 && counts.planned === 0 ? (
-                <span className="text-muted-foreground">none yet</span>
-              ) : null}
-            </p>
+            <span className="text-[12px] font-semibold text-foreground">{location.label}</span>
+            {total > 0 ? (
+              <span className="font-mono text-[10px] font-semibold text-muted-foreground">
+                {counts.available > 0 ? (
+                  <span className="text-success">{counts.available}</span>
+                ) : null}
+                {counts.available > 0 && counts.planned > 0 ? "/" : null}
+                {counts.planned > 0 ? (
+                  <span className="text-info">{counts.planned}</span>
+                ) : null}
+              </span>
+            ) : null}
           </button>
         );
       })}

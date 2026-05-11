@@ -127,27 +127,18 @@ function ExploreRoute() {
       />
 
       <Section
-        eyebrow="Geography"
-        title="Regions and outposts"
-        description="Pick a location to filter the catalog. Counts reflect available and planned services."
+        eyebrow="Catalog"
+        title="Services"
+        description="Filter by region, status, or domain. Click any service for next steps."
       >
-        <RegionStrip
+        <Controls
           locations={locations}
           services={services}
-          active={activeLocation}
-          onSelect={(id) => {
+          activeLocation={activeLocation}
+          onLocationChange={(id) => {
             setActiveLocation(id);
             resetSelection();
           }}
-        />
-      </Section>
-
-      <Section
-        eyebrow="Catalog"
-        title="Services"
-        description="Switch between domain-grouped cards and a dense matrix. Click any service for next steps."
-      >
-        <Controls
           statusFilter={statusFilter}
           onStatusChange={(value) => {
             setStatusFilter(value);
@@ -202,7 +193,7 @@ function Hero({
         <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">
           Availability
         </span>
-        <h1 className="max-w-[20ch] text-[32px] font-bold leading-[1.1] tracking-[-0.03em] text-foreground sm:text-[34px]">
+        <h1 className="max-w-[20ch] text-4xl font-bold leading-[1.1] tracking-[-0.03em] text-foreground sm:text-[40px]">
           Regional availability map
         </h1>
         <p className="max-w-[52ch] text-[15px] leading-[1.6] text-muted-foreground">
@@ -232,7 +223,7 @@ function Section({
         <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">
           {eyebrow}
         </span>
-        <h2 className="text-[20px] font-bold tracking-[-0.03em] text-foreground">{title}</h2>
+        <h2 className="text-[22px] font-bold tracking-[-0.03em] text-foreground">{title}</h2>
         {description ? (
           <p className="max-w-[52ch] text-[14px] leading-6 text-muted-foreground">{description}</p>
         ) : null}
@@ -246,7 +237,7 @@ function SearchField({ value, onChange }: { value: string; onChange: (value: str
   return (
     <label
       className={cn(
-        "flex h-10 w-full max-w-[520px] items-center gap-2.5 rounded-lg border border-input bg-card px-3",
+        "flex h-11 w-full max-w-[600px] items-center gap-2.5 rounded-lg border border-input bg-card px-3.5",
         "shadow-xs transition-[border-color,box-shadow]",
         "focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/50",
       )}
@@ -265,6 +256,10 @@ function SearchField({ value, onChange }: { value: string; onChange: (value: str
 }
 
 function Controls({
+  locations,
+  services,
+  activeLocation,
+  onLocationChange,
   statusFilter,
   onStatusChange,
   domainFilter,
@@ -274,6 +269,10 @@ function Controls({
   onViewChange,
   resultsLabel,
 }: {
+  locations: ReadonlyArray<{ id: string; label: string; sub: string; kind: "region" | "outpost" }>;
+  services: ReadonlyArray<AvailabilityRecord>;
+  activeLocation: string | null;
+  onLocationChange: (id: string | null) => void;
   statusFilter: LocationStatus | "all";
   onStatusChange: (value: LocationStatus | "all") => void;
   domainFilter: string;
@@ -284,75 +283,83 @@ function Controls({
   resultsLabel: string;
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <div className="flex items-center gap-1.5">
-        <span className="text-[12px] font-medium text-muted-foreground">Status</span>
-        <Select
-          value={statusFilter}
-          onValueChange={(value) => onStatusChange(value as LocationStatus | "all")}
-        >
-          <SelectTrigger size="sm" aria-label="Status" className="text-[12px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent alignItemWithTrigger={false}>
-            {STATUS_OPTIONS.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+    <div className="flex flex-col gap-3 rounded-lg border border-border bg-card p-3">
+      <RegionStrip
+        locations={locations}
+        services={services}
+        active={activeLocation}
+        onSelect={onLocationChange}
+      />
+      <div className="flex flex-wrap items-center gap-2 border-t border-border pt-3">
+        <div className="flex items-center gap-1.5">
+          <span className="text-[12px] font-medium text-muted-foreground">Status</span>
+          <Select
+            value={statusFilter}
+            onValueChange={(value) => onStatusChange(value as LocationStatus | "all")}
+          >
+            <SelectTrigger size="sm" aria-label="Status" className="text-[12px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent alignItemWithTrigger={false}>
+              {STATUS_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
-      <div className="flex items-center gap-1.5">
-        <span className="text-[12px] font-medium text-muted-foreground">Domain</span>
-        <Select
-          value={domainFilter}
+        <div className="flex items-center gap-1.5">
+          <span className="text-[12px] font-medium text-muted-foreground">Domain</span>
+          <Select
+            value={domainFilter}
+            onValueChange={(value) => {
+              if (value) onDomainChange(value);
+            }}
+          >
+            <SelectTrigger size="sm" aria-label="Domain" className="text-[12px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent alignItemWithTrigger={false}>
+              {domainOptions.map((domain) => (
+                <SelectItem key={domain} value={domain}>
+                  {domain === "all" ? "All domains" : domain}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <span className="ml-auto font-mono text-[11px] text-muted-foreground">{resultsLabel}</span>
+
+        <ToggleGroup
+          type="single"
+          value={view}
           onValueChange={(value) => {
-            if (value) onDomainChange(value);
+            if (value === "cards" || value === "matrix") onViewChange(value);
           }}
+          size="sm"
+          spacing={1}
+          aria-label="View mode"
+          className="gap-0.5 rounded-lg bg-muted p-0.5"
         >
-          <SelectTrigger size="sm" aria-label="Domain" className="text-[12px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent alignItemWithTrigger={false}>
-            {domainOptions.map((domain) => (
-              <SelectItem key={domain} value={domain}>
-                {domain === "all" ? "All domains" : domain}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          <ToggleGroupItem
+            value="cards"
+            className="rounded-md border-0 bg-transparent text-[11px] font-semibold aria-pressed:bg-background aria-pressed:shadow-sm"
+          >
+            <IconLayoutGrid className="size-3.5" data-icon="inline-start" />
+            Cards
+          </ToggleGroupItem>
+          <ToggleGroupItem
+            value="matrix"
+            className="rounded-md border-0 bg-transparent text-[11px] font-semibold aria-pressed:bg-background aria-pressed:shadow-sm"
+          >
+            <IconTable className="size-3.5" data-icon="inline-start" />
+            Matrix
+          </ToggleGroupItem>
+        </ToggleGroup>
       </div>
-
-      <span className="ml-auto font-mono text-[11px] text-muted-foreground">{resultsLabel}</span>
-
-      <ToggleGroup
-        type="single"
-        value={view}
-        onValueChange={(value) => {
-          if (value === "cards" || value === "matrix") onViewChange(value);
-        }}
-        size="sm"
-        spacing={1}
-        aria-label="View mode"
-        className="gap-0.5 rounded-lg bg-muted p-0.5"
-      >
-        <ToggleGroupItem
-          value="cards"
-          className="rounded-md border-0 bg-transparent text-[11px] font-semibold aria-pressed:bg-background aria-pressed:shadow-sm"
-        >
-          <IconLayoutGrid className="size-3.5" data-icon="inline-start" />
-          Cards
-        </ToggleGroupItem>
-        <ToggleGroupItem
-          value="matrix"
-          className="rounded-md border-0 bg-transparent text-[11px] font-semibold aria-pressed:bg-background aria-pressed:shadow-sm"
-        >
-          <IconTable className="size-3.5" data-icon="inline-start" />
-          Matrix
-        </ToggleGroupItem>
-      </ToggleGroup>
     </div>
   );
 }
@@ -374,14 +381,14 @@ function CardsView({
     <div className="flex flex-col gap-6">
       {groups.map(([domain, services]) => (
         <section key={domain}>
-          <div className="sticky top-[52px] z-[5] mb-2 flex items-center gap-2 bg-background py-1">
+          <div className="sticky top-14 z-[5] mb-2 flex items-center gap-2 bg-background py-1">
             <h3 className="font-mono text-[11px] font-bold uppercase tracking-[0.05em] text-muted-foreground">
               {domain}
             </h3>
             <span
               className={cn(
                 "rounded-full bg-border px-1.5 py-px",
-                "font-mono text-[10px] font-bold text-muted-foreground",
+                "font-mono text-[11px] font-bold text-muted-foreground",
               )}
             >
               {services.length}

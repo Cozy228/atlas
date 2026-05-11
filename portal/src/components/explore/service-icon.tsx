@@ -3,11 +3,12 @@ import { cn } from "@/lib/utils";
 
 type ServiceIconProps = {
   serviceId: string;
-  size?: "sm" | "md" | "lg" | "xl" | "hero";
+  size?: "sm" | "base" | "md" | "lg" | "xl" | "hero";
 };
 
 const sizeClass = {
   sm: "size-5",
+  base: "size-6",
   md: "size-[30px]",
   lg: "size-9",
   xl: "size-12",
@@ -16,6 +17,7 @@ const sizeClass = {
 
 const iconSize = {
   sm: 18,
+  base: 20,
   md: 22,
   lg: 28,
   xl: 38,
@@ -24,6 +26,7 @@ const iconSize = {
 
 const fallbackClass = {
   sm: "text-[7px]",
+  base: "text-[9px]",
   md: "text-[11px]",
   lg: "text-[12px]",
   xl: "text-[13px]",
