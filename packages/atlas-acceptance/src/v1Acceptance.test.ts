@@ -37,7 +37,7 @@ describe("Atlas V1 acceptance", () => {
 
   it("proves Ask Atlas answers only with accepted citations", async () => {
     const response = handleContextRequest({
-      question: "How do I use Textract from a private subnet?",
+      query: "How do I use Textract from a private subnet?",
     });
     const bundle = ContextBundleResponseSchema.parse(response.body);
     const adapter: LlmAdapter = {
@@ -77,7 +77,7 @@ describe("Atlas V1 acceptance", () => {
       handleContextRequest({ topic_id: "private-networking" }).body,
     );
     const missing = ContextBundleResponseSchema.parse(
-      handleContextRequest({ keyword: "mainframe" }).body,
+      handleContextRequest({ query: "mainframe" }).body,
     );
 
     expect(renderSourceLookup(restricted)).toContain("restricted_source");

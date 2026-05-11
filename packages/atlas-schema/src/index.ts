@@ -145,6 +145,18 @@ export const FeedbackResponseSchema = z
   })
   .strict();
 
+export const TopicResponseSchema = z
+  .object({
+    topic: TopicSchema,
+  })
+  .strict();
+
+export const SourceResponseSchema = z
+  .object({
+    source: SourceSchema,
+  })
+  .strict();
+
 export const SourceDiscoveryRequestSchema = z
   .object({
     query: z.string().min(1).optional(),
@@ -178,8 +190,7 @@ export const ContextRequestSchema = z
     topic_id: z.string().min(1).optional(),
     source_id: z.string().min(1).optional(),
     anchor_id: z.string().min(1).optional(),
-    question: z.string().min(1).optional(),
-    keyword: z.string().min(1).optional(),
+    query: z.string().min(1).optional(),
     disclosure_level: z.number().int().min(0).max(3).optional(),
   })
   .strict();
@@ -287,6 +298,8 @@ export type SourceTopicMapping = z.infer<typeof SourceTopicMappingSchema>;
 export type Feedback = z.infer<typeof FeedbackSchema>;
 export type FeedbackSubmission = z.infer<typeof FeedbackSubmissionSchema>;
 export type FeedbackResponse = z.infer<typeof FeedbackResponseSchema>;
+export type TopicResponse = z.infer<typeof TopicResponseSchema>;
+export type SourceResponse = z.infer<typeof SourceResponseSchema>;
 export type SourceDiscoveryRequest = z.infer<typeof SourceDiscoveryRequestSchema>;
 export type SourceDiscoveryResponse = z.infer<
   typeof SourceDiscoveryResponseSchema

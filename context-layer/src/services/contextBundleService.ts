@@ -49,7 +49,7 @@ export function createDefaultContextBundleService(
       policyDocumentResolver,
     ]),
     contentProvider: createPilotSourceContentProvider(),
-    now: new Date("2026-05-06T00:00:00.000Z"),
+    now: new Date(),
   };
 }
 
@@ -156,7 +156,7 @@ export function buildContextBundle(
   warnings.push(...authorityConflictWarnings(sources));
 
   return {
-    bundle_id: `bundle-${request.topic_id ?? request.source_id ?? request.keyword ?? "query"}`,
+    bundle_id: `bundle-${request.topic_id ?? request.source_id ?? request.query ?? "query"}`,
     request,
     sources: bundleSources,
     anchor_references: buildAnchorReferences(selectedAnchors),
@@ -223,7 +223,7 @@ function selectSources(
       .filter((source): source is Source => Boolean(source));
   }
 
-  const query = request.question ?? request.keyword;
+  const query = request.query;
   if (!query) {
     return [];
   }

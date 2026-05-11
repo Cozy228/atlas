@@ -14,7 +14,7 @@ describe("Ask Atlas server contract", () => {
         question: "How do I use Textract from a private subnet?",
       }),
     ).toEqual({
-      question: "How do I use Textract from a private subnet?",
+      query: "How do I use Textract from a private subnet?",
     });
   });
 
