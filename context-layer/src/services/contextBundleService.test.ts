@@ -26,11 +26,11 @@ describe("context bundle service", () => {
     expect(bundle.expansion_paths.length).toBeGreaterThan(0);
   });
 
-  it("uses question input for deterministic source selection without LLM calls", () => {
+  it("uses query input for deterministic source selection without LLM calls", () => {
     const service = createDefaultContextBundleService();
 
     const bundle = buildContextBundle(service, {
-      question: "How do I use Textract from a private subnet?",
+      query: "How do I use Textract from a private subnet?",
       disclosure_level: 1,
     });
 
@@ -87,7 +87,7 @@ describe("context bundle service", () => {
     const service = createDefaultContextBundleService();
 
     const bundle = buildContextBundle(service, {
-      keyword: "mainframe",
+      query: "mainframe",
       disclosure_level: 1,
     });
 

@@ -15,6 +15,7 @@ import {
   type SourceDiscoveryRequest,
   type TopicDiscoveryRequest,
 } from "@atlas/schema";
+import { z } from "zod";
 
 import { serverContextApiClient } from "./serverContextApiClient.js";
 
@@ -25,6 +26,16 @@ import { serverContextApiClient } from "./serverContextApiClient.js";
  * server function still rejects malformed loader payloads.
  */
 const SERVER_FN_OPTIONS = { method: "GET", strict: { output: false } } as const;
+
+const idSchema = z.string().min(1);
+
+export const fetchTopic = createServerFn(SERVER_FN_OPTIONS)
+  .inputValidator((input: unknown): string => idSchema.parse(input))
+  .handler(async ({ data }) => serverContextApiClient.getTopic(data));
+
+export const fetchSource = createServerFn(SERVER_FN_OPTIONS)
+  .inputValidator((input: unknown): string => idSchema.parse(input))
+  .handler(async ({ data }) => serverContextApiClient.getSource(data));
 
 export const fetchContextBundle = createServerFn(SERVER_FN_OPTIONS)
   .inputValidator((input: unknown): ContextRequest => ContextRequestSchema.parse(input))

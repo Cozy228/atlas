@@ -3,7 +3,9 @@ import {
   ContextBundleResponseSchema,
   FeedbackResponseSchema,
   SourceDiscoveryResponseSchema,
+  SourceResponseSchema,
   TopicDiscoveryResponseSchema,
+  TopicResponseSchema,
   type ContextRequest,
   type FeedbackSubmission,
   type SourceDiscoveryRequest,
@@ -46,6 +48,20 @@ export function createFetchContextApiClient(input: {
   const baseUrl = input.baseUrl.replace(/\/+$/, "");
 
   return {
+    async getTopic(id: string) {
+      return requestJson({
+        fetch: fetchImpl,
+        schema: TopicResponseSchema,
+        url: `${baseUrl}/topics/${encodeURIComponent(id)}`,
+      });
+    },
+    async getSource(id: string) {
+      return requestJson({
+        fetch: fetchImpl,
+        schema: SourceResponseSchema,
+        url: `${baseUrl}/sources/${encodeURIComponent(id)}`,
+      });
+    },
     async getContextBundle(request: ContextRequest) {
       if (request.topic_id) {
         return requestJson({

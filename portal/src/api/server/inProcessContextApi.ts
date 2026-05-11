@@ -10,22 +10,28 @@ import {
   handleContextRequest,
   handleFeedbackRequest,
   handleSourceDiscoveryRequest,
+  handleSourceRequest,
   handleTopicDiscoveryRequest,
+  handleTopicRequest,
 } from "@atlas/context-layer";
 import {
   ApiErrorResponseSchema,
   ContextBundleResponseSchema,
   FeedbackResponseSchema,
   SourceDiscoveryResponseSchema,
+  SourceResponseSchema,
   TopicDiscoveryResponseSchema,
+  TopicResponseSchema,
   type ContextBundleResponse,
   type ContextRequest,
   type FeedbackResponse,
   type FeedbackSubmission,
   type SourceDiscoveryRequest,
   type SourceDiscoveryResponse,
+  type SourceResponse,
   type TopicDiscoveryRequest,
   type TopicDiscoveryResponse,
+  type TopicResponse,
 } from "@atlas/schema";
 
 import type { ContextApiClient } from "../contextApiClient.js";
@@ -52,6 +58,12 @@ function unwrap<TBody>(result: HandlerResult, schema: { parse(input: unknown): T
 }
 
 export const serverContextApiClient: ContextApiClient = {
+  async getTopic(id: string): Promise<TopicResponse> {
+    return unwrap(handleTopicRequest(id), TopicResponseSchema);
+  },
+  async getSource(id: string): Promise<SourceResponse> {
+    return unwrap(handleSourceRequest(id), SourceResponseSchema);
+  },
   async getContextBundle(request: ContextRequest): Promise<ContextBundleResponse> {
     return unwrap(handleContextRequest(request), ContextBundleResponseSchema);
   },

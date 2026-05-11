@@ -2,7 +2,9 @@ import type { ApiErrorResponse, ContextRequest } from "@atlas/schema";
 import { handleContextRequest } from "./contextRoute.js";
 import { handleFeedbackRequest } from "./feedbackRoute.js";
 import { handleSourceDiscoveryRequest } from "./sourceDiscoveryRoute.js";
+import { handleSourceRequest } from "./sourceRoute.js";
 import { handleTopicDiscoveryRequest } from "./topicDiscoveryRoute.js";
+import { handleTopicRequest } from "./topicRoute.js";
 
 export type HttpRequest = {
   method: string;
@@ -30,6 +32,11 @@ export async function handleHttpRequest(request: HttpRequest): Promise<HttpRespo
     return jsonResponse(handleTopicDiscoveryRequest(compactQuery(request.query)));
   }
 
+  const topicIdMatch = path.match(/^\/topics\/([^/]+)$/);
+  if (method === "GET" && topicIdMatch) {
+    return jsonResponse(handleTopicRequest(decodeURIComponent(topicIdMatch[1])));
+  }
+
   const topicContextMatch = path.match(/^\/topics\/([^/]+)\/context$/);
   if (method === "GET" && topicContextMatch) {
     return jsonResponse(
@@ -44,6 +51,11 @@ export async function handleHttpRequest(request: HttpRequest): Promise<HttpRespo
     return jsonResponse(handleSourceDiscoveryRequest(compactQuery(request.query)));
   }
 
+  const sourceIdMatch = path.match(/^\/sources\/([^/]+)$/);
+  if (method === "GET" && sourceIdMatch) {
+    return jsonResponse(handleSourceRequest(decodeURIComponent(sourceIdMatch[1])));
+  }
+
   const sourceContentMatch = path.match(/^\/sources\/([^/]+)\/content$/);
   if (method === "GET" && sourceContentMatch) {
     return jsonResponse(
@@ -52,6 +64,10 @@ export async function handleHttpRequest(request: HttpRequest): Promise<HttpRespo
         ...contextQuery(request.query),
       }),
     );
+  }
+
+  if (method === "GET" && path === "/context") {
+    return jsonResponse(handleContextRequest(contextQuery(request.query)));
   }
 
   if (method === "POST" && path === "/context-bundle") {
@@ -93,6 +109,7 @@ function contextQuery(query: HttpRequest["query"] = {}): Partial<ContextRequest>
   const compacted = compactQuery(query);
   return {
     anchor_id: compacted.anchor_id,
+    query: compacted.query,
     disclosure_level: compacted.disclosure_level
       ? Number(compacted.disclosure_level)
       : undefined,

@@ -52,7 +52,7 @@ export function buildAskContextRequest(input: {
   topicId?: string;
   question: string;
 }): ContextRequest {
-  return input.topicId ? { topic_id: input.topicId } : { question: input.question };
+  return input.topicId ? { topic_id: input.topicId } : { query: input.question };
 }
 
 export async function createAskAtlasResponse(input: {
