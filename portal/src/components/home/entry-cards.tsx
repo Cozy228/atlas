@@ -85,7 +85,7 @@ function EntryCard({ phase, active, onClick, label, description, icon: CardIcon 
       aria-controls={`phase-panel-${phase}`}
       onClick={onClick}
       className={cn(
-        "group flex h-full flex-col gap-3 rounded-xl border border-border bg-card p-5 text-left",
+        "group flex h-full flex-col gap-3 rounded-xl border border-border bg-card p-6 text-left",
         "transition-[border-color,background-color] duration-150",
         "hover:border-border-strong hover:bg-muted",
         "data-[active=true]:border-primary data-[active=true]:bg-brand-tint",
@@ -95,20 +95,20 @@ function EntryCard({ phase, active, onClick, label, description, icon: CardIcon 
       <CardIcon
         aria-hidden
         className={cn(
-          "size-5 text-muted-foreground transition-colors",
+          "size-6 text-muted-foreground transition-colors",
           "group-data-[active=true]:text-primary",
         )}
       />
       <span className="flex flex-col gap-1">
         <span
           className={cn(
-            "text-[14px] font-bold leading-[1.3] tracking-[-0.01em] text-foreground",
+            "text-[15px] font-bold leading-[1.3] tracking-[-0.01em] text-foreground",
             "group-data-[active=true]:text-primary",
           )}
         >
           {label}
         </span>
-        <span className="text-[13px] leading-normal text-muted-foreground">{description}</span>
+        <span className="text-sm leading-normal text-muted-foreground">{description}</span>
       </span>
     </button>
   );

@@ -69,13 +69,13 @@ export function ExpandPanel({ service, locations, onClose }: ExpandPanelProps) {
               return (
                 <li
                   key={location.id}
-                  className="flex items-center justify-between gap-2 rounded-md bg-background px-2.5 py-1.5"
+                  className="flex items-center justify-between gap-2 rounded-md bg-background px-3 py-2"
                 >
                   <span className="flex flex-col">
-                    <span className="text-[12px] font-semibold text-foreground">
+                    <span className="text-[13px] font-semibold text-foreground">
                       {location.label}
                     </span>
-                    <span className="text-[10px] text-muted-foreground">{sub}</span>
+                    <span className="text-[11px] text-muted-foreground">{sub}</span>
                   </span>
                   <StatusChip status={status} text={statusLabel(status)} />
                 </li>
@@ -150,7 +150,7 @@ function ActionButton({ children, primary }: { children: React.ReactNode; primar
     <button
       type="button"
       className={cn(
-        "inline-flex items-center justify-center gap-1 rounded-md px-2.5 py-2 text-[12px] font-semibold transition-colors",
+        "inline-flex items-center justify-center gap-1 rounded-md px-3 py-2 text-[13px] font-semibold transition-colors",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         primary
           ? "bg-primary text-primary-foreground hover:bg-primary/90"

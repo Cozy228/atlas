@@ -71,9 +71,9 @@ type PageBodyProps = {
 };
 
 const PAGE_WIDTHS: Record<NonNullable<PageBodyProps["width"]>, string> = {
-  narrow: "max-w-[860px]",
-  comfortable: "max-w-[1100px]",
-  wide: "max-w-[1280px]",
+  narrow: "max-w-[960px]",
+  comfortable: "max-w-[1200px]",
+  wide: "max-w-[1360px]",
 };
 
 const PAGE_GAPS: Record<NonNullable<PageBodyProps["gap"]>, string> = {

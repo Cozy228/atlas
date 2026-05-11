@@ -53,7 +53,7 @@ export function DetailHeader({
               {eyebrow}
             </span>
             <div className="flex flex-wrap items-baseline gap-3">
-              <h1 className="text-[26px] font-bold tracking-[-0.03em] text-foreground sm:text-[28px]">
+              <h1 className="text-[28px] font-bold tracking-[-0.03em] text-foreground sm:text-[32px]">
                 {title}
               </h1>
               {badges ? (
@@ -104,7 +104,7 @@ export function DetailSection({
               {eyebrow}
             </span>
           ) : null}
-          <h2 className="text-[15px] font-bold tracking-[-0.02em] text-foreground">{title}</h2>
+          <h2 className="text-base font-bold tracking-[-0.02em] text-foreground">{title}</h2>
           {description ? (
             <p className="max-w-[68ch] text-[13px] leading-[1.6] text-muted-foreground">
               {description}
@@ -127,7 +127,7 @@ export function DetailLayout({ main, side }: DetailLayoutProps) {
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_280px] lg:gap-8">
       <div className="flex min-w-0 flex-col gap-6">{main}</div>
-      <aside className="flex flex-col gap-3 lg:sticky lg:top-[68px] lg:self-start">{side}</aside>
+      <aside className="flex flex-col gap-3 lg:sticky lg:top-[72px] lg:self-start">{side}</aside>
     </div>
   );
 }

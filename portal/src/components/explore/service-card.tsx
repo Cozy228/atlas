@@ -28,15 +28,15 @@ export function ServiceCard({ service, locations, selected, onSelect }: ServiceC
       aria-pressed={selected}
       data-selected={selected ? "true" : undefined}
       className={cn(
-        "group flex w-full flex-col gap-2 rounded-lg border border-border bg-card px-3.5 py-3 text-left transition-[border-color,box-shadow]",
+        "group flex w-full flex-col gap-2.5 rounded-lg border border-border bg-card p-4 text-left transition-[border-color,box-shadow]",
         "hover:border-border-strong hover:shadow-sm",
         "data-[selected=true]:border-primary data-[selected=true]:shadow-[0_0_0_2px_color-mix(in_srgb,var(--primary)_8%,transparent)]",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
       )}
     >
       <div className="flex items-center gap-2.5">
-        <ServiceIcon serviceId={service.id} />
-        <span className="text-[13px] font-semibold leading-tight text-foreground">
+        <ServiceIcon serviceId={service.id} size="md" />
+        <span className="text-[15px] font-semibold leading-tight text-foreground">
           {service.name}
         </span>
       </div>

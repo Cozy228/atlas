@@ -28,13 +28,13 @@ colors:
 typography:
   display:
     fontFamily: '"IBM Plex Sans", ui-sans-serif, system-ui'
-    fontSize: "clamp(2rem, 4vw, 2.125rem)"
+    fontSize: "2.25rem / 2.5rem (mobile / sm+)"
     fontWeight: 700
     lineHeight: 1.1
     letterSpacing: "-0.03em"
   headline:
     fontFamily: '"IBM Plex Sans", ui-sans-serif, system-ui'
-    fontSize: "1.25rem"
+    fontSize: "1.375rem"
     fontWeight: 700
     lineHeight: 1.2
     letterSpacing: "-0.02em"
@@ -113,8 +113,8 @@ components:
   search-input:
     backgroundColor: "{colors.surface}"
     textColor: "{colors.ink}"
-    rounded: "{rounded.md}"
-    height: "36px"
+    rounded: "{rounded.default}"
+    height: "44px"
 ---
 
 # Design System: Atlas Portal
@@ -213,10 +213,10 @@ OpenType features `kern`, `liga`, `calt`, `ss03` are enabled for optimal renderi
 
 ### Hierarchy
 
-- **Display** (IBM Plex Sans, 700, 32–34px / `clamp(2rem, 4vw, 2.125rem)`, 1.1 line-height,
+- **Display** (IBM Plex Sans, 700, 36px mobile / 40px sm+, 1.1 line-height,
   −0.03em tracking): Page-level hero headings. Used once per route view. Never on cards or
   repeated in lists.
-- **Headline** (700, 20px, 1.2 line-height, −0.02em tracking): Section titles within a page,
+- **Headline** (700, 22px, 1.2 line-height, −0.02em tracking): Section titles within a page,
   used alongside SectionEyebrow.
 - **Title** (700, 14px, 1.4 line-height, −0.01em tracking): Card headings and capability
   names. High information density; the weight contrast against body text creates scan paths.
@@ -271,11 +271,11 @@ and type sizes are calibrated for density, not breathing room.
 
 ### Navigation (TopBar)
 
-- **Container:** 52px tall, sticky, `border-b` Hairline Border, Canvas at 85% opacity with
+- **Container:** 56px tall, sticky, `border-b` Hairline Border, Canvas at 85% opacity with
   `backdrop-blur-sm`. The blur provides elevation without a shadow.
 - **Brand mark:** 24×24px `rounded-[7px]` Platform Blue block with mono "A" in canvas-white.
   A structural signal, not a logotype.
-- **Nav links:** 13px/medium, transparent background, secondary ink. Hover → Muted Surface
+- **Nav links:** 14px/medium, transparent background, secondary ink. Hover → Muted Surface
   background + Ink text. Active → Brand Tint background + Platform Blue text + semibold.
   Active state communicates current location without extra indicators.
 - **Mobile:** Sheet drawer from the left, identical link styles, triggered by hamburger icon.
@@ -295,12 +295,12 @@ and type sizes are calibrated for density, not breathing room.
 
 ### Inputs / Search Fields
 
-- **Container:** 36px height, `rounded-md` (6px), Hairline Border, Surface White background,
-  left-aligned search icon at 14px.
+- **Container:** 44px height, `rounded-default` (8px), Hairline Border, Surface White background,
+  left-aligned search icon at 16px.
 - **Focus:** Border shifts to Platform Blue + `box-shadow: 0 0 0 3px color-mix(in srgb, Platform Blue 8%, transparent)`.
   The 8% ring is a subtle glow, not a thick outline.
-- **Text:** 13px/400, Ink color. Placeholder in Secondary Ink.
-- **Max-width:** 420px. Search fields do not stretch full-width at large viewport sizes.
+- **Text:** 14px/400, Ink color. Placeholder in Secondary Ink.
+- **Max-width:** 600px. Search fields do not stretch full-width at large viewport sizes.
 
 ### Chips (Status / Availability)
 
