@@ -12,12 +12,16 @@ export function ThemeToggle() {
     mode === "system"
       ? `Theme: system (${resolved})`
       : `Theme: ${mode}`;
+  const tooltip =
+    mode === "system"
+      ? `System (${resolved}) · click for ${next}`
+      : `${mode[0].toUpperCase()}${mode.slice(1)} · click for ${next}`;
 
   return (
     <button
       type="button"
       aria-label={label}
-      title={`Switch to ${next}`}
+      title={tooltip}
       onClick={(e) => setMode(next, e)}
       className={cn(
         "relative flex size-7 items-center justify-center rounded-md text-muted-foreground",

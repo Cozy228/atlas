@@ -10,36 +10,51 @@ type PlatformUpdate = {
   href?: string;
 };
 
-// Static fixture — replace with changelog API once available
+// Static fixture — replace with changelog API once available.
+// Dates are ISO strings; formatDate() renders a relative label.
 const UPDATES: ReadonlyArray<PlatformUpdate> = [
   {
     kind: "new",
     title: "Object Storage (S3-Compatible)",
     description:
       "Added to the catalog. Available in US-East-1 and DC16; multipart upload, versioning, and lifecycle rules supported.",
-    date: "May 8",
+    date: "2025-05-08",
   },
   {
     kind: "policy",
     title: "GDC Deployment Approval",
     description:
       "Two-step approval now required for all GDC landing zone deployments. Provisioning runbook updated.",
-    date: "May 6",
+    date: "2025-05-06",
   },
   {
     kind: "updated",
     title: "Kubernetes Platform",
     description:
       "Authority source refreshed from platform CMDB. Level raised to L1; previously stale anchor resolved.",
-    date: "May 3",
+    date: "2025-05-03",
   },
   {
     kind: "deprecated",
     title: "VMware vSphere Provisioning",
     description: "End-of-life July 31. Migrate to the Cloud VM capability before the deadline.",
-    date: "Apr 28",
+    date: "2025-04-28",
   },
 ];
+
+function formatDate(iso: string): string {
+  const date = new Date(iso);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffDays < 1) return "Today";
+  if (diffDays === 1) return "Yesterday";
+  if (diffDays < 7) return `${diffDays}d ago`;
+  if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`;
+
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
 
 const KIND_CONFIG: Record<UpdateKind, { label: string; tagClass: string }> = {
   new: {
@@ -97,8 +112,11 @@ function UpdateRow({ update, divider }: { update: PlatformUpdate; divider: boole
               {update.title}
             </span>
           )}
-          <time className="shrink-0 font-mono text-[11px] tabular-nums text-muted-foreground">
-            {update.date}
+          <time
+            dateTime={update.date}
+            className="shrink-0 font-mono text-[11px] tabular-nums text-muted-foreground"
+          >
+            {formatDate(update.date)}
           </time>
         </span>
       </div>

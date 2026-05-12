@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import type { Topic, TopicDiscoveryResponse } from "@atlas/schema";
 
 import { topicDiscoveryQueryOptions } from "@/api/queries";
+import { cn } from "@/lib/utils";
 import { EntryCards } from "@/components/home/entry-cards";
 import { JourneyGrid } from "@/components/home/journey-grid";
 import { PlatformUpdates } from "@/components/home/platform-updates";
@@ -48,6 +49,7 @@ function HomeRoute() {
         eyebrow="Developer journey"
         title="From idea to production"
         description="Follow the lifecycle or jump to what you need right now."
+        className="gap-6"
       >
         <JourneyGrid />
       </Section>
@@ -89,14 +91,16 @@ function Section({
   title,
   description,
   children,
+  className,
 }: {
   eyebrow: string;
   title?: string;
   description?: string;
   children: React.ReactNode;
+  className?: string;
 }) {
   return (
-    <section className="flex flex-col gap-4">
+    <section className={cn("flex flex-col gap-4", className)}>
       <SectionEyebrow eyebrow={eyebrow} title={title} description={description} />
       {children}
     </section>

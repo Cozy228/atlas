@@ -1,5 +1,5 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { IconArrowRight, IconExternalLink } from "@tabler/icons-react";
+import { IconArrowRight } from "@tabler/icons-react";
 import type { Topic } from "@atlas/schema";
 
 import { topicDiscoveryQueryOptionsFor } from "@/api/queries";
@@ -67,25 +67,21 @@ function LandingZonesListRoute() {
 
 function ZoneCard({ zone }: { zone: Topic }) {
   return (
-    <article
+    <Link
+      to="/landing-zones/$topicId"
+      params={{ topicId: zone.id }}
       className={cn(
         "group flex h-full flex-col gap-3 rounded-lg border border-border bg-card p-5 transition-[border-color,box-shadow]",
         "hover:border-border-strong hover:shadow-sm",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
       )}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex min-w-0 flex-col gap-1">
-          <Link
-            to="/landing-zones/$topicId"
-            params={{ topicId: zone.id }}
-            className={cn(
-              "inline-flex items-center gap-1 text-[15px] font-bold tracking-[-0.01em] text-foreground",
-              "rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-            )}
-          >
+          <p className="inline-flex items-center gap-1 text-[15px] font-bold tracking-[-0.01em] text-foreground">
             {zone.name}
             <IconArrowRight className="size-3.5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />
-          </Link>
+          </p>
           <p className="line-clamp-2 text-[13px] leading-5 text-muted-foreground">
             {zone.description}
           </p>
@@ -97,32 +93,11 @@ function ZoneCard({ zone }: { zone: Topic }) {
         <DefRow label="Support" value={zone.support_channel} mono />
         <DefRow label="Status" value={zone.status} mono />
       </dl>
-      {zone.entry_tools.length > 0 ? (
-        <div className="flex flex-wrap items-center gap-1.5 border-t border-border pt-3">
-          {zone.entry_tools.slice(0, 3).map((tool) => (
-            <a
-              key={tool.url}
-              href={tool.url}
-              target="_blank"
-              rel="noreferrer noopener"
-              className={cn(
-                "inline-flex items-center gap-1 rounded border border-border bg-background px-1.5 py-0.5",
-                "font-mono text-[11px] font-semibold text-muted-foreground transition-colors",
-                "hover:border-primary hover:text-primary",
-              )}
-            >
-              {tool.label}
-              <IconExternalLink className="size-2.5" aria-hidden />
-            </a>
-          ))}
-          {zone.entry_tools.length > 3 ? (
-            <span className="font-mono text-[10px] text-muted-foreground">
-              +{zone.entry_tools.length - 3}
-            </span>
-          ) : null}
-        </div>
-      ) : null}
-    </article>
+      <div className="mt-auto flex items-center justify-between text-[12px] text-muted-foreground">
+        <span className="truncate font-semibold text-foreground">{zone.owner_team}</span>
+        <span className="font-mono">{zone.support_channel}</span>
+      </div>
+    </Link>
   );
 }
 

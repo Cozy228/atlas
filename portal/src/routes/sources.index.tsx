@@ -1,10 +1,10 @@
 import { useMemo, useState } from "react";
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { IconArrowRight, IconSearch } from "@tabler/icons-react";
+import { IconArrowRight } from "@tabler/icons-react";
 import type { Source } from "@atlas/schema";
 
 import { sourceDiscoveryQueryOptions } from "@/api/queries";
-import { DetailHeader } from "@/components/detail/detail-shell";
+import { CatalogSearchField } from "@/components/catalog-search-field";
 import {
   AuthorityBadge,
   FreshnessIndicator,
@@ -48,18 +48,25 @@ function SourcesListRoute() {
 
   return (
     <PageBody width="comfortable">
-      <DetailHeader
-        eyebrow="Discovery"
-        title="Sources"
-        description="Authoritative source lookup. Authority, freshness, and restricted visibility are visible inline so consumers can verify evidence before citing."
-        badges={
+      <div className="flex flex-col gap-2 pt-2">
+        <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">
+          Discovery
+        </span>
+        <div className="flex flex-wrap items-baseline gap-3">
+          <h1 className="text-4xl font-bold leading-[1.1] tracking-[-0.03em] text-foreground sm:text-[40px]">
+            Sources
+          </h1>
           <Badge variant="outline" className="font-mono text-[10px]">
             authority-ranked
           </Badge>
-        }
-      />
+        </div>
+        <p className="max-w-[56ch] text-[15px] leading-[1.6] text-muted-foreground">
+          Authoritative source lookup. Authority, freshness, and restricted visibility are visible
+          inline so consumers can verify evidence before citing.
+        </p>
+      </div>
 
-      <SearchField
+      <CatalogSearchField
         value={query}
         onChange={setQuery}
         placeholder="Filter sources… title, steward, id, scope"
@@ -77,35 +84,6 @@ function SourcesListRoute() {
         </ul>
       )}
     </PageBody>
-  );
-}
-
-function SearchField({
-  value,
-  onChange,
-  placeholder,
-}: {
-  value: string;
-  onChange: (value: string) => void;
-  placeholder: string;
-}) {
-  return (
-    <label
-      className={cn(
-        "flex h-9 w-full max-w-[420px] items-center gap-2 rounded-lg border border-input bg-card px-2.5 shadow-xs transition-[border-color,box-shadow]",
-        "focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/50",
-      )}
-    >
-      <IconSearch className="size-3.5 text-muted-foreground" />
-      <input
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        type="search"
-        placeholder={placeholder}
-        aria-label={placeholder}
-        className="h-full flex-1 bg-transparent text-[13px] outline-none placeholder:text-muted-foreground"
-      />
-    </label>
   );
 }
 

@@ -18,6 +18,7 @@ import {
 } from "@/components/detail/detail-shell";
 import { EntryToolsGrid } from "@/components/detail/entry-tools-grid";
 import { EvidenceSection } from "@/components/detail/evidence-section";
+import { RelatedColumn } from "@/components/detail/related-column";
 import { FeedbackInlineForm } from "@/components/evidence/feedback-inline-form";
 import { useRecordRecent } from "@/components/home/recently-viewed";
 import { Badge } from "@/components/ui/badge";
@@ -202,40 +203,3 @@ function StatusBadge({ status }: { status: Topic["status"] }) {
   return <Badge variant={variant}>{status}</Badge>;
 }
 
-function RelatedColumn({
-  title,
-  topics,
-  kind,
-}: {
-  title: string;
-  topics: ReadonlyArray<Topic>;
-  kind: "landing-zone" | "capability";
-}) {
-  return (
-    <div className="rounded-lg border border-border bg-card p-3">
-      <p className="mb-2 font-mono text-[10px] font-bold uppercase tracking-[0.05em] text-muted-foreground">
-        {title}
-      </p>
-      <ul className="flex flex-col gap-0.5">
-        {topics.map((topic) => (
-          <li key={topic.id}>
-            <a
-              href={
-                kind === "landing-zone" ? `/landing-zones/${topic.id}` : `/capabilities/${topic.id}`
-              }
-              className={cn(
-                "flex items-center justify-between gap-2 rounded-md px-2 py-1.5 transition-colors",
-                "hover:bg-muted",
-              )}
-            >
-              <span className="text-[12px] font-semibold text-foreground">{topic.name}</span>
-              <span className="font-mono text-[10px] text-muted-foreground">
-                {topic.owner_team}
-              </span>
-            </a>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
