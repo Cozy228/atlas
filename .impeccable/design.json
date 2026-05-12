@@ -1,0 +1,318 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-05-10T05:30:00.000Z",
+  "title": "Design System: Atlas Portal",
+  "extensions": {
+    "colorMeta": {
+      "platform-blue": {
+        "role": "primary",
+        "displayName": "Platform Blue",
+        "canonical": "oklch(46.28% 0.3059 264.18)",
+        "darkCanonical": "oklch(58% 0.26 264.18)",
+        "tonalRamp": [
+          "oklch(15% 0.05 264.18)",
+          "oklch(25% 0.12 264.18)",
+          "oklch(35% 0.22 264.18)",
+          "oklch(46.28% 0.3059 264.18)",
+          "oklch(58% 0.26 264.18)",
+          "oklch(68% 0.22 264.18)",
+          "oklch(78% 0.15 264.18)",
+          "oklch(88% 0.08 264.18)",
+          "oklch(95% 0.04 264.18)"
+        ]
+      },
+      "canvas": {
+        "role": "neutral",
+        "displayName": "Blueprint Canvas",
+        "canonical": "oklch(98.6% 0.005 264.18)",
+        "darkCanonical": "oklch(14% 0.008 264.18)",
+        "tonalRamp": [
+          "oklch(14% 0.008 264.18)",
+          "oklch(22% 0.01 264.18)",
+          "oklch(32% 0.01 264.18)",
+          "oklch(46% 0.008 264.18)",
+          "oklch(62% 0.007 264.18)",
+          "oklch(76% 0.006 264.18)",
+          "oklch(86% 0.005 264.18)",
+          "oklch(93% 0.005 264.18)",
+          "oklch(98.6% 0.005 264.18)"
+        ]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Surface White",
+        "canonical": "oklch(99.5% 0.003 264.18)",
+        "darkCanonical": "oklch(18% 0.01 264.18)"
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "oklch(20% 0.02 264.18)",
+        "darkCanonical": "oklch(93% 0.006 264.18)"
+      },
+      "ink-secondary": {
+        "role": "neutral",
+        "displayName": "Secondary Ink",
+        "canonical": "oklch(48% 0.025 264.18)",
+        "darkCanonical": "oklch(62% 0.012 264.18)"
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Muted Surface",
+        "canonical": "oklch(96% 0.008 264.18)",
+        "darkCanonical": "oklch(20% 0.01 264.18)"
+      },
+      "border": {
+        "role": "neutral",
+        "displayName": "Hairline Border",
+        "canonical": "oklch(91% 0.01 264.18)",
+        "darkCanonical": "oklch(26% 0.01 264.18)"
+      },
+      "border-strong": {
+        "role": "neutral",
+        "displayName": "Structural Border",
+        "canonical": "oklch(82% 0.012 264.18)",
+        "darkCanonical": "oklch(36% 0.012 264.18)"
+      },
+      "brand-tint": {
+        "role": "neutral",
+        "displayName": "Brand Tint",
+        "canonical": "oklch(94% 0.05 264.18)",
+        "darkCanonical": "oklch(24% 0.035 264.18)"
+      },
+      "success": {
+        "role": "semantic",
+        "displayName": "Healthy Green",
+        "canonical": "oklch(58% 0.13 152)",
+        "tonalRamp": [
+          "oklch(15% 0.04 152)",
+          "oklch(26% 0.07 152)",
+          "oklch(38% 0.10 152)",
+          "oklch(50% 0.12 152)",
+          "oklch(58% 0.13 152)",
+          "oklch(68% 0.11 152)",
+          "oklch(78% 0.09 152)",
+          "oklch(88% 0.06 152)",
+          "oklch(94% 0.03 152)"
+        ]
+      },
+      "warning": {
+        "role": "semantic",
+        "displayName": "Amber Alert",
+        "canonical": "oklch(72% 0.16 75)",
+        "tonalRamp": [
+          "oklch(18% 0.05 75)",
+          "oklch(28% 0.08 75)",
+          "oklch(40% 0.12 75)",
+          "oklch(54% 0.14 75)",
+          "oklch(63% 0.15 75)",
+          "oklch(72% 0.16 75)",
+          "oklch(80% 0.14 75)",
+          "oklch(88% 0.10 75)",
+          "oklch(95% 0.05 75)"
+        ]
+      },
+      "critical": {
+        "role": "semantic",
+        "displayName": "Critical Red",
+        "canonical": "oklch(56% 0.18 25)",
+        "tonalRamp": [
+          "oklch(14% 0.05 25)",
+          "oklch(24% 0.09 25)",
+          "oklch(36% 0.14 25)",
+          "oklch(46% 0.17 25)",
+          "oklch(56% 0.18 25)",
+          "oklch(65% 0.16 25)",
+          "oklch(75% 0.13 25)",
+          "oklch(86% 0.08 25)",
+          "oklch(94% 0.04 25)"
+        ]
+      },
+      "info": {
+        "role": "semantic",
+        "displayName": "Informational Sky",
+        "canonical": "oklch(62% 0.12 230)"
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Page-level hero headings. Used once per route view, never on cards."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Section titles within a page, paired with SectionEyebrow."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Card headings and capability names in dense catalog views."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Narrative and descriptive text. Max 52-56ch line length."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Supporting text, card descriptions, secondary copy."
+      },
+      "mono-label": {
+        "displayName": "Mono Label",
+        "purpose": "Structured platform vocabulary: topic types, categories, authority levels, API codes, channel names. Uppercase only."
+      }
+    },
+    "shadows": [
+      {
+        "name": "state-hover",
+        "value": "0 1px 2px 0 rgb(0 0 0 / 0.05)",
+        "purpose": "Hover elevation signal on interactive cards. State-only; never static."
+      },
+      {
+        "name": "focus-ring",
+        "value": "0 0 0 3px color-mix(in srgb, oklch(46.28% 0.3059 264.18) 8%, transparent)",
+        "purpose": "Focus ring on search inputs. Companion to the border-color shift to Platform Blue."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-state",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "duration": "150ms",
+        "purpose": "Default easing for color, border, and shadow state transitions."
+      },
+      {
+        "name": "ease-transform",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "duration": "150ms",
+        "purpose": "Arrow icon micro-translations on card hover."
+      },
+      {
+        "name": "theme-reveal",
+        "value": "clip-path circle-expand via View Transitions API",
+        "duration": "400ms",
+        "purpose": "Light/dark mode toggle. Disabled via ::view-transition-old/new { animation: none } to hand off to JS clip-path animation. Falls back to instant swap."
+      }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The single primary action on a surface. Platform Blue background.",
+      "html": "<button class=\"ds-btn-primary\">Deploy capability</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; background-color: oklch(46.28% 0.3059 264.18); color: oklch(98.6% 0.005 264.18); padding: 6px 16px; border-radius: 8px; border: none; font-family: 'IBM Plex Sans', sans-serif; font-size: 13px; font-weight: 400; line-height: 1.5; cursor: pointer; transition: background-color 0.15s cubic-bezier(0.16, 1, 0.3, 1); } .ds-btn-primary:hover { background-color: oklch(54% 0.28 264.18); } .ds-btn-primary:focus-visible { outline: 2px solid oklch(46.28% 0.3059 264.18); outline-offset: 2px; }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Secondary and tertiary actions. Transparent at rest, muted surface on hover.",
+      "html": "<button class=\"ds-btn-ghost\">Cancel</button>",
+      "css": ".ds-btn-ghost { display: inline-flex; align-items: center; justify-content: center; background: transparent; color: oklch(48% 0.025 264.18); padding: 6px 12px; border-radius: 8px; border: none; font-family: 'IBM Plex Sans', sans-serif; font-size: 13px; font-weight: 500; cursor: pointer; transition: background-color 0.15s cubic-bezier(0.16, 1, 0.3, 1), color 0.15s cubic-bezier(0.16, 1, 0.3, 1); } .ds-btn-ghost:hover { background-color: oklch(96% 0.008 264.18); color: oklch(20% 0.02 264.18); } .ds-btn-ghost:focus-visible { outline: 2px solid oklch(46.28% 0.3059 264.18); outline-offset: 2px; }"
+    },
+    {
+      "name": "Nav Link",
+      "kind": "nav",
+      "refersTo": "nav-link",
+      "description": "TopBar navigation. Active state uses Brand Tint + Platform Blue text.",
+      "html": "<div style=\"display:flex;gap:2px;\"><a class=\"ds-nav-link\" href=\"#\">Home</a><a class=\"ds-nav-link ds-nav-link--active\" href=\"#\">Capabilities</a><a class=\"ds-nav-link\" href=\"#\">Availability</a></div>",
+      "css": ".ds-nav-link { display: inline-flex; align-items: center; padding: 6px 12px; border-radius: 8px; font-family: 'IBM Plex Sans', sans-serif; font-size: 13px; font-weight: 500; color: oklch(48% 0.025 264.18); text-decoration: none; transition: background-color 0.15s cubic-bezier(0.16, 1, 0.3, 1), color 0.15s cubic-bezier(0.16, 1, 0.3, 1); } .ds-nav-link:hover { background-color: oklch(96% 0.008 264.18); color: oklch(20% 0.02 264.18); } .ds-nav-link--active { background-color: oklch(94% 0.05 264.18); color: oklch(46.28% 0.3059 264.18); font-weight: 600; } .ds-nav-link:focus-visible { outline: 2px solid oklch(46.28% 0.3059 264.18); outline-offset: 2px; }"
+    },
+    {
+      "name": "Capability Card",
+      "kind": "card",
+      "refersTo": "capability-card",
+      "description": "Primary catalog item. Navigable; hover reveals border-strong + shadow-sm. No nested anchor ancestors.",
+      "html": "<a class=\"ds-capability-card\" href=\"#\"><div class=\"ds-capability-card__header\"><div class=\"ds-capability-card__meta\"><p class=\"ds-capability-card__name\">S3 Object Storage</p><p class=\"ds-capability-card__description\">Managed object storage with cross-region replication and lifecycle policies.</p></div><svg class=\"ds-capability-card__arrow\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M5 12h14\"/><path d=\"m12 5 7 7-7 7\"/></svg></div><div class=\"ds-capability-card__footer\"><span class=\"ds-capability-card__owner\">Platform Engineering</span><span class=\"ds-capability-card__channel\">#platform-storage</span></div></a>",
+      "css": ".ds-capability-card { display: flex; flex-direction: column; gap: 12px; background-color: oklch(99.5% 0.003 264.18); border: 1px solid oklch(91% 0.01 264.18); border-radius: 8px; padding: 16px; cursor: pointer; transition: border-color 0.15s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.15s cubic-bezier(0.16, 1, 0.3, 1); text-decoration: none; color: inherit; } .ds-capability-card:hover { border-color: oklch(82% 0.012 264.18); box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); } .ds-capability-card:focus-visible { outline: 2px solid oklch(46.28% 0.3059 264.18); outline-offset: 2px; } .ds-capability-card__header { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; } .ds-capability-card__meta { display: flex; flex-direction: column; gap: 4px; min-width: 0; } .ds-capability-card__name { font-family: 'IBM Plex Sans', sans-serif; font-size: 14px; font-weight: 700; letter-spacing: -0.01em; color: oklch(20% 0.02 264.18); margin: 0; } .ds-capability-card__description { font-family: 'IBM Plex Sans', sans-serif; font-size: 12px; line-height: 1.5; color: oklch(48% 0.025 264.18); margin: 0; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; } .ds-capability-card__arrow { color: oklch(48% 0.025 264.18); flex-shrink: 0; transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), color 0.15s cubic-bezier(0.16, 1, 0.3, 1); } .ds-capability-card:hover .ds-capability-card__arrow { transform: translateX(2px); color: oklch(20% 0.02 264.18); } .ds-capability-card__footer { display: flex; justify-content: space-between; align-items: center; font-family: 'IBM Plex Sans', sans-serif; font-size: 11px; color: oklch(48% 0.025 264.18); } .ds-capability-card__owner { font-weight: 600; color: oklch(20% 0.02 264.18); } .ds-capability-card__channel { font-family: 'IBM Plex Mono', monospace; font-size: 11px; }"
+    },
+    {
+      "name": "Search Input",
+      "kind": "input",
+      "refersTo": "search-input",
+      "description": "Inline search / filter field. Focus ring uses Platform Blue at 8% opacity.",
+      "html": "<label class=\"ds-search-field\"><svg class=\"ds-search-icon\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"11\" cy=\"11\" r=\"8\"/><path d=\"m21 21-4.3-4.3\"/></svg><input class=\"ds-search-input\" type=\"search\" placeholder=\"Filter capabilities…\" /></label>",
+      "css": ".ds-search-field { display: flex; height: 36px; width: 100%; max-width: 420px; align-items: center; gap: 8px; padding: 0 10px; border-radius: 6px; border: 1px solid oklch(91% 0.01 264.18); background-color: oklch(99.5% 0.003 264.18); transition: border-color 0.15s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.15s cubic-bezier(0.16, 1, 0.3, 1); cursor: text; } .ds-search-field:focus-within { border-color: oklch(46.28% 0.3059 264.18); box-shadow: 0 0 0 3px color-mix(in srgb, oklch(46.28% 0.3059 264.18) 8%, transparent); } .ds-search-icon { color: oklch(48% 0.025 264.18); flex-shrink: 0; } .ds-search-input { flex: 1; height: 100%; background: transparent; border: none; outline: none; font-family: 'IBM Plex Sans', sans-serif; font-size: 13px; color: oklch(20% 0.02 264.18); } .ds-search-input::placeholder { color: oklch(48% 0.025 264.18); }"
+    },
+    {
+      "name": "Status Chip",
+      "kind": "chip",
+      "description": "Regional availability indicator. Semantic color pairs per status; IBM Plex Mono 10px.",
+      "html": "<div style=\"display:flex;gap:6px;align-items:center;\"><span class=\"ds-chip ds-chip--available\">us-east-1</span><span class=\"ds-chip ds-chip--planned\">eu-west-1 Q3</span><span class=\"ds-chip ds-chip--unavailable\">ap-south-1</span></div>",
+      "css": ".ds-chip { display: inline-flex; align-items: center; padding: 2px 6px; border-radius: 4px; font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 600; white-space: nowrap; } .ds-chip--available { background-color: oklch(88% 0.06 152); color: oklch(38% 0.10 152); } .ds-chip--planned { background-color: oklch(92% 0.08 75); color: oklch(42% 0.12 75); } .ds-chip--unavailable { background-color: oklch(91% 0.01 264.18); color: oklch(48% 0.025 264.18); }"
+    },
+    {
+      "name": "Mono Category Label",
+      "kind": "custom",
+      "description": "Section anchor in catalog views. IBM Plex Mono uppercase + count badge + horizontal rule. The signature structural element of Atlas.",
+      "html": "<div class=\"ds-category-label\"><span class=\"ds-category-label__name\">Compute</span><span class=\"ds-category-label__count\">12</span><hr class=\"ds-category-label__rule\" /></div>",
+      "css": ".ds-category-label { display: flex; align-items: center; gap: 8px; } .ds-category-label__name { font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: oklch(48% 0.025 264.18); white-space: nowrap; } .ds-category-label__count { font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 700; color: oklch(48% 0.025 264.18); background-color: oklch(91% 0.01 264.18); border-radius: 9999px; padding: 1px 6px; } .ds-category-label__rule { flex: 1; border: none; border-top: 1px solid oklch(91% 0.01 264.18); margin: 0; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Control Room",
+    "overview": "Atlas Portal is a briefing interface, not a discovery experience. Like a well-designed control room, it communicates state at a glance through structural discipline rather than spectacle: the right information, at the right density, with nothing in the way. Engineers arrive mid-task with a specific question and the interface answers without ceremony. Every screen earns attention through information integrity, not animation.\n\nThe visual system makes one strong commitment: Platform Blue carries the full weight of action and selection. All other surfaces are tinted near-neutrals that recede and let structured data speak. Depth is expressed through lightness steps alone; shadows appear only as state signals. IBM Plex Mono marks machine-structured vocabulary so that structural metadata is always visually distinct from human prose.\n\nThis system explicitly rejects: cream-and-purple SaaS gradient aesthetics; legacy enterprise blue-grey palettes with heavy sidebars; and DevRel marketing pages where large hero sections compensate for thin content.",
+    "keyCharacteristics": [
+      "All neutrals tinted toward hue 264 (brand), never pure white or black",
+      "IBM Plex Sans for clarity; IBM Plex Mono exclusively for structured platform vocabulary",
+      "Flat-by-tonal-layering: depth through OKLCH lightness steps, not box-shadows",
+      "Platform Blue on ≤10% of any surface — reserved for action and selection",
+      "Monospace uppercase labels serve as structural section anchors, not decoration",
+      "Freshness signals are wired to real data or absent entirely"
+    ],
+    "rules": [
+      {
+        "name": "The One Voice Rule",
+        "body": "Platform Blue is the singular action signal. Its signal value depends entirely on rarity — ≤10% of any screen. When Platform Blue appears, it means: act here, or this is selected. Nowhere else.",
+        "section": "colors"
+      },
+      {
+        "name": "The OKLCH-Only Rule",
+        "body": "All color values are OKLCH. Chroma is always reduced as lightness approaches 0 or 100. No #000 or #fff anywhere.",
+        "section": "colors"
+      },
+      {
+        "name": "The Tint Discipline Rule",
+        "body": "Every neutral in the system is tinted toward hue 264. A chroma of 0.005 is imperceptible but load-bearing. Pure greys are prohibited.",
+        "section": "colors"
+      },
+      {
+        "name": "The Mono Structural Rule",
+        "body": "IBM Plex Mono at 11px/uppercase/semibold is reserved for structured platform vocabulary. It signals 'this is a system value.' Never use Mono for conversational, decorative, or running prose.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat-By-Default Rule",
+        "body": "A surface without a shadow is a surface at rest. Shadows appear only in response to interactive state (hover on navigable cards). Shadows on static surfaces are prohibited.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do use Platform Blue only for interactive and selected states. Keep its coverage to ≤10% of any screen.",
+      "Do use IBM Plex Mono uppercase (11px, 600, 0.05em tracking) for platform vocabulary: topic types, authority levels, category slugs, API codes, support channel names.",
+      "Do express depth through OKLCH lightness steps. Cards appear elevated because they are lighter than canvas, not because they cast a shadow.",
+      "Do wire freshness indicators ('Live', 'Synced') to real data before showing them.",
+      "Do keep body line length under 56ch for descriptive prose.",
+      "Do tint every neutral toward hue 264. A chroma of 0.005 is enough.",
+      "Do use prefers-reduced-motion to disable or minimize animations.",
+      "Do expose broken anchors, stale sources, and unavailable services with semantic chips — calmly, without alarm styling."
+    ],
+    "donts": [
+      "Don't use cream backgrounds, purple gradients, glowing card effects, or AI-generated SaaS aesthetics.",
+      "Don't reproduce legacy enterprise patterns: heavy blue-grey palettes, accordion-nested tables, deep sidebar nesting.",
+      "Don't use large hero sections, flashy scroll effects, or animation that compensates for thin content.",
+      "Don't use border-left or border-right greater than 1px as a colored accent stripe on cards or list items.",
+      "Don't use gradient text (background-clip: text with a gradient). Use a single solid color.",
+      "Don't show 'Live', 'Synced just now', or any freshness indicator as decorative copy.",
+      "Don't use #000 or #fff anywhere. Every surface, text, and border is a tinted OKLCH value.",
+      "Don't add box-shadows to static surfaces. shadow-sm is a hover state, not ambient depth.",
+      "Don't use IBM Plex Mono for conversational, decorative, or non-structured text.",
+      "Don't wrap interactive cards in an outer <a> tag that contains other <a> elements."
+    ]
+  }
+}

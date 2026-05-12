@@ -1,0 +1,20 @@
+import {
+  type ApiErrorResponse,
+  type SourceResponse,
+} from "@atlas/schema";
+import { createDefaultContextBundleService } from "../services/contextBundleService.js";
+import type { ApiResponse } from "./routeTypes.js";
+import { errorResponse } from "./routeTypes.js";
+
+export function handleSourceRequest(
+  sourceId: string,
+): ApiResponse<ApiErrorResponse | SourceResponse> {
+  const service = createDefaultContextBundleService();
+  const source = service.registry.sources.getById(sourceId);
+
+  if (!source) {
+    return errorResponse(404, "source_not_found", "Source was not found in the Atlas registry.");
+  }
+
+  return { status: 200, body: { source } };
+}

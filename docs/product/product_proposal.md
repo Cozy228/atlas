@@ -4,7 +4,7 @@
 
 Atlas is an internal cloud platform portal for application teams.
 
-It helps teams discover cloud platform capabilities, navigate landing zones, find authoritative guidance, and ask citation-backed cloud platform questions from one place. Atlas does not replace Terraform Enterprise, Harness, Confluence, Git repositories, or policy documents. It organizes them into a governed product experience.
+It helps teams discover cloud platform capabilities, navigate landing zones, find authoritative guidance, and get citation-backed cloud platform context from one place. Atlas does not replace Terraform Enterprise, Harness, Confluence, Git repositories, or policy documents. It organizes them into a governed product experience.
 
 The human-facing product is **Atlas Portal**. The backend capability is **Atlas Context Layer**. The Context Layer registers governed sources, maps authority, resolves source-native anchors, and returns context bundles that the Portal, AI consumers, and future automation can use.
 
@@ -13,7 +13,7 @@ V1 should prove a narrow but complete loop:
 1. A user can find a platform capability or landing zone in Atlas Portal.
 2. Atlas can show the right owner, support path, tool entry point, and authoritative sources.
 3. Atlas can retrieve citation-ready context from registered sources.
-4. Ask Atlas can answer only from registered context and show citations.
+4. A Portal or AI consumer can answer only from registered context and show citations.
 
 ## Product Naming
 
@@ -23,7 +23,7 @@ V1 should prove a narrow but complete loop:
 | Atlas Portal | Human-facing internal cloud platform portal |
 | Atlas Context Layer | Backend governed context layer |
 | Atlas Context API | Consumer-neutral API exposed by the Context Layer |
-| Ask Atlas | AI-assisted question experience in the Portal |
+| Ask Atlas | Example AI-assisted question experience in the Portal |
 
 This naming keeps the product simple for users: they open Atlas. Internally, engineering can still preserve the Context Layer boundary.
 
@@ -53,7 +53,8 @@ It is:
 - **Source-native**, because existing systems remain the source of truth.
 - **Authority-aware**, because it shows which sources are official, reference, draft, deprecated, or stale.
 - **Navigation-first**, because application teams need to find the right capability, landing zone, guidance, and support path.
-- **AI-ready**, because Ask Atlas can reason over governed context without becoming the authority itself.
+- **AI-ready**, because Portal, local agents, CLI tools, and automation consumers can reason over governed context without becoming the authority itself.
+- **No Auth for V1**, because the first release is designed for a trusted internal environment without user registration or login flows.
 
 Atlas is not:
 
@@ -73,7 +74,7 @@ Atlas should support these jobs first:
 | I want to use an approved AWS capability | Show the capability page, owner, tool entry points, source badges, and how-to-start path |
 | I need to understand landing zones | Show landing zone cards, environment matrix, guardrails, onboarding path, and support path |
 | I need the official guidance | Show authoritative sources, review status, and exact source locations |
-| I have a cloud platform question | Ask Atlas returns a cited answer based only on registered sources |
+| I have a cloud platform question | A Portal or AI consumer returns a cited answer based only on registered sources |
 | I found stale or missing guidance | Provide a feedback path tied to source owner and topic owner |
 
 ## V1 Product Scope
@@ -89,8 +90,9 @@ V1 should be broad enough to feel like a real portal, but narrow enough to prove
 | Capability Detail Page | Show overview, owner, support path, entry tools, authoritative sources, and source warnings |
 | Landing Zone Navigator | Show landing zone cards, environment matrix, guardrail summary, onboarding path, and tool links |
 | Authoritative Source Lookup | Surface registered sources, authority level, review freshness, and broken-anchor warnings |
-| Ask Atlas | AI answer with citations, authority badges, and source freshness signals |
+| AI Consumer Contract | Context bundle that Portal Ask UI, local agent skills, CLI tools, MCP tools, and automation workflows can use with citations |
 | Feedback Path | Let users report missing capability, stale source, broken link, or unclear guidance |
+| No Auth Operating Model | V1 does not add user registration, login, or identity-based application access |
 
 ### Out of Scope
 
@@ -102,7 +104,8 @@ V1 should be broad enough to feel like a real portal, but narrow enough to prove
 | Full document migration | Source systems remain the authoring surfaces |
 | General-purpose search | V1 uses registry lookup and authority mapping, not full-text or vector search |
 | AI-generated source edits | Owners approve source changes outside Atlas |
-| Admin UI for registry management | V1 can use seed data or API-based registration |
+| Admin UI for registry management | Registry maintenance is not a user-facing product surface in V1 |
+| User authentication flows | V1 is designed for a trusted internal operating environment |
 
 ## Atlas Portal Experience
 
@@ -120,7 +123,7 @@ Primary entry points:
 - Deploy with Harness.
 - Check cloud guardrails.
 - Get support.
-- Ask Atlas.
+- Ask a cited platform question.
 
 The home page should also show recently updated capabilities, stale or broken source warnings, and commonly used capability cards.
 
@@ -156,9 +159,9 @@ The Landing Zone Navigator should answer:
 
 It is not a landing zone management portal. It is a navigation and guidance surface.
 
-### Ask Atlas
+### AI-Assisted Discovery
 
-Ask Atlas is the AI-assisted discovery path.
+Ask Atlas is one possible Portal presentation of the AI-assisted discovery path. The same governed context contract should also support local AI agents, CLI tools, MCP tools, and automation consumers.
 
 It should:
 
@@ -179,7 +182,7 @@ It should not:
 
 ## Atlas Context Layer
 
-The Context Layer is the backend part of Atlas. It provides governed context delivery to Atlas Portal, Ask Atlas, AI agents, and future consumers.
+The Context Layer is the backend part of Atlas. It provides governed context delivery to Atlas Portal, Ask Atlas, local AI agents, CLI tools, MCP tools, automation workflows, and future consumers.
 
 It owns:
 
@@ -187,11 +190,11 @@ It owns:
 - Topic registry.
 - Source-topic mapping.
 - Authority mapping.
-- Access and visibility filtering.
+- Visibility metadata and access warning packaging.
 - Locator and anchor resolution.
 - Context bundle assembly.
 - Citation and provenance packaging.
-- Warning propagation for stale, broken, inaccessible, or conflicting evidence.
+- Warning propagation for stale, broken, restricted, unavailable, or conflicting evidence.
 
 It does not own:
 
@@ -206,15 +209,17 @@ The key boundary is simple: **Atlas Context Layer selects, resolves, and package
 
 ## Data Model Summary
 
-V1 should keep three core records:
+V1 should keep these core records:
 
 | Record | Purpose |
 |---|---|
 | Source | Governance entity: where knowledge lives, who stewards it, what it is authoritative for, and how anchors resolve |
 | Topic | Navigation entity: what users search or browse for, such as capability, landing zone, or guardrail area |
+| Anchor | Addressability entity: which source-native section, heading, or clause can be cited and expanded |
 | SourceTopicMapping | Relationship entity: which sources support which topics |
+| Feedback | Operational signal: what users report as missing, stale, broken, or unclear |
 
-Governance fields live on Source. User navigation fields live on Topic. The mapping keeps the relationship explicit without turning Atlas into a CMDB.
+Governance fields live on Source. User navigation fields live on Topic. Addressability lives on Anchor. The mapping keeps relationships explicit without turning Atlas into a CMDB.
 
 ## System Shape
 
@@ -227,7 +232,7 @@ Atlas Portal
   - Capability Discovery
   - Landing Zone Navigator
   - Authoritative Source Lookup
-  - Ask Atlas
+  - Ask Atlas or another AI consumer
         |
         v
 Atlas Context API
@@ -246,20 +251,6 @@ Existing Source Systems
   - TFE links
   - Harness links
 ```
-
-## Technology Direction
-
-| Component | Direction |
-|---|---|
-| Atlas Portal | TanStack Start + Vite |
-| Atlas Context API | API Gateway + Lambda |
-| Registry store | DynamoDB |
-| Source retrieval | Request-time retrieval from registered source systems |
-| Source credentials | Secrets Manager or Parameter Store |
-| AI reasoning | Portal-side adapter, such as Bedrock or another approved model provider |
-| Observability | CloudWatch |
-
-V1 should not add OpenSearch, queues, Step Functions, or a background ingestion system. If caching is needed, it should be TTL-based and disposable.
 
 ## Governance Model
 
@@ -337,16 +328,17 @@ Deliver:
 - Context bundle API.
 - Warning model.
 
-### Phase 2: Ask Atlas
+### Phase 2: AI Consumer Contract
 
 Goal: prove governed AI-assisted documentation discovery as the AI-facing V1 increment.
 
 Deliver:
 
-- Portal-side LLM adapter.
+- Portal Ask UI or another thin AI consumer example.
+- Consumer-side LLM adapter.
 - Prompt construction from context bundles only.
 - Citation validation.
-- AI answer UI with citations, authority badges, and warnings.
+- AI answer or action output with citations, authority badges, and warnings.
 - No-source-found and conflict-handling behavior.
 
 ### Phase 3: Documentation Health
@@ -373,7 +365,7 @@ Atlas should be sold as a product experience and built with a strict backend bou
 
 ### AI in V1
 
-Ask Atlas is valuable because the guideline explicitly points toward AI-based documentation discovery. The risk is scope growth. The control is that Ask Atlas uses only registered context bundles and does not own reasoning authority inside the Context Layer.
+AI in V1 is valuable because the guideline explicitly points toward AI-based documentation discovery. The risk is scope growth. The control is that any AI consumer uses only registered context bundles and does not own reasoning authority inside the Context Layer.
 
 ### Content Maintenance
 
@@ -381,7 +373,7 @@ Atlas should not create long-form duplicate pages. Capability and landing zone p
 
 ## Recommended Positioning Statement
 
-Atlas gives application teams one place to discover cloud platform capabilities, understand landing zones, find authoritative guidance, and ask citation-backed platform questions.
+Atlas gives application teams one place to discover cloud platform capabilities, understand landing zones, find authoritative guidance, and get citation-backed platform context.
 
 It does not replace existing tools or documentation. It turns them into a governed, navigable platform experience by adding source registration, authority mapping, owner metadata, source freshness, locator resolution, and context delivery.
 

@@ -8,7 +8,7 @@ Rules that AI must follow when implementing the Atlas design. Check every code c
 
 2. `context-layer` must not import from `portal`. `portal` must not import from `context-layer` internals — only through the API client.
 
-3. All LLM-related code (prompt construction, model invocation, response parsing) lives in `portal`, never in `context-layer`. If you find yourself adding an LLM dependency to `context-layer`, stop — the boundary is wrong.
+3. All LLM-related code implemented in this repository (prompt construction, model invocation, response parsing) lives in the consumer layer, with Portal-specific LLM code in `portal`, never in `context-layer`. If you find yourself adding an LLM dependency to `context-layer`, stop — the boundary is wrong.
 
 4. Consumer-specific rendering, formatting, or presentation logic belongs in `portal`. If a function only makes sense for one consumer, it does not belong in `context-layer`.
 
@@ -18,15 +18,15 @@ Rules that AI must follow when implementing the Atlas design. Check every code c
 
 6. API request and response types must be defined in a shared schema package (e.g., OpenAPI spec or shared TypeScript types). Both `context-layer` and `portal` reference this schema. Do not duplicate type definitions.
 
-7. Every API endpoint must return structured error responses with error codes, not raw exceptions. Consumers must be able to programmatically distinguish between "source not found," "anchor broken," "source unavailable," and "access denied."
+7. Every API endpoint must return structured error responses with error codes, not raw exceptions. Consumers must be able to programmatically distinguish between "source not found," "anchor broken," "source unavailable," and "source restricted."
 
-8. Context bundle responses must always include: `sources` (with authority metadata), `warnings` (stale, broken, conflict signals), and `expansion_paths`. Never return a context bundle without these three fields, even if they are empty arrays.
+8. Context bundle responses must always include: `sources` (with authority metadata), `anchors` or `anchor_references`, `warnings` (stale, broken, conflict signals), and `expansion_paths`. Never return a context bundle without these fields, even if they are empty arrays.
 
 ## Data Model
 
 9. Governance metadata (authority_level, authority_scope, steward, last_reviewed_at, review_frequency) lives on Source entities only. Never duplicate governance fields onto Topic entities or Source-Topic mapping records.
 
-10. Source and Topic are linked through an explicit mapping table/collection, not through embedded arrays. A Source document must not contain a list of topic IDs, and a Topic document must not contain a list of source IDs. The mapping is its own entity.
+10. Source and Topic are linked through an explicit mapping table/collection, not through embedded arrays. A Source document must not contain a list of topic IDs, and a Topic document must not contain a list of source IDs. The mapping is its own entity. Anchor records are linked to Source by `source_id`, not embedded as long-form source content.
 
 11. Every Source record must have: `id`, `source_class`, `location`, `steward`, `authority_level`, `authority_scope`. These fields are non-nullable. Do not create a Source without all of them.
 
@@ -40,9 +40,9 @@ Rules that AI must follow when implementing the Atlas design. Check every code c
 
 ## Source Access
 
-16. Source content is fetched at request time, not pre-ingested. Do not build background jobs, queues, or pipelines that pull and store source content. If you need caching, use a TTL-based cache that is explicitly disposable — the system must function without it.
+16. Source content is fetched at request time, not pre-ingested. Do not build background jobs, queues, or pipelines that pull and store source content. Atlas may store source metadata, anchor selectors, validation status, and optional fingerprints, but not a durable mirror of source content. If you need caching, use a TTL-based cache that is explicitly disposable — the system must function without it.
 
-17. Each source class has its own anchor resolver module. Anchor resolvers are registered by source class, not hardcoded in a switch statement. Adding a new source class means adding a new resolver module and registering it.
+17. Each source class has its own fetcher and anchor resolver module. Fetchers and anchor resolvers are registered by source class, not hardcoded in a switch statement. Adding a new source class means adding a new fetcher or explicitly reusing an existing fetcher, adding a new resolver module, and registering them.
 
 18. When a source system is unreachable at request time, the context bundle must still be returned with available sources. Mark unreachable sources with a `source_unavailable` warning. Never fail an entire request because one source is down.
 
@@ -62,21 +62,21 @@ Rules that AI must follow when implementing the Atlas design. Check every code c
 
 24. Do not mock the data model layer in API tests. Use an in-memory or local DynamoDB instance. Mocking the database hides schema mismatches.
 
-## AI Consumer Layer (Portal Side)
+## AI Consumer Layer
 
-25. The prompt sent to the LLM must include only content from the Atlas context bundle. Do not inject additional knowledge, system prompts with domain facts, or hardcoded platform guidance. If it is not in the context bundle, the AI does not know it.
+25. Any AI consumer prompt sent to an LLM must include only content from the Atlas context bundle plus the user's request. Do not inject additional knowledge, system prompts with domain facts, or hardcoded platform guidance. If it is not in the context bundle, the AI does not know it.
 
-26. Every factual claim in the AI response must map to a citation from the context bundle. The Portal must validate this before displaying. If the AI produces a claim without a citation, strip it or flag it as unverified.
+26. Every factual claim in the AI response must map to a citation from the context bundle. The consumer must validate this before displaying an answer or taking an action. If the AI produces a claim without a citation, strip it or flag it as unverified.
 
-27. The LLM integration must be behind an interface/adapter. The rest of Portal code calls the adapter, not the LLM SDK directly. Swapping the model (Bedrock Claude → Bedrock Nova → external API) must require changing only the adapter implementation.
+27. The LLM integration must be behind an interface/adapter. Consumer code calls the adapter, not the LLM SDK directly. Swapping the model (Bedrock Claude → Bedrock Nova → external API) must require changing only the adapter implementation.
 
-28. AI rate limits (per-user, per-day) must be enforced at the Portal backend layer, not delegated to the LLM provider's rate limiting. Portal must own its own cost controls.
+28. If Portal provides hosted AI invocation, AI rate limits (per-user, per-day) must be enforced at the Portal backend layer, not delegated to the LLM provider's rate limiting. Local agent consumers may own their own invocation policy.
 
 ## Technology
 
-29. Portal frontend: TanStack Start + Vite. Do not introduce additional frontend frameworks (no Next.js, no Remix, no Astro).
+29. Portal frontend: TanStack Start + Vite. Do not introduce additional frontend frameworks (no Next.js, no Remix, no Astro). V1 may use a static or SPA-mode build for delivery if the Context API remains the data boundary.
 
-30. Context Layer: AWS Lambda + API Gateway + DynamoDB. Do not introduce additional AWS services (no SQS, no Step Functions, no OpenSearch) in V1 without updating this constraint.
+30. Context Layer: AWS Lambda + API Gateway + DynamoDB. Do not introduce additional Context Layer services (no SQS, no Step Functions, no OpenSearch) in V1 without updating this constraint. Portal hosting can use the approved V1 hosting path as long as it is defined as infrastructure as code.
 
 31. Infrastructure is defined as code. No manually provisioned production resources. If you cannot express it in Terraform or CDK, it does not go to production.
 
@@ -92,7 +92,7 @@ Rules that AI must follow when implementing the Atlas design. Check every code c
 
 36. Define API contracts schema-first before implementing route handlers or Portal clients. The Portal API client must depend on the shared contract; do not copy response types into Portal code.
 
-37. Portal server-side code may call the Atlas Context API and the LLM adapter. Portal browser code must not call the LLM provider directly.
+37. Portal server-side code may call the Atlas Context API and the LLM adapter. Portal browser code must not call the LLM provider directly. Local AI agents or CLI consumers call the Atlas Context API as external consumers, not through Context Layer internals.
 
 38. LLM credentials and source-system credentials must never enter the browser bundle, seed data, fixtures, or committed files. Load them only from approved deployment environment, Secrets Manager, or Parameter Store.
 
@@ -102,7 +102,7 @@ Rules that AI must follow when implementing the Atlas design. Check every code c
 
 41. Use Vitest for TypeScript unit and API tests unless this constraint is updated. Use Playwright for Portal end-to-end or interaction tests when browser behavior matters.
 
-42. Do not rely on snapshot tests alone for context bundles, citations, access filtering, warnings, or AI answer validation. These behaviors require explicit assertions.
+42. Do not rely on snapshot tests alone for context bundles, citations, visibility signals, warnings, or AI answer validation. These behaviors require explicit assertions.
 
 43. Portal UI must not hardcode pilot source truth. Capability, landing zone, source badge, authority, freshness, and warning data must come from registry/API data or explicit seed data.
 
@@ -122,7 +122,7 @@ Rules that AI must follow when implementing the Atlas design. Check every code c
 
 49. Do not build a background sync/ingest pipeline. V1 is request-time only.
 
-50. Do not build user authentication/registration for the Portal. V1 uses organizational SSO or IAM-based access. Do not implement username/password flows.
+50. Do not build user authentication, registration, SSO, or identity-based application access for V1. V1 is designed for a trusted internal operating environment. Source-system and model credentials still remain server-side and must not be exposed to browser code or committed files.
 
 51. Do not build an admin UI for source registration in V1. Source and topic registration is done via API calls or seed scripts. The admin UI is a post-V1 concern.
 
