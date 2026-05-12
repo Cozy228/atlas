@@ -8,7 +8,7 @@
  */
 import { createServerFn } from "@tanstack/react-start";
 
-export type LocationKind = "region" | "outpost";
+type LocationKind = "region" | "outpost";
 
 export type LocationStatus = "available" | "planned" | "interim" | "not-planned";
 
@@ -19,7 +19,7 @@ export type Location = {
   kind: LocationKind;
 };
 
-export type LocationAvailability = {
+type LocationAvailability = {
   status: LocationStatus;
   /** ETA label for planned, interim caveat note for interim, etc. */
   note?: string;

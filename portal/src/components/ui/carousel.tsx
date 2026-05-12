@@ -14,7 +14,6 @@ type CarouselProps = {
   opts?: CarouselOptions;
   plugins?: CarouselPlugin;
   orientation?: "horizontal" | "vertical";
-  setApi?: (api: CarouselApi) => void;
 };
 
 type CarouselContextProps = {
@@ -41,7 +40,6 @@ function useCarousel() {
 function Carousel({
   orientation = "horizontal",
   opts,
-  setApi,
   plugins,
   className,
   children,
@@ -56,12 +54,16 @@ function Carousel({
   );
   const [canScrollPrev, setCanScrollPrev] = React.useState(false);
   const [canScrollNext, setCanScrollNext] = React.useState(false);
-
-  const onSelect = React.useCallback((api: CarouselApi) => {
-    if (!api) return;
-    setCanScrollPrev(api.canScrollPrev());
-    setCanScrollNext(api.canScrollNext());
+  const syncScrollButtons = React.useCallback((nextApi: CarouselApi) => {
+    if (!nextApi) return;
+    setCanScrollPrev(nextApi.canScrollPrev());
+    setCanScrollNext(nextApi.canScrollNext());
   }, []);
+  const syncScrollButtonsRef = React.useRef(syncScrollButtons);
+
+  React.useEffect(() => {
+    syncScrollButtonsRef.current = syncScrollButtons;
+  }, [syncScrollButtons]);
 
   const scrollPrev = React.useCallback(() => {
     api?.scrollPrev();
@@ -84,21 +86,20 @@ function Carousel({
     [scrollPrev, scrollNext],
   );
 
-  React.useEffect(() => {
-    if (!api || !setApi) return;
-    setApi(api);
-  }, [api, setApi]);
 
   React.useEffect(() => {
     if (!api) return;
-    onSelect(api);
-    api.on("reInit", onSelect);
-    api.on("select", onSelect);
+    const syncScrollButtonState = () => syncScrollButtonsRef.current(api);
+
+    syncScrollButtonState();
+    api.on("reInit", syncScrollButtonState);
+    api.on("select", syncScrollButtonState);
 
     return () => {
-      api?.off("select", onSelect);
+      api.off("reInit", syncScrollButtonState);
+      api.off("select", syncScrollButtonState);
     };
-  }, [api, onSelect]);
+  }, [api]);
 
   return (
     <CarouselContext.Provider
@@ -225,4 +226,5 @@ export {
   CarouselItem,
   CarouselPrevious,
   CarouselNext,
+  useCarousel,
 };

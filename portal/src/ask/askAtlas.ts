@@ -5,7 +5,7 @@ export type AskAtlasClaim = {
   citation_ids: string[];
 };
 
-export type LlmAdapterResult = {
+type LlmAdapterResult = {
   claims: AskAtlasClaim[];
 };
 

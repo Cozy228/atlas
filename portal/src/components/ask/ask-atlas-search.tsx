@@ -207,7 +207,6 @@ export function AskAtlasSearch({
             type="search"
             placeholder="Search for anything…"
             aria-label="Search Atlas catalog"
-            autoFocus
             className="h-full flex-1 bg-transparent text-base text-foreground outline-none placeholder:text-muted-foreground"
           />
           {isLoading ? (

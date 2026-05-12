@@ -131,14 +131,14 @@ function DomainRows({
                 const status = cell?.status ?? "not-planned";
                 const text =
                   status === "not-planned"
-                    ? "—"
+                    ? "Not planned"
                     : status === "planned" && cell?.note
                       ? `${statusLabel(status)} ${cell.note}`
                       : statusLabel(status);
                 return (
                   <td key={location.id} className="whitespace-nowrap px-3 py-2.5 align-middle">
                     {status === "not-planned" ? (
-                      <span className="font-mono text-[11px] text-muted-foreground/70">—</span>
+                      <span className="font-mono text-[11px] text-muted-foreground/70">Not planned</span>
                     ) : (
                       <StatusChip status={status} text={text} size="sm" />
                     )}

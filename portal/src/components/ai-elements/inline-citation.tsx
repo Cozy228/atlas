@@ -1,8 +1,7 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
-import type { CarouselApi } from "@/components/ui/carousel";
-import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
+import { Carousel, CarouselContent, CarouselItem, useCarousel } from "@/components/ui/carousel";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { cn } from "@/lib/utils";
 import {
@@ -10,7 +9,7 @@ import {
   IconArrowRight as ArrowRightIcon,
 } from "@tabler/icons-react";
 import type { ComponentProps } from "react";
-import { createContext, use, useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export type InlineCitationProps = ComponentProps<"span">;
 
@@ -58,12 +57,6 @@ export const InlineCitationCardBody = ({ className, ...props }: InlineCitationCa
   <HoverCardContent className={cn("relative w-80 p-0", className)} {...props} />
 );
 
-const CarouselApiContext = createContext<CarouselApi | undefined>(undefined);
-
-const useCarouselApi = () => {
-  const context = use(CarouselApiContext);
-  return context;
-};
 
 export type InlineCitationCarouselProps = ComponentProps<typeof Carousel>;
 
@@ -71,17 +64,11 @@ export const InlineCitationCarousel = ({
   className,
   children,
   ...props
-}: InlineCitationCarouselProps) => {
-  const [api, setApi] = useState<CarouselApi>();
-
-  return (
-    <CarouselApiContext.Provider value={api}>
-      <Carousel className={cn("w-full", className)} setApi={setApi} {...props}>
-        {children}
-      </Carousel>
-    </CarouselApiContext.Provider>
-  );
-};
+}: InlineCitationCarouselProps) => (
+  <Carousel className={cn("w-full", className)} {...props}>
+    {children}
+  </Carousel>
+);
 
 export type InlineCitationCarouselContentProps = ComponentProps<"div">;
 
@@ -120,31 +107,34 @@ export const InlineCitationCarouselIndex = ({
   className,
   ...props
 }: InlineCitationCarouselIndexProps) => {
-  const api = useCarouselApi();
+  const { api } = useCarousel();
   const [current, setCurrent] = useState(0);
   const [count, setCount] = useState(0);
+  const syncStateRef = useRef<() => void>(() => {});
 
-  const syncState = useCallback(() => {
-    if (!api) {
-      return;
-    }
-    setCount(api.scrollSnapList().length);
-    setCurrent(api.selectedScrollSnap() + 1);
+  useEffect(() => {
+    syncStateRef.current = () => {
+      if (!api) {
+        return;
+      }
+      setCount(api.scrollSnapList().length);
+      setCurrent(api.selectedScrollSnap() + 1);
+    };
+    syncStateRef.current();
   }, [api]);
 
   useEffect(() => {
     if (!api) {
       return;
     }
+    const syncCarouselIndex = () => syncStateRef.current();
 
-    syncState();
-
-    api.on("select", syncState);
+    api.on("select", syncCarouselIndex);
 
     return () => {
-      api.off("select", syncState);
+      api.off("select", syncCarouselIndex);
     };
-  }, [api, syncState]);
+  }, [api]);
 
   return (
     <div
@@ -165,9 +155,9 @@ export const InlineCitationCarouselPrev = ({
   className,
   ...props
 }: InlineCitationCarouselPrevProps) => {
-  const api = useCarouselApi();
+  const { api } = useCarousel();
 
-  const handleClick = useCallback(() => {
+  const showPreviousCitation = useCallback(() => {
     if (api) {
       api.scrollPrev();
     }
@@ -177,7 +167,7 @@ export const InlineCitationCarouselPrev = ({
     <button
       aria-label="Previous"
       className={cn("shrink-0", className)}
-      onClick={handleClick}
+      onClick={showPreviousCitation}
       type="button"
       {...props}
     >
@@ -192,9 +182,9 @@ export const InlineCitationCarouselNext = ({
   className,
   ...props
 }: InlineCitationCarouselNextProps) => {
-  const api = useCarouselApi();
+  const { api } = useCarousel();
 
-  const handleClick = useCallback(() => {
+  const showNextCitation = useCallback(() => {
     if (api) {
       api.scrollNext();
     }
@@ -204,7 +194,7 @@ export const InlineCitationCarouselNext = ({
     <button
       aria-label="Next"
       className={cn("shrink-0", className)}
-      onClick={handleClick}
+      onClick={showNextCitation}
       type="button"
       {...props}
     >

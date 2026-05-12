@@ -16,7 +16,7 @@ const askInputSchema = z.object({
   question: z.string().min(1),
 });
 
-export type AskAtlasSourceRef = {
+type AskAtlasSourceRef = {
   source_id: string;
   title: string;
   authority_level: string;
