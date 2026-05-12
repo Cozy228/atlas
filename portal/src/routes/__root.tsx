@@ -44,7 +44,7 @@ function NotFoundComponent() {
       <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">
         404 · not in registry
       </span>
-      <h1 className="text-[28px] font-bold tracking-[-0.03em] text-foreground">
+      <h1 className="text-[28px] font-semibold tracking-[-0.03em] text-foreground">
         Atlas could not resolve that record.
       </h1>
       <p className="text-[14px] leading-[1.6] text-muted-foreground">
@@ -89,7 +89,7 @@ function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
     <html lang="en" suppressHydrationWarning>
       <head>
         <HeadContent />
-        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+        <script>{themeInitScript}</script>
       </head>
       <body>
         <div id="app">{children}</div>

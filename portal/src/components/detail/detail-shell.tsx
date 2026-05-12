@@ -53,7 +53,7 @@ export function DetailHeader({
               {eyebrow}
             </span>
             <div className="flex flex-wrap items-baseline gap-3">
-              <h1 className="text-[28px] font-bold tracking-[-0.03em] text-foreground sm:text-[32px]">
+              <h1 className="text-[28px] font-semibold tracking-[-0.03em] text-foreground sm:text-[32px]">
                 {title}
               </h1>
               {badges ? (
@@ -104,7 +104,7 @@ export function DetailSection({
               {eyebrow}
             </span>
           ) : null}
-          <h2 className="text-base font-bold tracking-[-0.02em] text-foreground">{title}</h2>
+          <h2 className="text-base font-semibold tracking-[-0.02em] text-foreground">{title}</h2>
           {description ? (
             <p className="max-w-[68ch] text-[13px] leading-[1.6] text-muted-foreground">
               {description}

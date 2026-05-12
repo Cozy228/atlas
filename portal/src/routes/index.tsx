@@ -73,7 +73,7 @@ function Hero() {
   return (
     <div className="flex flex-col gap-6 pt-2">
       <div className="flex flex-col gap-2">
-        <h1 className="max-w-[20ch] text-4xl font-bold leading-[1.1] tracking-[-0.03em] text-foreground sm:text-[40px]">
+        <h1 className="max-w-[20ch] text-4xl font-semibold leading-[1.1] tracking-[-0.03em] text-foreground sm:text-[40px]">
           Find the right platform path
         </h1>
         <p className="max-w-[52ch] text-[15px] leading-[1.6] text-muted-foreground">

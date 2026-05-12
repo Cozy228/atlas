@@ -93,14 +93,18 @@ function createConfiguredAdapter(bundle: ContextBundleResponse): AskAtlasClaimsA
 }
 
 function authoritativeSourceRefs(bundle: ContextBundleResponse): AskAtlasSourceRef[] {
-  return bundle.sources
-    .filter((source) => source.source.authority_level === "authoritative")
-    .map((source) => ({
-      source_id: source.source.id,
-      title: source.source.title,
-      authority_level: source.source.authority_level,
-      url: source.source.location,
-    }));
+  return bundle.sources.flatMap((source) =>
+    source.source.authority_level === "authoritative"
+      ? [
+          {
+            source_id: source.source.id,
+            title: source.source.title,
+            authority_level: source.source.authority_level,
+            url: source.source.location,
+          },
+        ]
+      : [],
+  );
 }
 
 function formatClaims(claims: ReadonlyArray<AskAtlasClaim>): string {

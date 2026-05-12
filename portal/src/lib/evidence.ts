@@ -80,7 +80,9 @@ const WARNING_PRIORITY: Record<Warning["code"], number> = {
 
 export function highestPriorityWarning(warnings: ReadonlyArray<Warning>): Warning | undefined {
   if (warnings.length === 0) return undefined;
-  return [...warnings].sort((a, b) => WARNING_PRIORITY[a.code] - WARNING_PRIORITY[b.code])[0];
+  return warnings.reduce((min, w) =>
+    WARNING_PRIORITY[w.code] < WARNING_PRIORITY[min.code] ? w : min,
+  );
 }
 
 export function topicSlug(topic: Topic): string {

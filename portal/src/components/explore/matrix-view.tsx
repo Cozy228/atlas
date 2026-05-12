@@ -1,5 +1,5 @@
 import { Fragment } from "react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, LazyMotion, domAnimation, m } from "motion/react";
 import { IconArrowUpRight, IconChevronDown } from "@tabler/icons-react";
 
 import type { AvailabilityRecord, Location } from "@/api/server/availability";
@@ -167,10 +167,11 @@ function MatrixExpandRow({
   locations: ReadonlyArray<Location>;
   totalCols: number;
 }) {
-  const planned = locations
-    .map((location) => service.availability[location.id])
-    .filter((cell) => cell?.status === "planned" && cell.note && cell.note !== "TBD")
-    .map((cell) => cell!.note!);
+  const planned = locations.reduce<string[]>((acc, location) => {
+    const cell = service.availability[location.id];
+    if (cell?.status === "planned" && cell.note && cell.note !== "TBD") acc.push(cell.note);
+    return acc;
+  }, []);
   const guidance =
     planned.length > 0
       ? `Rollout in progress. Next expected: ${planned[0]}.`
@@ -179,30 +180,32 @@ function MatrixExpandRow({
         : null;
 
   return (
-    <motion.tr
-      key={`${service.id}-expand`}
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
-      className="border-b border-border bg-brand-tint/40"
-    >
-      <td colSpan={totalCols} className="px-3 py-3">
-        <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between md:gap-3">
-          {guidance ? (
-            <span className="font-mono text-[11px] leading-5 text-foreground/80">{guidance}</span>
-          ) : (
-            <span className="font-mono text-[11px] text-muted-foreground">{service.name}</span>
-          )}
-          <span className="flex flex-wrap items-center gap-1">
-            <MatrixAction primary>Open catalog</MatrixAction>
-            <MatrixAction>User guide</MatrixAction>
-            <MatrixAction>Onboarding</MatrixAction>
-            <MatrixAction>Support</MatrixAction>
-          </span>
-        </div>
-      </td>
-    </motion.tr>
+    <LazyMotion features={domAnimation}>
+      <m.tr
+        key={`${service.id}-expand`}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+        className="border-b border-border bg-brand-tint/40"
+      >
+        <td colSpan={totalCols} className="p-3">
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between md:gap-3">
+            {guidance ? (
+              <span className="font-mono text-[11px] leading-5 text-foreground/80">{guidance}</span>
+            ) : (
+              <span className="font-mono text-[11px] text-muted-foreground">{service.name}</span>
+            )}
+            <span className="flex flex-wrap items-center gap-1">
+              <MatrixAction primary>Open catalog</MatrixAction>
+              <MatrixAction>User guide</MatrixAction>
+              <MatrixAction>Onboarding</MatrixAction>
+              <MatrixAction>Support</MatrixAction>
+            </span>
+          </div>
+        </td>
+      </m.tr>
+    </LazyMotion>
   );
 }
 

@@ -33,7 +33,7 @@ function HoverCardTrigger({
   closeDelay,
   ...props
 }: PreviewCardPrimitive.Trigger.Props & { asChild?: boolean }) {
-  const delayContext = React.useContext(HoverCardDelayContext);
+  const delayContext = React.use(HoverCardDelayContext);
 
   return (
     <PreviewCardPrimitive.Trigger

@@ -101,7 +101,7 @@ function JourneyStep({
         {step.phase}
       </span>
 
-      <h3 className="mb-2 text-[15px] font-bold leading-[1.35] tracking-[-0.01em] text-foreground">
+      <h3 className="mb-2 text-[15px] font-semibold leading-[1.35] tracking-[-0.01em] text-foreground">
         {step.title}
       </h3>
 

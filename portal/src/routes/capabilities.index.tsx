@@ -52,10 +52,8 @@ function CapabilitiesListRoute() {
       else map.set(topic.category, [topic]);
     }
     return [...map.entries()]
-      .map(
-        ([key, items]) => [key, [...items].sort((a, b) => a.name.localeCompare(b.name))] as const,
-      )
-      .sort(([a], [b]) => a.localeCompare(b));
+      .map(([key, items]) => [key, items.toSorted((a, b) => a.name.localeCompare(b.name))] as const)
+      .toSorted(([a], [b]) => a.localeCompare(b));
   }, [topics, query]);
 
   return (
@@ -65,7 +63,7 @@ function CapabilitiesListRoute() {
           Discovery
         </span>
         <div className="flex flex-wrap items-baseline gap-3">
-          <h1 className="text-4xl font-bold leading-[1.1] tracking-[-0.03em] text-foreground sm:text-[40px]">
+          <h1 className="text-4xl font-semibold leading-[1.1] tracking-[-0.03em] text-foreground sm:text-[40px]">
             Capabilities
           </h1>
           <Badge variant="outline" className="font-mono text-[10px]">
@@ -91,7 +89,7 @@ function CapabilitiesListRoute() {
           {grouped.map(([category, items]) => (
             <section key={category} className="flex flex-col gap-3">
               <div className="flex items-center gap-2">
-                <h2 className="font-mono text-[11px] font-bold uppercase tracking-[0.05em] text-muted-foreground">
+                <h2 className="font-mono text-[11px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">
                   {category}
                 </h2>
                 <span

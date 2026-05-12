@@ -39,9 +39,9 @@ export type ClaimsAdapterFetch = typeof fetch;
 export function createSimulatedClaimsAdapter(bundle: ContextBundleResponse): LlmAdapter {
   return {
     async answer(): Promise<ClaimResponse> {
-      const excerpt = bundle.sources
-        .filter((source) => source.source.authority_level === "authoritative")
-        .flatMap((source) => source.excerpts)[0];
+      const excerpt = bundle.sources.flatMap((source) =>
+        source.source.authority_level === "authoritative" ? source.excerpts : [],
+      )[0];
 
       if (!excerpt) {
         return { claims: [] };
