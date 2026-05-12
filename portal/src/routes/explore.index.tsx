@@ -52,7 +52,7 @@ function ExploreRoute() {
 
   const domainOptions = useMemo(() => {
     const set = new Set(services.map((s) => s.domain));
-    return ["all", ...[...set].sort()];
+    return ["all", ...[...set].toSorted()];
   }, [services]);
 
   const fuse = useMemo(
@@ -194,7 +194,7 @@ function Hero({
         <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">
           Availability
         </span>
-        <h1 className="max-w-[20ch] text-4xl font-bold leading-[1.1] tracking-[-0.03em] text-foreground sm:text-[40px]">
+        <h1 className="max-w-[20ch] text-4xl font-semibold leading-[1.1] tracking-[-0.03em] text-foreground sm:text-[40px]">
           Regional availability map
         </h1>
         <p className="max-w-[52ch] text-[15px] leading-[1.6] text-muted-foreground">
@@ -224,7 +224,7 @@ function Section({
         <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">
           {eyebrow}
         </span>
-        <h2 className="text-[22px] font-bold tracking-[-0.03em] text-foreground">{title}</h2>
+        <h2 className="text-[22px] font-semibold tracking-[-0.03em] text-foreground">{title}</h2>
         {description ? (
           <p className="max-w-[52ch] text-[14px] leading-6 text-muted-foreground">{description}</p>
         ) : null}
@@ -371,7 +371,7 @@ function CardsView({
       {groups.map(([domain, services]) => (
         <section key={domain}>
           <div className="sticky top-14 z-[5] mb-2 flex items-center gap-2 bg-background py-1">
-            <h3 className="font-mono text-[11px] font-bold uppercase tracking-[0.05em] text-muted-foreground">
+            <h3 className="font-mono text-[11px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">
               {domain}
             </h3>
             <span

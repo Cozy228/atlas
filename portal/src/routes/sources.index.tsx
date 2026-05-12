@@ -43,7 +43,7 @@ function SourcesListRoute() {
             source.authority_scope.some((scope) => scope.toLowerCase().includes(q)),
         )
       : sources;
-    return [...filtered].sort((a, b) => compareByAuthority(a, b) || a.title.localeCompare(b.title));
+    return filtered.toSorted((a, b) => compareByAuthority(a, b) || a.title.localeCompare(b.title));
   }, [sources, query]);
 
   return (
@@ -53,7 +53,7 @@ function SourcesListRoute() {
           Discovery
         </span>
         <div className="flex flex-wrap items-baseline gap-3">
-          <h1 className="text-4xl font-bold leading-[1.1] tracking-[-0.03em] text-foreground sm:text-[40px]">
+          <h1 className="text-4xl font-semibold leading-[1.1] tracking-[-0.03em] text-foreground sm:text-[40px]">
             Sources
           </h1>
           <Badge variant="outline" className="font-mono text-[10px]">

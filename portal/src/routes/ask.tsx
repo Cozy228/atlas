@@ -27,7 +27,7 @@ function Hero() {
       <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">
         Ask Atlas
       </span>
-      <h1 className="max-w-[26ch] text-4xl font-bold leading-[1.1] tracking-[-0.03em] text-foreground sm:text-[40px]">
+      <h1 className="max-w-[26ch] text-4xl font-semibold leading-[1.1] tracking-[-0.03em] text-foreground sm:text-[40px]">
         Ask a question about the platform
       </h1>
       <p className="max-w-[56ch] text-[15px] leading-[1.6] text-muted-foreground">

@@ -98,11 +98,7 @@ function RecentlyViewedSkeleton() {
 }
 
 function RecentlyViewedClient() {
-  const [items, setItems] = useState<ReadonlyArray<RecentItem>>([]);
-
-  useEffect(() => {
-    setItems(loadRecent());
-  }, []);
+  const [items] = useState<ReadonlyArray<RecentItem>>(() => loadRecent());
 
   if (items.length === 0) {
     return (

@@ -1,14 +1,14 @@
 import {
   createContext,
+  startTransition,
+  use,
   useCallback,
-  useContext,
   useEffect,
   useMemo,
   useRef,
   useState,
   type ReactNode,
 } from "react";
-import { flushSync } from "react-dom";
 
 export type ThemeMode = "system" | "light" | "dark";
 type ResolvedTheme = "light" | "dark";
@@ -64,11 +64,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
       if (!canAnimate) {
-        flushSync(() => {
-          setModeState(next);
-        });
         applyThemeToDOM(nextResolved);
         localStorage.setItem(STORAGE_KEY, next);
+        startTransition(() => setModeState(next));
         return;
       }
 
@@ -81,13 +79,14 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
       isTransitioning.current = true;
 
+      // Apply DOM changes inside the VT callback so the browser captures the correct
+      // before/after snapshots. React state is synced via startTransition concurrently.
       const transition = document.startViewTransition(() => {
-        flushSync(() => {
-          setModeState(next);
-        });
         applyThemeToDOM(nextResolved);
         localStorage.setItem(STORAGE_KEY, next);
       });
+
+      startTransition(() => setModeState(next));
 
       await transition.ready;
 
@@ -137,7 +136,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 }
 
 export function useTheme(): ThemeContextValue {
-  const ctx = useContext(ThemeContext);
+  const ctx = use(ThemeContext);
   if (!ctx) throw new Error("useTheme must be used within ThemeProvider");
   return ctx;
 }

@@ -12,11 +12,11 @@ type ExpandPanelProps = {
 };
 
 export function ExpandPanel({ service, locations, onClose }: ExpandPanelProps) {
-  const planned = locations
-    .map((location) => service.availability[location.id])
-    .filter((cell) => cell?.status === "planned" && cell.note && cell.note !== "TBD")
-    .map((cell) => cell!.note!)
-    .sort();
+  const planned = locations.reduce<string[]>((acc, location) => {
+    const cell = service.availability[location.id];
+    if (cell?.status === "planned" && cell.note && cell.note !== "TBD") acc.push(cell.note);
+    return acc;
+  }, []).sort();
   const everyAvailable =
     locations.filter((l) => service.availability[l.id]?.status === "available").length > 0 &&
     locations

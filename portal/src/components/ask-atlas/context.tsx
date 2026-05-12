@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useMemo, useState } from "react";
+import { createContext, use, useCallback, useMemo, useState } from "react";
 
 type TabValue = "search" | "ask";
 
@@ -40,7 +40,7 @@ export function AskAtlasProvider({ children }: { children: React.ReactNode }) {
 }
 
 export function useAskAtlas() {
-  const ctx = useContext(AskAtlasContext);
+  const ctx = use(AskAtlasContext);
   if (!ctx) throw new Error("useAskAtlas must be used within AskAtlasProvider");
   return ctx;
 }

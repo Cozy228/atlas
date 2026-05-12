@@ -51,7 +51,6 @@ function TopBar() {
 
   return (
     <header
-      role="banner"
       className={cn(
         "sticky top-0 z-40 grid h-14 grid-cols-[auto_1fr_auto] items-center gap-2 border-b border-border px-4 sm:px-8",
         "bg-background/85 backdrop-blur-sm",

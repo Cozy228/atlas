@@ -134,7 +134,7 @@ function PhasePanel({
     >
       <header className="flex items-center justify-between gap-3 border-b border-border px-5 py-4">
         <div className="min-w-0">
-          <h3 className="text-[15px] font-bold tracking-[-0.02em] text-foreground">
+          <h3 className="text-[15px] font-semibold tracking-[-0.02em] text-foreground">
             {heading.title}
           </h3>
           <p className="mt-0.5 text-[13px] leading-5 text-muted-foreground">
@@ -194,7 +194,7 @@ function FindServicePanel({ capabilities }: { capabilities: ReadonlyArray<Topic>
       if (list) list.push(topic);
       else map.set(key, [topic]);
     }
-    return [...map.entries()].sort(([a], [b]) => a.localeCompare(b));
+    return [...map.entries()].toSorted(([a], [b]) => a.localeCompare(b));
   }, [capabilities, query]);
 
   return (

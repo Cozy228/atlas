@@ -10,7 +10,7 @@ import {
   IconArrowRight as ArrowRightIcon,
 } from "@tabler/icons-react";
 import type { ComponentProps } from "react";
-import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { createContext, use, useCallback, useEffect, useState } from "react";
 
 export type InlineCitationProps = ComponentProps<"span">;
 
@@ -61,7 +61,7 @@ export const InlineCitationCardBody = ({ className, ...props }: InlineCitationCa
 const CarouselApiContext = createContext<CarouselApi | undefined>(undefined);
 
 const useCarouselApi = () => {
-  const context = useContext(CarouselApiContext);
+  const context = use(CarouselApiContext);
   return context;
 };
 

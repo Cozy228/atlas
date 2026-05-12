@@ -10,7 +10,7 @@ import {
   IconChevronRight as ChevronRightIcon,
 } from "@tabler/icons-react";
 import type { ComponentProps, HTMLAttributes, ReactElement } from "react";
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, use, useCallback, useEffect, useMemo, useState } from "react";
 
 export type MessageProps = HTMLAttributes<HTMLDivElement> & {
   from: UIMessage["role"];
@@ -99,7 +99,7 @@ interface MessageBranchContextType {
 const MessageBranchContext = createContext<MessageBranchContextType | null>(null);
 
 const useMessageBranch = () => {
-  const context = useContext(MessageBranchContext);
+  const context = use(MessageBranchContext);
 
   if (!context) {
     throw new Error("MessageBranch components must be used within MessageBranch");
