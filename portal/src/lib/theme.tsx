@@ -41,8 +41,11 @@ function applyThemeToDOM(resolved: ResolvedTheme) {
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [mode, setModeState] = useState<ThemeMode>(readStoredMode);
-  const [systemPref, setSystemPref] = useState<ResolvedTheme>(getSystemPreference);
+  // Start with static server-safe defaults so the initial render matches SSR.
+  // The inline theme script in <head> already handles the visual dark class before
+  // first paint, so there is no flash. State syncs to actual browser values after mount.
+  const [mode, setModeState] = useState<ThemeMode>("system");
+  const [systemPref, setSystemPref] = useState<ResolvedTheme>("light");
   const isTransitioning = useRef(false);
 
   const resolved: ResolvedTheme = mode === "system" ? systemPref : mode;
@@ -108,6 +111,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     },
     [],
   );
+
+  useEffect(() => {
+    setModeState(readStoredMode());
+    setSystemPref(getSystemPreference());
+  }, []);
 
   useEffect(() => {
     applyThemeToDOM(resolved);

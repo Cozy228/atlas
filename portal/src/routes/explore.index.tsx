@@ -1,7 +1,7 @@
 import { Fragment, useMemo, useState } from "react";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { IconLayoutGrid, IconSearch, IconTable } from "@tabler/icons-react";
+import { IconLayoutGrid, IconTable } from "@tabler/icons-react";
 import Fuse from "fuse.js";
 
 import { availabilityQueryOptions } from "@/api/queries";
@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { CatalogSearchField } from "@/components/catalog-search-field";
 import { cn } from "@/lib/utils";
 
 type ViewMode = "cards" | "matrix";
@@ -235,23 +236,11 @@ function Section({
 
 function SearchField({ value, onChange }: { value: string; onChange: (value: string) => void }) {
   return (
-    <label
-      className={cn(
-        "flex h-11 w-full max-w-[600px] items-center gap-2.5 rounded-lg border border-input bg-card px-3.5",
-        "shadow-xs transition-[border-color,box-shadow]",
-        "focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/50",
-      )}
-    >
-      <IconSearch className="size-4 shrink-0 text-muted-foreground" />
-      <input
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        type="search"
-        placeholder="Search services… S3, EKS, Bedrock"
-        aria-label="Search services"
-        className="h-full flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
-      />
-    </label>
+    <CatalogSearchField
+      value={value}
+      onChange={onChange}
+      placeholder="Search services… S3, EKS, Bedrock"
+    />
   );
 }
 

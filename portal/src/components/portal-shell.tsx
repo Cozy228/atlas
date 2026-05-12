@@ -29,6 +29,7 @@ const PRIMARY_NAV: ReadonlyArray<NavItem> = [
   { to: "/capabilities", label: "Capabilities" },
   { to: "/landing-zones", label: "Landing Zones" },
   { to: "/explore", label: "Availability" },
+  { to: "/sources", label: "Sources" },
 ];
 
 export function PortalShell({ children }: PortalShellProps) {

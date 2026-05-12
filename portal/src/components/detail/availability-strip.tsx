@@ -25,12 +25,11 @@ export function AvailabilityStrip({ service, locations }: AvailabilityStripProps
 
   return (
     <div className="overflow-hidden rounded-lg border border-border bg-card">
-      <ul
-        className="grid divide-x divide-border"
-        style={{
-          gridTemplateColumns: `repeat(${locations.length}, minmax(0, 1fr))`,
-        }}
-      >
+      <div className="-mb-px overflow-x-auto">
+        <ul
+          className="grid min-w-max divide-x divide-border"
+          style={{ gridTemplateColumns: `repeat(${locations.length}, minmax(120px, 1fr))` }}
+        >
         {locations.map((location) => {
           const cell = service.availability[location.id];
           const status: LocationStatus = cell?.status ?? "not-planned";
@@ -45,7 +44,8 @@ export function AvailabilityStrip({ service, locations }: AvailabilityStripProps
             </li>
           );
         })}
-      </ul>
+        </ul>
+      </div>
       <div className="flex items-center justify-end border-t border-border bg-background px-3 py-2">
         <Link
           to="/explore"

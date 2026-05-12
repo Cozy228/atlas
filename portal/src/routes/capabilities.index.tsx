@@ -1,10 +1,11 @@
 import { useMemo, useState } from "react";
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { IconArrowRight, IconSearch } from "@tabler/icons-react";
+import { IconArrowRight } from "@tabler/icons-react";
 import type { Topic } from "@atlas/schema";
 
 import { availabilityQueryOptions, topicDiscoveryQueryOptionsFor } from "@/api/queries";
 import type { AvailabilityResponse } from "@/api/server/availability";
+import { CatalogSearchField } from "@/components/catalog-search-field";
 import { ServiceIcon } from "@/components/explore/service-icon";
 import { StatusChip } from "@/components/explore/status-chip";
 import { PageBody } from "@/components/page-section";
@@ -77,7 +78,7 @@ function CapabilitiesListRoute() {
         </p>
       </div>
 
-      <SearchField
+      <CatalogSearchField
         value={query}
         onChange={setQuery}
         placeholder="Filter capabilities… name, description, domain"
@@ -118,35 +119,6 @@ function CapabilitiesListRoute() {
         </div>
       )}
     </PageBody>
-  );
-}
-
-function SearchField({
-  value,
-  onChange,
-  placeholder,
-}: {
-  value: string;
-  onChange: (value: string) => void;
-  placeholder: string;
-}) {
-  return (
-    <label
-      className={cn(
-        "flex h-9 w-full max-w-[420px] items-center gap-2 rounded-md border border-border bg-card px-2.5 transition-[border-color,box-shadow]",
-        "focus-within:border-primary focus-within:shadow-[0_0_0_3px_color-mix(in_srgb,var(--primary)_8%,transparent)]",
-      )}
-    >
-      <IconSearch className="size-3.5 text-muted-foreground" />
-      <input
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        type="search"
-        placeholder={placeholder}
-        aria-label={placeholder}
-        className="h-full flex-1 bg-transparent text-[13px] outline-none placeholder:text-muted-foreground"
-      />
-    </label>
   );
 }
 
