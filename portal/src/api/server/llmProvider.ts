@@ -40,11 +40,7 @@ export function createConfiguredClaimsAdapter(
 }
 
 export {
-  SYSTEM_PROMPT,
   claimResponseSchema,
-  createSimulatedClaimsAdapter,
-  type GenerateClaimsObjectInput,
-  type GenerateClaimsObject,
 } from "./claimsLlmShared";
 
 export type { BedrockClaimsAdapterInput } from "./bedrockClaimsProvider";

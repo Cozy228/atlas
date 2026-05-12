@@ -3,7 +3,7 @@ import { z } from "zod";
 import type { ContextBundleResponse } from "@atlas/schema";
 import type { LlmAdapter } from "@/ask/askAtlas";
 
-export const SYSTEM_PROMPT = [
+const SYSTEM_PROMPT = [
   "You are Atlas, a governed cloud-platform assistant.",
   "Answer ONLY using the provided Atlas context bundle excerpts.",
   "Cite sources inline using the bracket form [source_id#anchor_id] that",
@@ -23,7 +23,7 @@ export const claimResponseSchema = z.object({
 type ClaimResponse = z.infer<typeof claimResponseSchema>;
 
 /** Mirrors the options our adapters pass through; used for test doubles. */
-export type GenerateClaimsObjectInput = {
+type GenerateClaimsObjectInput = {
   model: LanguageModel;
   schema: typeof claimResponseSchema;
   system: string;

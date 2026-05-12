@@ -15,13 +15,18 @@ describe("Base UI shadcn wrapper migration", () => {
   });
 
   it("keeps Portal UI wrappers free of Radix primitives", () => {
-    const radixImports = readdirSync(uiRoot)
-      .filter((fileName) => fileName.endsWith(".tsx"))
-      .flatMap((fileName) => {
-        const contents = readFileSync(join(uiRoot, fileName), "utf8");
+    const radixImports: string[] = [];
 
-        return /from ["']radix-ui["']|@radix-ui\/react-/.test(contents) ? [fileName] : [];
-      });
+    for (const fileName of readdirSync(uiRoot)) {
+      if (!fileName.endsWith(".tsx")) {
+        continue;
+      }
+
+      const contents = readFileSync(join(uiRoot, fileName), "utf8");
+      if (/from ["']radix-ui["']|@radix-ui\/react-/.test(contents)) {
+        radixImports.push(fileName);
+      }
+    }
 
     expect(radixImports).toEqual([]);
   });

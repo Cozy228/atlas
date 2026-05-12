@@ -763,7 +763,7 @@ export const PromptInput = ({
     [usingProvider],
   );
 
-  const handleChange: ChangeEventHandler<HTMLInputElement> = useCallback(
+  const handleFileInputSelection: ChangeEventHandler<HTMLInputElement> = useCallback(
     (event) => {
       if (event.currentTarget.files) {
         add(event.currentTarget.files);
@@ -870,7 +870,7 @@ export const PromptInput = ({
         aria-label="Upload files"
         className="hidden"
         multiple={multiple}
-        onChange={handleChange}
+        onChange={handleFileInputSelection}
         ref={inputRef}
         title="Upload files"
         type="file"
@@ -1153,7 +1153,7 @@ export const PromptInputSubmit = ({
     Icon = <XIcon className="size-4" />;
   }
 
-  const handleClick = useCallback(
+  const handleSubmitButtonClick = useCallback(
     (e: InputGroupButtonClickEvent) => {
       if (isGenerating && onStop) {
         e.preventDefault();
@@ -1169,7 +1169,7 @@ export const PromptInputSubmit = ({
     <InputGroupButton
       aria-label={isGenerating ? "Stop" : "Submit"}
       className={cn(className)}
-      onClick={handleClick}
+      onClick={handleSubmitButtonClick}
       size={size}
       type={isGenerating && onStop ? "button" : "submit"}
       variant={variant}
@@ -1255,11 +1255,14 @@ export const PromptInputTab = ({ className, ...props }: PromptInputTabProps) => 
 );
 
 export type PromptInputTabLabelProps = HTMLAttributes<HTMLHeadingElement>;
-
-export const PromptInputTabLabel = ({ className, ...props }: PromptInputTabLabelProps) => (
-  // Content provided via children in props
-  // oxlint-disable-next-line eslint-plugin-jsx-a11y(heading-has-content)
-  <h3 className={cn("mb-2 px-3 font-medium text-muted-foreground text-xs", className)} {...props} />
+export const PromptInputTabLabel = ({
+  children,
+  className,
+  ...props
+}: PromptInputTabLabelProps) => (
+  <h3 className={cn("mb-2 px-3 font-medium text-muted-foreground text-xs", className)} {...props}>
+    {children}
+  </h3>
 );
 
 export type PromptInputTabBodyProps = HTMLAttributes<HTMLDivElement>;

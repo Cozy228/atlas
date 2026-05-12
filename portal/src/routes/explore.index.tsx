@@ -1,4 +1,4 @@
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useMemo, useReducer } from "react";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { IconLayoutGrid, IconTable } from "@tabler/icons-react";
@@ -37,18 +37,61 @@ const STATUS_OPTIONS: ReadonlyArray<{ value: LocationStatus | "all"; label: stri
   { value: "interim", label: "Interim" },
   { value: "not-planned", label: "Not planned" },
 ];
+type ExploreState = {
+  query: string;
+  statusFilter: LocationStatus | "all";
+  domainFilter: string;
+  activeLocation: string | null;
+  selectedServiceId: string | null;
+  view: ViewMode;
+};
+
+type ExploreAction =
+  | { type: "setQuery"; value: string }
+  | { type: "setStatusFilter"; value: LocationStatus | "all" }
+  | { type: "setDomainFilter"; value: string }
+  | { type: "setActiveLocation"; value: string | null }
+  | { type: "setView"; value: ViewMode }
+  | { type: "toggleSelection"; id: string }
+  | { type: "resetAll" };
+
+const INITIAL_EXPLORE_STATE: ExploreState = {
+  activeLocation: null,
+  domainFilter: "all",
+  query: "",
+  selectedServiceId: null,
+  statusFilter: "all",
+  view: "cards",
+};
+
+function exploreReducer(state: ExploreState, action: ExploreAction): ExploreState {
+  switch (action.type) {
+    case "setQuery":
+      return { ...state, query: action.value, selectedServiceId: null };
+    case "setStatusFilter":
+      return { ...state, statusFilter: action.value, selectedServiceId: null };
+    case "setDomainFilter":
+      return { ...state, domainFilter: action.value, selectedServiceId: null };
+    case "setActiveLocation":
+      return { ...state, activeLocation: action.value, selectedServiceId: null };
+    case "setView":
+      return { ...state, view: action.value };
+    case "toggleSelection":
+      return {
+        ...state,
+        selectedServiceId: state.selectedServiceId === action.id ? null : action.id,
+      };
+    case "resetAll":
+      return INITIAL_EXPLORE_STATE;
+  }
+}
 
 function ExploreRoute() {
   const {
     data: { locations, services },
   } = useSuspenseQuery(availabilityQueryOptions);
-
-  const [query, setQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<LocationStatus | "all">("all");
-  const [domainFilter, setDomainFilter] = useState<string>("all");
-  const [activeLocation, setActiveLocation] = useState<string | null>(null);
-  const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
-  const [view, setView] = useState<ViewMode>("cards");
+  const [state, dispatch] = useReducer(exploreReducer, INITIAL_EXPLORE_STATE);
+  const { query, statusFilter, domainFilter, activeLocation, selectedServiceId, view } = state;
 
   const domainOptions = useMemo(() => {
     const set = new Set(services.map((s) => s.domain));
@@ -101,30 +144,16 @@ function ExploreRoute() {
     ? locations.find((l) => l.id === activeLocation)?.label
     : null;
 
-  function resetSelection() {
-    setSelectedServiceId(null);
-  }
-
-  function resetAll() {
-    setQuery("");
-    setStatusFilter("all");
-    setDomainFilter("all");
-    setActiveLocation(null);
-    setSelectedServiceId(null);
-  }
 
   function toggleSelection(id: string) {
-    setSelectedServiceId((current) => (current === id ? null : id));
+    dispatch({ type: "toggleSelection", id });
   }
 
   return (
     <PageBody width="comfortable">
       <Hero
         searchValue={query}
-        onSearchChange={(value) => {
-          setQuery(value);
-          resetSelection();
-        }}
+        onSearchChange={(value) => dispatch({ type: "setQuery", value })}
       />
 
       <Section
@@ -136,30 +165,23 @@ function ExploreRoute() {
           locations={locations}
           services={services}
           activeLocation={activeLocation}
-          onLocationChange={(id) => {
-            setActiveLocation(id);
-            resetSelection();
-          }}
+          onLocationChange={(value) => dispatch({ type: "setActiveLocation", value })}
           statusFilter={statusFilter}
-          onStatusChange={(value) => {
-            setStatusFilter(value);
-            resetSelection();
-          }}
+          onStatusChange={(value) => dispatch({ type: "setStatusFilter", value })}
           domainFilter={domainFilter}
           onDomainChange={(value) => {
-            setDomainFilter(value);
-            resetSelection();
+            dispatch({ type: "setDomainFilter", value });
           }}
           domainOptions={domainOptions}
           view={view}
-          onViewChange={setView}
+          onViewChange={(value) => dispatch({ type: "setView", value })}
           resultsLabel={`${filtered.length} service${filtered.length === 1 ? "" : "s"}${
             activeLocationLabel ? ` in ${activeLocationLabel}` : ""
           }`}
         />
 
         {filtered.length === 0 ? (
-          <EmptyState onReset={resetAll} />
+          <EmptyState onReset={() => dispatch({ type: "resetAll" })} />
         ) : view === "cards" ? (
           <CardsView
             groups={groups}
