@@ -1,0 +1,1223 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Atlas — Home</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <style>
+      :root {
+        color-scheme: light;
+        /* Neutrals: hint of blue (267) without washing the canvas */
+        --bg: oklch(0.975 0.004 267);
+        --surface: oklch(0.995 0.003 267);
+        --surface-elevated: oklch(0.998 0.002 267);
+        --border: oklch(0.905 0.01 267);
+        --border-strong: oklch(0.82 0.012 267);
+        --text: oklch(0.15 0.014 267);
+        --text-secondary: oklch(0.42 0.014 267);
+        --text-soft: oklch(0.56 0.012 267);
+
+        /* Brand #001aff: reserved for accents, rings, logo (restrained use) */
+        --brand: #001aff;
+        --accent: var(--brand);
+        --accent-soft: oklch(0.962 0.026 267);
+        --accent-hover: color-mix(in srgb, var(--brand) 78%, #0a0a12);
+        --accent-text: oklch(0.99 0.01 267);
+        --accent-focus: color-mix(in srgb, var(--brand) 12%, transparent);
+        --accent-glow: color-mix(in srgb, var(--brand) 8%, transparent);
+        --accent-sheen: color-mix(in srgb, var(--brand) 4%, transparent);
+
+        --available: oklch(0.52 0.14 155);
+        --available-bg: oklch(0.955 0.035 155);
+        --planned: oklch(0.50 0.12 280);
+        --planned-bg: oklch(0.955 0.025 280);
+        --interim: oklch(0.58 0.15 70);
+        --interim-bg: oklch(0.96 0.04 70);
+        --warning: oklch(0.60 0.14 55);
+
+        --radius: 8px;
+        --radius-lg: 12px;
+        --radius-xl: 16px;
+        --shadow-sm: 0 1px 3px oklch(0.2 0.015 267 / 0.04);
+        --shadow: 0 2px 8px oklch(0.2 0.015 267 / 0.06);
+        --shadow-lg: 0 8px 24px oklch(0.2 0.015 267 / 0.08);
+        --transition: 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+        --transition-slow: 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+      }
+
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+
+      body {
+        font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.5;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      .shell {
+        min-height: 100dvh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* ── Top Navigation ── */
+      .topbar {
+        position: sticky;
+        top: 0;
+        z-index: 40;
+        height: 52px;
+        background: oklch(0.975 0.004 267 / 0.92);
+        backdrop-filter: blur(16px) saturate(1.2);
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        padding: 0 32px;
+        gap: 0;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-right: 28px;
+        flex-shrink: 0;
+      }
+
+      .brand-mark {
+        width: 24px;
+        height: 24px;
+        background: var(--accent);
+        border-radius: 7px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .brand-mark span {
+        color: var(--accent-text);
+        font-weight: 700;
+        font-size: 11px;
+        letter-spacing: -0.04em;
+      }
+
+      .brand-name {
+        font-weight: 700;
+        font-size: 15px;
+        letter-spacing: -0.03em;
+      }
+
+      .topnav {
+        display: flex;
+        align-items: center;
+        gap: 2px;
+      }
+
+      .topnav-link {
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--text-secondary);
+        cursor: pointer;
+        transition: var(--transition);
+        white-space: nowrap;
+      }
+
+      .topnav-link:hover { background: var(--surface); color: var(--text); }
+      .topnav-link.active {
+        background: var(--accent-soft);
+        color: var(--accent);
+        font-weight: 600;
+      }
+
+      .topbar-spacer { flex: 1; }
+
+      .topbar-end {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-shrink: 0;
+      }
+
+      .topbar-health {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+        padding: 4px 10px;
+        border-radius: 999px;
+        transition: var(--transition);
+      }
+
+      .topbar-health:hover { background: var(--surface); }
+
+      .topbar-health .pulse {
+        width: 6px; height: 6px;
+        border-radius: 50%;
+        background: var(--available);
+        animation: pulse 2.5s ease-in-out infinite;
+      }
+
+      @keyframes pulse {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.6; transform: scale(0.85); }
+      }
+
+      .topbar-health .health-text {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--text-secondary);
+      }
+
+      .topbar-synced {
+        font-size: 11px;
+        font-weight: 500;
+        color: var(--text-soft);
+        padding: 3px 8px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 999px;
+      }
+
+      /* ── Main ── */
+      .main-area { min-width: 0; flex: 1; display: flex; flex-direction: column; }
+
+      /* ── Content ── */
+      .content {
+        max-width: 860px;
+        margin: 0 auto;
+        padding: 48px 32px 64px;
+        width: 100%;
+      }
+
+      /* ── Hero ── */
+      .hero {
+        margin-bottom: 48px;
+      }
+
+      .hero-title {
+        font-size: 32px;
+        font-weight: 700;
+        letter-spacing: -0.03em;
+        line-height: 1.1;
+        margin-bottom: 8px;
+        max-width: 20ch;
+      }
+
+      .hero-sub {
+        font-size: 15px;
+        color: var(--text-secondary);
+        max-width: 52ch;
+        line-height: 1.6;
+        margin-bottom: 24px;
+      }
+
+      /* ── Search ── */
+      .search-bar {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: var(--surface-elevated);
+        border: 1.5px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 0 18px;
+        height: 52px;
+        box-shadow: var(--shadow);
+        transition: var(--transition);
+        max-width: 520px;
+      }
+
+      .search-bar:focus-within {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px var(--accent-glow), var(--shadow);
+      }
+
+      .search-bar svg { color: var(--text-soft); flex-shrink: 0; width: 18px; height: 18px; }
+
+      .search-bar input {
+        flex: 1;
+        border: 0;
+        outline: 0;
+        background: transparent;
+        font: inherit;
+        font-size: 15px;
+        color: var(--text);
+      }
+
+      .search-bar input::placeholder { color: var(--text-soft); }
+
+      .search-bar .kbd {
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 11px;
+        font-weight: 500;
+        color: var(--text-soft);
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 5px;
+        padding: 2px 7px;
+        flex-shrink: 0;
+      }
+
+      /* ── Section ── */
+      .section { margin-bottom: 48px; }
+
+      .section-eyebrow {
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--text-soft);
+        margin-bottom: 6px;
+      }
+
+      .section-title {
+        font-size: 20px;
+        font-weight: 700;
+        letter-spacing: -0.03em;
+        margin-bottom: 6px;
+      }
+
+      .section-desc {
+        font-size: 14px;
+        color: var(--text-secondary);
+        max-width: 52ch;
+        margin-bottom: 20px;
+      }
+
+      /* ── Entry Cards (Platform section) ── */
+      .entry-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+
+      .entry-card {
+        padding: 20px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        cursor: pointer;
+        transition: var(--transition);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .entry-card::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: var(--radius-lg);
+        opacity: 0;
+        background: linear-gradient(135deg, var(--accent-sheen), transparent 60%);
+        transition: var(--transition);
+        pointer-events: none;
+      }
+
+      .entry-card:hover { border-color: var(--border-strong); box-shadow: var(--shadow); }
+      .entry-card:hover::after { opacity: 1; }
+      .entry-card.active {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 2px var(--accent-focus);
+      }
+      .entry-card.active::after { opacity: 1; }
+
+      .entry-card:active { transform: scale(0.99); }
+
+      .entry-card .entry-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: var(--radius);
+        background: var(--accent-soft);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 12px;
+      }
+
+      .entry-card .entry-icon svg { width: 16px; height: 16px; color: var(--accent); }
+
+      .entry-card .entry-label {
+        font-size: 14px;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+        margin-bottom: 4px;
+      }
+
+      .entry-card .entry-desc {
+        font-size: 13px;
+        color: var(--text-secondary);
+        line-height: 1.5;
+      }
+
+      .entry-card.wide { grid-column: 1 / -1; }
+
+      /* ── Phase Panel ── */
+      .phase-panel {
+        margin-top: 16px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        animation: slideIn 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+      }
+
+      @keyframes slideIn {
+        from { opacity: 0; transform: translateY(-6px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+
+      .phase-head {
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .phase-head h3 {
+        font-size: 15px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+      }
+
+      .phase-head p {
+        font-size: 13px;
+        color: var(--text-secondary);
+        margin-top: 2px;
+      }
+
+      .phase-close {
+        width: 28px;
+        height: 28px;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        background: var(--bg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        color: var(--text-secondary);
+        font-size: 14px;
+        transition: var(--transition);
+      }
+
+      .phase-close:hover { background: var(--surface); color: var(--text); }
+
+      .phase-filter {
+        margin: 12px 20px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 0 10px;
+        height: 32px;
+      }
+
+      .phase-filter svg { width: 14px; height: 14px; color: var(--text-soft); flex-shrink: 0; }
+      .phase-filter input {
+        flex: 1; border: 0; outline: 0; background: transparent;
+        font: inherit; font-size: 12px; color: var(--text);
+      }
+
+      .phase-body { padding: 4px 20px 20px; }
+
+      /* ── Domain Group (inside Evaluate panel) ── */
+      .domain-group { margin-bottom: 12px; }
+
+      .domain-label {
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 10px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--text-soft);
+        margin-bottom: 4px;
+        padding-top: 10px;
+      }
+
+      .domain-group:first-child .domain-label { padding-top: 0; }
+
+      .cap-list { display: flex; flex-direction: column; gap: 1px; }
+
+      .cap-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 10px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: var(--transition);
+      }
+
+      .cap-row:hover { background: var(--bg); }
+
+      .cap-icon {
+        width: 28px; height: 28px;
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        display: flex; align-items: center; justify-content: center;
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 8px; font-weight: 700; color: var(--accent);
+        flex-shrink: 0;
+      }
+
+      .cap-info { flex: 1; min-width: 0; }
+      .cap-name { font-size: 13px; font-weight: 600; }
+      .cap-meta { font-size: 11px; color: var(--text-secondary); }
+
+      .cap-status {
+        display: flex; align-items: center; gap: 4px;
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 10px; font-weight: 600;
+        padding: 2px 7px; border-radius: 999px;
+      }
+
+      .cap-status .dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+      .cap-status.available { background: var(--available-bg); color: var(--available); }
+      .cap-status.planned { background: var(--planned-bg); color: var(--planned); }
+      .cap-status.interim { background: var(--interim-bg); color: var(--interim); }
+
+      .cap-arrow {
+        color: var(--text-soft);
+        opacity: 0;
+        transition: var(--transition);
+        font-size: 13px;
+      }
+
+      .cap-row:hover .cap-arrow { opacity: 1; }
+
+      /* ── Landing Zone Cards (Decide panel) ── */
+      .lz-stack { display: flex; flex-direction: column; gap: 8px; }
+
+      .lz-card {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 12px;
+        padding: 14px 16px;
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        cursor: pointer;
+        transition: var(--transition);
+      }
+
+      .lz-card:hover { border-color: var(--border-strong); box-shadow: var(--shadow-sm); }
+
+      .lz-name { font-size: 14px; font-weight: 700; letter-spacing: -0.01em; margin-bottom: 2px; }
+      .lz-desc { font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; line-height: 1.5; }
+
+      .lz-tags { display: flex; gap: 4px; flex-wrap: wrap; }
+
+      .lz-tag {
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 10px; font-weight: 500;
+        padding: 2px 6px; border-radius: 4px;
+        background: var(--surface); border: 1px solid var(--border);
+        color: var(--text-secondary);
+      }
+
+      .lz-right {
+        display: flex; flex-direction: column; align-items: flex-end; justify-content: center; gap: 4px;
+      }
+
+      .lz-guardrails {
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 10px;
+        color: var(--text-soft);
+        white-space: nowrap;
+      }
+
+      /* ── Onboard: Tool Cards ── */
+      .tool-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+
+      .tool-card {
+        padding: 14px 16px;
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        cursor: pointer;
+        transition: var(--transition);
+      }
+
+      .tool-card:hover { border-color: var(--accent); box-shadow: var(--shadow-sm); }
+
+      .tool-card .tool-name { font-size: 13px; font-weight: 700; margin-bottom: 3px; }
+      .tool-card .tool-desc { font-size: 12px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 8px; }
+
+      .tool-card .tool-link {
+        font-size: 12px; font-weight: 600; color: var(--accent);
+        transition: var(--transition);
+      }
+      .tool-card .tool-link:hover { color: var(--accent-hover); }
+
+      .owner-row {
+        margin-top: 12px;
+        padding: 10px 14px;
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        display: flex; align-items: center; gap: 10px;
+      }
+
+      .owner-avatar {
+        width: 30px; height: 30px;
+        background: var(--accent-soft);
+        border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 11px; font-weight: 700; color: var(--accent);
+      }
+
+      .owner-info { flex: 1; }
+      .owner-name { font-size: 12px; font-weight: 700; }
+      .owner-channel { font-size: 11px; color: var(--text-secondary); }
+
+      /* ── Journey Steps (lifecycle) ── */
+      .journey-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1px;
+        background: var(--border);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+      }
+
+      .journey-step {
+        padding: 20px;
+        background: var(--surface);
+        position: relative;
+      }
+
+      .journey-step .step-num {
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 10px;
+        font-weight: 600;
+        color: var(--text-soft);
+        margin-bottom: 8px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+
+      .journey-step .step-title {
+        font-size: 14px;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+        margin-bottom: 4px;
+      }
+
+      .journey-step .step-desc {
+        font-size: 12px;
+        color: var(--text-secondary);
+        line-height: 1.5;
+      }
+
+      .journey-links { display: flex; flex-direction: column; gap: 2px; margin-top: 10px; }
+
+      .journey-link {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--accent);
+        cursor: pointer;
+        transition: var(--transition);
+        padding: 2px 0;
+      }
+
+      .journey-link:hover { color: var(--accent-hover); }
+
+      /* ── Capability Highlight ── */
+      .cap-highlight-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 10px;
+      }
+
+      .cap-block {
+        padding: 16px 18px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        transition: var(--transition);
+        cursor: pointer;
+      }
+
+      .cap-block:hover { border-color: var(--border-strong); box-shadow: var(--shadow-sm); }
+
+      .cap-block .cb-label {
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 10px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--text-soft);
+        margin-bottom: 4px;
+      }
+
+      .cap-block .cb-title {
+        font-size: 14px;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+        margin-bottom: 2px;
+      }
+
+      .cap-block .cb-desc {
+        font-size: 12px;
+        color: var(--text-secondary);
+      }
+
+      .cap-block .cb-stat {
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 28px;
+        font-weight: 600;
+        letter-spacing: -0.04em;
+        color: var(--accent);
+        margin-bottom: 2px;
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* ── Recent & Resources ── */
+      .recent-row {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        margin-bottom: 10px;
+      }
+
+      .recent-chip {
+        font-size: 12px;
+        font-weight: 500;
+        padding: 5px 12px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        color: var(--text);
+        cursor: pointer;
+        transition: var(--transition);
+      }
+
+      .recent-chip:hover { border-color: var(--border-strong); background: var(--bg); }
+
+      .recent-chip .chip-type {
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 9px;
+        color: var(--text-soft);
+        margin-left: 4px;
+      }
+
+      /* ── Resource Links ── */
+      .resource-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+      }
+
+      .resource-link {
+        padding: 14px 16px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        cursor: pointer;
+        transition: var(--transition);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .resource-link:hover { border-color: var(--border-strong); box-shadow: var(--shadow-sm); }
+      .resource-link:active { transform: scale(0.99); }
+
+      .resource-link .rl-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: var(--radius);
+        background: var(--bg);
+        border: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+
+      .resource-link .rl-icon svg { width: 16px; height: 16px; color: var(--text-secondary); }
+
+      .resource-link .rl-text .rl-title {
+        font-size: 13px;
+        font-weight: 700;
+        margin-bottom: 1px;
+      }
+
+      .resource-link .rl-text .rl-desc {
+        font-size: 12px;
+        color: var(--text-secondary);
+      }
+
+      /* ── Health Band ── */
+      .health-strip {
+        padding: 12px 16px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        cursor: pointer;
+        transition: var(--transition);
+      }
+
+      .health-strip:hover { border-color: var(--border-strong); }
+
+      .health-strip .hs-label {
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--text-soft);
+        white-space: nowrap;
+      }
+
+      .health-strip .hs-items { display: flex; gap: 14px; flex: 1; flex-wrap: wrap; }
+
+      .health-strip .hs-item {
+        font-size: 12px;
+        color: var(--text-secondary);
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        white-space: nowrap;
+      }
+
+      .health-strip .hs-count {
+        font-family: 'IBM Plex Mono', monospace;
+        font-weight: 700;
+        font-size: 12px;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .health-strip .hs-item.warn .hs-count { color: var(--warning); }
+      .health-strip .hs-item.ok .hs-count { color: var(--available); }
+
+      .health-strip .hs-arrow {
+        color: var(--text-soft);
+        font-size: 14px;
+        margin-left: auto;
+        transition: var(--transition);
+      }
+
+      .health-strip:hover .hs-arrow { color: var(--text-secondary); transform: translateX(2px); }
+
+      /* ── Responsive ── */
+      @media (max-width: 768px) {
+        .topbar { padding: 0 16px; gap: 0; }
+        .topnav { display: none; }
+        .brand { margin-right: 12px; }
+        .content { padding: 32px 20px 48px; }
+        .hero-title { font-size: 26px; }
+        .entry-grid { grid-template-columns: 1fr; }
+        .journey-grid { grid-template-columns: 1fr; }
+        .tool-grid { grid-template-columns: 1fr; }
+        .cap-highlight-grid { grid-template-columns: 1fr; }
+        .resource-grid { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <header class="topbar">
+        <div class="brand">
+          <div class="brand-mark"><span>A</span></div>
+          <span class="brand-name">Atlas</span>
+        </div>
+
+        <nav class="topnav">
+          <span class="topnav-link active">Home</span>
+          <span class="topnav-link">Capabilities</span>
+          <span class="topnav-link">Landing Zones</span>
+          <span class="topnav-link">Availability</span>
+          <span class="topnav-link">Health</span>
+        </nav>
+
+        <div class="topbar-spacer"></div>
+
+        <div class="topbar-end">
+          <div class="topbar-health">
+            <span class="pulse"></span>
+            <span class="health-text">82% coverage</span>
+          </div>
+          <span class="topbar-synced">Synced just now</span>
+        </div>
+      </header>
+
+      <main class="main-area">
+
+        <div class="content">
+          <!-- Hero -->
+          <div class="hero">
+            <h1 class="hero-title">Find the right platform path</h1>
+            <p class="hero-sub">Search across capabilities, landing zones, tools, and owners. Start from a question or browse the catalog.</p>
+
+            <div class="search-bar">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+              <input type="text" placeholder="What are you looking for?" id="globalSearch" />
+              <span class="kbd">&#8984;K</span>
+            </div>
+          </div>
+
+          <!-- Platform: Entry points -->
+          <div class="section">
+            <div class="section-eyebrow">Platform</div>
+            <h2 class="section-title">Choose your starting point</h2>
+            <p class="section-desc">Pick the question that matches where you are in your platform journey.</p>
+
+            <div class="entry-grid" id="entryGrid">
+              <div class="entry-card active" data-phase="evaluate">
+                <div class="entry-icon">
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14" stroke-linecap="round"/></svg>
+                </div>
+                <div class="entry-label">Evaluate</div>
+                <div class="entry-desc">Which capability should I use? Browse approved services with availability across regions.</div>
+              </div>
+              <div class="entry-card" data-phase="decide">
+                <div class="entry-icon">
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/><rect x="2" y="9" width="5" height="5" rx="1"/><rect x="9" y="9" width="5" height="5" rx="1"/></svg>
+                </div>
+                <div class="entry-label">Decide</div>
+                <div class="entry-desc">Which landing zone fits my workload? Compare environments, guardrails, and onboarding paths.</div>
+              </div>
+              <div class="entry-card wide" data-phase="onboard">
+                <div class="entry-icon">
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4l6-2 6 2v5c0 3-2.5 5-6 6.5C4.5 14 2 12 2 9V4z"/></svg>
+                </div>
+                <div class="entry-label">Onboard</div>
+                <div class="entry-desc">How do I start? Get entry tools, pipelines, Terraform modules, and the right support channels for your chosen stack.</div>
+              </div>
+            </div>
+
+            <div id="phasePanel"></div>
+          </div>
+
+          <!-- Developer Journey -->
+          <div class="section">
+            <div class="section-eyebrow">Developer journey</div>
+            <h2 class="section-title">From idea to production</h2>
+            <p class="section-desc">Follow the lifecycle or jump to what you need right now.</p>
+
+            <div class="journey-grid">
+              <div class="journey-step">
+                <div class="step-num">01 Get started</div>
+                <div class="step-title">Understand the catalog</div>
+                <div class="step-desc">Browse available capabilities, service domains, and regional availability before committing.</div>
+                <div class="journey-links">
+                  <span class="journey-link">Service catalog</span>
+                  <span class="journey-link">Availability map</span>
+                </div>
+              </div>
+              <div class="journey-step">
+                <div class="step-num">02 Build</div>
+                <div class="step-title">Provision and configure</div>
+                <div class="step-desc">Use Terraform modules and Harness pipelines to provision landing zones and services.</div>
+                <div class="journey-links">
+                  <span class="journey-link">Terraform modules</span>
+                  <span class="journey-link">Deployment pipelines</span>
+                </div>
+              </div>
+              <div class="journey-step">
+                <div class="step-num">03 Validate</div>
+                <div class="step-title">Check guardrails</div>
+                <div class="step-desc">Run the guardrail checker to validate your workload meets compliance and security requirements.</div>
+                <div class="journey-links">
+                  <span class="journey-link">Guardrail checker</span>
+                </div>
+              </div>
+              <div class="journey-step">
+                <div class="step-num">04 Operate</div>
+                <div class="step-title">Monitor and evolve</div>
+                <div class="step-desc">Track health, freshness, and availability changes across regions. Stay current with the platform.</div>
+                <div class="journey-links">
+                  <span class="journey-link">Health dashboard</span>
+                  <span class="journey-link">What's new</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Capability Highlights -->
+          <div class="section">
+            <div class="section-eyebrow">Catalog</div>
+            <h2 class="section-title">Capability highlights</h2>
+            <p class="section-desc">A snapshot of the current catalog across regions and domains.</p>
+
+            <div class="cap-highlight-grid">
+              <div class="cap-block">
+                <div class="cb-stat">27</div>
+                <div class="cb-title">Services in the catalog</div>
+                <div class="cb-desc">Across compute, storage, database, AI, analytics, and integration domains.</div>
+              </div>
+              <div class="cap-block">
+                <div class="cb-stat">5</div>
+                <div class="cb-title">Regions and outposts</div>
+                <div class="cb-desc">US-East-1, CA-Central-1, GDC, DC16, MT10.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Recently Viewed -->
+          <div class="section">
+            <div class="section-eyebrow">Recently viewed</div>
+            <div class="recent-row">
+              <span class="recent-chip">S3 <span class="chip-type">capability</span></span>
+              <span class="recent-chip">EKS <span class="chip-type">capability</span></span>
+              <span class="recent-chip">L3 Production <span class="chip-type">landing zone</span></span>
+              <span class="recent-chip">IAM Baseline <span class="chip-type">guardrail</span></span>
+              <span class="recent-chip">Bedrock <span class="chip-type">capability</span></span>
+            </div>
+          </div>
+
+          <!-- Health -->
+          <div class="section">
+            <div class="health-strip">
+              <span class="hs-label">Health</span>
+              <div class="hs-items">
+                <span class="hs-item warn"><span class="hs-count">2</span> stale sources</span>
+                <span class="hs-item warn"><span class="hs-count">1</span> missing owner</span>
+                <span class="hs-item ok"><span class="hs-count">0</span> broken anchors</span>
+              </div>
+              <span class="hs-arrow">&rarr;</span>
+            </div>
+          </div>
+
+          <!-- Resources -->
+          <div class="section">
+            <div class="section-eyebrow">Resources</div>
+            <h2 class="section-title">Keep exploring</h2>
+
+            <div class="resource-grid">
+              <div class="resource-link">
+                <div class="rl-icon">
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13.5 5.5L8 2.5 2.5 5.5M13.5 5.5L8 8.5M13.5 5.5v5L8 13.5M8 8.5L2.5 5.5M8 8.5v5M2.5 5.5v5L8 13.5"/></svg>
+                </div>
+                <div class="rl-text">
+                  <div class="rl-title">All capabilities</div>
+                  <div class="rl-desc">Full service catalog by domain.</div>
+                </div>
+              </div>
+              <div class="resource-link">
+                <div class="rl-icon">
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/><rect x="2" y="9" width="5" height="5" rx="1"/><rect x="9" y="9" width="5" height="5" rx="1"/></svg>
+                </div>
+                <div class="rl-text">
+                  <div class="rl-title">Landing zones</div>
+                  <div class="rl-desc">Compare environments and guardrails.</div>
+                </div>
+              </div>
+              <div class="resource-link">
+                <div class="rl-icon">
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 8c0-3 2.7-5.5 6-5.5S14 5 14 8s-2.7 5.5-6 5.5S2 11 2 8z"/><circle cx="8" cy="8" r="2"/></svg>
+                </div>
+                <div class="rl-text">
+                  <div class="rl-title">Availability map</div>
+                  <div class="rl-desc">Regional status across all services.</div>
+                </div>
+              </div>
+              <div class="resource-link">
+                <div class="rl-icon">
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 12l3.5-4L8 10.5l3-4L14 10"/><rect x="2" y="2" width="12" height="12" rx="1.5"/></svg>
+                </div>
+                <div class="rl-text">
+                  <div class="rl-title">Health dashboard</div>
+                  <div class="rl-desc">Source freshness and data quality.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <script>
+      const capabilities = [
+        { id: 'ec2', name: 'EC2', domain: 'Compute', icon: 'EC2', meta: 'Virtual servers', status: 'available', regions: '5 regions' },
+        { id: 'lambda', name: 'Lambda', domain: 'Compute', icon: 'LAM', meta: 'Serverless functions', status: 'available', regions: '2 regions' },
+        { id: 'ecs', name: 'ECS Fargate', domain: 'Containers', icon: 'ECS', meta: 'Managed containers', status: 'available', regions: '2 regions' },
+        { id: 'eks', name: 'EKS', domain: 'Containers', icon: 'EKS', meta: 'Kubernetes orchestration', status: 'available', regions: '2 regions' },
+        { id: 'aurora', name: 'Aurora Serverless v2', domain: 'Database', icon: 'PG', meta: 'PostgreSQL compatible', status: 'available', regions: '2 regions' },
+        { id: 'elasticache', name: 'ElastiCache', domain: 'Database', icon: 'EC', meta: 'In-memory cache', status: 'available', regions: '2 regions' },
+        { id: 'bedrock', name: 'Amazon Bedrock', domain: 'AI Services', icon: 'BDR', meta: 'Foundation models', status: 'available', regions: '2 regions' },
+        { id: 'textract', name: 'Amazon Textract', domain: 'AI Services', icon: 'TEX', meta: 'Document extraction', status: 'available', regions: '2 regions' },
+        { id: 'dms', name: 'Database Migration Service', domain: 'Migration', icon: 'DMS', meta: 'Schema and data migration', status: 'planned', regions: 'ETA 05/2026' },
+        { id: 's3', name: 'S3', domain: 'Storage', icon: 'S3', meta: 'Object storage', status: 'available', regions: '2 regions' },
+        { id: 'sqs', name: 'SQS', domain: 'App Integration', icon: 'SQS', meta: 'Message queues', status: 'available', regions: '2 regions' },
+        { id: 'kinesis', name: 'Kinesis', domain: 'Analytics', icon: 'KIN', meta: 'Real-time streaming', status: 'available', regions: '2 regions' },
+      ];
+
+      const landingZones = [
+        { id: 'l3', name: 'L3 \u2014 Production', desc: 'Full guardrails, multi-AZ, approved for regulated workloads.', tags: ['Multi-AZ', 'Guardrails', 'Audit'], guardrails: '12 guardrails' },
+        { id: 'l4', name: 'L4 \u2014 Staging', desc: 'Production-like environment for integration testing and pre-release validation.', tags: ['Single-AZ', 'Guardrails', 'No PII'], guardrails: '8 guardrails' },
+        { id: 'l5', name: 'L5 \u2014 Sandbox', desc: 'Rapid prototyping with minimal restrictions. No production data allowed.', tags: ['Single-AZ', 'Relaxed', 'Ephemeral'], guardrails: '3 guardrails' },
+      ];
+
+      const tools = [
+        { name: 'EKS Baseline Module', desc: 'Terraform module for standard EKS clusters with networking and IAM.', link: 'Open in TFE' },
+        { name: 'Container Deploy Pipeline', desc: 'Harness pipeline for container image build, scan, and deploy.', link: 'Open in Harness' },
+        { name: 'Platform Onboarding Form', desc: 'Request access, configure accounts, and set up initial resources.', link: 'Start onboarding' },
+        { name: 'Guardrail Checker', desc: 'Validate your workload against applicable guardrails before deploy.', link: 'Run checker' },
+      ];
+
+      function groupBy(arr, key) {
+        const g = {};
+        arr.forEach(i => (g[i[key]] ??= []).push(i));
+        return g;
+      }
+
+      function renderEvaluate() {
+        const groups = groupBy(capabilities, 'domain');
+        let html = `
+          <div class="phase-head">
+            <div>
+              <h3>Which capability should I use?</h3>
+              <p>Browse approved services with availability and guardrails across regions.</p>
+            </div>
+            <button class="phase-close" data-close>&times;</button>
+          </div>
+          <div class="phase-filter">
+            <svg viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="4.5" stroke="currentColor" stroke-width="1.5"/><path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            <input type="text" placeholder="Filter capabilities..." />
+          </div>
+          <div class="phase-body">`;
+
+        for (const [domain, items] of Object.entries(groups)) {
+          html += `<div class="domain-group"><div class="domain-label">${domain}</div><div class="cap-list">`;
+          for (const cap of items) {
+            html += `<div class="cap-row">
+              <div class="cap-icon">${cap.icon}</div>
+              <div class="cap-info">
+                <div class="cap-name">${cap.name}</div>
+                <div class="cap-meta">${cap.meta}</div>
+              </div>
+              <span class="cap-status ${cap.status}"><span class="dot"></span>${cap.regions}</span>
+              <span class="cap-arrow">&rarr;</span>
+            </div>`;
+          }
+          html += `</div></div>`;
+        }
+
+        html += `</div>`;
+        return html;
+      }
+
+      function renderDecide() {
+        let html = `
+          <div class="phase-head">
+            <div>
+              <h3>Which landing zone fits my workload?</h3>
+              <p>Compare environments, guardrails, and onboarding paths side by side.</p>
+            </div>
+            <button class="phase-close" data-close>&times;</button>
+          </div>
+          <div class="phase-body"><div class="lz-stack">`;
+
+        for (const lz of landingZones) {
+          html += `<div class="lz-card">
+            <div>
+              <div class="lz-name">${lz.name}</div>
+              <div class="lz-desc">${lz.desc}</div>
+              <div class="lz-tags">${lz.tags.map(t => `<span class="lz-tag">${t}</span>`).join('')}</div>
+            </div>
+            <div class="lz-right">
+              <span class="lz-guardrails">${lz.guardrails}</span>
+            </div>
+          </div>`;
+        }
+
+        html += `</div></div>`;
+        return html;
+      }
+
+      function renderOnboard() {
+        let html = `
+          <div class="phase-head">
+            <div>
+              <h3>How do I start?</h3>
+              <p>Entry tools, pipelines, and support channels for your chosen stack.</p>
+            </div>
+            <button class="phase-close" data-close>&times;</button>
+          </div>
+          <div class="phase-body">
+            <div class="tool-grid">`;
+
+        for (const tool of tools) {
+          html += `<div class="tool-card">
+            <div class="tool-name">${tool.name}</div>
+            <div class="tool-desc">${tool.desc}</div>
+            <span class="tool-link">${tool.link} &rarr;</span>
+          </div>`;
+        }
+
+        html += `</div>
+          <div class="owner-row">
+            <div class="owner-avatar">PT</div>
+            <div class="owner-info">
+              <div class="owner-name">Platform Containers Team</div>
+              <div class="owner-channel">#containers-support on Slack</div>
+            </div>
+          </div>
+        </div>`;
+        return html;
+      }
+
+      const renderers = { evaluate: renderEvaluate, decide: renderDecide, onboard: renderOnboard };
+      let activePhase = 'evaluate';
+
+      function renderPhase() {
+        const panel = document.getElementById('phasePanel');
+        if (!activePhase) {
+          panel.innerHTML = '';
+          return;
+        }
+        panel.innerHTML = `<div class="phase-panel">${renderers[activePhase]()}</div>`;
+        bindPhaseClose();
+      }
+
+      function bindPhaseClose() {
+        document.querySelectorAll('[data-close]').forEach(el => {
+          el.addEventListener('click', e => {
+            e.stopPropagation();
+            activePhase = null;
+            document.querySelectorAll('.entry-card').forEach(c => c.classList.remove('active'));
+            renderPhase();
+          });
+        });
+      }
+
+      function bindEntryCards() {
+        document.querySelectorAll('.entry-card').forEach(el => {
+          el.addEventListener('click', () => {
+            const phase = el.dataset.phase;
+            document.querySelectorAll('.entry-card').forEach(c => c.classList.remove('active'));
+
+            if (activePhase === phase) {
+              activePhase = null;
+            } else {
+              activePhase = phase;
+              el.classList.add('active');
+            }
+            renderPhase();
+          });
+        });
+      }
+
+      bindEntryCards();
+      renderPhase();
+    </script>
+  </body>
+</html>

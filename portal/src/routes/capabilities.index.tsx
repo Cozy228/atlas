@@ -1,0 +1,208 @@
+import { useMemo, useState } from "react";
+import { Link, createFileRoute } from "@tanstack/react-router";
+import { IconArrowRight } from "@tabler/icons-react";
+import type { Topic } from "@atlas/schema";
+
+import { availabilityQueryOptions, topicDiscoveryQueryOptionsFor } from "@/api/queries";
+import type { AvailabilityResponse } from "@/api/server/availability";
+import { CatalogSearchField } from "@/components/catalog-search-field";
+import { ServiceIcon } from "@/components/explore/service-icon";
+import { StatusChip } from "@/components/explore/status-chip";
+import { PageBody } from "@/components/page-section";
+import { Badge } from "@/components/ui/badge";
+import { findAvailabilityServiceForTopic } from "@/lib/capability-service";
+import { cn } from "@/lib/utils";
+
+type LoaderData = {
+  topics: ReadonlyArray<Topic>;
+  availability: AvailabilityResponse;
+};
+
+export const Route = createFileRoute("/capabilities/")({
+  loader: async ({ context }): Promise<LoaderData> => {
+    const [topicsResp, availability] = await Promise.all([
+      context.queryClient.ensureQueryData(
+        topicDiscoveryQueryOptionsFor({ topic_type: "capability" }),
+      ),
+      context.queryClient.ensureQueryData(availabilityQueryOptions),
+    ]);
+    return { topics: topicsResp.topics, availability };
+  },
+  component: CapabilitiesListRoute,
+});
+
+function CapabilitiesListRoute() {
+  const { topics, availability } = Route.useLoaderData();
+  const [query, setQuery] = useState("");
+
+  const grouped = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const filtered = q
+      ? topics.filter(
+          (topic) =>
+            topic.name.toLowerCase().includes(q) ||
+            topic.description.toLowerCase().includes(q) ||
+            topic.category.toLowerCase().includes(q),
+        )
+      : topics;
+    const map = new Map<string, Topic[]>();
+    for (const topic of filtered) {
+      const list = map.get(topic.category);
+      if (list) list.push(topic);
+      else map.set(topic.category, [topic]);
+    }
+    return [...map.entries()]
+      .map(([key, items]) => [key, items.toSorted((a, b) => a.name.localeCompare(b.name))] as const)
+      .toSorted(([a], [b]) => a.localeCompare(b));
+  }, [topics, query]);
+
+  return (
+    <PageBody width="comfortable">
+      <div className="flex flex-col gap-2 pt-2">
+        <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">
+          Discovery
+        </span>
+        <div className="flex flex-wrap items-baseline gap-3">
+          <h1 className="text-4xl font-semibold leading-[1.1] tracking-[-0.03em] text-foreground sm:text-[40px]">
+            Capabilities
+          </h1>
+          <Badge variant="outline" className="font-mono text-[10px]">
+            topic_type = capability
+          </Badge>
+        </div>
+        <p className="max-w-[56ch] text-[15px] leading-[1.6] text-muted-foreground">
+          Approved cloud platform capabilities. Authority, owner, and entry tools stay scannable side
+          by side.
+        </p>
+      </div>
+
+      <CatalogSearchField
+        value={query}
+        onChange={setQuery}
+        placeholder="Filter capabilities… name, description, domain"
+      />
+
+      {grouped.length === 0 ? (
+        <EmptyState />
+      ) : (
+        <div className="flex flex-col gap-8">
+          {grouped.map(([category, items]) => (
+            <section key={category} className="flex flex-col gap-3">
+              <div className="flex items-center gap-2">
+                <h2 className="font-mono text-[11px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">
+                  {category}
+                </h2>
+                <span
+                  className={cn(
+                    "rounded-full bg-border px-1.5 py-px",
+                    "font-mono text-[11px] font-bold text-muted-foreground",
+                  )}
+                >
+                  {items.length}
+                </span>
+                <span className="h-px flex-1 bg-border" />
+              </div>
+              <div
+                className="grid gap-2"
+                style={{
+                  gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
+                }}
+              >
+                {items.map((topic) => (
+                  <CapabilityCard key={topic.id} topic={topic} availability={availability} />
+                ))}
+              </div>
+            </section>
+          ))}
+        </div>
+      )}
+    </PageBody>
+  );
+}
+
+function CapabilityCard({
+  topic,
+  availability,
+}: {
+  topic: Topic;
+  availability: AvailabilityResponse;
+}) {
+  const service = findAvailabilityServiceForTopic(topic, availability.services);
+  const activeLocations = service
+    ? availability.locations.filter(
+        (location) =>
+          service.availability[location.id] &&
+          service.availability[location.id]?.status !== "not-planned",
+      )
+    : [];
+  const visibleChips = activeLocations.slice(0, 2);
+  const overflow = activeLocations.length - visibleChips.length;
+
+  return (
+    <Link
+      to="/capabilities/$topicId"
+      params={{ topicId: topic.id }}
+      className={cn(
+        "group flex flex-col gap-3 rounded-lg border border-border bg-card p-5 transition-[border-color,box-shadow]",
+        "hover:border-border-strong hover:shadow-sm",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+      )}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex min-w-0 items-start gap-3">
+          {service ? <ServiceIcon serviceId={service.id} size="xl" /> : null}
+          <div className="flex min-w-0 flex-col gap-1">
+            <p className="text-[15px] font-bold tracking-[-0.01em] text-foreground">
+              {topic.name}
+            </p>
+            <p className="line-clamp-2 text-[13px] leading-5 text-muted-foreground">
+              {topic.description}
+            </p>
+          </div>
+        </div>
+        <IconArrowRight className="size-3.5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />
+      </div>
+      <div className="flex flex-wrap items-center gap-1.5">
+        {visibleChips.map((location) => {
+          const cell = service!.availability[location.id]!;
+          return (
+            <StatusChip
+              key={location.id}
+              status={cell.status}
+              text={
+                cell.status === "planned" && cell.note
+                  ? `${location.label} ${cell.note}`
+                  : location.label
+              }
+            />
+          );
+        })}
+        {overflow > 0 ? (
+          <span className="rounded border border-border bg-background px-1.5 py-0.5 font-mono text-[11px] font-semibold text-muted-foreground">
+            +{overflow}
+          </span>
+        ) : null}
+        {activeLocations.length === 0 ? (
+          <span className="font-mono text-[11px] text-muted-foreground">
+            no availability projection
+          </span>
+        ) : null}
+      </div>
+      <div className="mt-auto flex items-center justify-between text-[12px] text-muted-foreground">
+        <span className="truncate font-semibold text-foreground">{topic.owner_team}</span>
+        <span className="font-mono">{topic.support_channel}</span>
+      </div>
+    </Link>
+  );
+}
+
+function EmptyState() {
+  return (
+    <div className="rounded-lg border border-dashed border-border bg-card p-6 text-[13px] text-muted-foreground">
+      <p className="font-bold text-foreground">No registered capabilities.</p>
+      <p className="mt-1 leading-6">
+        Either the registry is empty or your filter excluded every topic.
+      </p>
+    </div>
+  );
+}
