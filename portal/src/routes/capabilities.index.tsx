@@ -59,18 +59,18 @@ function CapabilitiesListRoute() {
   return (
     <PageBody width="comfortable">
       <div className="flex flex-col gap-2 pt-2">
-        <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">
+        <span className="font-mono text-xs font-semibold uppercase tracking-[0.05em] text-muted-foreground">
           Discovery
         </span>
         <div className="flex flex-wrap items-baseline gap-3">
-          <h1 className="text-4xl font-semibold leading-[1.1] tracking-[-0.03em] text-foreground sm:text-[40px]">
+          <h1 className="type-display font-semibold leading-[1.1] tracking-[-0.03em] text-foreground sm:type-display-lg">
             Capabilities
           </h1>
-          <Badge variant="outline" className="font-mono text-[10px]">
+          <Badge variant="outline" className="font-mono type-caption">
             topic_type = capability
           </Badge>
         </div>
-        <p className="max-w-[56ch] text-[15px] leading-[1.6] text-muted-foreground">
+        <p className="max-w-[56ch] type-body leading-[1.6] text-muted-foreground">
           Approved cloud platform capabilities. Authority, owner, and entry tools stay scannable side
           by side.
         </p>
@@ -89,13 +89,13 @@ function CapabilitiesListRoute() {
           {grouped.map(([category, items]) => (
             <section key={category} className="flex flex-col gap-3">
               <div className="flex items-center gap-2">
-                <h2 className="font-mono text-[11px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">
+                <h2 className="font-mono text-xs font-semibold uppercase tracking-[0.05em] text-muted-foreground">
                   {category}
                 </h2>
                 <span
                   className={cn(
                     "rounded-full bg-border px-1.5 py-px",
-                    "font-mono text-[11px] font-bold text-muted-foreground",
+                    "font-mono text-xs font-bold text-muted-foreground",
                   )}
                 >
                   {items.length}
@@ -152,10 +152,10 @@ function CapabilityCard({
         <div className="flex min-w-0 items-start gap-3">
           {service ? <ServiceIcon serviceId={service.id} size="xl" /> : null}
           <div className="flex min-w-0 flex-col gap-1">
-            <p className="text-[15px] font-bold tracking-[-0.01em] text-foreground">
+            <p className="type-body font-bold tracking-[-0.01em] text-foreground">
               {topic.name}
             </p>
-            <p className="line-clamp-2 text-[13px] leading-5 text-muted-foreground">
+            <p className="line-clamp-2 type-detail leading-5 text-muted-foreground">
               {topic.description}
             </p>
           </div>
@@ -178,17 +178,17 @@ function CapabilityCard({
           );
         })}
         {overflow > 0 ? (
-          <span className="rounded border border-border bg-background px-1.5 py-0.5 font-mono text-[11px] font-semibold text-muted-foreground">
+          <span className="rounded border border-border bg-background px-1.5 py-0.5 font-mono type-status-chip font-semibold text-muted-foreground">
             +{overflow}
           </span>
         ) : null}
         {activeLocations.length === 0 ? (
-          <span className="font-mono text-[11px] text-muted-foreground">
+          <span className="font-mono type-status-chip text-muted-foreground">
             no availability projection
           </span>
         ) : null}
       </div>
-      <div className="mt-auto flex items-center justify-between text-[12px] text-muted-foreground">
+      <div className="mt-auto flex items-center justify-between text-xs text-muted-foreground">
         <span className="truncate font-semibold text-foreground">{topic.owner_team}</span>
         <span className="font-mono">{topic.support_channel}</span>
       </div>
@@ -198,7 +198,7 @@ function CapabilityCard({
 
 function EmptyState() {
   return (
-    <div className="rounded-lg border border-dashed border-border bg-card p-6 text-[13px] text-muted-foreground">
+    <div className="rounded-lg border border-dashed border-border bg-card p-6 type-detail text-muted-foreground">
       <p className="font-bold text-foreground">No registered capabilities.</p>
       <p className="mt-1 leading-6">
         Either the registry is empty or your filter excluded every topic.

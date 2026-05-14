@@ -85,12 +85,12 @@ function BrandLink() {
         aria-hidden
         className={cn(
           "flex size-6 items-center justify-center rounded-[7px] bg-primary",
-          "font-mono text-[11px] font-bold leading-none tracking-[-0.04em] text-primary-foreground",
+          "font-mono text-xs font-bold leading-none tracking-[-0.04em] text-primary-foreground",
         )}
       >
         A
       </span>
-      <span className="text-[15px] font-bold tracking-[-0.03em] text-foreground">Atlas</span>
+      <span className="type-body font-bold tracking-[-0.03em] text-foreground">Atlas</span>
     </Link>
   );
 }
@@ -157,7 +157,7 @@ function NavMenu({ open, onOpenChange }: NavMenuProps) {
       <Sheet open={open} onOpenChange={(o) => onOpenChange(o)}>
         <SheetContent side="left" className="data-[side=left]:sm:max-w-56 gap-0 p-0">
           <SheetHeader className="border-b px-4 py-3">
-            <SheetTitle className="text-[14px] font-bold tracking-[-0.03em]">Atlas</SheetTitle>
+            <SheetTitle className="text-sm font-bold tracking-[-0.03em]">Atlas</SheetTitle>
           </SheetHeader>
           <nav aria-label="Primary" className="flex flex-col gap-0.5 p-2">
             {PRIMARY_NAV.map((item) => (

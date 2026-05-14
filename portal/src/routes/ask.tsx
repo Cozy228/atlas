@@ -24,13 +24,13 @@ function AskAtlasRoute() {
 function Hero() {
   return (
     <div className="flex flex-col gap-2 pt-2">
-      <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">
+      <span className="font-mono text-xs font-semibold uppercase tracking-[0.05em] text-muted-foreground">
         Ask Atlas
       </span>
-      <h1 className="max-w-[26ch] text-4xl font-semibold leading-[1.1] tracking-[-0.03em] text-foreground sm:text-[40px]">
+      <h1 className="max-w-[26ch] type-display font-semibold leading-[1.1] tracking-[-0.03em] text-foreground sm:type-display-lg">
         Ask a question about the platform
       </h1>
-      <p className="max-w-[56ch] text-[15px] leading-[1.6] text-muted-foreground">
+      <p className="max-w-[56ch] type-body leading-[1.6] text-muted-foreground">
         Cited answers from authoritative context. Every claim links back to its registered source.
       </p>
     </div>
@@ -40,8 +40,8 @@ function Hero() {
 function Boundary() {
   return (
     <section className="rounded-xl border border-border bg-card p-4">
-      <p className="text-[12px] font-bold text-foreground">How Ask Atlas behaves</p>
-      <ul className="mt-2 grid gap-1.5 text-[12px] leading-[1.6] text-muted-foreground sm:grid-cols-2">
+      <p className="text-xs font-bold text-foreground">How Ask Atlas behaves</p>
+      <ul className="mt-2 grid gap-1.5 text-xs leading-[1.6] text-muted-foreground sm:grid-cols-2">
         <BoundaryLine
           label="Question scope"
           copy="Cited platform context only. No web retrieval."
@@ -60,7 +60,7 @@ function Boundary() {
 function BoundaryLine({ label, copy }: { label: string; copy: string }) {
   return (
     <li className="flex items-baseline gap-2">
-      <span className="shrink-0 font-mono text-[10px] font-semibold uppercase tracking-[0.05em] text-foreground">
+      <span className="shrink-0 font-mono type-caption font-semibold uppercase tracking-[0.05em] text-foreground">
         {label}
       </span>
       <span>{copy}</span>

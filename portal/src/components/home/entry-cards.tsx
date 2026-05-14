@@ -102,7 +102,7 @@ function EntryCard({ phase, active, onClick, label, description, icon: CardIcon 
       <span className="flex flex-col gap-1">
         <span
           className={cn(
-            "text-[15px] font-bold leading-[1.3] tracking-[-0.01em] text-foreground",
+            "type-body font-bold leading-[1.3] tracking-[-0.01em] text-foreground",
             "group-data-[active=true]:text-primary",
           )}
         >
@@ -134,10 +134,10 @@ function PhasePanel({
     >
       <header className="flex items-center justify-between gap-3 border-b border-border px-5 py-4">
         <div className="min-w-0">
-          <h3 className="text-[15px] font-semibold tracking-[-0.02em] text-foreground">
+          <h3 className="type-body font-semibold tracking-[-0.02em] text-foreground">
             {heading.title}
           </h3>
-          <p className="mt-0.5 text-[13px] leading-5 text-muted-foreground">
+          <p className="mt-0.5 type-detail leading-5 text-muted-foreground">
             {heading.description}
           </p>
         </div>
@@ -207,19 +207,19 @@ function FindServicePanel({ capabilities }: { capabilities: ReadonlyArray<Topic>
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Filter capabilities…"
             aria-label="Filter capabilities"
-            className="h-full flex-1 bg-transparent text-[12px] text-foreground outline-none placeholder:text-muted-foreground"
+            className="h-full flex-1 bg-transparent text-xs text-foreground outline-none placeholder:text-muted-foreground"
           />
         </div>
       </div>
       <div className="flex flex-col gap-3 px-2 pb-5 pt-3">
         {grouped.length === 0 ? (
-          <p className="px-3 py-6 text-center text-[13px] text-muted-foreground">
+          <p className="px-3 py-6 text-center type-detail text-muted-foreground">
             No capability matches “{query}”.
           </p>
         ) : (
           grouped.map(([domain, items]) => (
             <div key={domain}>
-              <p className="mb-1 px-3 font-mono text-[10px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">
+              <p className="mb-1 px-3 font-mono type-caption font-semibold uppercase tracking-[0.05em] text-muted-foreground">
                 {domain}
               </p>
               <ul className="flex flex-col">
@@ -238,16 +238,16 @@ function FindServicePanel({ capabilities }: { capabilities: ReadonlyArray<Topic>
                         aria-hidden
                         className={cn(
                           "flex size-7 shrink-0 items-center justify-center rounded-md border border-border bg-background",
-                          "font-mono text-[14px] font-bold text-primary",
+                          "font-mono text-sm font-bold text-primary",
                         )}
                       >
                         {topic.name.charAt(0).toUpperCase()}
                       </span>
                       <span className="flex flex-1 flex-col min-w-0">
-                        <span className="text-[13px] font-semibold text-foreground">
+                        <span className="type-detail font-semibold text-foreground">
                           {topic.name}
                         </span>
-                        <span className="truncate text-[11px] text-muted-foreground">
+                        <span className="truncate text-xs text-muted-foreground">
                           {topic.description}
                         </span>
                       </span>
@@ -285,7 +285,7 @@ function StatusPill({ status }: { status: Topic["status"] }) {
     <span
       className={cn(
         "flex items-center gap-1 rounded-full px-1.5 py-0.5",
-        "font-mono text-[10px] font-semibold",
+        "font-mono type-caption font-semibold",
         tone.className,
       )}
     >
@@ -298,7 +298,7 @@ function StatusPill({ status }: { status: Topic["status"] }) {
 function OnboardingPanel({ landingZones }: { landingZones: ReadonlyArray<Topic> }) {
   if (landingZones.length === 0) {
     return (
-      <p className="px-5 py-8 text-center text-[13px] text-muted-foreground">
+      <p className="px-5 py-8 text-center type-detail text-muted-foreground">
         No landing zones registered.
       </p>
     );
@@ -313,14 +313,14 @@ function OnboardingPanel({ landingZones }: { landingZones: ReadonlyArray<Topic> 
                 to="/landing-zones/$topicId"
                 params={{ topicId: zone.id }}
                 className={cn(
-                  "inline-flex items-center gap-1 text-[14px] font-bold tracking-[-0.01em] text-foreground",
+                  "inline-flex items-center gap-1 text-sm font-bold tracking-[-0.01em] text-foreground",
                   "hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded",
                 )}
               >
                 {zone.name}
                 <IconArrowRight className="size-3.5 opacity-50" />
               </Link>
-              <p className="mt-0.5 text-[12px] leading-5 text-muted-foreground">
+              <p className="mt-0.5 text-xs leading-5 text-muted-foreground">
                 {zone.description}
               </p>
             </div>
@@ -337,7 +337,7 @@ function OnboardingPanel({ landingZones }: { landingZones: ReadonlyArray<Topic> 
                   rel="noreferrer"
                   className={cn(
                     "inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1 transition-[border-color,color]",
-                    "text-[12px] font-semibold text-foreground",
+                    "text-xs font-semibold text-foreground",
                     "hover:border-primary hover:text-primary",
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                   )}
@@ -351,8 +351,8 @@ function OnboardingPanel({ landingZones }: { landingZones: ReadonlyArray<Topic> 
 
           <div className="flex items-center gap-2">
             <IconUsers className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
-            <span className="text-[12px] font-semibold text-foreground">{zone.owner_team}</span>
-            <span className="font-mono text-[11px] text-muted-foreground">
+            <span className="text-xs font-semibold text-foreground">{zone.owner_team}</span>
+            <span className="font-mono text-xs text-muted-foreground">
               {zone.support_channel}
             </span>
           </div>
@@ -365,7 +365,7 @@ function OnboardingPanel({ landingZones }: { landingZones: ReadonlyArray<Topic> 
 function MigratePanel({ landingZones }: { landingZones: ReadonlyArray<Topic> }) {
   if (landingZones.length === 0) {
     return (
-      <p className="px-5 py-8 text-center text-[13px] text-muted-foreground">
+      <p className="px-5 py-8 text-center type-detail text-muted-foreground">
         No landing zones registered.
       </p>
     );
@@ -383,14 +383,14 @@ function MigratePanel({ landingZones }: { landingZones: ReadonlyArray<Topic> }) 
                 to="/landing-zones/$topicId"
                 params={{ topicId: zone.id }}
                 className={cn(
-                  "inline-flex items-center gap-1 text-[14px] font-bold tracking-[-0.01em] text-foreground",
+                  "inline-flex items-center gap-1 text-sm font-bold tracking-[-0.01em] text-foreground",
                   "hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded",
                 )}
               >
                 {zone.name}
                 <IconArrowRight className="size-3.5 opacity-50" />
               </Link>
-              <p className="mt-0.5 text-[12px] leading-5 text-muted-foreground">
+              <p className="mt-0.5 text-xs leading-5 text-muted-foreground">
                 {zone.description}
               </p>
             </div>
@@ -405,8 +405,8 @@ function MigratePanel({ landingZones }: { landingZones: ReadonlyArray<Topic> }) 
               <IconUsers className="size-3 text-primary" />
             </span>
             <div className="min-w-0">
-              <span className="text-[12px] font-bold text-foreground">{zone.owner_team}</span>
-              <span className="ml-2 font-mono text-[11px] text-muted-foreground">
+              <span className="text-xs font-bold text-foreground">{zone.owner_team}</span>
+              <span className="ml-2 font-mono text-xs text-muted-foreground">
                 {zone.support_channel}
               </span>
             </div>
@@ -422,7 +422,7 @@ function ZoneTag({ children }: { children: React.ReactNode }) {
     <span
       className={cn(
         "shrink-0 rounded border border-border bg-card px-1.5 py-0.5",
-        "font-mono text-[10px] font-medium text-muted-foreground",
+        "font-mono type-caption font-medium text-muted-foreground",
       )}
     >
       {children}

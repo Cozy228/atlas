@@ -76,7 +76,7 @@ function SourceDetailRoute() {
             <AuthorityBadge level={source.authority_level} />
             <VisibilityBadge value={source.visibility} />
             <FreshnessIndicator source={source} />
-            <Badge variant="outline" className="font-mono text-[10px]">
+            <Badge variant="outline" className="font-mono type-caption">
               {source.id}
             </Badge>
           </>
@@ -88,7 +88,7 @@ function SourceDetailRoute() {
               target="_blank"
               rel="noreferrer noopener"
               className={cn(
-                "inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-[12px] font-semibold text-primary-foreground transition-colors",
+                "inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground transition-colors",
                 "hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
               )}
             >
@@ -101,10 +101,10 @@ function SourceDetailRoute() {
 
       {restricted ? (
         <div className="rounded-lg border border-warning/30 bg-warning/10 px-4 py-3">
-          <p className="text-[13px] font-bold text-warning-foreground">Restricted source</p>
-          <p className="mt-1 text-[12px] leading-5 text-muted-foreground">
+          <p className="type-detail font-bold text-warning-foreground">Restricted source</p>
+          <p className="mt-1 text-xs leading-5 text-muted-foreground">
             Atlas surfaces metadata only. Direct fetches return{" "}
-            <code className="rounded bg-card px-1 py-0.5 font-mono text-[11px]">access_denied</code>
+            <code className="rounded bg-card px-1 py-0.5 font-mono text-xs">access_denied</code>
             . Contact the steward for access.
           </p>
         </div>
@@ -121,7 +121,7 @@ function SourceDetailRoute() {
                   <EvidenceSection bundle={bundle} defaultOpen />
                 )
               ) : (
-                <div className="rounded-lg border border-dashed border-border bg-card p-3.5 text-[12px] text-muted-foreground">
+                <div className="rounded-lg border border-dashed border-border bg-card p-3.5 text-xs text-muted-foreground">
                   The Context API returned no bundle for this source.
                 </div>
               )}
@@ -176,8 +176,8 @@ function AnchorList({ bundle }: { bundle: ContextBundleResponse }) {
           className="flex items-center justify-between gap-3 rounded-md border border-border bg-card px-3 py-2"
         >
           <span className="flex flex-col">
-            <span className="font-mono text-[11px] text-muted-foreground">{anchor.anchor_id}</span>
-            <span className="text-[12px] font-semibold text-foreground">
+            <span className="font-mono text-xs text-muted-foreground">{anchor.anchor_id}</span>
+            <span className="text-xs font-semibold text-foreground">
               {anchor.citation_label}
             </span>
           </span>

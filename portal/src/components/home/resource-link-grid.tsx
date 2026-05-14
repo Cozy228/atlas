@@ -75,8 +75,8 @@ function ResourceCard({ resource }: { resource: ResourceLink }) {
         <Icon className="size-4 text-muted-foreground" />
       </span>
       <span className="flex flex-col">
-        <span className="text-[13px] font-bold text-foreground">{resource.title}</span>
-        <span className="text-[12px] leading-5 text-muted-foreground">{resource.description}</span>
+        <span className="type-detail font-bold text-foreground">{resource.title}</span>
+        <span className="text-xs leading-5 text-muted-foreground">{resource.description}</span>
       </span>
     </Link>
   );

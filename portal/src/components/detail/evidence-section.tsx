@@ -29,12 +29,12 @@ export function EvidenceSection({ bundle, defaultOpen = false }: EvidenceSection
           )}
         >
           <div className="flex flex-col">
-            <p className="text-[13px] font-bold tracking-[-0.01em] text-foreground">
+            <p className="type-detail font-bold tracking-[-0.01em] text-foreground">
               {sourceCount === 0
                 ? "No registered sources"
                 : `${sourceCount} ${sourceCount === 1 ? "source" : "sources"} cited`}
             </p>
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               Authority, freshness, anchors, and excerpts expand inline.
             </p>
           </div>

@@ -93,7 +93,7 @@ function UpdateRow({ update, divider }: { update: PlatformUpdate; divider: boole
       <div className="flex min-w-0 items-baseline gap-2">
         <span
           className={cn(
-            "shrink-0 rounded px-1.5 py-px font-mono text-[10px] font-semibold tracking-[0.04em]",
+            "shrink-0 rounded px-1.5 py-px font-mono type-caption font-bold tracking-[0.04em]",
             config.tagClass,
           )}
         >
@@ -103,24 +103,24 @@ function UpdateRow({ update, divider }: { update: PlatformUpdate; divider: boole
           {update.href ? (
             <a
               href={update.href}
-              className="truncate text-[13px] font-semibold text-foreground hover:text-primary focus-visible:rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="truncate type-detail font-semibold text-foreground hover:text-primary focus-visible:rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               {update.title}
             </a>
           ) : (
-            <span className="truncate text-[13px] font-semibold text-foreground">
+            <span className="truncate type-detail font-semibold text-foreground">
               {update.title}
             </span>
           )}
           <time
             dateTime={update.date}
-            className="shrink-0 font-mono text-[11px] tabular-nums text-muted-foreground"
+            className="shrink-0 font-mono text-xs tabular-nums text-muted-foreground"
           >
             {formatDate(update.date)}
           </time>
         </span>
       </div>
-      <p className="mt-0.5 text-[12px] leading-5 text-muted-foreground">{update.description}</p>
+      <p className="mt-0.5 text-xs leading-5 text-muted-foreground">{update.description}</p>
     </article>
   );
 }

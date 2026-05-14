@@ -49,18 +49,18 @@ function SourcesListRoute() {
   return (
     <PageBody width="comfortable">
       <div className="flex flex-col gap-2 pt-2">
-        <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">
+        <span className="font-mono text-xs font-semibold uppercase tracking-[0.05em] text-muted-foreground">
           Discovery
         </span>
         <div className="flex flex-wrap items-baseline gap-3">
-          <h1 className="text-4xl font-semibold leading-[1.1] tracking-[-0.03em] text-foreground sm:text-[40px]">
+          <h1 className="type-display font-semibold leading-[1.1] tracking-[-0.03em] text-foreground sm:type-display-lg">
             Sources
           </h1>
-          <Badge variant="outline" className="font-mono text-[10px]">
+          <Badge variant="outline" className="font-mono type-caption">
             authority-ranked
           </Badge>
         </div>
-        <p className="max-w-[56ch] text-[15px] leading-[1.6] text-muted-foreground">
+        <p className="max-w-[56ch] type-body leading-[1.6] text-muted-foreground">
           Authoritative source lookup. Authority, freshness, and restricted visibility are visible
           inline so consumers can verify evidence before citing.
         </p>
@@ -98,13 +98,13 @@ function SourceRow({ source }: { source: Source }) {
       )}
     >
       <div className="flex flex-col gap-1">
-        <p className="flex items-center gap-2 text-[13px] font-bold tracking-[-0.01em] text-foreground">
+        <p className="flex items-center gap-2 type-detail font-bold tracking-[-0.01em] text-foreground">
           {source.title}
-          <span className="font-mono text-[10px] font-medium text-muted-foreground">
+          <span className="font-mono type-caption font-medium text-muted-foreground">
             {source.id}
           </span>
         </p>
-        <p className="text-[11px] leading-5 text-muted-foreground">
+        <p className="text-xs leading-5 text-muted-foreground">
           steward {source.steward} · scope {source.authority_scope.join(", ")}
         </p>
       </div>
@@ -114,7 +114,7 @@ function SourceRow({ source }: { source: Source }) {
         <FreshnessIndicator source={source} />
         <SourceClassBadge value={source.source_class} />
       </div>
-      <span className="flex items-center justify-end gap-1 self-end font-mono text-[11px] text-primary lg:self-center">
+      <span className="flex items-center justify-end gap-1 self-end font-mono text-xs text-primary lg:self-center">
         Inspect
         <IconArrowRight className="size-3 transition-transform group-hover:translate-x-0.5" />
       </span>
@@ -124,7 +124,7 @@ function SourceRow({ source }: { source: Source }) {
 
 function EmptyState() {
   return (
-    <div className="rounded-lg border border-dashed border-border bg-card p-6 text-[13px] text-muted-foreground">
+    <div className="rounded-lg border border-dashed border-border bg-card p-6 type-detail text-muted-foreground">
       <p className="font-bold text-foreground">No registered sources.</p>
       <p className="mt-1 leading-6">
         The Context API returned an empty discovery response. Suggest a source from any detail page
