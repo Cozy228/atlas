@@ -37,10 +37,10 @@ export function ExpandPanel({ service, locations, onClose }: ExpandPanelProps) {
         <div className="flex items-center gap-2.5">
           <ServiceIcon serviceId={service.id} size="lg" />
           <div>
-            <p className="text-[15px] font-bold tracking-[-0.01em] text-foreground">
+            <p className="type-body font-bold tracking-[-0.01em] text-foreground">
               {service.name}
             </p>
-            <p className="text-[11px] text-muted-foreground">{service.domain}</p>
+            <p className="text-xs text-muted-foreground">{service.domain}</p>
           </div>
         </div>
         <button
@@ -58,7 +58,7 @@ export function ExpandPanel({ service, locations, onClose }: ExpandPanelProps) {
       </header>
       <div className="grid grid-cols-1 lg:grid-cols-2">
         <section className="border-b border-border p-5 lg:border-b-0 lg:border-r">
-          <p className="mb-2 font-mono text-[10px] font-bold uppercase tracking-[0.05em] text-muted-foreground">
+          <p className="mb-2 font-mono type-caption font-bold uppercase tracking-[0.05em] text-muted-foreground">
             Availability by location
           </p>
           <ul className="flex flex-col gap-1">
@@ -72,10 +72,10 @@ export function ExpandPanel({ service, locations, onClose }: ExpandPanelProps) {
                   className="flex items-center justify-between gap-2 rounded-md bg-background px-3 py-2"
                 >
                   <span className="flex flex-col">
-                    <span className="text-[13px] font-semibold text-foreground">
+                    <span className="type-detail font-semibold text-foreground">
                       {location.label}
                     </span>
-                    <span className="text-[11px] text-muted-foreground">{sub}</span>
+                    <span className="text-xs text-muted-foreground">{sub}</span>
                   </span>
                   <StatusChip status={status} text={statusLabel(status)} />
                 </li>
@@ -92,7 +92,7 @@ export function ExpandPanel({ service, locations, onClose }: ExpandPanelProps) {
           />
         </section>
         <section className="p-5">
-          <p className="mb-2 font-mono text-[10px] font-bold uppercase tracking-[0.05em] text-muted-foreground">
+          <p className="mb-2 font-mono type-caption font-bold uppercase tracking-[0.05em] text-muted-foreground">
             Next steps
           </p>
           <div className="grid grid-cols-2 gap-1.5">
@@ -101,7 +101,7 @@ export function ExpandPanel({ service, locations, onClose }: ExpandPanelProps) {
             <ActionButton>Onboarding</ActionButton>
             <ActionButton>Support</ActionButton>
           </div>
-          <p className="mt-3 border-t border-border pt-2 font-mono text-[10px] text-muted-foreground">
+          <p className="mt-3 border-t border-border pt-2 font-mono type-caption text-muted-foreground">
             Source projection: catalog.md. Production surfaces show anchors, freshness, and warnings
             per cell.
           </p>
@@ -124,8 +124,8 @@ function Guidance({
   if (hasPlanned) {
     return (
       <div className="mt-3 rounded-md border border-info/20 bg-info/5 p-3">
-        <p className="text-[11px] font-bold text-foreground">Rollout in progress</p>
-        <p className="mt-0.5 text-[12px] leading-5 text-muted-foreground">
+        <p className="text-xs font-bold text-foreground">Rollout in progress</p>
+        <p className="mt-0.5 text-xs leading-5 text-muted-foreground">
           {nextEta ? `Next expected: ${nextEta}.` : "Timeline TBD."} Contact the platform team for
           interim access.
         </p>
@@ -135,8 +135,8 @@ function Guidance({
   if (everyAvailable) {
     return (
       <div className="mt-3 rounded-md border border-success/20 bg-success/5 p-3">
-        <p className="text-[11px] font-bold text-foreground">Ready to use</p>
-        <p className="mt-0.5 text-[12px] leading-5 text-muted-foreground">
+        <p className="text-xs font-bold text-foreground">Ready to use</p>
+        <p className="mt-0.5 text-xs leading-5 text-muted-foreground">
           Proceed to service catalog or user guide to begin onboarding.
         </p>
       </div>
@@ -150,7 +150,7 @@ function ActionButton({ children, primary }: { children: React.ReactNode; primar
     <button
       type="button"
       className={cn(
-        "inline-flex items-center justify-center gap-1 rounded-md px-3 py-2 text-[13px] font-semibold transition-colors",
+        "inline-flex items-center justify-center gap-1 rounded-md px-3 py-2 type-detail font-semibold transition-colors",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         primary
           ? "bg-primary text-primary-foreground hover:bg-primary/90"

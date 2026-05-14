@@ -25,12 +25,12 @@ const iconSize = {
 } as const;
 
 const fallbackClass = {
-  sm: "text-[7px]",
-  base: "text-[9px]",
-  md: "text-[11px]",
-  lg: "text-[12px]",
-  xl: "text-[13px]",
-  hero: "text-[16px]",
+  sm: "type-icon-glyph",
+  base: "type-caption",
+  md: "text-xs",
+  lg: "text-xs",
+  xl: "type-detail",
+  hero: "type-body",
 } as const;
 
 export function ServiceIcon({ serviceId, size = "md" }: ServiceIconProps) {

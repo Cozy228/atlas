@@ -27,38 +27,38 @@ colors:
 
 typography:
   display:
-    fontFamily: '"IBM Plex Sans", ui-sans-serif, system-ui'
+    fontFamily: 'system (SF Pro / Segoe UI Variable / Roboto)'
     fontSize: "2.25rem / 2.5rem (mobile / sm+)"
     fontWeight: 700
     lineHeight: 1.1
     letterSpacing: "-0.03em"
   headline:
-    fontFamily: '"IBM Plex Sans", ui-sans-serif, system-ui'
+    fontFamily: 'system'
     fontSize: "1.375rem"
     fontWeight: 700
     lineHeight: 1.2
     letterSpacing: "-0.02em"
   title:
-    fontFamily: '"IBM Plex Sans", ui-sans-serif, system-ui'
+    fontFamily: 'system'
     fontSize: "0.875rem"
     fontWeight: 700
     lineHeight: 1.4
     letterSpacing: "-0.01em"
   body:
-    fontFamily: '"IBM Plex Sans", ui-sans-serif, system-ui'
+    fontFamily: 'system'
     fontSize: "0.9375rem"
     fontWeight: 400
     lineHeight: 1.6
     letterSpacing: "normal"
   label:
-    fontFamily: '"IBM Plex Sans", ui-sans-serif, system-ui'
+    fontFamily: 'system'
     fontSize: "0.8125rem"
     fontWeight: 400
     lineHeight: 1.5
     letterSpacing: "normal"
   mono-label:
-    fontFamily: '"IBM Plex Mono", ui-monospace, monospace'
-    fontSize: "0.6875rem"
+    fontFamily: 'system mono (Cascadia Mono / SF Mono / Menlo / Consolas)'
+    fontSize: "0.75rem"
     fontWeight: 600
     lineHeight: 1.4
     letterSpacing: "0.05em"
@@ -133,9 +133,9 @@ ceremony. Every screen earns attention through information integrity, not animat
 The visual system makes one strong commitment: Platform Blue carries the full weight of action
 and selection. All other surfaces are tinted near-neutrals that recede and let structured data
 speak. Depth is expressed through lightness steps alone; shadows appear only as state signals.
-IBM Plex Mono marks machine-structured vocabulary (category slugs, topic types, authority
-levels, channel names) so that structural metadata is always visually distinct from human
-prose. The result is a palette of calm authority — never cold, never playful.
+System monospace fonts mark machine-structured vocabulary (category slugs, topic types,
+authority levels, channel names) so that structural metadata is always visually distinct from
+human prose. The result is a palette of calm authority — never cold, never playful.
 
 This system explicitly rejects: cream-and-purple SaaS gradient aesthetics and glowing card
 effects; legacy enterprise blue-grey palettes with heavy sidebars and accordion-nested tables;
@@ -146,11 +146,12 @@ through decoration.
 
 **Key Characteristics:**
 - All neutrals tinted toward hue 264 (brand), never pure white or black
-- IBM Plex Sans for clarity; IBM Plex Mono exclusively for structured platform vocabulary
+- System UI fonts for native clarity on every platform (SF Pro on macOS, Segoe UI Variable on Windows, Roboto on Android)
 - Flat-by-tonal-layering: depth through OKLCH lightness steps, not box-shadows
 - Platform Blue on ≤10% of any surface — reserved for action and selection
 - Monospace uppercase labels serve as structural section anchors, not decoration
 - Freshness signals are wired to real data or absent entirely
+- Minimum readable font size: 12px (0.75rem). No text smaller than this anywhere.
 
 ## 2. Colors: The Hue-264 System
 
@@ -202,32 +203,34 @@ greys are prohibited.
 
 ## 3. Typography
 
-**Body Font:** IBM Plex Sans (latin-400, 500, 600, 700)
-**Label/Mono Font:** IBM Plex Mono (latin-400, 600)
+**Body Font:** System UI (SF Pro on macOS, Segoe UI Variable on Windows 11, Segoe UI on Windows 10, Roboto on Android)
+**Label/Mono Font:** System Mono (Cascadia Mono/Code on Windows, SF Mono on macOS, Menlo on older macOS, Consolas fallback)
 
-**Character:** IBM Plex Sans is technical without coldness — the font of a precise instrument
-with human calibration. Its companion Mono brings immediate structural legibility to platform
-vocabulary: category slugs, topic types, authority levels, channel names. The pairing makes
-the distinction between machine-structured data and human-readable prose visible at a glance.
-OpenType features `kern`, `liga`, `calt`, `ss03` are enabled for optimal rendering.
+**Character:** System UI fonts are optimized by each OS vendor for screen rendering with
+perfect hinting at all sizes and pixel densities. This eliminates cross-platform rendering
+inconsistencies — text is native and sharp everywhere. The monospace companion brings
+immediate structural legibility to platform vocabulary: category slugs, topic types, authority
+levels, channel names. The pairing makes the distinction between machine-structured data and
+human-readable prose visible at a glance. OpenType features `kern`, `liga`, `calt` are
+enabled for optimal rendering.
 
 ### Hierarchy
 
-- **Display** (IBM Plex Sans, 700, 36px mobile / 40px sm+, 1.1 line-height,
+- **Display** (system, 700, 2.25rem mobile / 2.5rem sm+, 1.1 line-height,
   −0.03em tracking): Page-level hero headings. Used once per route view. Never on cards or
   repeated in lists.
-- **Headline** (700, 22px, 1.2 line-height, −0.02em tracking): Section titles within a page,
-  used alongside SectionEyebrow.
-- **Title** (700, 14px, 1.4 line-height, −0.01em tracking): Card headings and capability
+- **Headline** (700, 1.375rem, 1.2 line-height, −0.02em tracking): Section titles within a
+  page, used alongside SectionEyebrow.
+- **Title** (700, 0.875rem, 1.4 line-height, −0.01em tracking): Card headings and capability
   names. High information density; the weight contrast against body text creates scan paths.
-- **Body** (400, 15px, 1.6 line-height): Narrative and descriptive text. Max line length
+- **Body** (400, 0.9375rem, 1.6 line-height): Narrative and descriptive text. Max line length
   52–56ch (scanned from existing page copy).
-- **Label** (400, 13px, 1.5 line-height): Supporting text, card descriptions, secondary copy.
-- **Detail** (400, 12px): Fine-grain metadata, timestamps, owner team references.
-- **Mono Label** (IBM Plex Mono, 600, 11px, 1.4 line-height, 0.05em tracking, UPPERCASE):
+- **Label** (400, 0.8125rem, 1.5 line-height): Supporting text, card descriptions, secondary copy.
+- **Detail** (400, 0.75rem): Fine-grain metadata, timestamps, owner team references.
+- **Mono Label** (system mono, 600, 0.75rem, 1.4 line-height, 0.05em tracking, UPPERCASE):
   Category section anchors, section eyebrows, badge text, topic type codes, API codes.
 
-**The Mono Structural Rule.** IBM Plex Mono at 11px/uppercase/semibold is reserved for
+**The Mono Structural Rule.** System monospace at 0.75rem/uppercase/semibold is reserved for
 structured platform vocabulary: topic types, categories, authority levels, API codes, channel
 names. It signals "this is a system value." Never use Mono for conversational, decorative,
 or running prose. If Mono text could appear in a sentence, it is the wrong style.
@@ -261,7 +264,7 @@ and type sizes are calibrated for density, not breathing room.
 
 - **Shape:** Gently curved (8px radius / `rounded-default`)
 - **Primary:** Platform Blue background, canvas-white text, 6px vertical / 16px horizontal
-  padding, 13px label weight (400). The background is the full-saturated brand signal.
+  padding, 0.8125rem label weight (400). The background is the full-saturated brand signal.
 - **Hover:** Lightness steps up to `oklch(54% 0.28 264.18)` — slightly lighter, same saturation.
   `transition-colors` at 150ms ease-out.
 - **Focus:** 2px ring at Platform Blue, 2px offset from the element edge.
@@ -302,10 +305,10 @@ and type sizes are calibrated for density, not breathing room.
 - **Text:** 14px/400, Ink color. Placeholder in Secondary Ink.
 - **Max-width:** 600px. Search fields do not stretch full-width at large viewport sizes.
 
-### Chips (Status / Availability)
+- **Chips (Status / Availability)**
 
 - **Style:** Small rounded containers (4px radius), semantic color pairs (background tint +
-  darker foreground), `IBM Plex Mono 10px/600`.
+  darker foreground), system mono 0.75rem/600.
 - **Available:** Healthy Green tint background, darker green text.
 - **Planned:** Amber Alert tint background, darker amber text.
 - **Not available / no data:** Hairline Border background, Secondary Ink text.
@@ -314,10 +317,11 @@ and type sizes are calibrated for density, not breathing room.
 
 ### Mono Category Label (Signature Component)
 
-Atlas's primary navigational anchor in catalog views. IBM Plex Mono, 11px, 600, uppercase,
-0.05em tracking, Secondary Ink color. Followed by a count badge (rounded-full, Border
-background) and a full-width horizontal rule (Hairline Border). This pattern communicates
-section boundaries in dense grid views without adding visual hierarchy competition.
+Atlas's primary navigational anchor in catalog views. System monospace, 0.75rem, 600,
+uppercase, 0.05em tracking, Secondary Ink color. Followed by a count badge (rounded-full,
+Border background) and a full-width horizontal rule (Hairline Border). This pattern
+communicates section boundaries in dense grid views without adding visual hierarchy
+competition.
 
 ## 6. Do's and Don'ts
 
@@ -325,7 +329,7 @@ section boundaries in dense grid views without adding visual hierarchy competiti
 
 - **Do** use Platform Blue only for interactive and selected states. Keep its coverage to
   ≤10% of any screen. Its signal value depends on rarity.
-- **Do** use IBM Plex Mono uppercase (11px, 600, 0.05em tracking) for platform vocabulary:
+- **Do** use system monospace uppercase (0.75rem, 600, 0.05em tracking) for platform vocabulary:
   topic types, authority levels, category slugs, API codes, support channel names.
 - **Do** express depth through OKLCH lightness steps. Cards appear elevated because they
   are lighter than the canvas surface, not because they cast a shadow.
@@ -356,7 +360,7 @@ section boundaries in dense grid views without adding visual hierarchy competiti
   trust faster than silence.
 - **Don't** use `#000` or `#fff` anywhere. Every surface, text, and border is a tinted OKLCH value.
 - **Don't** add box-shadows to static surfaces. `shadow-sm` is a hover state, not ambient depth.
-- **Don't** use IBM Plex Mono for conversational, decorative, or non-structured text. Mono
+- **Don't** use system monospace for conversational, decorative, or non-structured text. Mono
   means "system value." If it would read naturally in a sentence, it is the wrong style.
 - **Don't** wrap interactive cards in an outer `<a>` tag that contains other `<a>` elements.
   Nested anchor elements are invalid HTML and break screen readers.

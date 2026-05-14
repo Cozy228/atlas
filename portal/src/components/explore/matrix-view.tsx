@@ -19,7 +19,7 @@ export function MatrixView({ locations, groups, selectedServiceId, onSelect }: M
   const totalCols = locations.length + 1;
   return (
     <div className="overflow-clip rounded-lg border border-border bg-card">
-      <table className="w-full table-fixed border-collapse text-[13px]">
+      <table className="w-full table-fixed border-collapse type-detail">
         <colgroup>
           <col style={{ width: "30%" }} />
           {locations.map((location) => (
@@ -32,7 +32,7 @@ export function MatrixView({ locations, groups, selectedServiceId, onSelect }: M
               scope="col"
               className={cn(
                 "sticky top-14 z-20 border-b border-border bg-background px-3 py-2.5 text-left",
-                "font-mono text-[11px] font-bold uppercase tracking-[0.04em] text-muted-foreground",
+                "font-mono text-xs font-bold uppercase tracking-[0.04em] text-muted-foreground",
               )}
             >
               Service
@@ -43,7 +43,7 @@ export function MatrixView({ locations, groups, selectedServiceId, onSelect }: M
                 scope="col"
                 className={cn(
                   "sticky top-14 z-20 whitespace-nowrap border-b border-border bg-background px-3 py-2.5 text-left",
-                  "font-mono text-[11px] font-bold uppercase tracking-[0.04em] text-muted-foreground",
+                  "font-mono text-xs font-bold uppercase tracking-[0.04em] text-muted-foreground",
                 )}
               >
                 {location.label}
@@ -91,7 +91,7 @@ function DomainRows({
           colSpan={totalCols}
           className={cn(
             "border-b border-border bg-background px-3 py-2.5",
-            "font-mono text-[11px] font-bold uppercase tracking-[0.04em] text-muted-foreground",
+            "font-mono text-xs font-bold uppercase tracking-[0.04em] text-muted-foreground",
           )}
         >
           {domain}
@@ -138,7 +138,7 @@ function DomainRows({
                 return (
                   <td key={location.id} className="whitespace-nowrap px-3 py-2.5 align-middle">
                     {status === "not-planned" ? (
-                      <span className="font-mono text-[11px] text-muted-foreground/70">Not planned</span>
+                      <span className="font-mono text-xs text-muted-foreground/70">Not planned</span>
                     ) : (
                       <StatusChip status={status} text={text} size="sm" />
                     )}
@@ -192,9 +192,9 @@ function MatrixExpandRow({
         <td colSpan={totalCols} className="p-3">
           <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between md:gap-3">
             {guidance ? (
-              <span className="font-mono text-[11px] leading-5 text-foreground/80">{guidance}</span>
+              <span className="font-mono text-xs leading-5 text-foreground/80">{guidance}</span>
             ) : (
-              <span className="font-mono text-[11px] text-muted-foreground">{service.name}</span>
+              <span className="font-mono text-xs text-muted-foreground">{service.name}</span>
             )}
             <span className="flex flex-wrap items-center gap-1">
               <MatrixAction primary>Open catalog</MatrixAction>

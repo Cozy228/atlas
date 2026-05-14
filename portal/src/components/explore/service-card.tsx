@@ -36,7 +36,7 @@ export function ServiceCard({ service, locations, selected, onSelect }: ServiceC
     >
       <div className="flex items-center gap-2.5">
         <ServiceIcon serviceId={service.id} size="md" />
-        <span className="text-[15px] font-semibold leading-tight text-foreground">
+        <span className="type-body font-semibold leading-tight text-foreground">
           {service.name}
         </span>
       </div>
@@ -57,8 +57,8 @@ export function ServiceCard({ service, locations, selected, onSelect }: ServiceC
         {overflow > 0 ? (
           <span
             className={cn(
-              "inline-flex items-center rounded border border-border bg-background px-1.5 py-0.5",
-              "font-mono text-[10px] font-semibold text-muted-foreground",
+              "inline-flex items-center rounded border border-border bg-background px-1.5 py-px",
+              "font-mono type-chip font-medium text-muted-foreground",
             )}
           >
             +{overflow}

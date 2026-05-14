@@ -213,13 +213,13 @@ function Hero({
   return (
     <div className="flex flex-col gap-6 pt-2">
       <div className="flex flex-col gap-2">
-        <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">
+        <span className="font-mono text-xs font-semibold uppercase tracking-[0.05em] text-muted-foreground">
           Availability
         </span>
-        <h1 className="max-w-[20ch] text-4xl font-semibold leading-[1.1] tracking-[-0.03em] text-foreground sm:text-[40px]">
+        <h1 className="max-w-[20ch] type-display font-semibold leading-[1.1] tracking-[-0.03em] text-foreground sm:type-display-lg">
           Regional availability map
         </h1>
-        <p className="max-w-[52ch] text-[15px] leading-[1.6] text-muted-foreground">
+        <p className="max-w-[52ch] type-body leading-[1.6] text-muted-foreground">
           Locate services across STT regions and outposts. Click any service for detailed status and
           next steps.
         </p>
@@ -243,12 +243,12 @@ function Section({
   return (
     <section className="flex flex-col gap-4">
       <header className="flex flex-col gap-1.5">
-        <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">
+        <span className="font-mono text-xs font-semibold uppercase tracking-[0.05em] text-muted-foreground">
           {eyebrow}
         </span>
-        <h2 className="text-[22px] font-semibold tracking-[-0.03em] text-foreground">{title}</h2>
+        <h2 className="type-section font-semibold tracking-[-0.03em] text-foreground">{title}</h2>
         {description ? (
-          <p className="max-w-[52ch] text-[14px] leading-6 text-muted-foreground">{description}</p>
+          <p className="max-w-[52ch] text-sm leading-6 text-muted-foreground">{description}</p>
         ) : null}
       </header>
       {children}
@@ -303,12 +303,12 @@ function Controls({
       />
       <div className="flex flex-wrap items-center gap-2 border-t border-border pt-3">
         <div className="flex items-center gap-1.5">
-          <span className="text-[12px] font-medium text-muted-foreground">Status</span>
+          <span className="text-xs font-medium text-muted-foreground">Status</span>
           <Select
             value={statusFilter}
             onValueChange={(value) => onStatusChange(value as LocationStatus | "all")}
           >
-            <SelectTrigger size="sm" aria-label="Status" className="text-[12px]">
+            <SelectTrigger size="sm" aria-label="Status" className="text-xs">
               <SelectValue />
             </SelectTrigger>
             <SelectContent alignItemWithTrigger={false}>
@@ -322,14 +322,14 @@ function Controls({
         </div>
 
         <div className="flex items-center gap-1.5">
-          <span className="text-[12px] font-medium text-muted-foreground">Domain</span>
+          <span className="text-xs font-medium text-muted-foreground">Domain</span>
           <Select
             value={domainFilter}
             onValueChange={(value) => {
               if (value) onDomainChange(value);
             }}
           >
-            <SelectTrigger size="sm" aria-label="Domain" className="text-[12px]">
+            <SelectTrigger size="sm" aria-label="Domain" className="text-xs">
               <SelectValue />
             </SelectTrigger>
             <SelectContent alignItemWithTrigger={false}>
@@ -342,7 +342,7 @@ function Controls({
           </Select>
         </div>
 
-        <span className="ml-auto font-mono text-[11px] text-muted-foreground">{resultsLabel}</span>
+        <span className="ml-auto font-mono text-xs text-muted-foreground">{resultsLabel}</span>
 
         <ToggleGroup
           type="single"
@@ -357,14 +357,14 @@ function Controls({
         >
           <ToggleGroupItem
             value="cards"
-            className="rounded-md border-0 bg-transparent text-[11px] font-semibold aria-pressed:bg-background aria-pressed:shadow-sm"
+            className="rounded-md border-0 bg-transparent text-xs font-semibold aria-pressed:bg-background aria-pressed:shadow-sm"
           >
             <IconLayoutGrid className="size-3.5" data-icon="inline-start" />
             Cards
           </ToggleGroupItem>
           <ToggleGroupItem
             value="matrix"
-            className="rounded-md border-0 bg-transparent text-[11px] font-semibold aria-pressed:bg-background aria-pressed:shadow-sm"
+            className="rounded-md border-0 bg-transparent text-xs font-semibold aria-pressed:bg-background aria-pressed:shadow-sm"
           >
             <IconTable className="size-3.5" data-icon="inline-start" />
             Matrix
@@ -393,13 +393,13 @@ function CardsView({
       {groups.map(([domain, services]) => (
         <section key={domain}>
           <div className="sticky top-14 z-[5] mb-2 flex items-center gap-2 bg-background py-1">
-            <h3 className="font-mono text-[11px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">
+            <h3 className="font-mono text-xs font-semibold uppercase tracking-[0.05em] text-muted-foreground">
               {domain}
             </h3>
             <span
               className={cn(
                 "rounded-full bg-border px-1.5 py-px",
-                "font-mono text-[11px] font-bold text-muted-foreground",
+                "font-mono text-xs font-bold text-muted-foreground",
               )}
             >
               {services.length}
@@ -439,8 +439,8 @@ function CardsView({
 function EmptyState({ onReset }: { onReset: () => void }) {
   return (
     <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed border-border bg-card p-10 text-center">
-      <p className="text-[14px] font-bold text-foreground">No services match</p>
-      <p className="text-[12px] text-muted-foreground">Broaden your search or clear filters.</p>
+      <p className="text-sm font-bold text-foreground">No services match</p>
+      <p className="text-xs text-muted-foreground">Broaden your search or clear filters.</p>
       <Button type="button" size="sm" onClick={onReset} className="mt-2">
         Reset filters
       </Button>

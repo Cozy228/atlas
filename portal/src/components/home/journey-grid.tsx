@@ -91,21 +91,21 @@ function JourneyStep({
       {/* Ghost ordinal — sequence anchor, deliberately subordinate */}
       <span
         aria-hidden
-        className="mb-4 block select-none font-mono text-[38px] font-semibold leading-none tracking-[-0.04em] tabular-nums text-border-strong sm:mb-5"
+        className="mb-4 block select-none font-mono type-ordinal font-semibold leading-none tracking-[-0.04em] tabular-nums text-border-strong sm:mb-5"
       >
         {ordinal}
       </span>
 
       {/* Phase label — the "where you are in the journey" signal */}
-      <span className="mb-2.5 font-mono text-[11px] font-semibold uppercase tracking-[0.06em] text-primary">
+      <span className="mb-2.5 font-mono text-xs font-semibold uppercase tracking-[0.06em] text-primary">
         {step.phase}
       </span>
 
-      <h3 className="mb-2 text-[15px] font-semibold leading-[1.35] tracking-[-0.01em] text-foreground">
+      <h3 className="mb-2 type-body font-semibold leading-[1.35] tracking-[-0.01em] text-foreground">
         {step.title}
       </h3>
 
-      <p className="mb-4 text-[13px] leading-[1.7] text-muted-foreground">{step.description}</p>
+      <p className="mb-4 type-detail leading-[1.7] text-muted-foreground">{step.description}</p>
 
       {step.links.length > 0 ? (
         <ul className="mt-auto flex flex-col gap-1.5">
@@ -126,7 +126,7 @@ function JourneyLinkItem({ label, to }: { label: ReactNode; to: JourneyLink["to"
       to={to}
       className={cn(
         "inline-flex items-center gap-1.5 rounded-md px-2 py-1",
-        "text-[12px] font-semibold",
+        "text-xs font-semibold",
         "bg-brand-tint text-primary",
         "transition-colors duration-150",
         "hover:bg-primary hover:text-primary-foreground",

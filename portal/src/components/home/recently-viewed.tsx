@@ -102,7 +102,7 @@ function RecentlyViewedClient() {
 
   if (items.length === 0) {
     return (
-      <p className="text-[13px] leading-5 text-muted-foreground">
+      <p className="type-detail leading-5 text-muted-foreground">
         Open a capability or landing zone to populate this list.
       </p>
     );
@@ -121,13 +121,13 @@ function RecentlyViewedClient() {
 
 function RecentChip({ item }: { item: RecentItem }) {
   const className = cn(
-    "inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-[5px] text-[12px] font-medium text-foreground transition-colors",
+    "inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-[5px] text-xs font-medium text-foreground transition-colors",
     "hover:border-border-strong hover:bg-muted",
     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
   );
   const typeLabel = item.kind === "landing-zone" ? "landing zone" : item.kind;
   const type = (
-    <span className="font-mono text-[9px] uppercase tracking-[0.05em] text-muted-foreground">
+    <span className="font-mono type-caption uppercase tracking-[0.05em] text-muted-foreground">
       {typeLabel}
     </span>
   );
