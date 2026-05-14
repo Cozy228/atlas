@@ -30,9 +30,9 @@ import { cn } from "@/lib/utils";
 
 type ViewMode = "cards" | "matrix";
 
-export const Route = createFileRoute("/explore/")({
+export const Route = createFileRoute("/availability/")({
   loader: ({ context }) => context.queryClient.ensureQueryData(availabilityQueryOptions),
-  component: ExploreRoute,
+  component: AvailabilityRoute,
 });
 
 const STATUS_OPTIONS: ReadonlyArray<{ value: LocationStatus | "all"; label: string }> = [
@@ -101,7 +101,7 @@ function exploreReducer(state: ExploreState, action: ExploreAction): ExploreStat
   }
 }
 
-function ExploreRoute() {
+function AvailabilityRoute() {
   const {
     data: { zones },
   } = useSuspenseQuery(availabilityQueryOptions);

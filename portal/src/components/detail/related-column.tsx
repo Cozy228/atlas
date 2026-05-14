@@ -19,7 +19,7 @@ export function RelatedColumn({ title, topics, kind }: RelatedColumnProps) {
         {topics.map((topic) => (
           <li key={topic.id}>
             <Link
-              to={kind === "landing-zone" ? "/landing-zones/$topicId" : "/capabilities/$topicId"}
+              to={kind === "landing-zone" ? "/guidance/$topicId" : "/catalog/$topicId"}
               params={{ topicId: topic.id }}
               className={cn(
                 "flex items-center justify-between gap-2 rounded-md px-2 py-1.5 transition-colors",

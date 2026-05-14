@@ -53,7 +53,7 @@ const STATIC_NAV: ReadonlyArray<SearchResult> = [
     id: "nav:explore",
     label: "Explore availability",
     description: "Regional availability map",
-    to: "/explore",
+    to: "/availability",
     icon: IconCompass,
     category: "Navigate",
   },
@@ -112,8 +112,8 @@ export function AskAtlasSearch({
       for (const topic of topicsQuery.data.topics) {
         const base =
           topic.topic_type === "landing-zone"
-            ? "/landing-zones"
-            : "/capabilities";
+            ? "/guidance"
+            : "/catalog";
         dynamic.push({
           id: `topic:${topic.id}`,
           label: topic.name,

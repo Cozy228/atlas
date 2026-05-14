@@ -5,7 +5,7 @@ import { IconArrowLeft } from "@tabler/icons-react";
 import { cn } from "@/lib/utils";
 
 type BackLinkProps = {
-  to: "/capabilities" | "/landing-zones" | "/sources" | "/explore" | "/";
+  to: "/catalog" | "/guidance" | "/sources" | "/availability" | "/";
   label: string;
 };
 
