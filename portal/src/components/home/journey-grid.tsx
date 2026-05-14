@@ -13,7 +13,7 @@ type JourneyStep = {
 
 type JourneyLink = {
   label: string;
-  to: "/explore" | "/capabilities" | "/landing-zones" | "/sources";
+  to: "/availability" | "/catalog" | "/guidance" | "/sources";
 };
 
 const STEPS: ReadonlyArray<JourneyStep> = [
@@ -23,8 +23,8 @@ const STEPS: ReadonlyArray<JourneyStep> = [
     description:
       "Browse available capabilities, service domains, and regional availability before committing.",
     links: [
-      { label: "Service catalog", to: "/capabilities" },
-      { label: "Availability map", to: "/explore" },
+      { label: "Service catalog", to: "/catalog" },
+      { label: "Availability map", to: "/availability" },
     ],
   },
   {
@@ -32,7 +32,7 @@ const STEPS: ReadonlyArray<JourneyStep> = [
     title: "Provision and configure",
     description:
       "Use approved Terraform modules and Harness pipelines to provision landing zones and services.",
-    links: [{ label: "Landing zones", to: "/landing-zones" }],
+    links: [{ label: "Guidance", to: "/guidance" }],
   },
   {
     phase: "Validate",
@@ -46,7 +46,7 @@ const STEPS: ReadonlyArray<JourneyStep> = [
     title: "Monitor and evolve",
     description:
       "Track availability changes across regions and stay current with the platform catalog.",
-    links: [{ label: "Availability map", to: "/explore" }],
+    links: [{ label: "Availability map", to: "/availability" }],
   },
 ];
 

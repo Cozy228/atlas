@@ -226,7 +226,7 @@ function FindServicePanel({ capabilities }: { capabilities: ReadonlyArray<Topic>
                 {items.map((topic) => (
                   <li key={topic.id}>
                     <Link
-                      to="/capabilities/$topicId"
+                      to="/catalog/$topicId"
                       params={{ topicId: topic.id }}
                       className={cn(
                         "group flex items-center gap-2.5 rounded-md px-3 py-2 transition-colors",
@@ -310,7 +310,7 @@ function OnboardingPanel({ landingZones }: { landingZones: ReadonlyArray<Topic> 
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <Link
-                to="/landing-zones/$topicId"
+                to="/guidance/$topicId"
                 params={{ topicId: zone.id }}
                 className={cn(
                   "inline-flex items-center gap-1 text-sm font-bold tracking-[-0.01em] text-foreground",
@@ -380,7 +380,7 @@ function MigratePanel({ landingZones }: { landingZones: ReadonlyArray<Topic> }) 
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <Link
-                to="/landing-zones/$topicId"
+                to="/guidance/$topicId"
                 params={{ topicId: zone.id }}
                 className={cn(
                   "inline-flex items-center gap-1 text-sm font-bold tracking-[-0.01em] text-foreground",

@@ -1,10 +1,16 @@
 import { useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
-import { IconMenu2, IconMessageCircle } from "@tabler/icons-react";
+import { IconChevronDown, IconMenu2, IconMessageCircle } from "@tabler/icons-react";
 
 import { AskAtlasFab } from "@/components/ask-atlas-fab";
 import { AskAtlasProvider, useAskAtlas } from "@/components/ask-atlas/context";
 import { ThemeToggle } from "@/components/theme-toggle";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Sheet,
   SheetContent,
@@ -26,9 +32,12 @@ type NavItem = {
 
 const PRIMARY_NAV: ReadonlyArray<NavItem> = [
   { to: "/", label: "Home", exact: true },
-  { to: "/capabilities", label: "Capabilities" },
-  { to: "/landing-zones", label: "Landing Zones" },
-  { to: "/explore", label: "Availability" },
+  { to: "/availability", label: "Availability" },
+  { to: "/guidance", label: "Guidance" },
+];
+
+const MORE_NAV: ReadonlyArray<NavItem> = [
+  { to: "/catalog", label: "Service Catalog" },
   { to: "/sources", label: "Sources" },
 ];
 
@@ -61,6 +70,7 @@ function TopBar() {
         {PRIMARY_NAV.map((item) => (
           <TopNavLink key={item.to} item={item} />
         ))}
+        <MoreDropdown />
       </nav>
       <div className="flex items-center justify-end gap-2">
         <NavMenu open={menuOpen} onOpenChange={(open) => setMenuOpen(open)} />
@@ -160,13 +170,41 @@ function NavMenu({ open, onOpenChange }: NavMenuProps) {
             <SheetTitle className="text-sm font-bold tracking-[-0.03em]">Atlas</SheetTitle>
           </SheetHeader>
           <nav aria-label="Primary" className="flex flex-col gap-0.5 p-2">
-            {PRIMARY_NAV.map((item) => (
+            {[...PRIMARY_NAV, ...MORE_NAV].map((item) => (
               <SheetNavLink key={item.to} item={item} onNavigate={() => onOpenChange(false)} />
             ))}
           </nav>
         </SheetContent>
       </Sheet>
     </>
+  );
+}
+
+function MoreDropdown() {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        className={cn(
+          "inline-flex items-center gap-0.5 rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors",
+          "hover:bg-muted hover:text-foreground",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        )}
+      >
+        More
+        <IconChevronDown className="size-3.5" aria-hidden />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="center" sideOffset={6}>
+        {MORE_NAV.map((item) => (
+          <DropdownMenuItem
+            key={item.to}
+            className="cursor-pointer text-sm font-medium"
+            render={<Link to={item.to} />}
+          >
+            {item.label}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 

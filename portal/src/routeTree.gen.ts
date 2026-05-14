@@ -10,37 +10,37 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SourcesRouteImport } from './routes/sources'
-import { Route as LandingZonesRouteImport } from './routes/landing-zones'
-import { Route as ExploreRouteImport } from './routes/explore'
-import { Route as CapabilitiesRouteImport } from './routes/capabilities'
+import { Route as GuidanceRouteImport } from './routes/guidance'
+import { Route as CatalogRouteImport } from './routes/catalog'
+import { Route as AvailabilityRouteImport } from './routes/availability'
 import { Route as AskRouteImport } from './routes/ask'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SourcesIndexRouteImport } from './routes/sources.index'
-import { Route as LandingZonesIndexRouteImport } from './routes/landing-zones.index'
-import { Route as ExploreIndexRouteImport } from './routes/explore.index'
-import { Route as CapabilitiesIndexRouteImport } from './routes/capabilities.index'
+import { Route as GuidanceIndexRouteImport } from './routes/guidance.index'
+import { Route as CatalogIndexRouteImport } from './routes/catalog.index'
+import { Route as AvailabilityIndexRouteImport } from './routes/availability.index'
 import { Route as SourcesSourceIdRouteImport } from './routes/sources.$sourceId'
-import { Route as LandingZonesTopicIdRouteImport } from './routes/landing-zones.$topicId'
-import { Route as CapabilitiesTopicIdRouteImport } from './routes/capabilities.$topicId'
+import { Route as GuidanceTopicIdRouteImport } from './routes/guidance.$topicId'
+import { Route as CatalogTopicIdRouteImport } from './routes/catalog.$topicId'
 
 const SourcesRoute = SourcesRouteImport.update({
   id: '/sources',
   path: '/sources',
   getParentRoute: () => rootRouteImport,
 } as any)
-const LandingZonesRoute = LandingZonesRouteImport.update({
-  id: '/landing-zones',
-  path: '/landing-zones',
+const GuidanceRoute = GuidanceRouteImport.update({
+  id: '/guidance',
+  path: '/guidance',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ExploreRoute = ExploreRouteImport.update({
-  id: '/explore',
-  path: '/explore',
+const CatalogRoute = CatalogRouteImport.update({
+  id: '/catalog',
+  path: '/catalog',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CapabilitiesRoute = CapabilitiesRouteImport.update({
-  id: '/capabilities',
-  path: '/capabilities',
+const AvailabilityRoute = AvailabilityRouteImport.update({
+  id: '/availability',
+  path: '/availability',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AskRoute = AskRouteImport.update({
@@ -58,77 +58,77 @@ const SourcesIndexRoute = SourcesIndexRouteImport.update({
   path: '/',
   getParentRoute: () => SourcesRoute,
 } as any)
-const LandingZonesIndexRoute = LandingZonesIndexRouteImport.update({
+const GuidanceIndexRoute = GuidanceIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => LandingZonesRoute,
+  getParentRoute: () => GuidanceRoute,
 } as any)
-const ExploreIndexRoute = ExploreIndexRouteImport.update({
+const CatalogIndexRoute = CatalogIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => ExploreRoute,
+  getParentRoute: () => CatalogRoute,
 } as any)
-const CapabilitiesIndexRoute = CapabilitiesIndexRouteImport.update({
+const AvailabilityIndexRoute = AvailabilityIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => CapabilitiesRoute,
+  getParentRoute: () => AvailabilityRoute,
 } as any)
 const SourcesSourceIdRoute = SourcesSourceIdRouteImport.update({
   id: '/$sourceId',
   path: '/$sourceId',
   getParentRoute: () => SourcesRoute,
 } as any)
-const LandingZonesTopicIdRoute = LandingZonesTopicIdRouteImport.update({
+const GuidanceTopicIdRoute = GuidanceTopicIdRouteImport.update({
   id: '/$topicId',
   path: '/$topicId',
-  getParentRoute: () => LandingZonesRoute,
+  getParentRoute: () => GuidanceRoute,
 } as any)
-const CapabilitiesTopicIdRoute = CapabilitiesTopicIdRouteImport.update({
+const CatalogTopicIdRoute = CatalogTopicIdRouteImport.update({
   id: '/$topicId',
   path: '/$topicId',
-  getParentRoute: () => CapabilitiesRoute,
+  getParentRoute: () => CatalogRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/ask': typeof AskRoute
-  '/capabilities': typeof CapabilitiesRouteWithChildren
-  '/explore': typeof ExploreRouteWithChildren
-  '/landing-zones': typeof LandingZonesRouteWithChildren
+  '/availability': typeof AvailabilityRouteWithChildren
+  '/catalog': typeof CatalogRouteWithChildren
+  '/guidance': typeof GuidanceRouteWithChildren
   '/sources': typeof SourcesRouteWithChildren
-  '/capabilities/$topicId': typeof CapabilitiesTopicIdRoute
-  '/landing-zones/$topicId': typeof LandingZonesTopicIdRoute
+  '/catalog/$topicId': typeof CatalogTopicIdRoute
+  '/guidance/$topicId': typeof GuidanceTopicIdRoute
   '/sources/$sourceId': typeof SourcesSourceIdRoute
-  '/capabilities/': typeof CapabilitiesIndexRoute
-  '/explore/': typeof ExploreIndexRoute
-  '/landing-zones/': typeof LandingZonesIndexRoute
+  '/availability/': typeof AvailabilityIndexRoute
+  '/catalog/': typeof CatalogIndexRoute
+  '/guidance/': typeof GuidanceIndexRoute
   '/sources/': typeof SourcesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/ask': typeof AskRoute
-  '/capabilities/$topicId': typeof CapabilitiesTopicIdRoute
-  '/landing-zones/$topicId': typeof LandingZonesTopicIdRoute
+  '/catalog/$topicId': typeof CatalogTopicIdRoute
+  '/guidance/$topicId': typeof GuidanceTopicIdRoute
   '/sources/$sourceId': typeof SourcesSourceIdRoute
-  '/capabilities': typeof CapabilitiesIndexRoute
-  '/explore': typeof ExploreIndexRoute
-  '/landing-zones': typeof LandingZonesIndexRoute
+  '/availability': typeof AvailabilityIndexRoute
+  '/catalog': typeof CatalogIndexRoute
+  '/guidance': typeof GuidanceIndexRoute
   '/sources': typeof SourcesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/ask': typeof AskRoute
-  '/capabilities': typeof CapabilitiesRouteWithChildren
-  '/explore': typeof ExploreRouteWithChildren
-  '/landing-zones': typeof LandingZonesRouteWithChildren
+  '/availability': typeof AvailabilityRouteWithChildren
+  '/catalog': typeof CatalogRouteWithChildren
+  '/guidance': typeof GuidanceRouteWithChildren
   '/sources': typeof SourcesRouteWithChildren
-  '/capabilities/$topicId': typeof CapabilitiesTopicIdRoute
-  '/landing-zones/$topicId': typeof LandingZonesTopicIdRoute
+  '/catalog/$topicId': typeof CatalogTopicIdRoute
+  '/guidance/$topicId': typeof GuidanceTopicIdRoute
   '/sources/$sourceId': typeof SourcesSourceIdRoute
-  '/capabilities/': typeof CapabilitiesIndexRoute
-  '/explore/': typeof ExploreIndexRoute
-  '/landing-zones/': typeof LandingZonesIndexRoute
+  '/availability/': typeof AvailabilityIndexRoute
+  '/catalog/': typeof CatalogIndexRoute
+  '/guidance/': typeof GuidanceIndexRoute
   '/sources/': typeof SourcesIndexRoute
 }
 export interface FileRouteTypes {
@@ -136,51 +136,51 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/ask'
-    | '/capabilities'
-    | '/explore'
-    | '/landing-zones'
+    | '/availability'
+    | '/catalog'
+    | '/guidance'
     | '/sources'
-    | '/capabilities/$topicId'
-    | '/landing-zones/$topicId'
+    | '/catalog/$topicId'
+    | '/guidance/$topicId'
     | '/sources/$sourceId'
-    | '/capabilities/'
-    | '/explore/'
-    | '/landing-zones/'
+    | '/availability/'
+    | '/catalog/'
+    | '/guidance/'
     | '/sources/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/ask'
-    | '/capabilities/$topicId'
-    | '/landing-zones/$topicId'
+    | '/catalog/$topicId'
+    | '/guidance/$topicId'
     | '/sources/$sourceId'
-    | '/capabilities'
-    | '/explore'
-    | '/landing-zones'
+    | '/availability'
+    | '/catalog'
+    | '/guidance'
     | '/sources'
   id:
     | '__root__'
     | '/'
     | '/ask'
-    | '/capabilities'
-    | '/explore'
-    | '/landing-zones'
+    | '/availability'
+    | '/catalog'
+    | '/guidance'
     | '/sources'
-    | '/capabilities/$topicId'
-    | '/landing-zones/$topicId'
+    | '/catalog/$topicId'
+    | '/guidance/$topicId'
     | '/sources/$sourceId'
-    | '/capabilities/'
-    | '/explore/'
-    | '/landing-zones/'
+    | '/availability/'
+    | '/catalog/'
+    | '/guidance/'
     | '/sources/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AskRoute: typeof AskRoute
-  CapabilitiesRoute: typeof CapabilitiesRouteWithChildren
-  ExploreRoute: typeof ExploreRouteWithChildren
-  LandingZonesRoute: typeof LandingZonesRouteWithChildren
+  AvailabilityRoute: typeof AvailabilityRouteWithChildren
+  CatalogRoute: typeof CatalogRouteWithChildren
+  GuidanceRoute: typeof GuidanceRouteWithChildren
   SourcesRoute: typeof SourcesRouteWithChildren
 }
 
@@ -193,25 +193,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SourcesRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/landing-zones': {
-      id: '/landing-zones'
-      path: '/landing-zones'
-      fullPath: '/landing-zones'
-      preLoaderRoute: typeof LandingZonesRouteImport
+    '/guidance': {
+      id: '/guidance'
+      path: '/guidance'
+      fullPath: '/guidance'
+      preLoaderRoute: typeof GuidanceRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/explore': {
-      id: '/explore'
-      path: '/explore'
-      fullPath: '/explore'
-      preLoaderRoute: typeof ExploreRouteImport
+    '/catalog': {
+      id: '/catalog'
+      path: '/catalog'
+      fullPath: '/catalog'
+      preLoaderRoute: typeof CatalogRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/capabilities': {
-      id: '/capabilities'
-      path: '/capabilities'
-      fullPath: '/capabilities'
-      preLoaderRoute: typeof CapabilitiesRouteImport
+    '/availability': {
+      id: '/availability'
+      path: '/availability'
+      fullPath: '/availability'
+      preLoaderRoute: typeof AvailabilityRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/ask': {
@@ -235,26 +235,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SourcesIndexRouteImport
       parentRoute: typeof SourcesRoute
     }
-    '/landing-zones/': {
-      id: '/landing-zones/'
+    '/guidance/': {
+      id: '/guidance/'
       path: '/'
-      fullPath: '/landing-zones/'
-      preLoaderRoute: typeof LandingZonesIndexRouteImport
-      parentRoute: typeof LandingZonesRoute
+      fullPath: '/guidance/'
+      preLoaderRoute: typeof GuidanceIndexRouteImport
+      parentRoute: typeof GuidanceRoute
     }
-    '/explore/': {
-      id: '/explore/'
+    '/catalog/': {
+      id: '/catalog/'
       path: '/'
-      fullPath: '/explore/'
-      preLoaderRoute: typeof ExploreIndexRouteImport
-      parentRoute: typeof ExploreRoute
+      fullPath: '/catalog/'
+      preLoaderRoute: typeof CatalogIndexRouteImport
+      parentRoute: typeof CatalogRoute
     }
-    '/capabilities/': {
-      id: '/capabilities/'
+    '/availability/': {
+      id: '/availability/'
       path: '/'
-      fullPath: '/capabilities/'
-      preLoaderRoute: typeof CapabilitiesIndexRouteImport
-      parentRoute: typeof CapabilitiesRoute
+      fullPath: '/availability/'
+      preLoaderRoute: typeof AvailabilityIndexRouteImport
+      parentRoute: typeof AvailabilityRoute
     }
     '/sources/$sourceId': {
       id: '/sources/$sourceId'
@@ -263,60 +263,60 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SourcesSourceIdRouteImport
       parentRoute: typeof SourcesRoute
     }
-    '/landing-zones/$topicId': {
-      id: '/landing-zones/$topicId'
+    '/guidance/$topicId': {
+      id: '/guidance/$topicId'
       path: '/$topicId'
-      fullPath: '/landing-zones/$topicId'
-      preLoaderRoute: typeof LandingZonesTopicIdRouteImport
-      parentRoute: typeof LandingZonesRoute
+      fullPath: '/guidance/$topicId'
+      preLoaderRoute: typeof GuidanceTopicIdRouteImport
+      parentRoute: typeof GuidanceRoute
     }
-    '/capabilities/$topicId': {
-      id: '/capabilities/$topicId'
+    '/catalog/$topicId': {
+      id: '/catalog/$topicId'
       path: '/$topicId'
-      fullPath: '/capabilities/$topicId'
-      preLoaderRoute: typeof CapabilitiesTopicIdRouteImport
-      parentRoute: typeof CapabilitiesRoute
+      fullPath: '/catalog/$topicId'
+      preLoaderRoute: typeof CatalogTopicIdRouteImport
+      parentRoute: typeof CatalogRoute
     }
   }
 }
 
-interface CapabilitiesRouteChildren {
-  CapabilitiesTopicIdRoute: typeof CapabilitiesTopicIdRoute
-  CapabilitiesIndexRoute: typeof CapabilitiesIndexRoute
+interface AvailabilityRouteChildren {
+  AvailabilityIndexRoute: typeof AvailabilityIndexRoute
 }
 
-const CapabilitiesRouteChildren: CapabilitiesRouteChildren = {
-  CapabilitiesTopicIdRoute: CapabilitiesTopicIdRoute,
-  CapabilitiesIndexRoute: CapabilitiesIndexRoute,
+const AvailabilityRouteChildren: AvailabilityRouteChildren = {
+  AvailabilityIndexRoute: AvailabilityIndexRoute,
 }
 
-const CapabilitiesRouteWithChildren = CapabilitiesRoute._addFileChildren(
-  CapabilitiesRouteChildren,
+const AvailabilityRouteWithChildren = AvailabilityRoute._addFileChildren(
+  AvailabilityRouteChildren,
 )
 
-interface ExploreRouteChildren {
-  ExploreIndexRoute: typeof ExploreIndexRoute
+interface CatalogRouteChildren {
+  CatalogTopicIdRoute: typeof CatalogTopicIdRoute
+  CatalogIndexRoute: typeof CatalogIndexRoute
 }
 
-const ExploreRouteChildren: ExploreRouteChildren = {
-  ExploreIndexRoute: ExploreIndexRoute,
+const CatalogRouteChildren: CatalogRouteChildren = {
+  CatalogTopicIdRoute: CatalogTopicIdRoute,
+  CatalogIndexRoute: CatalogIndexRoute,
 }
 
-const ExploreRouteWithChildren =
-  ExploreRoute._addFileChildren(ExploreRouteChildren)
+const CatalogRouteWithChildren =
+  CatalogRoute._addFileChildren(CatalogRouteChildren)
 
-interface LandingZonesRouteChildren {
-  LandingZonesTopicIdRoute: typeof LandingZonesTopicIdRoute
-  LandingZonesIndexRoute: typeof LandingZonesIndexRoute
+interface GuidanceRouteChildren {
+  GuidanceTopicIdRoute: typeof GuidanceTopicIdRoute
+  GuidanceIndexRoute: typeof GuidanceIndexRoute
 }
 
-const LandingZonesRouteChildren: LandingZonesRouteChildren = {
-  LandingZonesTopicIdRoute: LandingZonesTopicIdRoute,
-  LandingZonesIndexRoute: LandingZonesIndexRoute,
+const GuidanceRouteChildren: GuidanceRouteChildren = {
+  GuidanceTopicIdRoute: GuidanceTopicIdRoute,
+  GuidanceIndexRoute: GuidanceIndexRoute,
 }
 
-const LandingZonesRouteWithChildren = LandingZonesRoute._addFileChildren(
-  LandingZonesRouteChildren,
+const GuidanceRouteWithChildren = GuidanceRoute._addFileChildren(
+  GuidanceRouteChildren,
 )
 
 interface SourcesRouteChildren {
@@ -335,9 +335,9 @@ const SourcesRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AskRoute: AskRoute,
-  CapabilitiesRoute: CapabilitiesRouteWithChildren,
-  ExploreRoute: ExploreRouteWithChildren,
-  LandingZonesRoute: LandingZonesRouteWithChildren,
+  AvailabilityRoute: AvailabilityRouteWithChildren,
+  CatalogRoute: CatalogRouteWithChildren,
+  GuidanceRoute: GuidanceRouteWithChildren,
   SourcesRoute: SourcesRouteWithChildren,
 }
 export const routeTree = rootRouteImport

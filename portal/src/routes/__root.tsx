@@ -49,7 +49,7 @@ function NotFoundComponent() {
       </h1>
       <p className="text-sm leading-[1.6] text-muted-foreground">
         The topic, source, or path you followed is not registered in the Context API. Browse
-        capabilities, landing zones, or sources to find what you need, or report the gap from the
+        the catalog, guidance, or sources to find what you need, or report the gap from the
         feedback form on any detail page.
       </p>
       <div className="flex flex-wrap gap-2">
@@ -60,7 +60,7 @@ function NotFoundComponent() {
           Back to home
         </Link>
         <Link
-          to="/explore"
+          to="/availability"
           className="inline-flex items-center rounded-md border border-border bg-card px-3 py-2 text-xs font-semibold text-foreground hover:bg-muted"
         >
           Browse availability

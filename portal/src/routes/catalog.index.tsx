@@ -18,7 +18,7 @@ type LoaderData = {
   defaultZone: LandingZoneData;
 };
 
-export const Route = createFileRoute("/capabilities/")({
+export const Route = createFileRoute("/catalog/")({
   loader: async ({ context }): Promise<LoaderData> => {
     const [topicsResp, availability] = await Promise.all([
       context.queryClient.ensureQueryData(
@@ -28,10 +28,10 @@ export const Route = createFileRoute("/capabilities/")({
     ]);
     return { topics: topicsResp.topics, defaultZone: availability.zones[0]! };
   },
-  component: CapabilitiesListRoute,
+  component: CatalogListRoute,
 });
 
-function CapabilitiesListRoute() {
+function CatalogListRoute() {
   const { topics, defaultZone } = Route.useLoaderData();
   const [query, setQuery] = useState("");
 
@@ -64,8 +64,8 @@ function CapabilitiesListRoute() {
         </span>
         <div className="flex flex-wrap items-baseline gap-3">
           <h1 className="type-display font-semibold leading-[1.1] tracking-[-0.03em] text-foreground sm:type-display-lg">
-            Capabilities
-          </h1>
+          Service Catalog
+        </h1>
           <Badge variant="outline" className="font-mono type-caption">
             topic_type = capability
           </Badge>
@@ -79,7 +79,7 @@ function CapabilitiesListRoute() {
       <CatalogSearchField
         value={query}
         onChange={setQuery}
-        placeholder="Filter capabilities… name, description, domain"
+        placeholder="Filter services… name, description, domain"
       />
 
       {grouped.length === 0 ? (
@@ -140,7 +140,7 @@ function CapabilityCard({
 
   return (
     <Link
-      to="/capabilities/$topicId"
+      to="/catalog/$topicId"
       params={{ topicId: topic.id }}
       className={cn(
         "group flex flex-col gap-3 rounded-lg border border-border bg-card p-5 transition-[border-color,box-shadow]",
@@ -199,7 +199,7 @@ function CapabilityCard({
 function EmptyState() {
   return (
     <div className="rounded-lg border border-dashed border-border bg-card p-6 type-detail text-muted-foreground">
-      <p className="font-bold text-foreground">No registered capabilities.</p>
+      <p className="font-bold text-foreground">No registered services.</p>
       <p className="mt-1 leading-6">
         Either the registry is empty or your filter excluded every topic.
       </p>

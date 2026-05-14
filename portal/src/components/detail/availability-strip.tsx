@@ -15,7 +15,7 @@ export function AvailabilityStrip({ service, locations }: AvailabilityStripProps
     return (
       <div className="rounded-lg border border-dashed border-border bg-card p-4 type-detail text-muted-foreground">
         No availability projection registered for this capability.{" "}
-        <Link to="/explore" className="text-primary underline-offset-2 hover:underline">
+        <Link to="/availability" className="text-primary underline-offset-2 hover:underline">
           Browse availability map
         </Link>
         .
@@ -48,7 +48,7 @@ export function AvailabilityStrip({ service, locations }: AvailabilityStripProps
       </div>
       <div className="flex items-center justify-end border-t border-border bg-background px-3 py-2">
         <Link
-          to="/explore"
+          to="/availability"
           className={cn(
             "inline-flex items-center gap-1 font-mono text-xs font-semibold text-primary",
             "underline-offset-2 hover:underline",

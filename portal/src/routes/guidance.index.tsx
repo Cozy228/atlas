@@ -11,17 +11,17 @@ type LoaderData = {
   topics: ReadonlyArray<Topic>;
 };
 
-export const Route = createFileRoute("/landing-zones/")({
+export const Route = createFileRoute("/guidance/")({
   loader: async ({ context }): Promise<LoaderData> => {
     const response = await context.queryClient.ensureQueryData(
       topicDiscoveryQueryOptionsFor({ topic_type: "landing-zone" }),
     );
     return { topics: response.topics };
   },
-  component: LandingZonesListRoute,
+  component: GuidanceListRoute,
 });
 
-function LandingZonesListRoute() {
+function GuidanceListRoute() {
   const { topics } = Route.useLoaderData();
   const zones = topics.toSorted((a, b) => a.name.localeCompare(b.name));
 
@@ -33,7 +33,7 @@ function LandingZonesListRoute() {
         </span>
         <div className="flex flex-wrap items-baseline gap-3">
           <h1 className="type-display font-semibold leading-[1.1] tracking-[-0.03em] text-foreground sm:type-display-lg">
-            Landing zones
+            Guidance
           </h1>
           <Badge variant="outline" className="font-mono type-caption">
             topic_type = landing-zone
@@ -68,7 +68,7 @@ function LandingZonesListRoute() {
 function ZoneCard({ zone }: { zone: Topic }) {
   return (
     <Link
-      to="/landing-zones/$topicId"
+      to="/guidance/$topicId"
       params={{ topicId: zone.id }}
       className={cn(
         "group flex h-full flex-col gap-3 rounded-lg border border-border bg-card p-5 transition-[border-color,box-shadow]",
