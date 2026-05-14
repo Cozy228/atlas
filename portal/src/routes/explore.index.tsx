@@ -5,7 +5,11 @@ import { IconLayoutGrid, IconTable } from "@tabler/icons-react";
 import Fuse from "fuse.js";
 
 import { availabilityQueryOptions } from "@/api/queries";
-import { type AvailabilityRecord, type LocationStatus } from "@/api/server/availability";
+import {
+  type AvailabilityRecord,
+  type LandingZoneId,
+  type LocationStatus,
+} from "@/api/server/availability";
 import { ExpandPanel } from "@/components/explore/expand-panel";
 import { MatrixView } from "@/components/explore/matrix-view";
 import { RegionStrip } from "@/components/explore/region-strip";
@@ -20,6 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { CatalogSearchField } from "@/components/catalog-search-field";
 import { cn } from "@/lib/utils";
 
@@ -37,7 +42,9 @@ const STATUS_OPTIONS: ReadonlyArray<{ value: LocationStatus | "all"; label: stri
   { value: "interim", label: "Interim" },
   { value: "not-planned", label: "Not planned" },
 ];
+
 type ExploreState = {
+  zone: LandingZoneId;
   query: string;
   statusFilter: LocationStatus | "all";
   domainFilter: string;
@@ -47,6 +54,7 @@ type ExploreState = {
 };
 
 type ExploreAction =
+  | { type: "setZone"; value: LandingZoneId }
   | { type: "setQuery"; value: string }
   | { type: "setStatusFilter"; value: LocationStatus | "all" }
   | { type: "setDomainFilter"; value: string }
@@ -56,16 +64,23 @@ type ExploreAction =
   | { type: "resetAll" };
 
 const INITIAL_EXPLORE_STATE: ExploreState = {
+  zone: "aws",
   activeLocation: null,
   domainFilter: "all",
   query: "",
   selectedServiceId: null,
   statusFilter: "all",
-  view: "cards",
+  view: "matrix",
 };
 
 function exploreReducer(state: ExploreState, action: ExploreAction): ExploreState {
   switch (action.type) {
+    case "setZone":
+      return {
+        ...INITIAL_EXPLORE_STATE,
+        zone: action.value,
+        view: state.view,
+      };
     case "setQuery":
       return { ...state, query: action.value, selectedServiceId: null };
     case "setStatusFilter":
@@ -82,16 +97,19 @@ function exploreReducer(state: ExploreState, action: ExploreAction): ExploreStat
         selectedServiceId: state.selectedServiceId === action.id ? null : action.id,
       };
     case "resetAll":
-      return INITIAL_EXPLORE_STATE;
+      return { ...INITIAL_EXPLORE_STATE, zone: state.zone };
   }
 }
 
 function ExploreRoute() {
   const {
-    data: { locations, services },
+    data: { zones },
   } = useSuspenseQuery(availabilityQueryOptions);
   const [state, dispatch] = useReducer(exploreReducer, INITIAL_EXPLORE_STATE);
-  const { query, statusFilter, domainFilter, activeLocation, selectedServiceId, view } = state;
+  const { zone: activeZoneId, query, statusFilter, domainFilter, activeLocation, selectedServiceId, view } = state;
+
+  const activeZone = zones.find((z) => z.id === activeZoneId) ?? zones[0]!;
+  const { locations, services } = activeZone;
 
   const domainOptions = useMemo(() => {
     const set = new Set(services.map((s) => s.domain));
@@ -150,6 +168,7 @@ function ExploreRoute() {
   }
 
   return (
+    <TooltipProvider>
     <PageBody width="comfortable">
       <Hero
         searchValue={query}
@@ -161,6 +180,8 @@ function ExploreRoute() {
         title="Services"
         description="Filter by region, status, or domain. Click any service for next steps."
       >
+        <ZoneSwitcher active={activeZoneId} onChange={(value) => dispatch({ type: "setZone", value })} />
+
         <Controls
           locations={locations}
           services={services}
@@ -196,10 +217,13 @@ function ExploreRoute() {
             groups={groups}
             selectedServiceId={selectedServiceId}
             onSelect={toggleSelection}
+            activeLocationId={activeLocation}
+            onLocationSelect={(id) => dispatch({ type: "setActiveLocation", value: id })}
           />
         )}
       </Section>
     </PageBody>
+    </TooltipProvider>
   );
 }
 
@@ -216,15 +240,74 @@ function Hero({
         <span className="font-mono text-xs font-semibold uppercase tracking-[0.05em] text-muted-foreground">
           Availability
         </span>
-        <h1 className="max-w-[20ch] type-display font-semibold leading-[1.1] tracking-[-0.03em] text-foreground sm:type-display-lg">
+        <h1 className="type-display font-semibold leading-[1.1] tracking-[-0.03em] text-foreground sm:type-display-lg">
           Regional availability map
         </h1>
         <p className="max-w-[52ch] type-body leading-[1.6] text-muted-foreground">
-          Locate services across STT regions and outposts. Click any service for detailed status and
+          Locate services across regions and outposts. Click any service for detailed status and
           next steps.
         </p>
       </div>
       <SearchField value={searchValue} onChange={onSearchChange} />
+    </div>
+  );
+}
+
+const ZONE_META: Record<LandingZoneId, { label: string; sub: string }> = {
+  aws: { label: "AWS", sub: "5 regions · 27 services" },
+  azure: { label: "Azure", sub: "10 regions · 30 services" },
+};
+
+function ZoneSwitcher({
+  active,
+  onChange,
+}: {
+  active: LandingZoneId;
+  onChange: (zone: LandingZoneId) => void;
+}) {
+  return (
+    <div
+      role="radiogroup"
+      aria-label="Landing zone"
+      className="inline-flex w-fit rounded-lg border border-border bg-muted p-1"
+    >
+      {(["aws", "azure"] as const).map((zoneId) => {
+        const isActive = zoneId === active;
+        const meta = ZONE_META[zoneId];
+        return (
+          <button
+            key={zoneId}
+            type="button"
+            role="radio"
+            aria-checked={isActive}
+            onClick={() => onChange(zoneId)}
+            className={cn(
+              "flex flex-col gap-0.5 rounded-md px-5 py-2 text-left transition-all",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              isActive
+                ? "bg-background shadow-sm"
+                : "bg-transparent hover:bg-background/50",
+            )}
+          >
+            <span
+              className={cn(
+                "text-sm font-bold tracking-[-0.01em]",
+                isActive ? "text-foreground" : "text-muted-foreground",
+              )}
+            >
+              {meta.label}
+            </span>
+            <span
+              className={cn(
+                "font-mono type-chip",
+                isActive ? "text-muted-foreground" : "text-muted-foreground/60",
+              )}
+            >
+              {meta.sub}
+            </span>
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -294,7 +377,7 @@ function Controls({
   resultsLabel: string;
 }) {
   return (
-    <div className="flex flex-col gap-3 rounded-lg border border-border bg-card p-3">
+      <div className="flex flex-col gap-3 rounded-lg border border-border bg-card p-3">
       <RegionStrip
         locations={locations}
         services={services}
@@ -371,7 +454,7 @@ function Controls({
           </ToggleGroupItem>
         </ToggleGroup>
       </div>
-    </div>
+      </div>
   );
 }
 

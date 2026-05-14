@@ -4,7 +4,7 @@ import { IconArrowUpRight, IconChevronDown } from "@tabler/icons-react";
 
 import type { AvailabilityRecord, Location } from "@/api/server/availability";
 import { ServiceIcon } from "@/components/explore/service-icon";
-import { StatusChip, statusLabel } from "@/components/explore/status-chip";
+import { StatusDot } from "@/components/explore/status-dot";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -13,17 +13,30 @@ type MatrixViewProps = {
   groups: ReadonlyArray<readonly [string, ReadonlyArray<AvailabilityRecord>]>;
   selectedServiceId: string | null;
   onSelect: (id: string) => void;
+  activeLocationId: string | null;
+  onLocationSelect: (id: string | null) => void;
 };
 
-export function MatrixView({ locations, groups, selectedServiceId, onSelect }: MatrixViewProps) {
+export function MatrixView({
+  locations,
+  groups,
+  selectedServiceId,
+  onSelect,
+  activeLocationId,
+  onLocationSelect,
+}: MatrixViewProps) {
   const totalCols = locations.length + 1;
+  const isWide = locations.length > 6;
+  const svcColWidth = isWide ? "22%" : "30%";
+  const locColWidth = `${(100 - parseFloat(svcColWidth)) / locations.length}%`;
+  const hasActiveCol = activeLocationId !== null;
   return (
     <div className="overflow-clip rounded-lg border border-border bg-card">
       <table className="w-full table-fixed border-collapse type-detail">
         <colgroup>
-          <col style={{ width: "30%" }} />
+          <col style={{ width: svcColWidth }} />
           {locations.map((location) => (
-            <col key={location.id} style={{ width: `${70 / locations.length}%` }} />
+            <col key={location.id} style={{ width: locColWidth }} />
           ))}
         </colgroup>
         <thead>
@@ -37,18 +50,25 @@ export function MatrixView({ locations, groups, selectedServiceId, onSelect }: M
             >
               Service
             </th>
-            {locations.map((location) => (
-              <th
-                key={location.id}
-                scope="col"
-                className={cn(
-                  "sticky top-14 z-20 whitespace-nowrap border-b border-border bg-background px-3 py-2.5 text-left",
-                  "font-mono text-xs font-bold uppercase tracking-[0.04em] text-muted-foreground",
-                )}
-              >
-                {location.label}
-              </th>
-            ))}
+            {locations.map((location) => {
+              const isActive = location.id === activeLocationId;
+              return (
+                <th
+                  key={location.id}
+                  scope="col"
+                  onClick={() => onLocationSelect(isActive ? null : location.id)}
+                  className={cn(
+                    "sticky top-14 z-20 border-b border-border bg-background cursor-pointer select-none transition-colors",
+                    "font-mono text-xs font-bold uppercase tracking-[0.04em] text-muted-foreground",
+                    "hover:text-foreground",
+                    isWide ? "px-2 py-2 text-center type-caption" : "whitespace-nowrap px-3 py-2.5",
+                    isActive && "bg-brand-tint text-primary",
+                  )}
+                >
+                  {location.label}
+                </th>
+              );
+            })}
           </tr>
         </thead>
         <tbody>
@@ -61,6 +81,9 @@ export function MatrixView({ locations, groups, selectedServiceId, onSelect }: M
               selectedServiceId={selectedServiceId}
               onSelect={onSelect}
               totalCols={totalCols}
+              isWide={isWide}
+              activeLocationId={activeLocationId}
+              hasActiveCol={hasActiveCol}
             />
           ))}
         </tbody>
@@ -76,6 +99,9 @@ function DomainRows({
   selectedServiceId,
   onSelect,
   totalCols,
+  isWide,
+  activeLocationId,
+  hasActiveCol,
 }: {
   domain: string;
   services: ReadonlyArray<AvailabilityRecord>;
@@ -83,6 +109,9 @@ function DomainRows({
   selectedServiceId: string | null;
   onSelect: (id: string) => void;
   totalCols: number;
+  isWide: boolean;
+  activeLocationId: string | null;
+  hasActiveCol: boolean;
 }) {
   return (
     <>
@@ -129,19 +158,24 @@ function DomainRows({
               {locations.map((location) => {
                 const cell = service.availability[location.id];
                 const status = cell?.status ?? "not-planned";
-                const text =
-                  status === "not-planned"
-                    ? "Not planned"
-                    : status === "planned" && cell?.note
-                      ? `${statusLabel(status)} ${cell.note}`
-                      : statusLabel(status);
+                const note =
+                  status === "planned" && cell?.note
+                    ? `ETA ${cell.note}`
+                    : status === "interim" && cell?.note
+                      ? cell.note
+                      : location.label;
+                const isActiveCol = location.id === activeLocationId;
                 return (
-                  <td key={location.id} className="whitespace-nowrap px-3 py-2.5 align-middle">
-                    {status === "not-planned" ? (
-                      <span className="font-mono text-xs text-muted-foreground/70">Not planned</span>
-                    ) : (
-                      <StatusChip status={status} text={text} size="sm" />
+                  <td
+                    key={location.id}
+                    className={cn(
+                      "align-middle text-center transition-opacity",
+                      isWide ? "px-2 py-2.5" : "px-3 py-2.5",
+                      isActiveCol && "bg-brand-tint/40",
+                      hasActiveCol && !isActiveCol && "opacity-30",
                     )}
+                  >
+                    <StatusDot status={status} note={note} size={isWide ? "sm" : "md"} />
                   </td>
                 );
               })}

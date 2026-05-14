@@ -4,7 +4,7 @@ import { IconArrowRight } from "@tabler/icons-react";
 import type { Topic } from "@atlas/schema";
 
 import { availabilityQueryOptions, topicDiscoveryQueryOptionsFor } from "@/api/queries";
-import type { AvailabilityResponse } from "@/api/server/availability";
+import type { LandingZoneData } from "@/api/server/availability";
 import { CatalogSearchField } from "@/components/catalog-search-field";
 import { ServiceIcon } from "@/components/explore/service-icon";
 import { StatusChip } from "@/components/explore/status-chip";
@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
 
 type LoaderData = {
   topics: ReadonlyArray<Topic>;
-  availability: AvailabilityResponse;
+  defaultZone: LandingZoneData;
 };
 
 export const Route = createFileRoute("/capabilities/")({
@@ -26,13 +26,13 @@ export const Route = createFileRoute("/capabilities/")({
       ),
       context.queryClient.ensureQueryData(availabilityQueryOptions),
     ]);
-    return { topics: topicsResp.topics, availability };
+    return { topics: topicsResp.topics, defaultZone: availability.zones[0]! };
   },
   component: CapabilitiesListRoute,
 });
 
 function CapabilitiesListRoute() {
-  const { topics, availability } = Route.useLoaderData();
+  const { topics, defaultZone } = Route.useLoaderData();
   const [query, setQuery] = useState("");
 
   const grouped = useMemo(() => {
@@ -109,7 +109,7 @@ function CapabilitiesListRoute() {
                 }}
               >
                 {items.map((topic) => (
-                  <CapabilityCard key={topic.id} topic={topic} availability={availability} />
+                  <CapabilityCard key={topic.id} topic={topic} zone={defaultZone} />
                 ))}
               </div>
             </section>
@@ -122,14 +122,14 @@ function CapabilitiesListRoute() {
 
 function CapabilityCard({
   topic,
-  availability,
+  zone,
 }: {
   topic: Topic;
-  availability: AvailabilityResponse;
+  zone: LandingZoneData;
 }) {
-  const service = findAvailabilityServiceForTopic(topic, availability.services);
+  const service = findAvailabilityServiceForTopic(topic, zone.services);
   const activeLocations = service
-    ? availability.locations.filter(
+    ? zone.locations.filter(
         (location) =>
           service.availability[location.id] &&
           service.availability[location.id]?.status !== "not-planned",
