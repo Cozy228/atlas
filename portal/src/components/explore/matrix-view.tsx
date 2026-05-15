@@ -1,4 +1,11 @@
-import { Fragment } from "react";
+import { Fragment, useMemo } from "react";
+import {
+  flexRender,
+  getCoreRowModel,
+  useReactTable,
+  type ColumnDef,
+  type Row,
+} from "@tanstack/react-table";
 import { AnimatePresence, LazyMotion, domAnimation, m } from "motion/react";
 import { IconArrowUpRight, IconChevronDown } from "@tabler/icons-react";
 
@@ -6,6 +13,14 @@ import type { AvailabilityRecord, Location } from "@/api/server/availability";
 import { ServiceIcon } from "@/components/explore/service-icon";
 import { StatusDot } from "@/components/explore/status-dot";
 import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 
 type MatrixViewProps = {
@@ -30,53 +45,78 @@ export function MatrixView({
   const svcColWidth = isWide ? "22%" : "30%";
   const locColWidth = `${(100 - parseFloat(svcColWidth)) / locations.length}%`;
   const hasActiveCol = activeLocationId !== null;
+  const data = useMemo(() => groups.flatMap(([, services]) => [...services]), [groups]);
+  const columns = useMemo<ColumnDef<AvailabilityRecord>[]>(
+    () => [
+      {
+        id: "service",
+        header: () => "Service",
+        cell: ({ row }) => (
+          <ServiceCell service={row.original} selected={row.original.id === selectedServiceId} />
+        ),
+      },
+      ...locations.map<ColumnDef<AvailabilityRecord>>((location) => {
+        const isActive = location.id === activeLocationId;
+        return {
+          id: location.id,
+          header: () => (
+            <button
+              type="button"
+              onClick={() => onLocationSelect(isActive ? null : location.id)}
+              className="flex h-full w-full items-center justify-center text-inherit transition-colors hover:text-foreground"
+            >
+              {location.label}
+            </button>
+          ),
+          cell: ({ row }) => (
+            <AvailabilityCell service={row.original} location={location} isWide={isWide} />
+          ),
+        };
+      }),
+    ],
+    [activeLocationId, isWide, locations, onLocationSelect, selectedServiceId],
+  );
+  const table = useReactTable({
+    data,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+    getRowId: (row) => row.id,
+  });
+  const rowsByDomain = groupRowsByDomain(table.getRowModel().rows);
+
   return (
     <div className="overflow-clip rounded-lg border border-border bg-card">
-      <table className="w-full table-fixed border-collapse type-detail">
+      <Table className="w-full table-fixed border-collapse type-detail">
         <colgroup>
           <col style={{ width: svcColWidth }} />
           {locations.map((location) => (
             <col key={location.id} style={{ width: locColWidth }} />
           ))}
         </colgroup>
-        <thead>
-          <tr>
-            <th
-              scope="col"
-              className={cn(
-                "sticky top-14 z-20 border-b border-border bg-background px-3 py-2.5 text-left",
-                "font-mono text-xs font-bold uppercase tracking-[0.04em] text-muted-foreground",
-              )}
-            >
-              Service
-            </th>
-            {locations.map((location) => {
-              const isActive = location.id === activeLocationId;
-              return (
-                <th
-                  key={location.id}
+        <TableHeader>
+          {table.getHeaderGroups().map((headerGroup) => (
+            <TableRow key={headerGroup.id} className="hover:bg-transparent">
+              {headerGroup.headers.map((header) => (
+                <TableHead
+                  key={header.id}
                   scope="col"
-                  onClick={() => onLocationSelect(isActive ? null : location.id)}
-                  className={cn(
-                    "sticky top-14 z-20 border-b border-border bg-background cursor-pointer select-none transition-colors",
-                    "font-mono text-xs font-bold uppercase tracking-[0.04em] text-muted-foreground",
-                    "hover:text-foreground",
-                    isWide ? "px-2 py-2 text-center type-caption" : "whitespace-nowrap px-3 py-2.5",
-                    isActive && "bg-brand-tint text-primary",
-                  )}
+                  colSpan={header.colSpan}
+                  className={matrixHeadClass(header.column.id, activeLocationId, isWide)}
                 >
-                  {location.label}
-                </th>
-              );
-            })}
-          </tr>
-        </thead>
-        <tbody>
-          {groups.map(([domain, services]) => (
+                  {header.isPlaceholder
+                    ? null
+                    : flexRender(header.column.columnDef.header, header.getContext())}
+                </TableHead>
+              ))}
+            </TableRow>
+          ))}
+        </TableHeader>
+        <TableBody>
+          {groups.map(([domain]) => (
             <DomainRows
               key={domain}
               domain={domain}
-              services={services}
+              rows={rowsByDomain.get(domain) ?? []}
               locations={locations}
               selectedServiceId={selectedServiceId}
               onSelect={onSelect}
@@ -86,15 +126,15 @@ export function MatrixView({
               hasActiveCol={hasActiveCol}
             />
           ))}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
     </div>
   );
 }
 
 function DomainRows({
   domain,
-  services,
+  rows,
   locations,
   selectedServiceId,
   onSelect,
@@ -104,7 +144,7 @@ function DomainRows({
   hasActiveCol,
 }: {
   domain: string;
-  services: ReadonlyArray<AvailabilityRecord>;
+  rows: ReadonlyArray<Row<AvailabilityRecord>>;
   locations: ReadonlyArray<Location>;
   selectedServiceId: string | null;
   onSelect: (id: string) => void;
@@ -115,8 +155,8 @@ function DomainRows({
 }) {
   return (
     <>
-      <tr>
-        <td
+      <TableRow className="hover:bg-transparent">
+        <TableCell
           colSpan={totalCols}
           className={cn(
             "border-b border-border bg-background px-3 py-2.5",
@@ -124,13 +164,14 @@ function DomainRows({
           )}
         >
           {domain}
-        </td>
-      </tr>
-      {services.map((service) => {
+        </TableCell>
+      </TableRow>
+      {rows.map((row) => {
+        const service = row.original;
         const isSelected = service.id === selectedServiceId;
         return (
           <Fragment key={service.id}>
-            <tr
+            <TableRow
               onClick={() => onSelect(service.id)}
               data-selected={isSelected ? "true" : undefined}
               className={cn(
@@ -140,46 +181,20 @@ function DomainRows({
               )}
               aria-expanded={isSelected}
             >
-              <td className="px-3 py-2.5 align-middle">
-                <span className="flex min-w-0 items-center gap-2">
-                  <ServiceIcon serviceId={service.id} size="sm" />
-                  <span className="min-w-0 flex-1 truncate font-semibold text-foreground">
-                    {service.name}
-                  </span>
-                  <IconChevronDown
-                    aria-hidden
-                    className={cn(
-                      "size-3 shrink-0 text-muted-foreground transition-transform",
-                      isSelected && "rotate-180 text-primary",
-                    )}
-                  />
-                </span>
-              </td>
-              {locations.map((location) => {
-                const cell = service.availability[location.id];
-                const status = cell?.status ?? "not-planned";
-                const note =
-                  status === "planned" && cell?.note
-                    ? `ETA ${cell.note}`
-                    : status === "interim" && cell?.note
-                      ? cell.note
-                      : location.label;
-                const isActiveCol = location.id === activeLocationId;
-                return (
-                  <td
-                    key={location.id}
-                    className={cn(
-                      "align-middle text-center transition-opacity",
-                      isWide ? "px-2 py-2.5" : "px-3 py-2.5",
-                      isActiveCol && "bg-brand-tint/40",
-                      hasActiveCol && !isActiveCol && "opacity-30",
-                    )}
-                  >
-                    <StatusDot status={status} note={note} size={isWide ? "sm" : "md"} />
-                  </td>
-                );
-              })}
-            </tr>
+              {row.getVisibleCells().map((cell) => (
+                <TableCell
+                  key={cell.id}
+                  className={matrixCellClass(
+                    cell.column.id,
+                    activeLocationId,
+                    isWide,
+                    hasActiveCol,
+                  )}
+                >
+                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                </TableCell>
+              ))}
+            </TableRow>
             <AnimatePresence initial={false}>
               {isSelected ? (
                 <MatrixExpandRow service={service} locations={locations} totalCols={totalCols} />
@@ -189,6 +204,84 @@ function DomainRows({
         );
       })}
     </>
+  );
+}
+
+function ServiceCell({ service, selected }: { service: AvailabilityRecord; selected: boolean }) {
+  return (
+    <span className="flex min-w-0 items-center gap-2">
+      <ServiceIcon serviceId={service.id} size="sm" />
+      <span className="min-w-0 flex-1 truncate font-semibold text-foreground">{service.name}</span>
+      <IconChevronDown
+        aria-hidden
+        className={cn(
+          "size-3 shrink-0 text-muted-foreground transition-transform",
+          selected && "rotate-180 text-primary",
+        )}
+      />
+    </span>
+  );
+}
+
+function AvailabilityCell({
+  service,
+  location,
+  isWide,
+}: {
+  service: AvailabilityRecord;
+  location: Location;
+  isWide: boolean;
+}) {
+  const cell = service.availability[location.id];
+  const status = cell?.status ?? "not-planned";
+  const note =
+    status === "planned" && cell?.note
+      ? `ETA ${cell.note}`
+      : status === "interim" && cell?.note
+        ? cell.note
+        : location.label;
+
+  return <StatusDot status={status} note={note} size={isWide ? "sm" : "md"} />;
+}
+
+function groupRowsByDomain(rows: ReadonlyArray<Row<AvailabilityRecord>>) {
+  const map = new Map<string, Array<Row<AvailabilityRecord>>>();
+  for (const row of rows) {
+    const group = map.get(row.original.domain);
+    if (group) group.push(row);
+    else map.set(row.original.domain, [row]);
+  }
+  return map;
+}
+
+function matrixHeadClass(columnId: string, activeLocationId: string | null, isWide: boolean) {
+  const isServiceColumn = columnId === "service";
+  const isActive = columnId === activeLocationId;
+  return cn(
+    "sticky top-14 z-20 border-b border-border bg-background",
+    "font-mono text-xs font-bold uppercase tracking-[0.04em] text-muted-foreground",
+    isServiceColumn && "px-3 py-2.5 text-left",
+    !isServiceColumn && "cursor-pointer select-none px-0 py-0 text-center transition-colors",
+    !isServiceColumn && isWide && "type-caption",
+    !isServiceColumn && !isWide && "whitespace-nowrap",
+    isActive && "bg-brand-tint text-primary",
+  );
+}
+
+function matrixCellClass(
+  columnId: string,
+  activeLocationId: string | null,
+  isWide: boolean,
+  hasActiveCol: boolean,
+) {
+  const isServiceColumn = columnId === "service";
+  const isActiveCol = columnId === activeLocationId;
+  return cn(
+    isServiceColumn && "px-3 py-2.5 align-middle",
+    !isServiceColumn && "align-middle text-center transition-opacity",
+    !isServiceColumn && (isWide ? "px-2 py-2.5" : "px-3 py-2.5"),
+    isActiveCol && "bg-brand-tint/40",
+    hasActiveCol && !isActiveCol && !isServiceColumn && "opacity-30",
   );
 }
 
