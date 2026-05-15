@@ -21,11 +21,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import type { AvailabilityRow, AvailabilityRowGroup } from "@/lib/availability-row-model";
 import { cn } from "@/lib/utils";
 
 type MatrixViewProps = {
   locations: ReadonlyArray<Location>;
-  groups: ReadonlyArray<readonly [string, ReadonlyArray<AvailabilityRecord>]>;
+  rows: ReadonlyArray<AvailabilityRow>;
+  groups: ReadonlyArray<AvailabilityRowGroup>;
   selectedServiceId: string | null;
   onSelect: (id: string) => void;
   activeLocationId: string | null;
@@ -34,6 +36,7 @@ type MatrixViewProps = {
 
 export function MatrixView({
   locations,
+  rows,
   groups,
   selectedServiceId,
   onSelect,
@@ -45,17 +48,20 @@ export function MatrixView({
   const svcColWidth = isWide ? "22%" : "30%";
   const locColWidth = `${(100 - parseFloat(svcColWidth)) / locations.length}%`;
   const hasActiveCol = activeLocationId !== null;
-  const data = useMemo(() => groups.flatMap(([, services]) => [...services]), [groups]);
-  const columns = useMemo<ColumnDef<AvailabilityRecord>[]>(
+  const tableData = useMemo(() => [...rows], [rows]);
+  const columns = useMemo<ColumnDef<AvailabilityRow>[]>(
     () => [
       {
         id: "service",
         header: () => "Service",
         cell: ({ row }) => (
-          <ServiceCell service={row.original} selected={row.original.id === selectedServiceId} />
+          <ServiceCell
+            service={row.original.service}
+            selected={row.original.id === selectedServiceId}
+          />
         ),
       },
-      ...locations.map<ColumnDef<AvailabilityRecord>>((location) => {
+      ...locations.map<ColumnDef<AvailabilityRow>>((location) => {
         const isActive = location.id === activeLocationId;
         return {
           id: location.id,
@@ -69,7 +75,7 @@ export function MatrixView({
             </button>
           ),
           cell: ({ row }) => (
-            <AvailabilityCell service={row.original} location={location} isWide={isWide} />
+            <AvailabilityCell service={row.original.service} location={location} isWide={isWide} />
           ),
         };
       }),
@@ -77,12 +83,12 @@ export function MatrixView({
     [activeLocationId, isWide, locations, onLocationSelect, selectedServiceId],
   );
   const table = useReactTable({
-    data,
+    data: tableData,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getRowId: (row) => row.id,
   });
-  const rowsByDomain = groupRowsByDomain(table.getRowModel().rows);
+  const tableRowsById = new Map(table.getRowModel().rows.map((row) => [row.original.id, row]));
 
   return (
     <div className="overflow-clip rounded-lg border border-border bg-card">
@@ -112,11 +118,11 @@ export function MatrixView({
           ))}
         </TableHeader>
         <TableBody>
-          {groups.map(([domain]) => (
+          {groups.map((group) => (
             <DomainRows
-              key={domain}
-              domain={domain}
-              rows={rowsByDomain.get(domain) ?? []}
+              key={group.domain}
+              domain={group.domain}
+              rows={group.rowIds.map((id) => tableRowsById.get(id)).filter(isTableRow)}
               locations={locations}
               selectedServiceId={selectedServiceId}
               onSelect={onSelect}
@@ -144,7 +150,7 @@ function DomainRows({
   hasActiveCol,
 }: {
   domain: string;
-  rows: ReadonlyArray<Row<AvailabilityRecord>>;
+  rows: ReadonlyArray<Row<AvailabilityRow>>;
   locations: ReadonlyArray<Location>;
   selectedServiceId: string | null;
   onSelect: (id: string) => void;
@@ -167,12 +173,12 @@ function DomainRows({
         </TableCell>
       </TableRow>
       {rows.map((row) => {
-        const service = row.original;
-        const isSelected = service.id === selectedServiceId;
+        const { service } = row.original;
+        const isSelected = row.original.id === selectedServiceId;
         return (
-          <Fragment key={service.id}>
+          <Fragment key={row.original.id}>
             <TableRow
-              onClick={() => onSelect(service.id)}
+              onClick={() => onSelect(row.original.id)}
               data-selected={isSelected ? "true" : undefined}
               className={cn(
                 "cursor-pointer border-b border-border last:border-b-0 transition-colors",
@@ -244,16 +250,6 @@ function AvailabilityCell({
   return <StatusDot status={status} note={note} size={isWide ? "sm" : "md"} />;
 }
 
-function groupRowsByDomain(rows: ReadonlyArray<Row<AvailabilityRecord>>) {
-  const map = new Map<string, Array<Row<AvailabilityRecord>>>();
-  for (const row of rows) {
-    const group = map.get(row.original.domain);
-    if (group) group.push(row);
-    else map.set(row.original.domain, [row]);
-  }
-  return map;
-}
-
 function matrixHeadClass(columnId: string, activeLocationId: string | null, isWide: boolean) {
   const isServiceColumn = columnId === "service";
   const isActive = columnId === activeLocationId;
@@ -266,6 +262,10 @@ function matrixHeadClass(columnId: string, activeLocationId: string | null, isWi
     !isServiceColumn && !isWide && "whitespace-nowrap",
     isActive && "bg-brand-tint text-primary",
   );
+}
+
+function isTableRow(row: Row<AvailabilityRow> | undefined): row is Row<AvailabilityRow> {
+  return row !== undefined;
 }
 
 function matrixCellClass(

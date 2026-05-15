@@ -2,7 +2,6 @@ import { Fragment, useMemo, useReducer } from "react";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { IconLayoutGrid, IconTable } from "@tabler/icons-react";
-import Fuse from "fuse.js";
 
 import { availabilityQueryOptions } from "@/api/queries";
 import {
@@ -26,6 +25,11 @@ import {
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { CatalogSearchField } from "@/components/catalog-search-field";
 import { cn } from "@/lib/utils";
+import {
+  buildAvailabilityRowModel,
+  type AvailabilityRow,
+  type AvailabilityRowGroup,
+} from "@/lib/availability-row-model";
 
 type ViewMode = "cards" | "matrix";
 
@@ -118,56 +122,19 @@ function AvailabilityRoute() {
   const activeZone = zones.find((z) => z.id === activeZoneId) ?? zones[0]!;
   const { locations, services } = activeZone;
 
-  const domainOptions = useMemo(() => {
-    const set = new Set(services.map((s) => s.domain));
-    return ["all", ...[...set].toSorted()];
-  }, [services]);
-
-  const fuse = useMemo(
+  const rowModel = useMemo(
     () =>
-      new Fuse(services as ReadonlyArray<AvailabilityRecord>, {
-        keys: ["name", "domain", "iconKey"],
-        threshold: 0.35,
-        ignoreLocation: true,
+      buildAvailabilityRowModel({
+        locations,
+        services,
+        query,
+        statusFilter,
+        domainFilter,
+        activeLocationId: activeLocation,
+        selectedServiceId,
       }),
-    [services],
+    [locations, services, query, statusFilter, domainFilter, activeLocation, selectedServiceId],
   );
-
-  const filtered = useMemo(() => {
-    const q = query.trim();
-    const matched = q.length > 0 ? fuse.search(q).map((result) => result.item) : services;
-    return matched.filter((service) => {
-      if (domainFilter !== "all" && service.domain !== domainFilter) return false;
-      if (statusFilter !== "all") {
-        const matches = locations.some(
-          (location) => service.availability[location.id]?.status === statusFilter,
-        );
-        if (!matches) return false;
-      }
-      if (activeLocation) {
-        const cell = service.availability[activeLocation];
-        if (!cell || cell.status === "not-planned") return false;
-      }
-      return true;
-    });
-  }, [fuse, services, query, domainFilter, statusFilter, activeLocation, locations]);
-
-  const groups = useMemo(() => {
-    const map = new Map<string, AvailabilityRecord[]>();
-    for (const service of filtered) {
-      const list = map.get(service.domain);
-      if (list) list.push(service);
-      else map.set(service.domain, [service]);
-    }
-    return [...map.entries()] as ReadonlyArray<
-      readonly [string, ReadonlyArray<AvailabilityRecord>]
-    >;
-  }, [filtered]);
-
-  const selectedService = filtered.find((s) => s.id === selectedServiceId) ?? null;
-  const activeLocationLabel = activeLocation
-    ? locations.find((l) => l.id === activeLocation)?.label
-    : null;
 
   function toggleSelection(id: string) {
     dispatch({ type: "toggleSelection", id });
@@ -198,28 +165,30 @@ function AvailabilityRoute() {
           onDomainChange={(value) => {
             dispatch({ type: "setDomainFilter", value });
           }}
-          domainOptions={domainOptions}
+          domainOptions={rowModel.domainOptions}
           view={view}
           onViewChange={(value) => dispatch({ type: "setView", value })}
-          resultsLabel={`${filtered.length} service${filtered.length === 1 ? "" : "s"}${
-            activeLocationLabel ? ` in ${activeLocationLabel}` : ""
+          resultsLabel={`${rowModel.rows.length} service${rowModel.rows.length === 1 ? "" : "s"}${
+            rowModel.activeLocationLabel ? ` in ${rowModel.activeLocationLabel}` : ""
           }`}
         />
 
-        {filtered.length === 0 ? (
+        {rowModel.rows.length === 0 ? (
           <EmptyState onReset={() => dispatch({ type: "resetAll" })} />
         ) : view === "cards" ? (
           <CardsView
-            groups={groups}
+            groups={rowModel.groups}
+            rowById={rowModel.rowById}
             locations={locations}
             selectedServiceId={selectedServiceId}
             onSelect={toggleSelection}
-            selectedService={selectedService}
+            selectedRow={rowModel.selectedRow}
           />
         ) : (
           <MatrixView
             locations={locations}
-            groups={groups}
+            rows={rowModel.rows}
+            groups={rowModel.groups}
             selectedServiceId={selectedServiceId}
             onSelect={toggleSelection}
             activeLocationId={activeLocation}
@@ -462,61 +431,69 @@ function Controls({
 
 function CardsView({
   groups,
+  rowById,
   locations,
   selectedServiceId,
   onSelect,
-  selectedService,
+  selectedRow,
 }: {
-  groups: ReadonlyArray<readonly [string, ReadonlyArray<AvailabilityRecord>]>;
+  groups: ReadonlyArray<AvailabilityRowGroup>;
+  rowById: ReadonlyMap<string, AvailabilityRow>;
   locations: ReadonlyArray<{ id: string; label: string; sub: string; kind: "region" | "outpost" }>;
   selectedServiceId: string | null;
   onSelect: (id: string) => void;
-  selectedService: AvailabilityRecord | null;
+  selectedRow: AvailabilityRow | null;
 }) {
   return (
     <div className="flex flex-col gap-6">
-      {groups.map(([domain, services]) => (
-        <section key={domain}>
-          <div className="sticky top-14 z-[5] mb-2 flex items-center gap-2 bg-background py-1">
-            <h3 className="font-mono text-xs font-semibold uppercase tracking-[0.05em] text-muted-foreground">
-              {domain}
-            </h3>
-            <span
-              className={cn(
-                "rounded-full bg-border px-1.5 py-px",
-                "font-mono text-xs font-bold text-muted-foreground",
-              )}
+      {groups.map((group) => {
+        const rows = group.rowIds.flatMap((id) => {
+          const row = rowById.get(id);
+          return row ? [row] : [];
+        });
+
+        return (
+          <section key={group.domain}>
+            <div className="sticky top-14 z-[5] mb-2 flex items-center gap-2 bg-background py-1">
+              <h3 className="font-mono text-xs font-semibold uppercase tracking-[0.05em] text-muted-foreground">
+                {group.domain}
+              </h3>
+              <span
+                className={cn(
+                  "rounded-full bg-border px-1.5 py-px",
+                  "font-mono text-xs font-bold text-muted-foreground",
+                )}
+              >
+                {group.rowIds.length}
+              </span>
+              <span className="h-px flex-1 bg-border" />
+            </div>
+            <div
+              className="grid gap-2"
+              style={{
+                gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+              }}
             >
-              {services.length}
-            </span>
-            <span className="h-px flex-1 bg-border" />
-          </div>
-          <div
-            className="grid gap-2"
-            style={{
-              gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
-            }}
-          >
-            {services.map((service) => (
-              <Fragment key={service.id}>
-                <ServiceCard
-                  service={service}
-                  locations={locations}
-                  selected={selectedServiceId === service.id}
-                  onSelect={() => onSelect(service.id)}
-                />
-                {selectedServiceId === service.id && selectedService ? (
-                  <ExpandPanel
-                    service={selectedService}
-                    locations={locations}
-                    onClose={() => onSelect(service.id)}
+              {rows.map((row) => (
+                <Fragment key={row.id}>
+                  <ServiceCard
+                    row={row}
+                    selected={selectedServiceId === row.id}
+                    onSelect={() => onSelect(row.id)}
                   />
-                ) : null}
-              </Fragment>
-            ))}
-          </div>
-        </section>
-      ))}
+                  {selectedServiceId === row.id && selectedRow ? (
+                    <ExpandPanel
+                      service={selectedRow.service}
+                      locations={locations}
+                      onClose={() => onSelect(row.id)}
+                    />
+                  ) : null}
+                </Fragment>
+              ))}
+            </div>
+          </section>
+        );
+      })}
     </div>
   );
 }
