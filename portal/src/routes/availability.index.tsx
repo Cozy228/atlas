@@ -24,7 +24,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { TooltipProvider } from "@/components/ui/tooltip";
 import { CatalogSearchField } from "@/components/catalog-search-field";
 import { cn } from "@/lib/utils";
 
@@ -106,7 +105,15 @@ function AvailabilityRoute() {
     data: { zones },
   } = useSuspenseQuery(availabilityQueryOptions);
   const [state, dispatch] = useReducer(exploreReducer, INITIAL_EXPLORE_STATE);
-  const { zone: activeZoneId, query, statusFilter, domainFilter, activeLocation, selectedServiceId, view } = state;
+  const {
+    zone: activeZoneId,
+    query,
+    statusFilter,
+    domainFilter,
+    activeLocation,
+    selectedServiceId,
+    view,
+  } = state;
 
   const activeZone = zones.find((z) => z.id === activeZoneId) ?? zones[0]!;
   const { locations, services } = activeZone;
@@ -162,25 +169,23 @@ function AvailabilityRoute() {
     ? locations.find((l) => l.id === activeLocation)?.label
     : null;
 
-
   function toggleSelection(id: string) {
     dispatch({ type: "toggleSelection", id });
   }
 
   return (
-    <TooltipProvider>
     <PageBody width="comfortable">
-      <Hero
-        searchValue={query}
-        onSearchChange={(value) => dispatch({ type: "setQuery", value })}
-      />
+      <Hero searchValue={query} onSearchChange={(value) => dispatch({ type: "setQuery", value })} />
 
       <Section
         eyebrow="Catalog"
         title="Services"
         description="Filter by region, status, or domain. Click any service for next steps."
       >
-        <ZoneSwitcher active={activeZoneId} onChange={(value) => dispatch({ type: "setZone", value })} />
+        <ZoneSwitcher
+          active={activeZoneId}
+          onChange={(value) => dispatch({ type: "setZone", value })}
+        />
 
         <Controls
           locations={locations}
@@ -223,7 +228,6 @@ function AvailabilityRoute() {
         )}
       </Section>
     </PageBody>
-    </TooltipProvider>
   );
 }
 
@@ -284,9 +288,7 @@ function ZoneSwitcher({
             className={cn(
               "flex flex-col gap-0.5 rounded-md px-5 py-2 text-left transition-all",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-              isActive
-                ? "bg-background shadow-sm"
-                : "bg-transparent hover:bg-background/50",
+              isActive ? "bg-background shadow-sm" : "bg-transparent hover:bg-background/50",
             )}
           >
             <span
@@ -377,7 +379,7 @@ function Controls({
   resultsLabel: string;
 }) {
   return (
-      <div className="flex flex-col gap-3 rounded-lg border border-border bg-card p-3">
+    <div className="flex flex-col gap-3 rounded-lg border border-border bg-card p-3">
       <RegionStrip
         locations={locations}
         services={services}
@@ -454,7 +456,7 @@ function Controls({
           </ToggleGroupItem>
         </ToggleGroup>
       </div>
-      </div>
+    </div>
   );
 }
 

@@ -22,24 +22,30 @@ type StatusDotProps = {
   note?: string;
   /** Dot diameter variant. */
   size?: "sm" | "md";
+  /** Use only for low-density surfaces; dense matrices should stay static. */
+  tooltip?: boolean;
 };
 
-export function StatusDot({ status, note, size = "md" }: StatusDotProps) {
+export function StatusDot({ status, note, size = "md", tooltip = false }: StatusDotProps) {
   const label = STATUS_LABELS[status];
   const tip = note ? `${label} · ${note}` : label;
+  const dot = (
+    <span
+      aria-label={tip}
+      title={tip}
+      className={cn(
+        "inline-block shrink-0 rounded-full transition-transform hover:scale-125",
+        size === "sm" ? "size-2" : "size-2.5",
+        DOT_STYLES[status],
+      )}
+    />
+  );
+
+  if (!tooltip) return dot;
 
   return (
     <Tooltip>
-      <TooltipTrigger>
-        <span
-          aria-label={tip}
-          className={cn(
-            "inline-block shrink-0 rounded-full transition-transform hover:scale-125",
-            size === "sm" ? "size-2" : "size-2.5",
-            DOT_STYLES[status],
-          )}
-        />
-      </TooltipTrigger>
+      <TooltipTrigger>{dot}</TooltipTrigger>
       <TooltipContent side="top" className="font-mono text-xs">
         {tip}
       </TooltipContent>
