@@ -1,25 +1,20 @@
-import type { AvailabilityRecord, Location } from "@/api/server/availability";
 import { ServiceIcon } from "@/components/explore/service-icon";
 import { StatusChip } from "@/components/explore/status-chip";
+import type { AvailabilityRow } from "@/lib/availability-row-model";
 import { cn } from "@/lib/utils";
 
 type ServiceCardProps = {
-  service: AvailabilityRecord;
-  locations: ReadonlyArray<Location>;
+  row: AvailabilityRow;
   selected: boolean;
   onSelect: () => void;
 };
 
 const VISIBLE_CHIPS = 3;
 
-export function ServiceCard({ service, locations, selected, onSelect }: ServiceCardProps) {
-  const active = locations.filter(
-    (location) =>
-      service.availability[location.id] &&
-      service.availability[location.id]?.status !== "not-planned",
-  );
-  const visible = active.slice(0, VISIBLE_CHIPS);
-  const overflow = active.length - visible.length;
+export function ServiceCard({ row, selected, onSelect }: ServiceCardProps) {
+  const { service } = row;
+  const visible = row.activeLocations.slice(0, VISIBLE_CHIPS);
+  const overflow = row.activeLocations.length - visible.length;
 
   return (
     <button
