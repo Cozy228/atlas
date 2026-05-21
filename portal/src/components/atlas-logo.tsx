@@ -35,7 +35,7 @@ export function AtlasLogo({ variant = "wordmark", className, ...props }: AtlasLo
       <span
         aria-hidden
         className={cn(
-          "flex size-8 items-center justify-center rounded-md border border-border bg-brand-tint font-mono text-[11px] font-semibold uppercase tracking-tight text-foreground",
+          "flex size-8 items-center justify-center rounded-md border border-border bg-brand-tint font-mono text-xs font-semibold uppercase tracking-tight text-foreground",
         )}
       >
         Co

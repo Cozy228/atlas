@@ -16,7 +16,7 @@ export function PageHeader({ eyebrow, title, description, actions, className }: 
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div className="flex flex-col gap-1">
           {eyebrow ? (
-            <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">
+            <span className="font-mono text-xs font-semibold uppercase tracking-[0.05em] text-muted-foreground">
               {eyebrow}
             </span>
           ) : null}

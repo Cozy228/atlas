@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 export function EntryToolsGrid({ tools }: { tools: ReadonlyArray<EntryTool> }) {
   if (tools.length === 0) {
     return (
-      <div className="rounded-lg border border-dashed border-border bg-card p-4 text-[13px] text-muted-foreground">
+      <div className="rounded-lg border border-dashed border-border bg-card p-4 type-detail text-muted-foreground">
         No entry tools registered. Use feedback below if you expect Terraform modules, Harness
         pipelines, or onboarding forms here.
       </div>
@@ -36,12 +36,12 @@ function EntryToolCard({ tool }: { tool: EntryTool }) {
       )}
     >
       <div className="flex items-start justify-between gap-2">
-        <span className="text-[13px] font-bold tracking-[-0.01em] text-foreground">
+        <span className="type-detail font-bold tracking-[-0.01em] text-foreground">
           {tool.label}
         </span>
         <IconArrowUpRight className="size-3.5 shrink-0 text-muted-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-primary" />
       </div>
-      <span className="flex items-center gap-1 font-mono text-[11px] text-muted-foreground">
+      <span className="flex items-center gap-1 font-mono text-xs text-muted-foreground">
         <IconLink className="size-3" aria-hidden />
         {safeHost(tool.url)}
       </span>

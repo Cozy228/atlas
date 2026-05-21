@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.7
 
 ARG NODE_VERSION=22.21.1
-ARG PNPM_VERSION=10.33.3
+ARG PNPM_VERSION=11.1.1
 ARG LAMBDA_WEB_ADAPTER_VERSION=0.9.1
 
 FROM public.ecr.aws/awsguru/aws-lambda-adapter:${LAMBDA_WEB_ADAPTER_VERSION} AS lambda-web-adapter

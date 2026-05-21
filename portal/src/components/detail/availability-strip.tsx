@@ -13,9 +13,9 @@ type AvailabilityStripProps = {
 export function AvailabilityStrip({ service, locations }: AvailabilityStripProps) {
   if (!service) {
     return (
-      <div className="rounded-lg border border-dashed border-border bg-card p-4 text-[13px] text-muted-foreground">
+      <div className="rounded-lg border border-dashed border-border bg-card p-4 type-detail text-muted-foreground">
         No availability projection registered for this capability.{" "}
-        <Link to="/explore" className="text-primary underline-offset-2 hover:underline">
+        <Link to="/availability" className="text-primary underline-offset-2 hover:underline">
           Browse availability map
         </Link>
         .
@@ -36,10 +36,10 @@ export function AvailabilityStrip({ service, locations }: AvailabilityStripProps
           const sub = status === "planned" && cell?.note ? `ETA: ${cell.note}` : location.sub;
           return (
             <li key={location.id} className="flex flex-col gap-1.5 px-3 py-2.5">
-              <span className="text-[12px] font-bold tracking-[-0.01em] text-foreground">
+              <span className="text-xs font-bold tracking-[-0.01em] text-foreground">
                 {location.label}
               </span>
-              <span className="text-[10px] text-muted-foreground">{sub}</span>
+              <span className="type-caption text-muted-foreground">{sub}</span>
               <StatusChip status={status} text={statusLabel(status)} />
             </li>
           );
@@ -48,9 +48,9 @@ export function AvailabilityStrip({ service, locations }: AvailabilityStripProps
       </div>
       <div className="flex items-center justify-end border-t border-border bg-background px-3 py-2">
         <Link
-          to="/explore"
+          to="/availability"
           className={cn(
-            "inline-flex items-center gap-1 font-mono text-[11px] font-semibold text-primary",
+            "inline-flex items-center gap-1 font-mono text-xs font-semibold text-primary",
             "underline-offset-2 hover:underline",
           )}
         >

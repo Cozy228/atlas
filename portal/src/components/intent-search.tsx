@@ -36,7 +36,7 @@ export function IntentSearch({
         aria-hidden
         className={cn(
           "shrink-0 rounded-md border border-border bg-background px-1.5 py-0.5",
-          "font-mono text-[10px] font-medium text-muted-foreground",
+          "font-mono type-caption font-medium text-muted-foreground",
         )}
       >
         ⌘K

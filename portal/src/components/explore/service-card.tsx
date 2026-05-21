@@ -1,25 +1,20 @@
-import type { AvailabilityRecord, Location } from "@/api/server/availability";
 import { ServiceIcon } from "@/components/explore/service-icon";
 import { StatusChip } from "@/components/explore/status-chip";
+import type { AvailabilityRow } from "@/lib/availability-row-model";
 import { cn } from "@/lib/utils";
 
 type ServiceCardProps = {
-  service: AvailabilityRecord;
-  locations: ReadonlyArray<Location>;
+  row: AvailabilityRow;
   selected: boolean;
   onSelect: () => void;
 };
 
 const VISIBLE_CHIPS = 3;
 
-export function ServiceCard({ service, locations, selected, onSelect }: ServiceCardProps) {
-  const active = locations.filter(
-    (location) =>
-      service.availability[location.id] &&
-      service.availability[location.id]?.status !== "not-planned",
-  );
-  const visible = active.slice(0, VISIBLE_CHIPS);
-  const overflow = active.length - visible.length;
+export function ServiceCard({ row, selected, onSelect }: ServiceCardProps) {
+  const { service } = row;
+  const visible = row.activeLocations.slice(0, VISIBLE_CHIPS);
+  const overflow = row.activeLocations.length - visible.length;
 
   return (
     <button
@@ -36,7 +31,7 @@ export function ServiceCard({ service, locations, selected, onSelect }: ServiceC
     >
       <div className="flex items-center gap-2.5">
         <ServiceIcon serviceId={service.id} size="md" />
-        <span className="text-[15px] font-semibold leading-tight text-foreground">
+        <span className="type-body font-semibold leading-tight text-foreground">
           {service.name}
         </span>
       </div>
@@ -57,8 +52,8 @@ export function ServiceCard({ service, locations, selected, onSelect }: ServiceC
         {overflow > 0 ? (
           <span
             className={cn(
-              "inline-flex items-center rounded border border-border bg-background px-1.5 py-0.5",
-              "font-mono text-[10px] font-semibold text-muted-foreground",
+              "inline-flex items-center rounded border border-border bg-background px-1.5 py-px",
+              "font-mono type-chip font-medium text-muted-foreground",
             )}
           >
             +{overflow}

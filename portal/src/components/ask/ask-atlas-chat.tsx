@@ -223,7 +223,7 @@ function EmptyGreeting({
         </span>
         <div className="flex flex-col gap-1.5">
           <p className="text-sm font-semibold text-foreground">Hi!</p>
-          <p className="text-[13px] leading-relaxed text-foreground">
+          <p className="type-detail leading-relaxed text-foreground">
             I'm an AI assistant trained on platform documentation, runbooks,
             and source registry data. Ask me anything about{" "}
             <span className="rounded bg-muted px-1.5 py-0.5 font-semibold">Atlas Platform</span>.
@@ -232,7 +232,7 @@ function EmptyGreeting({
       </div>
 
       <div className="flex flex-col gap-1.5 pl-11">
-        <span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+        <span className="font-mono type-caption font-semibold uppercase tracking-wider text-muted-foreground">
           Example questions
         </span>
         {suggestions.map((item) => (
@@ -245,10 +245,10 @@ function EmptyGreeting({
               "hover:border-border-strong hover:bg-accent",
             )}
           >
-            <span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <span className="font-mono type-caption font-semibold uppercase tracking-wider text-muted-foreground">
               {item.category}
             </span>
-            <span className="text-[13px] text-foreground">{item.prompt}</span>
+            <span className="type-detail text-foreground">{item.prompt}</span>
           </button>
         ))}
       </div>
