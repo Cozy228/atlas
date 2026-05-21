@@ -12,6 +12,7 @@ This folder separates product narrative, architecture, review history, and raw n
 
 - `architecture/current_design.md` - Current system design for Atlas Portal and Atlas Context Layer.
 - `architecture/implementation_plan.md` - V1 implementation plan with subgoals, constraints, verification gates, and do/don't rules.
+- `architecture/mvp_next_steps.md` - Near-term MVP closure sequence for manifest-driven registry, metadata fetchers, lifecycle, deployment, Skill, Skills Hub, Guidance, Catalog, and Portal UI/UX work.
 - `architecture/dynamodb_feedback_table.md` - DynamoDB key design for V1 feedback persistence.
 - `architecture/portal_frontend_design_plan.md` - Frontend design implementation plan for the Atlas Portal experience.
 - `architecture/constraints.md` - Implementation constraints that must be checked before code changes.
@@ -31,7 +32,8 @@ This folder separates product narrative, architecture, review history, and raw n
 2. `product/business_value.md`
 3. `architecture/current_design.md`
 4. `architecture/implementation_plan.md`
-5. `architecture/dynamodb_feedback_table.md`
-6. `architecture/portal_frontend_design_plan.md`
-7. `architecture/constraints.md`
-8. `product/guideline.md`
+5. `architecture/mvp_next_steps.md`
+6. `architecture/dynamodb_feedback_table.md`
+7. `architecture/portal_frontend_design_plan.md`
+8. `architecture/constraints.md`
+9. `product/guideline.md`
