@@ -24,331 +24,209 @@ import { Route as GuidanceTopicIdRouteImport } from './routes/guidance.$topicId'
 import { Route as CatalogTopicIdRouteImport } from './routes/catalog.$topicId'
 
 const SourcesRoute = SourcesRouteImport.update({
-  id: '/sources',
-  path: '/sources',
-  getParentRoute: () => rootRouteImport,
-} as any)
+            id: '/sources',path: '/sources',getParentRoute: () => rootRouteImport
+          }as any)
 const GuidanceRoute = GuidanceRouteImport.update({
-  id: '/guidance',
-  path: '/guidance',
-  getParentRoute: () => rootRouteImport,
-} as any)
+            id: '/guidance',path: '/guidance',getParentRoute: () => rootRouteImport
+          }as any)
 const CatalogRoute = CatalogRouteImport.update({
-  id: '/catalog',
-  path: '/catalog',
-  getParentRoute: () => rootRouteImport,
-} as any)
+            id: '/catalog',path: '/catalog',getParentRoute: () => rootRouteImport
+          }as any)
 const AvailabilityRoute = AvailabilityRouteImport.update({
-  id: '/availability',
-  path: '/availability',
-  getParentRoute: () => rootRouteImport,
-} as any)
+            id: '/availability',path: '/availability',getParentRoute: () => rootRouteImport
+          }as any)
 const AskRoute = AskRouteImport.update({
-  id: '/ask',
-  path: '/ask',
-  getParentRoute: () => rootRouteImport,
-} as any)
+            id: '/ask',path: '/ask',getParentRoute: () => rootRouteImport
+          }as any)
 const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
+            id: '/',path: '/',getParentRoute: () => rootRouteImport
+          }as any)
 const SourcesIndexRoute = SourcesIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => SourcesRoute,
-} as any)
+            id: '/',path: '/',getParentRoute: () => SourcesRoute
+          }as any)
 const GuidanceIndexRoute = GuidanceIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => GuidanceRoute,
-} as any)
+            id: '/',path: '/',getParentRoute: () => GuidanceRoute
+          }as any)
 const CatalogIndexRoute = CatalogIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => CatalogRoute,
-} as any)
+            id: '/',path: '/',getParentRoute: () => CatalogRoute
+          }as any)
 const AvailabilityIndexRoute = AvailabilityIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AvailabilityRoute,
-} as any)
+            id: '/',path: '/',getParentRoute: () => AvailabilityRoute
+          }as any)
 const SourcesSourceIdRoute = SourcesSourceIdRouteImport.update({
-  id: '/$sourceId',
-  path: '/$sourceId',
-  getParentRoute: () => SourcesRoute,
-} as any)
+            id: '/$sourceId',path: '/$sourceId',getParentRoute: () => SourcesRoute
+          }as any)
 const GuidanceTopicIdRoute = GuidanceTopicIdRouteImport.update({
-  id: '/$topicId',
-  path: '/$topicId',
-  getParentRoute: () => GuidanceRoute,
-} as any)
+            id: '/$topicId',path: '/$topicId',getParentRoute: () => GuidanceRoute
+          }as any)
 const CatalogTopicIdRoute = CatalogTopicIdRouteImport.update({
-  id: '/$topicId',
-  path: '/$topicId',
-  getParentRoute: () => CatalogRoute,
-} as any)
+            id: '/$topicId',path: '/$topicId',getParentRoute: () => CatalogRoute
+          }as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
-  '/ask': typeof AskRoute
-  '/availability': typeof AvailabilityRouteWithChildren
-  '/catalog': typeof CatalogRouteWithChildren
-  '/guidance': typeof GuidanceRouteWithChildren
-  '/sources': typeof SourcesRouteWithChildren
-  '/catalog/$topicId': typeof CatalogTopicIdRoute
-  '/guidance/$topicId': typeof GuidanceTopicIdRoute
-  '/sources/$sourceId': typeof SourcesSourceIdRoute
-  '/availability/': typeof AvailabilityIndexRoute
-  '/catalog/': typeof CatalogIndexRoute
-  '/guidance/': typeof GuidanceIndexRoute
-  '/sources/': typeof SourcesIndexRoute
+'/': typeof IndexRoute,'/ask': typeof AskRoute,'/availability': typeof AvailabilityRouteWithChildren,'/catalog': typeof CatalogRouteWithChildren,'/guidance': typeof GuidanceRouteWithChildren,'/sources': typeof SourcesRouteWithChildren,'/catalog/$topicId': typeof CatalogTopicIdRoute,'/guidance/$topicId': typeof GuidanceTopicIdRoute,'/sources/$sourceId': typeof SourcesSourceIdRoute,'/availability/': typeof AvailabilityIndexRoute,'/catalog/': typeof CatalogIndexRoute,'/guidance/': typeof GuidanceIndexRoute,'/sources/': typeof SourcesIndexRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '/ask': typeof AskRoute
-  '/catalog/$topicId': typeof CatalogTopicIdRoute
-  '/guidance/$topicId': typeof GuidanceTopicIdRoute
-  '/sources/$sourceId': typeof SourcesSourceIdRoute
-  '/availability': typeof AvailabilityIndexRoute
-  '/catalog': typeof CatalogIndexRoute
-  '/guidance': typeof GuidanceIndexRoute
-  '/sources': typeof SourcesIndexRoute
+'/': typeof IndexRoute,'/ask': typeof AskRoute,'/catalog/$topicId': typeof CatalogTopicIdRoute,'/guidance/$topicId': typeof GuidanceTopicIdRoute,'/sources/$sourceId': typeof SourcesSourceIdRoute,'/availability': typeof AvailabilityIndexRoute,'/catalog': typeof CatalogIndexRoute,'/guidance': typeof GuidanceIndexRoute,'/sources': typeof SourcesIndexRoute
 }
 export interface FileRoutesById {
-  __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
-  '/ask': typeof AskRoute
-  '/availability': typeof AvailabilityRouteWithChildren
-  '/catalog': typeof CatalogRouteWithChildren
-  '/guidance': typeof GuidanceRouteWithChildren
-  '/sources': typeof SourcesRouteWithChildren
-  '/catalog/$topicId': typeof CatalogTopicIdRoute
-  '/guidance/$topicId': typeof GuidanceTopicIdRoute
-  '/sources/$sourceId': typeof SourcesSourceIdRoute
-  '/availability/': typeof AvailabilityIndexRoute
-  '/catalog/': typeof CatalogIndexRoute
-  '/guidance/': typeof GuidanceIndexRoute
-  '/sources/': typeof SourcesIndexRoute
+'__root__': typeof rootRouteImport,
+'/': typeof IndexRoute,'/ask': typeof AskRoute,'/availability': typeof AvailabilityRouteWithChildren,'/catalog': typeof CatalogRouteWithChildren,'/guidance': typeof GuidanceRouteWithChildren,'/sources': typeof SourcesRouteWithChildren,'/catalog/$topicId': typeof CatalogTopicIdRoute,'/guidance/$topicId': typeof GuidanceTopicIdRoute,'/sources/$sourceId': typeof SourcesSourceIdRoute,'/availability/': typeof AvailabilityIndexRoute,'/catalog/': typeof CatalogIndexRoute,'/guidance/': typeof GuidanceIndexRoute,'/sources/': typeof SourcesIndexRoute
 }
 export interface FileRouteTypes {
-  fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths:
-    | '/'
-    | '/ask'
-    | '/availability'
-    | '/catalog'
-    | '/guidance'
-    | '/sources'
-    | '/catalog/$topicId'
-    | '/guidance/$topicId'
-    | '/sources/$sourceId'
-    | '/availability/'
-    | '/catalog/'
-    | '/guidance/'
-    | '/sources/'
-  fileRoutesByTo: FileRoutesByTo
-  to:
-    | '/'
-    | '/ask'
-    | '/catalog/$topicId'
-    | '/guidance/$topicId'
-    | '/sources/$sourceId'
-    | '/availability'
-    | '/catalog'
-    | '/guidance'
-    | '/sources'
-  id:
-    | '__root__'
-    | '/'
-    | '/ask'
-    | '/availability'
-    | '/catalog'
-    | '/guidance'
-    | '/sources'
-    | '/catalog/$topicId'
-    | '/guidance/$topicId'
-    | '/sources/$sourceId'
-    | '/availability/'
-    | '/catalog/'
-    | '/guidance/'
-    | '/sources/'
-  fileRoutesById: FileRoutesById
+fileRoutesByFullPath: FileRoutesByFullPath
+fullPaths: '/'|'/ask'|'/availability'|'/catalog'|'/guidance'|'/sources'|'/catalog/$topicId'|'/guidance/$topicId'|'/sources/$sourceId'|'/availability/'|'/catalog/'|'/guidance/'|'/sources/'
+fileRoutesByTo: FileRoutesByTo
+to: '/'|'/ask'|'/catalog/$topicId'|'/guidance/$topicId'|'/sources/$sourceId'|'/availability'|'/catalog'|'/guidance'|'/sources'
+id: '__root__'|'/'|'/ask'|'/availability'|'/catalog'|'/guidance'|'/sources'|'/catalog/$topicId'|'/guidance/$topicId'|'/sources/$sourceId'|'/availability/'|'/catalog/'|'/guidance/'|'/sources/'
+fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
-  AskRoute: typeof AskRoute
-  AvailabilityRoute: typeof AvailabilityRouteWithChildren
-  CatalogRoute: typeof CatalogRouteWithChildren
-  GuidanceRoute: typeof GuidanceRouteWithChildren
-  SourcesRoute: typeof SourcesRouteWithChildren
+IndexRoute: typeof IndexRoute,AskRoute: typeof AskRoute,AvailabilityRoute: typeof AvailabilityRouteWithChildren,CatalogRoute: typeof CatalogRouteWithChildren,GuidanceRoute: typeof GuidanceRouteWithChildren,SourcesRoute: typeof SourcesRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
     '/sources': {
-      id: '/sources'
-      path: '/sources'
-      fullPath: '/sources'
-      preLoaderRoute: typeof SourcesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/guidance': {
-      id: '/guidance'
-      path: '/guidance'
-      fullPath: '/guidance'
-      preLoaderRoute: typeof GuidanceRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/catalog': {
-      id: '/catalog'
-      path: '/catalog'
-      fullPath: '/catalog'
-      preLoaderRoute: typeof CatalogRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/availability': {
-      id: '/availability'
-      path: '/availability'
-      fullPath: '/availability'
-      preLoaderRoute: typeof AvailabilityRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/ask': {
-      id: '/ask'
-      path: '/ask'
-      fullPath: '/ask'
-      preLoaderRoute: typeof AskRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/sources/': {
-      id: '/sources/'
-      path: '/'
-      fullPath: '/sources/'
-      preLoaderRoute: typeof SourcesIndexRouteImport
-      parentRoute: typeof SourcesRoute
-    }
-    '/guidance/': {
-      id: '/guidance/'
-      path: '/'
-      fullPath: '/guidance/'
-      preLoaderRoute: typeof GuidanceIndexRouteImport
-      parentRoute: typeof GuidanceRoute
-    }
-    '/catalog/': {
-      id: '/catalog/'
-      path: '/'
-      fullPath: '/catalog/'
-      preLoaderRoute: typeof CatalogIndexRouteImport
-      parentRoute: typeof CatalogRoute
-    }
-    '/availability/': {
-      id: '/availability/'
-      path: '/'
-      fullPath: '/availability/'
-      preLoaderRoute: typeof AvailabilityIndexRouteImport
-      parentRoute: typeof AvailabilityRoute
-    }
-    '/sources/$sourceId': {
-      id: '/sources/$sourceId'
-      path: '/$sourceId'
-      fullPath: '/sources/$sourceId'
-      preLoaderRoute: typeof SourcesSourceIdRouteImport
-      parentRoute: typeof SourcesRoute
-    }
-    '/guidance/$topicId': {
-      id: '/guidance/$topicId'
-      path: '/$topicId'
-      fullPath: '/guidance/$topicId'
-      preLoaderRoute: typeof GuidanceTopicIdRouteImport
-      parentRoute: typeof GuidanceRoute
-    }
-    '/catalog/$topicId': {
-      id: '/catalog/$topicId'
-      path: '/$topicId'
-      fullPath: '/catalog/$topicId'
-      preLoaderRoute: typeof CatalogTopicIdRouteImport
-      parentRoute: typeof CatalogRoute
-    }
+          id: '/sources'
+          path: '/sources'
+          fullPath: '/sources'
+          preLoaderRoute: typeof SourcesRouteImport
+          parentRoute: typeof rootRouteImport
+        }
+'/guidance': {
+          id: '/guidance'
+          path: '/guidance'
+          fullPath: '/guidance'
+          preLoaderRoute: typeof GuidanceRouteImport
+          parentRoute: typeof rootRouteImport
+        }
+'/catalog': {
+          id: '/catalog'
+          path: '/catalog'
+          fullPath: '/catalog'
+          preLoaderRoute: typeof CatalogRouteImport
+          parentRoute: typeof rootRouteImport
+        }
+'/availability': {
+          id: '/availability'
+          path: '/availability'
+          fullPath: '/availability'
+          preLoaderRoute: typeof AvailabilityRouteImport
+          parentRoute: typeof rootRouteImport
+        }
+'/ask': {
+          id: '/ask'
+          path: '/ask'
+          fullPath: '/ask'
+          preLoaderRoute: typeof AskRouteImport
+          parentRoute: typeof rootRouteImport
+        }
+'/': {
+          id: '/'
+          path: '/'
+          fullPath: '/'
+          preLoaderRoute: typeof IndexRouteImport
+          parentRoute: typeof rootRouteImport
+        }
+'/sources/': {
+          id: '/sources/'
+          path: '/'
+          fullPath: '/sources/'
+          preLoaderRoute: typeof SourcesIndexRouteImport
+          parentRoute: typeof SourcesRoute
+        }
+'/guidance/': {
+          id: '/guidance/'
+          path: '/'
+          fullPath: '/guidance/'
+          preLoaderRoute: typeof GuidanceIndexRouteImport
+          parentRoute: typeof GuidanceRoute
+        }
+'/catalog/': {
+          id: '/catalog/'
+          path: '/'
+          fullPath: '/catalog/'
+          preLoaderRoute: typeof CatalogIndexRouteImport
+          parentRoute: typeof CatalogRoute
+        }
+'/availability/': {
+          id: '/availability/'
+          path: '/'
+          fullPath: '/availability/'
+          preLoaderRoute: typeof AvailabilityIndexRouteImport
+          parentRoute: typeof AvailabilityRoute
+        }
+'/sources/$sourceId': {
+          id: '/sources/$sourceId'
+          path: '/$sourceId'
+          fullPath: '/sources/$sourceId'
+          preLoaderRoute: typeof SourcesSourceIdRouteImport
+          parentRoute: typeof SourcesRoute
+        }
+'/guidance/$topicId': {
+          id: '/guidance/$topicId'
+          path: '/$topicId'
+          fullPath: '/guidance/$topicId'
+          preLoaderRoute: typeof GuidanceTopicIdRouteImport
+          parentRoute: typeof GuidanceRoute
+        }
+'/catalog/$topicId': {
+          id: '/catalog/$topicId'
+          path: '/$topicId'
+          fullPath: '/catalog/$topicId'
+          preLoaderRoute: typeof CatalogTopicIdRouteImport
+          parentRoute: typeof CatalogRoute
+        }
   }
 }
+
+
 
 interface AvailabilityRouteChildren {
   AvailabilityIndexRoute: typeof AvailabilityIndexRoute
 }
 
 const AvailabilityRouteChildren: AvailabilityRouteChildren = {
-  AvailabilityIndexRoute: AvailabilityIndexRoute,
+  AvailabilityIndexRoute: AvailabilityIndexRoute
 }
 
-const AvailabilityRouteWithChildren = AvailabilityRoute._addFileChildren(
-  AvailabilityRouteChildren,
-)
+const AvailabilityRouteWithChildren = AvailabilityRoute._addFileChildren(AvailabilityRouteChildren)
+
 
 interface CatalogRouteChildren {
-  CatalogTopicIdRoute: typeof CatalogTopicIdRoute
-  CatalogIndexRoute: typeof CatalogIndexRoute
+  CatalogTopicIdRoute: typeof CatalogTopicIdRoute,CatalogIndexRoute: typeof CatalogIndexRoute
 }
 
 const CatalogRouteChildren: CatalogRouteChildren = {
-  CatalogTopicIdRoute: CatalogTopicIdRoute,
-  CatalogIndexRoute: CatalogIndexRoute,
+  CatalogTopicIdRoute: CatalogTopicIdRoute,CatalogIndexRoute: CatalogIndexRoute
 }
 
-const CatalogRouteWithChildren =
-  CatalogRoute._addFileChildren(CatalogRouteChildren)
+const CatalogRouteWithChildren = CatalogRoute._addFileChildren(CatalogRouteChildren)
+
 
 interface GuidanceRouteChildren {
-  GuidanceTopicIdRoute: typeof GuidanceTopicIdRoute
-  GuidanceIndexRoute: typeof GuidanceIndexRoute
+  GuidanceTopicIdRoute: typeof GuidanceTopicIdRoute,GuidanceIndexRoute: typeof GuidanceIndexRoute
 }
 
 const GuidanceRouteChildren: GuidanceRouteChildren = {
-  GuidanceTopicIdRoute: GuidanceTopicIdRoute,
-  GuidanceIndexRoute: GuidanceIndexRoute,
+  GuidanceTopicIdRoute: GuidanceTopicIdRoute,GuidanceIndexRoute: GuidanceIndexRoute
 }
 
-const GuidanceRouteWithChildren = GuidanceRoute._addFileChildren(
-  GuidanceRouteChildren,
-)
+const GuidanceRouteWithChildren = GuidanceRoute._addFileChildren(GuidanceRouteChildren)
+
 
 interface SourcesRouteChildren {
-  SourcesSourceIdRoute: typeof SourcesSourceIdRoute
-  SourcesIndexRoute: typeof SourcesIndexRoute
+  SourcesSourceIdRoute: typeof SourcesSourceIdRoute,SourcesIndexRoute: typeof SourcesIndexRoute
 }
 
 const SourcesRouteChildren: SourcesRouteChildren = {
-  SourcesSourceIdRoute: SourcesSourceIdRoute,
-  SourcesIndexRoute: SourcesIndexRoute,
+  SourcesSourceIdRoute: SourcesSourceIdRoute,SourcesIndexRoute: SourcesIndexRoute
 }
 
-const SourcesRouteWithChildren =
-  SourcesRoute._addFileChildren(SourcesRouteChildren)
+const SourcesRouteWithChildren = SourcesRoute._addFileChildren(SourcesRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
-  AskRoute: AskRoute,
-  AvailabilityRoute: AvailabilityRouteWithChildren,
-  CatalogRoute: CatalogRouteWithChildren,
-  GuidanceRoute: GuidanceRouteWithChildren,
-  SourcesRoute: SourcesRouteWithChildren,
+  IndexRoute: IndexRoute,AskRoute: AskRoute,AvailabilityRoute: AvailabilityRouteWithChildren,CatalogRoute: CatalogRouteWithChildren,GuidanceRoute: GuidanceRouteWithChildren,SourcesRoute: SourcesRouteWithChildren
 }
-export const routeTree = rootRouteImport
-  ._addFileChildren(rootRouteChildren)
-  ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}
+export const routeTree = rootRouteImport._addFileChildren(rootRouteChildren)._addFileTypes<FileRouteTypes>()
