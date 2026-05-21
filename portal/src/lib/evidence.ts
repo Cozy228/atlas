@@ -3,7 +3,7 @@ import type { AuthorityLevel, Source, Topic, Warning } from "@atlas/schema";
 /**
  * Authority ranking used wherever the Portal sorts or compares sources.
  * Lower index = stronger authority. Matches the order called out in
- * docs/architecture/portal_frontend_design_plan.md.
+ * docs/architecture/constraints.md.
  */
 export const AUTHORITY_ORDER: ReadonlyArray<AuthorityLevel> = [
   "authoritative",

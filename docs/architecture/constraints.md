@@ -40,7 +40,7 @@ Rules that AI must follow when implementing the Atlas design. Check every code c
 
 ## Source Access
 
-16. Source content is fetched at request time, not pre-ingested. Do not build background jobs, queues, or pipelines that pull and store source content. Atlas may store source metadata, anchor selectors, validation status, and optional fingerprints, but not a durable mirror of source content. If you need caching, use a TTL-based cache that is explicitly disposable — the system must function without it.
+16. Source content is fetched at request time, not durably mirrored. Atlas may run manifest validation, metadata fetch, lifecycle checks, and source health automation that store source metadata, anchor selectors, validation status, lifecycle state, and optional fingerprints. Do not build a pipeline that stores full source content as a durable Atlas copy. If you need caching, use a TTL-based cache that is explicitly disposable — the system must function without it.
 
 17. Each source class has its own fetcher and anchor resolver module. Fetchers and anchor resolvers are registered by source class, not hardcoded in a switch statement. Adding a new source class means adding a new fetcher or explicitly reusing an existing fetcher, adding a new resolver module, and registering them.
 
@@ -120,7 +120,7 @@ Rules that AI must follow when implementing the Atlas design. Check every code c
 
 48. Do not build a general-purpose search engine. Source selection in V1 uses registry lookups and authority mapping, not full-text search or vector similarity.
 
-49. Do not build a background sync/ingest pipeline. V1 is request-time only.
+49. Do not build a durable content ingestion pipeline, crawler, or source-content mirror. Manifest-driven registry validation, metadata fetchers, lifecycle checks, and health automation are allowed when they store only metadata, selectors, fingerprints, lifecycle state, and warnings.
 
 50. Do not build user authentication, registration, SSO, or identity-based application access for V1. V1 is designed for a trusted internal operating environment. Source-system and model credentials still remain server-side and must not be exposed to browser code or committed files.
 
