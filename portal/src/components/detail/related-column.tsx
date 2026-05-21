@@ -12,22 +12,22 @@ type RelatedColumnProps = {
 export function RelatedColumn({ title, topics, kind }: RelatedColumnProps) {
   return (
     <div className="rounded-lg border border-border bg-card p-3">
-      <p className="mb-2 font-mono text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+      <p className="mb-2 font-mono type-caption font-bold uppercase tracking-wider text-muted-foreground">
         {title}
       </p>
       <ul className="flex flex-col gap-0.5">
         {topics.map((topic) => (
           <li key={topic.id}>
             <Link
-              to={kind === "landing-zone" ? "/landing-zones/$topicId" : "/capabilities/$topicId"}
+              to={kind === "landing-zone" ? "/guidance/$topicId" : "/catalog/$topicId"}
               params={{ topicId: topic.id }}
               className={cn(
                 "flex items-center justify-between gap-2 rounded-md px-2 py-1.5 transition-colors",
                 "hover:bg-muted",
               )}
             >
-              <span className="text-[12px] font-semibold text-foreground">{topic.name}</span>
-              <span className="font-mono text-[10px] text-muted-foreground">
+              <span className="text-xs font-semibold text-foreground">{topic.name}</span>
+              <span className="font-mono type-caption text-muted-foreground">
                 {topic.owner_team}
               </span>
             </Link>

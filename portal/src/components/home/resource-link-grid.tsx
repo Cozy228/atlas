@@ -9,7 +9,7 @@ import {
 import { cn } from "@/lib/utils";
 
 type ResourceLink = {
-  to: "/capabilities" | "/landing-zones" | "/explore" | "/sources";
+  to: "/catalog" | "/guidance" | "/availability" | "/sources";
   title: string;
   description: string;
   icon: typeof IconWorld;
@@ -17,19 +17,19 @@ type ResourceLink = {
 
 const RESOURCES: ReadonlyArray<ResourceLink> = [
   {
-    to: "/capabilities",
+    to: "/catalog",
     title: "Browse by domain",
-    description: "Filter capabilities by compute, storage, database, AI, or integration.",
+    description: "Filter services by compute, storage, database, AI, or integration.",
     icon: IconFolderOpen,
   },
   {
-    to: "/landing-zones",
+    to: "/guidance",
     title: "Compare environments",
     description: "Match your workload's requirements to the right landing zone.",
     icon: IconBuildingFactory2,
   },
   {
-    to: "/explore",
+    to: "/availability",
     title: "Check regional coverage",
     description: "See which services are available in US-East-1, GDC, DC16, and more.",
     icon: IconWorld,
@@ -75,8 +75,8 @@ function ResourceCard({ resource }: { resource: ResourceLink }) {
         <Icon className="size-4 text-muted-foreground" />
       </span>
       <span className="flex flex-col">
-        <span className="text-[13px] font-bold text-foreground">{resource.title}</span>
-        <span className="text-[12px] leading-5 text-muted-foreground">{resource.description}</span>
+        <span className="type-detail font-bold text-foreground">{resource.title}</span>
+        <span className="text-xs leading-5 text-muted-foreground">{resource.description}</span>
       </span>
     </Link>
   );

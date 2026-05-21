@@ -41,27 +41,27 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 function NotFoundComponent() {
   return (
     <div className="mx-auto flex w-full max-w-[640px] flex-col gap-4 px-6 py-16">
-      <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">
+      <span className="font-mono text-xs font-semibold uppercase tracking-[0.05em] text-muted-foreground">
         404 · not in registry
       </span>
-      <h1 className="text-[28px] font-semibold tracking-[-0.03em] text-foreground">
+      <h1 className="type-heading font-semibold tracking-[-0.03em] text-foreground">
         Atlas could not resolve that record.
       </h1>
-      <p className="text-[14px] leading-[1.6] text-muted-foreground">
+      <p className="text-sm leading-[1.6] text-muted-foreground">
         The topic, source, or path you followed is not registered in the Context API. Browse
-        capabilities, landing zones, or sources to find what you need, or report the gap from the
+        the catalog, guidance, or sources to find what you need, or report the gap from the
         feedback form on any detail page.
       </p>
       <div className="flex flex-wrap gap-2">
         <Link
           to="/"
-          className="inline-flex items-center rounded-md bg-primary px-3 py-2 text-[12px] font-semibold text-primary-foreground hover:bg-primary/90"
+          className="inline-flex items-center rounded-md bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90"
         >
           Back to home
         </Link>
         <Link
-          to="/explore"
-          className="inline-flex items-center rounded-md border border-border bg-card px-3 py-2 text-[12px] font-semibold text-foreground hover:bg-muted"
+          to="/availability"
+          className="inline-flex items-center rounded-md border border-border bg-card px-3 py-2 text-xs font-semibold text-foreground hover:bg-muted"
         >
           Browse availability
         </Link>

@@ -53,7 +53,7 @@ const STATIC_NAV: ReadonlyArray<SearchResult> = [
     id: "nav:explore",
     label: "Explore availability",
     description: "Regional availability map",
-    to: "/explore",
+    to: "/availability",
     icon: IconCompass,
     category: "Navigate",
   },
@@ -112,8 +112,8 @@ export function AskAtlasSearch({
       for (const topic of topicsQuery.data.topics) {
         const base =
           topic.topic_type === "landing-zone"
-            ? "/landing-zones"
-            : "/capabilities";
+            ? "/guidance"
+            : "/catalog";
         dynamic.push({
           id: `topic:${topic.id}`,
           label: topic.name,
@@ -268,25 +268,25 @@ export function AskAtlasSearch({
       <footer className="border-t border-border px-5 py-2.5">
         <div className="flex items-center gap-3 text-xs text-muted-foreground">
           <span className="flex items-center gap-1">
-            <kbd className="rounded border border-border bg-background px-1 py-px font-mono text-[10px]">
+            <kbd className="rounded border border-border bg-background px-1 py-px font-mono type-caption">
               ↑↓
             </kbd>
             navigate
           </span>
           <span className="flex items-center gap-1">
-            <kbd className="rounded border border-border bg-background px-1 py-px font-mono text-[10px]">
+            <kbd className="rounded border border-border bg-background px-1 py-px font-mono type-caption">
               ↵
             </kbd>
             open
           </span>
           <span className="flex items-center gap-1">
-            <kbd className="rounded border border-border bg-background px-1 py-px font-mono text-[10px]">
+            <kbd className="rounded border border-border bg-background px-1 py-px font-mono type-caption">
               esc
             </kbd>
             close
           </span>
           <span className="ml-auto">
-            <kbd className="rounded border border-border bg-background px-1.5 py-px font-mono text-[10px]">
+            <kbd className="rounded border border-border bg-background px-1.5 py-px font-mono type-caption">
               ⌘K
             </kbd>
           </span>
@@ -306,7 +306,7 @@ function SearchGroup({
   return (
     <div>
       <div className="px-3 py-1.5">
-        <span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+        <span className="font-mono type-caption font-semibold uppercase tracking-wider text-muted-foreground">
           {label}
         </span>
       </div>

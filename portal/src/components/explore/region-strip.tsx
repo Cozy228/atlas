@@ -11,7 +11,7 @@ type RegionStripProps = {
 export function RegionStrip({ locations, services, active, onSelect }: RegionStripProps) {
   return (
     <div role="radiogroup" aria-label="Filter by location" className="flex flex-wrap items-center gap-1.5">
-      <span className="mr-1 text-[12px] font-medium text-muted-foreground">Region</span>
+      <span className="mr-1 text-xs font-medium text-muted-foreground">Region</span>
       {locations.map((location) => {
         const counts = countByStatus(services, location.id);
         const isActive = active === location.id;
@@ -30,9 +30,9 @@ export function RegionStrip({ locations, services, active, onSelect }: RegionStr
               isActive && "border-primary bg-brand-tint",
             )}
           >
-            <span className="text-[12px] font-semibold text-foreground">{location.label}</span>
+            <span className="text-xs font-semibold text-foreground">{location.label}</span>
             {total > 0 ? (
-              <span className="font-mono text-[10px] font-semibold text-muted-foreground">
+              <span className="font-mono type-caption font-semibold text-muted-foreground">
                 {counts.available > 0 ? (
                   <span className="text-success">{counts.available}</span>
                 ) : null}

@@ -97,7 +97,7 @@ function RationaleAndExcerpts({ entry }: { entry: ContextBundleSource }) {
               </blockquote>
               <figcaption className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                 <Badge variant="outline">cite</Badge>
-                <span className="font-mono text-[11px]">{excerpt.citation.label}</span>
+                <span className="font-mono text-xs">{excerpt.citation.label}</span>
                 <a
                   className="inline-flex items-center gap-1 text-primary underline-offset-2 hover:underline"
                   href={excerpt.citation.location}

@@ -20,7 +20,7 @@ It provides structured process guidance, visual navigation, source evidence, too
 
 ## 2. Product Definition
 
-Atlas Guidance is a managed journey definition that turns platform processes into map-native, step-by-step guidance.
+Atlas Guidance is a managed journey definition that turns platform processes into stepper-oriented, evidence-backed guidance.
 
 Guidance is a first-class browse object in Atlas. It has its own index route, such as `/guidance`, and does not appear in `/explore`. `/explore` remains the catalog and availability surface for capabilities, landing zones, guardrails, and tool entries.
 
@@ -44,7 +44,7 @@ It can be:
 * authored as YAML or JSON
 * stored and reviewed in Git
 * validated by JSON Schema
-* rendered by Atlas UI as a route-oriented guidance surface
+* rendered by Atlas UI as a vertical stepper and workspace surface
 * exposed through Context API for AI agents or other consumers
 * generated as a draft from source documents by AI, then reviewed by owners
 
@@ -89,11 +89,11 @@ The `type` field changes rendering behavior, not storage structure.
 
 Troubleshooting may reuse the same model later, but it should not drive the V1 renderer.
 
-### 3.4 Map-native, not Map-first
+### 3.4 Vertical Stepper, not Map Canvas
 
-The UI should be map-native, not a map-first canvas.
+The UI should use a stable vertical stepper as the primary route orientation pattern.
 
-The route is part of the information architecture. It gives users direction, stability, and confidence about where they are in the process. It should not become a decorative animation layer or a diagramming canvas.
+The stepper is part of the information architecture. It gives users direction, stability, and confidence about where they are in the process. It should not become a decorative map layer, animation surface, or diagramming canvas.
 
 It should show:
 
@@ -107,7 +107,7 @@ It should show:
 The core UX principle is:
 
 ```text
-Map as orientation and structure.
+Vertical stepper as orientation and structure.
 Workspace as action, evidence, and support.
 ```
 
@@ -118,9 +118,9 @@ Do not use React Flow, Mermaid, XState, or BPMN in V1.
 Use a custom renderer based on:
 
 * React
-* SVG path layer
-* positioned HTML step nodes
-* CSS transitions or Motion / Framer Motion style animations
+* semantic HTML step items
+* CSS line connectors and status markers
+* restrained CSS transitions for selected, blocked, and warning states
 
 Animation is a supporting affordance, not the product value. V1 should prioritize deterministic guidance, clear evidence, and tool-entry confidence over motion choreography.
 
@@ -135,6 +135,7 @@ Atlas Guidance V1 does not aim to support:
 * full workflow automation
 * complex state machines
 * parallel execution branches
+* map canvas experience
 * V1 user progress tracking or personalization
 * React Flow canvas experience
 * Mermaid-first diagram generation
@@ -194,7 +195,7 @@ Destination is important because the UI should feel like moving toward a clear e
 
 ## 5.5 Step
 
-A Step is a node on the map.
+A Step is an item in the vertical stepper.
 
 It represents where the user is in the journey.
 
@@ -412,7 +413,7 @@ Recommended:
 Authoring model: YAML in Git
 Validation model: JSON Schema
 Runtime model: normalized JSON
-Rendering model: map layout
+Rendering model: vertical stepper layout
 ```
 
 Why YAML for authoring:
@@ -492,10 +493,10 @@ Use Option A for authoring.
 Compile it internally into a graph for rendering.
 
 ```text
-YAML steps -> normalized guidance -> render graph -> map UI
+YAML steps -> normalized guidance -> stepper layout -> workspace UI
 ```
 
-This keeps human authoring simple while allowing the renderer to work with graph-like data internally.
+This keeps human authoring simple while allowing the UI to preserve route orientation without exposing a graph model or map canvas.
 
 ## 11. Recommended YAML Schema
 
@@ -677,15 +678,15 @@ Guidance appears in three UI surfaces.
 
 The `/guidance` index is the primary browse surface for Guidance.
 
-It should not be a generic card wall by default. The preferred direction is a scenario map: each major scenario appears as a point or route cluster on a stable map-like surface. Users should feel that they are choosing a route through the platform, not browsing another documentation directory.
+It should not be a generic card wall by default. The preferred direction is a scenario route board: each Guidance is represented as a scenario card or row with a compact vertical stepper preview. Users should feel that they are choosing a route through the platform, not browsing another documentation directory.
 
 Recommended index behavior:
 
 * group Guidance by scenario family, such as Onboard, Decide, Enable, Validate
-* represent each Guidance as a route preview or scenario point
+* represent each Guidance as a scenario card or row with a 3 to 6 step preview
 * show objective, destination, owner, source health, last reviewed date, and step count
 * expose warnings for stale, broken, blocked, or needs-support routes
-* fall back to list or card grid when density, accessibility, or small viewport constraints make the map view less useful
+* fall back to a standard list or card grid when density, accessibility, or small viewport constraints require it
 
 Each index item represents one scenario. The card/list fallback should preserve the same route metadata instead of becoming a plain document card.
 
@@ -695,7 +696,7 @@ Capability and Landing Zone detail pages show related Guidance.
 
 Related Guidance should be lightweight:
 
-* show a short route preview
+* show a short stepper preview
 * show why the route is relevant to the current capability or landing zone
 * show owner/support and source health
 * link to the full Guidance workspace
@@ -708,7 +709,7 @@ The Guidance workspace is the expanded route surface for one Guidance.
 
 It is not an execution page. It is a high-density guidance console that combines:
 
-* route map
+* left-side vertical stepper
 * selected step
 * required tasks
 * source evidence
@@ -719,38 +720,44 @@ It is not an execution page. It is a high-density guidance console that combines
 Recommended structure:
 
 ```text
-Route orientation
-  -> selected step
+Left sidebar
+  -> vertical stepper
+  -> selected step status
+  -> blocked and support-needed markers
+
+Right content area
   -> current step workspace
+  -> required tasks
   -> evidence and tool entries
+  -> owner and support path
 ```
 
-The route map should remain visible while the user inspects steps. The workspace changes as the selected step changes.
+The left stepper should remain visible while the user inspects steps. The right workspace changes as the selected step changes.
 
-## 15. Map Grammar
+## 15. Stepper Grammar
 
-Guidance needs a consistent visual grammar so the map feels meaningful instead of decorative.
+Guidance needs a consistent visual grammar so the stepper feels meaningful instead of decorative.
 
 Recommended V1 grammar:
 
 | Element | Meaning |
 |---|---|
-| Station | A step in the Guidance |
-| Segment | The transition between steps |
+| Step item | A step in the Guidance |
+| Connector | The transition between steps |
 | Destination | The intended end state |
-| Branch | A decision option |
+| Branch group | A decision option set inside one step item |
 | Checkpoint | A checklist-heavy step |
-| Support spur | A support or escalation path |
+| Support row | A support or escalation path attached to a step |
 | Evidence marker | Authoritative or warning-bearing source evidence |
 | Blocked marker | A known blocker, stale source, or needs-support state |
 
-Map grammar should create direction and stability. It should not introduce game mechanics, achievement language, decorative motion, or arbitrary canvas interaction.
+Stepper grammar should create direction and stability. It should not introduce game mechanics, achievement language, decorative motion, or arbitrary canvas interaction.
 
 ## 16. Rendering Strategy
 
 ## 16.1 Avoid Flowchart Look
 
-The renderer should not look like a diagramming canvas.
+The renderer should not look like a diagramming canvas or decorative map.
 
 Avoid:
 
@@ -760,14 +767,16 @@ Avoid:
 * BPMN-like symbols
 * dense node graphs
 * complex arrows everywhere
+* map pins, terrain metaphors, or canvas panning
 
 Prefer:
 
-* route map
-* soft curved path
-* station-like nodes
+* vertical stepper
+* left-side route sidebar
+* compact step items
+* connector line
 * active step card
-* selected route highlight
+* selected step highlight
 * blocked and support-needed markers
 * restrained state transitions
 
@@ -779,8 +788,8 @@ Guidance YAML
   -> validate
   -> normalize
   -> compute layout
-  -> render SVG path
-  -> render HTML step nodes
+  -> render vertical stepper
+  -> render step workspace
   -> animate state changes
 ```
 
@@ -789,10 +798,10 @@ Guidance YAML
 Use:
 
 * React
-* SVG path for route layer
-* absolutely positioned HTML nodes for step nodes
-* CSS transitions or Motion for animation
-* optional Web Animations API for fine-grained imperative animations
+* semantic stepper markup
+* CSS grid or flex layout for sidebar and content area
+* CSS connector lines
+* restrained CSS transitions
 
 Do not use:
 
@@ -804,18 +813,18 @@ Do not use:
 ## 16.4 DOM Structure
 
 ```html
-<div class="guidance-map">
-  <svg class="route-layer">
-    <path class="route-base" />
-    <path class="route-selected" />
-    <path class="route-warning" />
-  </svg>
+<div class="guidance-workspace">
+  <aside class="guidance-stepper">
+    <button class="step-item selected"></button>
+    <button class="step-item blocked"></button>
+    <button class="step-item destination"></button>
+  </aside>
 
-  <button class="step-node selected"></button>
-  <button class="step-node blocked"></button>
-  <button class="step-node destination"></button>
-
-  <section class="current-step-card"></section>
+  <main class="step-workspace">
+    <section class="current-step-card"></section>
+    <section class="step-evidence"></section>
+    <section class="step-actions"></section>
+  </main>
 </div>
 ```
 
@@ -829,36 +838,36 @@ Recommended V1 layouts:
 
 ```yaml
 layout:
-  - vertical_route
-  - horizontal_route
-  - curved_map
+  - sidebar_stepper
+  - compact_inline_stepper
+  - card_stepper_preview
 ```
 
-## 17.1 vertical_route
+## 17.1 sidebar_stepper
 
-Best for longer enterprise processes.
+Best for the full Guidance workspace.
 
-Can still look modern by using:
+Use:
 
-* curved path
-* alternating node positions
-* sticky active card
-* soft state transition
+* left-side vertical stepper
+* right-side current step content
+* sticky stepper when the workspace scrolls
+* status markers for blocked, evidence warning, support-needed, and destination states
 
-## 17.2 horizontal_route
+## 17.2 compact_inline_stepper
 
 Best for short flows embedded in capability pages.
 
 Recommended for 3 to 5 steps.
 
-## 17.3 curved_map
+## 17.3 card_stepper_preview
 
-Best for a full Guidance workspace when the route shape benefits from map-like orientation.
+Best for `/guidance` index cards or rows.
 
 Rules for V1:
 
 * maximum 8 to 10 steps
-* maximum 2 levels of branching
+* decision branches render inside the selected step content, not as a canvas
 * no arbitrary graph editing
 * no author-defined coordinates
 
@@ -868,10 +877,10 @@ Animation should create guidance and continuity, not entertainment.
 
 Recommended effects:
 
-* selected station state change
-* route edge changes from muted to selected
+* selected step state change
+* connector changes from muted to selected
 * blocked marker appears without layout shift
-* workspace panel changes without losing route orientation
+* workspace panel changes without losing stepper orientation
 * destination has a restrained end-state treatment
 
 Avoid:
@@ -883,23 +892,23 @@ Avoid:
 * sound effects
 * exaggerated game language
 
-## 19. SVG Path State
+## 19. Connector State
 
-Use SVG paths to show route structure and state.
+Use CSS connector lines to show route structure and state.
 
 Recommended structure:
 
-* base path: muted full route
-* selected path: current route or branch
-* warning path: blocked or needs-support segment
+* base connector: muted full route
+* selected connector: selected or relevant segment
+* warning connector: blocked or needs-support segment
 
-## 20. Motion Path Enhancement
+## 20. Layout Enhancement
 
-CSS `offset-path` can be used later to move a marker along a route path.
+The sidebar stepper can later support sticky section grouping, compact compression for long guidance, or keyboard navigation between step items.
 
-Use this as enhancement, not the core dependency.
+Use these as enhancements, not core dependencies.
 
-Core renderer should work without it.
+The core renderer should work as a static two-column layout.
 
 ## 21. Current Step Panel
 
@@ -1067,7 +1076,7 @@ V1 should support:
 * support link
 * `/guidance` index
 * related Guidance modules on Capability and Landing Zone detail pages
-* SVG map renderer
+* vertical stepper renderer
 * restrained route state transitions
 * Context API read endpoint
 
@@ -1137,12 +1146,6 @@ Troubleshooting examples should stay post-V1 until the route, decision, and chec
 
 * Nielsen Norman Group: Progressive Disclosure
   [https://www.nngroup.com/articles/progressive-disclosure/](https://www.nngroup.com/articles/progressive-disclosure/)
-
-* MDN Web Docs: SVG
-  [https://developer.mozilla.org/en-US/docs/Web/SVG](https://developer.mozilla.org/en-US/docs/Web/SVG)
-
-* MDN Web Docs: offset-path
-  [https://developer.mozilla.org/en-US/docs/Web/CSS/offset-path](https://developer.mozilla.org/en-US/docs/Web/CSS/offset-path)
 
 * GitHub Docs: Workflow syntax for GitHub Actions
   [https://docs.github.com/actions/using-workflows/workflow-syntax-for-github-actions](https://docs.github.com/actions/using-workflows/workflow-syntax-for-github-actions)

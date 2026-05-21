@@ -5,6 +5,7 @@ This folder separates product narrative, architecture, review history, and raw n
 ## Product
 
 - `product/product_proposal.md` - Mixed-audience proposal for Atlas as the internal cloud platform portal backed by Atlas Context Layer.
+- `product/business_value.md` - Manager-facing business value case for Atlas in a fragmented multi-cloud knowledge environment.
 - `product/guideline.md` - Original DevEx direction and problem framing.
 
 ## Architecture
@@ -27,9 +28,10 @@ This folder separates product narrative, architecture, review history, and raw n
 ## Recommended Reading Order
 
 1. `product/product_proposal.md`
-2. `architecture/current_design.md`
-3. `architecture/implementation_plan.md`
-4. `architecture/dynamodb_feedback_table.md`
-5. `architecture/portal_frontend_design_plan.md`
-6. `architecture/constraints.md`
-6. `product/guideline.md`
+2. `product/business_value.md`
+3. `architecture/current_design.md`
+4. `architecture/implementation_plan.md`
+5. `architecture/dynamodb_feedback_table.md`
+6. `architecture/portal_frontend_design_plan.md`
+7. `architecture/constraints.md`
+8. `product/guideline.md`
