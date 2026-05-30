@@ -8,8 +8,7 @@ Before substantial work:
 - Multiple matches: prefer the most specific local skill for the package or concern you are changing; load additional skills only when the task spans multiple packages or concerns.
 <!-- intent-skills:end -->
 
-1. Think in English, Reply in Chinese, write code and comments in English.
-2. 将改动分批提交，注意 conventional commit message,不要加入 co-author。
+Think in English, Reply in Chinese, write code and comments in English.
 
 # CLAUDE.md
 
@@ -76,3 +75,47 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 ---
 
 **These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
+
+是，压成最小版：
+
+````md
+
+This repo is developed on a personal computer and may be imported into a company-isolated environment.
+
+## Rules
+
+1. **Public-safe only**
+   - Everything in this repo must be safe to publish publicly.
+   - Do not include company code, internal URLs, internal APIs, configs, credentials, logs, screenshots, schemas, business rules, or names.
+
+2. **Generic core only**
+   - Build reusable public logic, UI prototypes, mocks, interfaces, and adapter boundaries.
+   - Do not implement company-specific adapters here.
+
+3. **No reverse reconstruction**
+   - Do not recreate company-side code from memory.
+   - If something depends on company behavior, use a generic interface, mock, or TODO.
+
+4. **Fake data only**
+   - Tests, fixtures, docs, and examples must use fictional names and generic sample data.
+
+5. **Small importable changes**
+   - Keep commits focused.
+   - Prefer changes that can be exported as `.diff` or `.patch`.
+
+## Import
+
+Use one of:
+
+```bash
+git diff main..feature-name > feature-name.diff
+````
+
+```bash
+git format-patch main..feature-name --stdout > feature-name.patch
+```
+
+## Mental model
+
+Personal repo = public-safe core and prototypes.
+Company repo = internal implementation and source of truth.
