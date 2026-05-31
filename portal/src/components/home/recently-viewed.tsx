@@ -141,11 +141,7 @@ function RecentChip({ item }: { item: RecentItem }) {
     );
   }
   return (
-    <Link
-      to={item.kind === "capability" ? "/catalog/$topicId" : "/guidance/$topicId"}
-      params={{ topicId: item.topicId }}
-      className={className}
-    >
+    <Link to="/catalog/$topicId" params={{ topicId: item.topicId }} className={className}>
       <span>{item.name}</span>
       {type}
     </Link>

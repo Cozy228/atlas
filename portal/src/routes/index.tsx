@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import type { Topic, TopicDiscoveryResponse } from "@atlas/schema";
 
@@ -38,7 +39,6 @@ function HomeRoute() {
     <PageBody width="comfortable">
       <Hero />
       <Section
-        eyebrow="Platform"
         title="Choose your starting point"
         description="Pick the question that matches where you are in your platform journey."
       >
@@ -46,7 +46,6 @@ function HomeRoute() {
       </Section>
 
       <Section
-        eyebrow="Developer journey"
         title="From idea to production"
         description="Follow the lifecycle or jump to what you need right now."
         className="gap-6"
@@ -54,15 +53,15 @@ function HomeRoute() {
         <JourneyGrid />
       </Section>
 
-      <Section eyebrow="Recently viewed">
+      <Section title="Recently viewed">
         <RecentlyViewed />
       </Section>
 
-      <Section eyebrow="Platform updates" title="What's new">
+      <Section title="What's new">
         <PlatformUpdates />
       </Section>
 
-      <Section eyebrow="Resources" title="Keep exploring">
+      <Section title="Keep exploring">
         <ResourceLinkGrid />
       </Section>
     </PageBody>
@@ -87,21 +86,19 @@ function Hero() {
 }
 
 function Section({
-  eyebrow,
   title,
   description,
   children,
   className,
 }: {
-  eyebrow: string;
   title?: string;
   description?: string;
-  children: React.ReactNode;
+  children: ReactNode;
   className?: string;
 }) {
   return (
     <section className={cn("flex flex-col gap-4", className)}>
-      <SectionEyebrow eyebrow={eyebrow} title={title} description={description} />
+      <SectionEyebrow title={title} description={description} />
       {children}
     </section>
   );

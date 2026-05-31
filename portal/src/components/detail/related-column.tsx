@@ -6,10 +6,9 @@ import { cn } from "@/lib/utils";
 type RelatedColumnProps = {
   title: string;
   topics: ReadonlyArray<Topic>;
-  kind: "landing-zone" | "capability";
 };
 
-export function RelatedColumn({ title, topics, kind }: RelatedColumnProps) {
+export function RelatedColumn({ title, topics }: RelatedColumnProps) {
   return (
     <div className="rounded-lg border border-border bg-card p-3">
       <p className="mb-2 font-mono type-caption font-bold uppercase tracking-wider text-muted-foreground">
@@ -19,7 +18,7 @@ export function RelatedColumn({ title, topics, kind }: RelatedColumnProps) {
         {topics.map((topic) => (
           <li key={topic.id}>
             <Link
-              to={kind === "landing-zone" ? "/guidance/$topicId" : "/catalog/$topicId"}
+              to="/catalog/$topicId"
               params={{ topicId: topic.id }}
               className={cn(
                 "flex items-center justify-between gap-2 rounded-md px-2 py-1.5 transition-colors",

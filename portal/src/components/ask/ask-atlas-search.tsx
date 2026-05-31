@@ -110,20 +110,18 @@ export function AskAtlasSearch({
 
     if (topicsQuery.data) {
       for (const topic of topicsQuery.data.topics) {
-        const base =
-          topic.topic_type === "landing-zone"
-            ? "/guidance"
-            : "/catalog";
         dynamic.push({
           id: `topic:${topic.id}`,
           label: topic.name,
           description: `${topic.topic_type} · ${topic.category}`,
-          to: `${base}/${topic.id}`,
+          to: `/catalog/${topic.id}`,
           icon: topicIcon(topic.topic_type),
           category:
             topic.topic_type === "landing-zone"
               ? "Landing Zones"
-              : "Capabilities",
+              : topic.topic_type === "guardrail-area"
+                ? "Guardrails"
+                : "Capabilities",
         });
       }
     }

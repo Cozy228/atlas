@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { AskAtlasChat } from "@/components/ask/ask-atlas-chat";
 import { ClientOnly } from "@/components/client-only";
-import { PageBody } from "@/components/page-section";
+import { PageBody, PageHeader } from "@/components/page-section";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export const Route = createFileRoute("/ask")({
@@ -23,17 +23,11 @@ function AskAtlasRoute() {
 
 function Hero() {
   return (
-    <div className="flex flex-col gap-2 pt-2">
-      <span className="font-mono text-xs font-semibold uppercase tracking-[0.05em] text-muted-foreground">
-        Ask Atlas
-      </span>
-      <h1 className="max-w-[26ch] type-display font-semibold leading-[1.1] tracking-[-0.03em] text-foreground sm:type-display-lg">
-        Ask a question about the platform
-      </h1>
-      <p className="max-w-[56ch] type-body leading-[1.6] text-muted-foreground">
-        Cited answers from authoritative context. Every claim links back to its registered source.
-      </p>
-    </div>
+    <PageHeader
+      eyebrow="Ask Atlas"
+      title="Ask a question about the platform"
+      description="Cited answers from authoritative context. Every claim links back to its registered source."
+    />
   );
 }
 

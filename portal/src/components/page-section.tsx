@@ -5,28 +5,43 @@ import { cn } from "@/lib/utils";
 type PageHeaderProps = {
   eyebrow?: string;
   title: string;
+  badge?: ReactNode;
   description?: ReactNode;
   actions?: ReactNode;
   className?: string;
 };
 
-export function PageHeader({ eyebrow, title, description, actions, className }: PageHeaderProps) {
+export function PageHeader({
+  eyebrow,
+  title,
+  badge,
+  description,
+  actions,
+  className,
+}: PageHeaderProps) {
   return (
-    <header className={cn("flex flex-col gap-3 border-b border-border pb-6", className)}>
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-        <div className="flex flex-col gap-1">
-          {eyebrow ? (
-            <span className="font-mono text-xs font-semibold uppercase tracking-[0.05em] text-muted-foreground">
-              {eyebrow}
-            </span>
-          ) : null}
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">{title}</h1>
-          {description ? (
-            <p className="max-w-[68ch] text-sm leading-6 text-muted-foreground">{description}</p>
-          ) : null}
+    <header
+      className={cn("flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between", className)}
+    >
+      <div className="flex flex-col gap-2">
+        {eyebrow ? (
+          <span className="font-mono text-xs font-semibold uppercase tracking-[0.05em] text-muted-foreground">
+            {eyebrow}
+          </span>
+        ) : null}
+        <div className="flex flex-wrap items-baseline gap-3">
+          <h1 className="type-display font-semibold leading-[1.05] tracking-[-0.03em] text-balance text-foreground sm:type-display-lg">
+            {title}
+          </h1>
+          {badge}
         </div>
-        {actions ? <div className="flex items-center gap-2 sm:self-end">{actions}</div> : null}
+        {description ? (
+          <p className="max-w-[60ch] type-body leading-[1.6] text-pretty text-muted-foreground">
+            {description}
+          </p>
+        ) : null}
       </div>
+      {actions ? <div className="flex flex-wrap items-center gap-2 sm:self-end">{actions}</div> : null}
     </header>
   );
 }
