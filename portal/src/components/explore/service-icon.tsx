@@ -1,57 +1,43 @@
+import { lazy, Suspense } from "react";
+
 import { AWS_ICON_MAP } from "@/lib/aws-icon-map";
-import { cn } from "@/lib/utils";
+import {
+  MappedServiceIcon,
+  ServiceIconFallback,
+  type ServiceIconSize,
+} from "@/components/explore/service-icon-frame";
 
 type ServiceIconProps = {
   serviceId: string;
-  size?: "sm" | "base" | "md" | "lg" | "xl" | "hero";
+  provider?: ServiceIconProvider;
+  size?: ServiceIconSize;
 };
 
-const sizeClass = {
-  sm: "size-5",
-  base: "size-6",
-  md: "size-[30px]",
-  lg: "size-9",
-  xl: "size-12",
-  hero: "size-16",
-} as const;
+export type ServiceIconProvider = "aws" | "azure";
 
-const iconSize = {
-  sm: 18,
-  base: 20,
-  md: 22,
-  lg: 28,
-  xl: 38,
-  hero: 52,
-} as const;
+let azureServiceIconModule: Promise<typeof import("./azure-service-icon")> | null = null;
 
-const fallbackClass = {
-  sm: "type-icon-glyph",
-  base: "type-caption",
-  md: "text-xs",
-  lg: "text-xs",
-  xl: "type-detail",
-  hero: "type-body",
-} as const;
+function loadAzureServiceIconModule() {
+  azureServiceIconModule ??= import("./azure-service-icon");
+  return azureServiceIconModule;
+}
 
-export function ServiceIcon({ serviceId, size = "md" }: ServiceIconProps) {
-  const Icon = AWS_ICON_MAP[serviceId];
+const AzureServiceIcon = lazy(() =>
+  loadAzureServiceIconModule().then((module) => ({ default: module.AzureServiceIcon })),
+);
 
-  return (
-    <span
-      aria-hidden
-      className={cn(
-        "flex shrink-0 items-center justify-center rounded-md",
-        Icon ? "bg-transparent" : "bg-brand-tint",
-        sizeClass[size],
-      )}
-    >
-      {Icon ? (
-        <Icon size={iconSize[size]} />
-      ) : (
-        <span className={cn("font-mono font-bold uppercase text-primary", fallbackClass[size])}>
-          {serviceId.charAt(0)}
-        </span>
-      )}
-    </span>
-  );
+export function preloadAzureServiceIcons() {
+  void loadAzureServiceIconModule();
+}
+
+export function ServiceIcon({ serviceId, provider = "aws", size = "md" }: ServiceIconProps) {
+  if (provider === "azure") {
+    return (
+      <Suspense fallback={<ServiceIconFallback serviceId={serviceId} size={size} />}>
+        <AzureServiceIcon serviceId={serviceId} size={size} />
+      </Suspense>
+    );
+  }
+
+  return <MappedServiceIcon serviceId={serviceId} iconMap={AWS_ICON_MAP} size={size} />;
 }

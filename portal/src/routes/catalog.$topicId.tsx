@@ -21,10 +21,12 @@ import { EntryToolsGrid } from "@/components/detail/entry-tools-grid";
 import { EvidenceSection } from "@/components/detail/evidence-section";
 import { RelatedColumn } from "@/components/detail/related-column";
 import { FeedbackInlineForm } from "@/components/evidence/feedback-inline-form";
+import { RelatedGuidance } from "@/components/guidance/related-guidance";
 import { ServiceIcon } from "@/components/explore/service-icon";
-import { useRecordRecent } from "@/components/home/recently-viewed";
+import { useRecordRecent, type RecentItem } from "@/components/home/recently-viewed";
 import { Badge } from "@/components/ui/badge";
 import { PageBody } from "@/components/page-section";
+import { relatedGuidanceForTopic } from "@/lib/guidance";
 import { findAvailabilityServiceForTopic } from "@/lib/capability-service";
 import { cn } from "@/lib/utils";
 
@@ -33,6 +35,13 @@ type LoaderData = {
   related: ReadonlyArray<Topic>;
   bundle: ContextBundleResponse | null;
   defaultZone: LandingZoneData;
+  totalZones: number;
+};
+
+const TYPE_LABEL: Record<Topic["topic_type"], string> = {
+  capability: "Capability",
+  "landing-zone": "Landing zone",
+  "guardrail-area": "Guardrail area",
 };
 
 export const Route = createFileRoute("/catalog/$topicId")({
@@ -44,7 +53,7 @@ export const Route = createFileRoute("/catalog/$topicId")({
       ]);
 
     const topic = topicsResp.topics.find((entry) => entry.id === params.topicId);
-    if (!topic || topic.topic_type !== "capability") {
+    if (!topic) {
       throw notFound();
     }
 
@@ -65,30 +74,58 @@ export const Route = createFileRoute("/catalog/$topicId")({
     }
 
     const related = topicsResp.topics.filter(
-      (entry) => entry.topic_type !== "capability" && entry.category === topic.category,
+      (entry) => entry.id !== topic.id && entry.category === topic.category,
     );
 
-    return { topic, related, bundle, defaultZone: availability.zones[0]! };
+    return {
+      topic,
+      related,
+      bundle,
+      defaultZone: availability.zones[0]!,
+      totalZones: availability.zones.length,
+    };
   },
   component: CatalogDetailRoute,
 });
 
 function CatalogDetailRoute() {
-  const { topic, related, bundle, defaultZone } = Route.useLoaderData();
+  const { topic, related, bundle, defaultZone, totalZones } = Route.useLoaderData();
 
-  useRecordRecent({ kind: "capability", topicId: topic.id, name: topic.name });
+  const recent: RecentItem | null =
+    topic.topic_type === "capability"
+      ? { kind: "capability", topicId: topic.id, name: topic.name }
+      : topic.topic_type === "landing-zone"
+        ? { kind: "landing-zone", topicId: topic.id, name: topic.name }
+        : null;
+  useRecordRecent(recent);
 
-  const service = findAvailabilityServiceForTopic(topic, defaultZone.services);
-  const guardrails = related.filter((entry) => entry.topic_type === "guardrail-area");
-  const landingZones = related.filter((entry) => entry.topic_type === "landing-zone");
+  const isCapability = topic.topic_type === "capability";
+  const isLandingZone = topic.topic_type === "landing-zone";
+
+  const service = isCapability ? findAvailabilityServiceForTopic(topic, defaultZone.services) : null;
+  const capabilities =
+    topic.topic_type !== "capability"
+      ? related.filter((entry) => entry.topic_type === "capability")
+      : [];
+  const landingZones =
+    topic.topic_type !== "landing-zone"
+      ? related.filter((entry) => entry.topic_type === "landing-zone")
+      : [];
+  const guardrails =
+    topic.topic_type !== "guardrail-area"
+      ? related.filter((entry) => entry.topic_type === "guardrail-area")
+      : [];
+  const guidance = relatedGuidanceForTopic(topic.id);
   const primaryTool = topic.entry_tools[0];
+  const hasRelationships =
+    capabilities.length > 0 || landingZones.length > 0 || guardrails.length > 0;
 
   return (
     <PageBody width="comfortable" gap="compact">
-      <BackLink to="/catalog" label="All services" />
+      <BackLink to="/catalog" label="Back to catalog" />
 
       <DetailHeader
-        eyebrow={`Capability · ${topic.category}`}
+        eyebrow={`${TYPE_LABEL[topic.topic_type]} · ${topic.category}`}
         title={topic.name}
         description={topic.description}
         leading={service ? <ServiceIcon serviceId={service.id} size="hero" /> : undefined}
@@ -121,17 +158,54 @@ function CatalogDetailRoute() {
       <DetailLayout
         main={
           <>
-            <DetailSection eyebrow="Get started" title="Entry tools">
-              <EntryToolsGrid tools={topic.entry_tools} />
-            </DetailSection>
+            {topic.entry_tools.length > 0 ? (
+              <DetailSection eyebrow="Get started" title="Entry tools">
+                <EntryToolsGrid tools={topic.entry_tools} />
+              </DetailSection>
+            ) : null}
 
-            <DetailSection eyebrow="Availability" title="Where this is available">
-              <AvailabilityStrip service={service} locations={defaultZone.locations} />
-            </DetailSection>
+            {isCapability ? (
+              <DetailSection eyebrow="Availability" title="Where this is available">
+                <AvailabilityStrip service={service} locations={defaultZone.locations} />
+              </DetailSection>
+            ) : null}
 
-            {landingZones.length > 0 || guardrails.length > 0 ? (
+            {isLandingZone && defaultZone.services.length > 0 ? (
+              <DetailSection eyebrow="Capabilities" title="Catalog scope">
+                <p className="rounded-lg border border-border bg-card px-3.5 py-2.5 text-xs text-muted-foreground">
+                  <span className="font-mono font-bold text-foreground">
+                    {defaultZone.services.length}
+                  </span>{" "}
+                  services across{" "}
+                  <span className="font-mono font-bold text-foreground">
+                    {defaultZone.locations.length}
+                  </span>{" "}
+                  regions and outposts
+                  {totalZones > 1 ? ` (${totalZones} landing zones)` : ""}. Filter to this zone on
+                  the availability map.
+                </p>
+              </DetailSection>
+            ) : null}
+
+            {hasRelationships ? (
               <DetailSection eyebrow="Relationships" title="Related catalog">
-                <RelationshipPanel landingZones={landingZones} guardrails={guardrails} />
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {capabilities.length > 0 ? (
+                    <RelatedColumn title="Capabilities" topics={capabilities} />
+                  ) : null}
+                  {landingZones.length > 0 ? (
+                    <RelatedColumn title="Landing zones" topics={landingZones} />
+                  ) : null}
+                  {guardrails.length > 0 ? (
+                    <RelatedColumn title="Guardrail areas" topics={guardrails} />
+                  ) : null}
+                </div>
+              </DetailSection>
+            ) : null}
+
+            {guidance.length > 0 ? (
+              <DetailSection eyebrow="Guidance" title="Related guidance">
+                <RelatedGuidance items={guidance} />
               </DetailSection>
             ) : null}
 
@@ -153,6 +227,7 @@ function CatalogDetailRoute() {
         side={
           <DetailMetaCard
             items={[
+              { label: "Type", value: TYPE_LABEL[topic.topic_type] },
               { label: "Status", value: topic.status, mono: true },
               { label: "Domain", value: topic.category },
               { label: "Owner", value: topic.owner_team },
@@ -206,23 +281,3 @@ function StatusBadge({ status }: { status: Topic["status"] }) {
     status === "deprecated" ? "critical" : status === "planned" ? "warning" : "success";
   return <Badge variant={variant}>{status}</Badge>;
 }
-
-function RelationshipPanel({
-  landingZones,
-  guardrails,
-}: {
-  landingZones: ReadonlyArray<Topic>;
-  guardrails: ReadonlyArray<Topic>;
-}) {
-  return (
-    <div className="grid gap-3 sm:grid-cols-2">
-      {landingZones.length > 0 ? (
-        <RelatedColumn title="Landing zones" topics={landingZones} kind="landing-zone" />
-      ) : null}
-      {guardrails.length > 0 ? (
-        <RelatedColumn title="Guardrail areas" topics={guardrails} kind="capability" />
-      ) : null}
-    </div>
-  );
-}
-

@@ -1,4 +1,4 @@
-import { Fragment, useMemo, useReducer } from "react";
+import { Fragment, useEffect, useMemo, useReducer } from "react";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { IconLayoutGrid, IconTable } from "@tabler/icons-react";
@@ -13,7 +13,8 @@ import { ExpandPanel } from "@/components/explore/expand-panel";
 import { MatrixView } from "@/components/explore/matrix-view";
 import { RegionStrip } from "@/components/explore/region-strip";
 import { ServiceCard } from "@/components/explore/service-card";
-import { PageBody } from "@/components/page-section";
+import { preloadAzureServiceIcons } from "@/components/explore/service-icon";
+import { PageBody, PageHeader } from "@/components/page-section";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -136,6 +137,19 @@ function AvailabilityRoute() {
     [locations, services, query, statusFilter, domainFilter, activeLocation, selectedServiceId],
   );
 
+  useEffect(() => {
+    const schedule =
+      typeof window.requestIdleCallback === "function"
+        ? window.requestIdleCallback
+        : (callback: IdleRequestCallback) => window.setTimeout(callback, 2500);
+    const cancel =
+      typeof window.cancelIdleCallback === "function"
+        ? window.cancelIdleCallback
+        : (id: number) => window.clearTimeout(id);
+    const idleId = schedule(() => preloadAzureServiceIcons(), { timeout: 5000 });
+    return () => cancel(idleId);
+  }, []);
+
   function toggleSelection(id: string) {
     dispatch({ type: "toggleSelection", id });
   }
@@ -177,6 +191,7 @@ function AvailabilityRoute() {
           <EmptyState onReset={() => dispatch({ type: "resetAll" })} />
         ) : view === "cards" ? (
           <CardsView
+            provider={activeZoneId}
             groups={rowModel.groups}
             rowById={rowModel.rowById}
             locations={locations}
@@ -186,6 +201,7 @@ function AvailabilityRoute() {
           />
         ) : (
           <MatrixView
+            provider={activeZoneId}
             locations={locations}
             rows={rowModel.rows}
             groups={rowModel.groups}
@@ -208,27 +224,20 @@ function Hero({
   onSearchChange: (value: string) => void;
 }) {
   return (
-    <div className="flex flex-col gap-6 pt-2">
-      <div className="flex flex-col gap-2">
-        <span className="font-mono text-xs font-semibold uppercase tracking-[0.05em] text-muted-foreground">
-          Availability
-        </span>
-        <h1 className="type-display font-semibold leading-[1.1] tracking-[-0.03em] text-foreground sm:type-display-lg">
-          Regional availability map
-        </h1>
-        <p className="max-w-[52ch] type-body leading-[1.6] text-muted-foreground">
-          Locate services across regions and outposts. Click any service for detailed status and
-          next steps.
-        </p>
-      </div>
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        eyebrow="Availability"
+        title="Regional availability map"
+        description="Locate services across regions and outposts. Click any service for detailed status and next steps."
+      />
       <SearchField value={searchValue} onChange={onSearchChange} />
     </div>
   );
 }
 
 const ZONE_META: Record<LandingZoneId, { label: string; sub: string }> = {
-  aws: { label: "AWS", sub: "5 regions · 27 services" },
-  azure: { label: "Azure", sub: "10 regions · 30 services" },
+  aws: { label: "AWS", sub: "5 regions · 61 services" },
+  azure: { label: "Azure", sub: "10 regions · 55 services" },
 };
 
 function ZoneSwitcher({
@@ -253,7 +262,13 @@ function ZoneSwitcher({
             type="button"
             role="radio"
             aria-checked={isActive}
-            onClick={() => onChange(zoneId)}
+            onClick={() => {
+              if (zoneId === "azure") preloadAzureServiceIcons();
+              onChange(zoneId);
+            }}
+            onFocus={zoneId === "azure" ? preloadAzureServiceIcons : undefined}
+            onPointerDown={zoneId === "azure" ? preloadAzureServiceIcons : undefined}
+            onPointerEnter={zoneId === "azure" ? preloadAzureServiceIcons : undefined}
             className={cn(
               "flex flex-col gap-0.5 rounded-md px-5 py-2 text-left transition-all",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
@@ -430,6 +445,7 @@ function Controls({
 }
 
 function CardsView({
+  provider,
   groups,
   rowById,
   locations,
@@ -437,6 +453,7 @@ function CardsView({
   onSelect,
   selectedRow,
 }: {
+  provider: LandingZoneId;
   groups: ReadonlyArray<AvailabilityRowGroup>;
   rowById: ReadonlyMap<string, AvailabilityRow>;
   locations: ReadonlyArray<{ id: string; label: string; sub: string; kind: "region" | "outpost" }>;
@@ -477,12 +494,14 @@ function CardsView({
               {rows.map((row) => (
                 <Fragment key={row.id}>
                   <ServiceCard
+                    provider={provider}
                     row={row}
                     selected={selectedServiceId === row.id}
                     onSelect={() => onSelect(row.id)}
                   />
                   {selectedServiceId === row.id && selectedRow ? (
                     <ExpandPanel
+                      provider={provider}
                       service={selectedRow.service}
                       locations={locations}
                       onClose={() => onSelect(row.id)}

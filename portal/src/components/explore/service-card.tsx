@@ -1,9 +1,11 @@
 import { ServiceIcon } from "@/components/explore/service-icon";
+import type { ServiceIconProvider } from "@/components/explore/service-icon";
 import { StatusChip } from "@/components/explore/status-chip";
 import type { AvailabilityRow } from "@/lib/availability-row-model";
 import { cn } from "@/lib/utils";
 
 type ServiceCardProps = {
+  provider: ServiceIconProvider;
   row: AvailabilityRow;
   selected: boolean;
   onSelect: () => void;
@@ -11,7 +13,7 @@ type ServiceCardProps = {
 
 const VISIBLE_CHIPS = 3;
 
-export function ServiceCard({ row, selected, onSelect }: ServiceCardProps) {
+export function ServiceCard({ provider, row, selected, onSelect }: ServiceCardProps) {
   const { service } = row;
   const visible = row.activeLocations.slice(0, VISIBLE_CHIPS);
   const overflow = row.activeLocations.length - visible.length;
@@ -30,7 +32,7 @@ export function ServiceCard({ row, selected, onSelect }: ServiceCardProps) {
       )}
     >
       <div className="flex items-center gap-2.5">
-        <ServiceIcon serviceId={service.id} size="md" />
+        <ServiceIcon serviceId={service.id} provider={provider} size="md" />
         <span className="type-body font-semibold leading-tight text-foreground">
           {service.name}
         </span>

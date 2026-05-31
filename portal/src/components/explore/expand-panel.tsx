@@ -2,21 +2,25 @@ import { IconArrowUpRight, IconX } from "@tabler/icons-react";
 
 import type { AvailabilityRecord, Location } from "@/api/server/availability";
 import { ServiceIcon } from "@/components/explore/service-icon";
+import type { ServiceIconProvider } from "@/components/explore/service-icon";
 import { StatusChip, statusLabel } from "@/components/explore/status-chip";
 import { cn } from "@/lib/utils";
 
 type ExpandPanelProps = {
+  provider: ServiceIconProvider;
   service: AvailabilityRecord;
   locations: ReadonlyArray<Location>;
   onClose: () => void;
 };
 
-export function ExpandPanel({ service, locations, onClose }: ExpandPanelProps) {
-  const planned = locations.reduce<string[]>((acc, location) => {
-    const cell = service.availability[location.id];
-    if (cell?.status === "planned" && cell.note && cell.note !== "TBD") acc.push(cell.note);
-    return acc;
-  }, []).sort();
+export function ExpandPanel({ provider, service, locations, onClose }: ExpandPanelProps) {
+  const planned = locations
+    .reduce<string[]>((acc, location) => {
+      const cell = service.availability[location.id];
+      if (cell?.status === "planned" && cell.note && cell.note !== "TBD") acc.push(cell.note);
+      return acc;
+    }, [])
+    .sort();
   const everyAvailable =
     locations.filter((l) => service.availability[l.id]?.status === "available").length > 0 &&
     locations
@@ -35,11 +39,9 @@ export function ExpandPanel({ service, locations, onClose }: ExpandPanelProps) {
     >
       <header className="flex items-center justify-between gap-3 border-b border-border px-5 py-3.5">
         <div className="flex items-center gap-2.5">
-          <ServiceIcon serviceId={service.id} size="lg" />
+          <ServiceIcon serviceId={service.id} provider={provider} size="lg" />
           <div>
-            <p className="type-body font-bold tracking-[-0.01em] text-foreground">
-              {service.name}
-            </p>
+            <p className="type-body font-bold tracking-[-0.01em] text-foreground">{service.name}</p>
             <p className="text-xs text-muted-foreground">{service.domain}</p>
           </div>
         </div>
