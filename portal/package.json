@@ -15,13 +15,12 @@
     "dev": "vite dev",
     "build": "vite build",
     "start": "node .output/server/index.mjs",
-    "generate:routes": "node ./scripts/generate-routes.mjs",
     "lint": "oxlint && tsc --noEmit --pretty false",
     "lint:fix": "oxlint --fix",
     "fmt": "oxfmt",
     "fmt:check": "oxfmt --check",
     "measure:availability-render": "vitest run scripts/measure-availability-render-cost.debug.test.tsx --reporter verbose",
-    "typecheck": "pnpm run generate:routes && tsc --noEmit --pretty false",
+    "typecheck": "tsc --noEmit --pretty false",
     "test": "vitest run --exclude scripts/*.debug.test.tsx"
   },
   "dependencies": {
@@ -31,6 +30,7 @@
     "@atlas/context-layer": "workspace:*",
     "@atlas/schema": "workspace:*",
     "@base-ui/react": "^1.5.0",
+    "@fontsource-variable/inter": "^5.2.8",
     "@streamdown/cjk": "^1.0.3",
     "@streamdown/code": "^1.1.1",
     "@streamdown/math": "^1.0.2",
@@ -44,6 +44,7 @@
     "@tanstack/react-table": "^8.21.3",
     "ai": "^6.0.193",
     "aws-react-icons": "^3.3.0",
+    "azure-react-icons": "workspace:*",
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
     "cmdk": "^1.1.1",
@@ -64,7 +65,6 @@
   },
   "devDependencies": {
     "@tailwindcss/vite": "4.3.0",
-    "@tanstack/router-generator": "1.167.11",
     "@tanstack/router-plugin": "1.168.12",
     "@types/node": "25.9.1",
     "@types/react": "19.2.15",

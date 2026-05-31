@@ -27,31 +27,31 @@ colors:
 
 typography:
   display:
-    fontFamily: 'system (SF Pro / Segoe UI Variable / Roboto)'
+    fontFamily: 'Inter Variable (self-hosted), system-ui fallback'
     fontSize: "2.25rem / 2.5rem (mobile / sm+)"
     fontWeight: 700
     lineHeight: 1.1
     letterSpacing: "-0.03em"
   headline:
-    fontFamily: 'system'
+    fontFamily: 'Inter Variable'
     fontSize: "1.375rem"
     fontWeight: 700
     lineHeight: 1.2
     letterSpacing: "-0.02em"
   title:
-    fontFamily: 'system'
+    fontFamily: 'Inter Variable'
     fontSize: "0.875rem"
     fontWeight: 700
     lineHeight: 1.4
     letterSpacing: "-0.01em"
   body:
-    fontFamily: 'system'
+    fontFamily: 'Inter Variable'
     fontSize: "0.9375rem"
     fontWeight: 400
     lineHeight: 1.6
     letterSpacing: "normal"
   label:
-    fontFamily: 'system'
+    fontFamily: 'Inter Variable'
     fontSize: "0.8125rem"
     fontWeight: 400
     lineHeight: 1.5
@@ -146,7 +146,7 @@ through decoration.
 
 **Key Characteristics:**
 - All neutrals tinted toward hue 264 (brand), never pure white or black
-- System UI fonts for native clarity on every platform (SF Pro on macOS, Segoe UI Variable on Windows, Roboto on Android)
+- Inter Variable (self-hosted) for identical, sharp rendering on every platform — including Windows, where the previous system stack fell back to Segoe UI with synthetic weights
 - Flat-by-tonal-layering: depth through OKLCH lightness steps, not box-shadows
 - Platform Blue on ≤10% of any surface — reserved for action and selection
 - Monospace uppercase labels serve as structural section anchors, not decoration
@@ -203,12 +203,13 @@ greys are prohibited.
 
 ## 3. Typography
 
-**Body Font:** System UI (SF Pro on macOS, Segoe UI Variable on Windows 11, Segoe UI on Windows 10, Roboto on Android)
+**Body Font:** Inter Variable, self-hosted via `@fontsource-variable/inter` (system-ui as fallback only)
 **Label/Mono Font:** System Mono (Cascadia Mono/Code on Windows, SF Mono on macOS, Menlo on older macOS, Consolas fallback)
 
-**Character:** System UI fonts are optimized by each OS vendor for screen rendering with
-perfect hinting at all sizes and pixel densities. This eliminates cross-platform rendering
-inconsistencies — text is native and sharp everywhere. The monospace companion brings
+**Character:** Inter is self-hosted as a variable font so every platform renders the exact same
+shapes, weights, and metrics. This removes the cross-platform drift of the old system stack —
+notably Windows, which fell back to Segoe UI and synthesized heavy weights. `font-synthesis: none`
+and `font-optical-sizing: auto` guarantee real weights and optical sizing everywhere. The monospace companion brings
 immediate structural legibility to platform vocabulary: category slugs, topic types, authority
 levels, channel names. The pairing makes the distinction between machine-structured data and
 human-readable prose visible at a glance. OpenType features `kern`, `liga`, `calt` are

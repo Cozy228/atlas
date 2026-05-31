@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SourcesRouteImport } from './routes/sources'
+import { Route as OverviewRouteImport } from './routes/overview'
 import { Route as GuidanceRouteImport } from './routes/guidance'
 import { Route as CatalogRouteImport } from './routes/catalog'
 import { Route as AvailabilityRouteImport } from './routes/availability'
@@ -20,12 +21,17 @@ import { Route as GuidanceIndexRouteImport } from './routes/guidance.index'
 import { Route as CatalogIndexRouteImport } from './routes/catalog.index'
 import { Route as AvailabilityIndexRouteImport } from './routes/availability.index'
 import { Route as SourcesSourceIdRouteImport } from './routes/sources.$sourceId'
-import { Route as GuidanceTopicIdRouteImport } from './routes/guidance.$topicId'
+import { Route as GuidanceGuidanceIdRouteImport } from './routes/guidance.$guidanceId'
 import { Route as CatalogTopicIdRouteImport } from './routes/catalog.$topicId'
 
 const SourcesRoute = SourcesRouteImport.update({
   id: '/sources',
   path: '/sources',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OverviewRoute = OverviewRouteImport.update({
+  id: '/overview',
+  path: '/overview',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GuidanceRoute = GuidanceRouteImport.update({
@@ -78,9 +84,9 @@ const SourcesSourceIdRoute = SourcesSourceIdRouteImport.update({
   path: '/$sourceId',
   getParentRoute: () => SourcesRoute,
 } as any)
-const GuidanceTopicIdRoute = GuidanceTopicIdRouteImport.update({
-  id: '/$topicId',
-  path: '/$topicId',
+const GuidanceGuidanceIdRoute = GuidanceGuidanceIdRouteImport.update({
+  id: '/$guidanceId',
+  path: '/$guidanceId',
   getParentRoute: () => GuidanceRoute,
 } as any)
 const CatalogTopicIdRoute = CatalogTopicIdRouteImport.update({
@@ -95,9 +101,10 @@ export interface FileRoutesByFullPath {
   '/availability': typeof AvailabilityRouteWithChildren
   '/catalog': typeof CatalogRouteWithChildren
   '/guidance': typeof GuidanceRouteWithChildren
+  '/overview': typeof OverviewRoute
   '/sources': typeof SourcesRouteWithChildren
   '/catalog/$topicId': typeof CatalogTopicIdRoute
-  '/guidance/$topicId': typeof GuidanceTopicIdRoute
+  '/guidance/$guidanceId': typeof GuidanceGuidanceIdRoute
   '/sources/$sourceId': typeof SourcesSourceIdRoute
   '/availability/': typeof AvailabilityIndexRoute
   '/catalog/': typeof CatalogIndexRoute
@@ -107,8 +114,9 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/ask': typeof AskRoute
+  '/overview': typeof OverviewRoute
   '/catalog/$topicId': typeof CatalogTopicIdRoute
-  '/guidance/$topicId': typeof GuidanceTopicIdRoute
+  '/guidance/$guidanceId': typeof GuidanceGuidanceIdRoute
   '/sources/$sourceId': typeof SourcesSourceIdRoute
   '/availability': typeof AvailabilityIndexRoute
   '/catalog': typeof CatalogIndexRoute
@@ -122,9 +130,10 @@ export interface FileRoutesById {
   '/availability': typeof AvailabilityRouteWithChildren
   '/catalog': typeof CatalogRouteWithChildren
   '/guidance': typeof GuidanceRouteWithChildren
+  '/overview': typeof OverviewRoute
   '/sources': typeof SourcesRouteWithChildren
   '/catalog/$topicId': typeof CatalogTopicIdRoute
-  '/guidance/$topicId': typeof GuidanceTopicIdRoute
+  '/guidance/$guidanceId': typeof GuidanceGuidanceIdRoute
   '/sources/$sourceId': typeof SourcesSourceIdRoute
   '/availability/': typeof AvailabilityIndexRoute
   '/catalog/': typeof CatalogIndexRoute
@@ -139,9 +148,10 @@ export interface FileRouteTypes {
     | '/availability'
     | '/catalog'
     | '/guidance'
+    | '/overview'
     | '/sources'
     | '/catalog/$topicId'
-    | '/guidance/$topicId'
+    | '/guidance/$guidanceId'
     | '/sources/$sourceId'
     | '/availability/'
     | '/catalog/'
@@ -151,8 +161,9 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/ask'
+    | '/overview'
     | '/catalog/$topicId'
-    | '/guidance/$topicId'
+    | '/guidance/$guidanceId'
     | '/sources/$sourceId'
     | '/availability'
     | '/catalog'
@@ -165,9 +176,10 @@ export interface FileRouteTypes {
     | '/availability'
     | '/catalog'
     | '/guidance'
+    | '/overview'
     | '/sources'
     | '/catalog/$topicId'
-    | '/guidance/$topicId'
+    | '/guidance/$guidanceId'
     | '/sources/$sourceId'
     | '/availability/'
     | '/catalog/'
@@ -181,6 +193,7 @@ export interface RootRouteChildren {
   AvailabilityRoute: typeof AvailabilityRouteWithChildren
   CatalogRoute: typeof CatalogRouteWithChildren
   GuidanceRoute: typeof GuidanceRouteWithChildren
+  OverviewRoute: typeof OverviewRoute
   SourcesRoute: typeof SourcesRouteWithChildren
 }
 
@@ -191,6 +204,13 @@ declare module '@tanstack/react-router' {
       path: '/sources'
       fullPath: '/sources'
       preLoaderRoute: typeof SourcesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/overview': {
+      id: '/overview'
+      path: '/overview'
+      fullPath: '/overview'
+      preLoaderRoute: typeof OverviewRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/guidance': {
@@ -263,11 +283,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SourcesSourceIdRouteImport
       parentRoute: typeof SourcesRoute
     }
-    '/guidance/$topicId': {
-      id: '/guidance/$topicId'
-      path: '/$topicId'
-      fullPath: '/guidance/$topicId'
-      preLoaderRoute: typeof GuidanceTopicIdRouteImport
+    '/guidance/$guidanceId': {
+      id: '/guidance/$guidanceId'
+      path: '/$guidanceId'
+      fullPath: '/guidance/$guidanceId'
+      preLoaderRoute: typeof GuidanceGuidanceIdRouteImport
       parentRoute: typeof GuidanceRoute
     }
     '/catalog/$topicId': {
@@ -306,12 +326,12 @@ const CatalogRouteWithChildren =
   CatalogRoute._addFileChildren(CatalogRouteChildren)
 
 interface GuidanceRouteChildren {
-  GuidanceTopicIdRoute: typeof GuidanceTopicIdRoute
+  GuidanceGuidanceIdRoute: typeof GuidanceGuidanceIdRoute
   GuidanceIndexRoute: typeof GuidanceIndexRoute
 }
 
 const GuidanceRouteChildren: GuidanceRouteChildren = {
-  GuidanceTopicIdRoute: GuidanceTopicIdRoute,
+  GuidanceGuidanceIdRoute: GuidanceGuidanceIdRoute,
   GuidanceIndexRoute: GuidanceIndexRoute,
 }
 
@@ -338,6 +358,7 @@ const rootRouteChildren: RootRouteChildren = {
   AvailabilityRoute: AvailabilityRouteWithChildren,
   CatalogRoute: CatalogRouteWithChildren,
   GuidanceRoute: GuidanceRouteWithChildren,
+  OverviewRoute: OverviewRoute,
   SourcesRoute: SourcesRouteWithChildren,
 }
 export const routeTree = rootRouteImport
