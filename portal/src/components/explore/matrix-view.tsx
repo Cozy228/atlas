@@ -11,20 +11,15 @@ import { IconArrowUpRight, IconChevronDown } from "@tabler/icons-react";
 
 import type { AvailabilityRecord, Location } from "@/api/server/availability";
 import { ServiceIcon } from "@/components/explore/service-icon";
+import type { ServiceIconProvider } from "@/components/explore/service-icon";
 import { StatusDot } from "@/components/explore/status-dot";
 import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { AvailabilityRow, AvailabilityRowGroup } from "@/lib/availability-row-model";
 import { cn } from "@/lib/utils";
 
 type MatrixViewProps = {
+  provider: ServiceIconProvider;
   locations: ReadonlyArray<Location>;
   rows: ReadonlyArray<AvailabilityRow>;
   groups: ReadonlyArray<AvailabilityRowGroup>;
@@ -35,6 +30,7 @@ type MatrixViewProps = {
 };
 
 export function MatrixView({
+  provider,
   locations,
   rows,
   groups,
@@ -56,6 +52,7 @@ export function MatrixView({
         header: () => "Service",
         cell: ({ row }) => (
           <ServiceCell
+            provider={provider}
             service={row.original.service}
             selected={row.original.id === selectedServiceId}
           />
@@ -80,7 +77,7 @@ export function MatrixView({
         };
       }),
     ],
-    [activeLocationId, isWide, locations, onLocationSelect, selectedServiceId],
+    [activeLocationId, isWide, locations, onLocationSelect, provider, selectedServiceId],
   );
   const table = useReactTable({
     data: tableData,
@@ -91,8 +88,8 @@ export function MatrixView({
   const tableRowsById = new Map(table.getRowModel().rows.map((row) => [row.original.id, row]));
 
   return (
-    <div className="overflow-clip rounded-lg border border-border bg-card">
-      <Table className="w-full table-fixed border-collapse type-detail">
+    <div className="rounded-lg border border-border bg-card">
+      <table data-slot="table" className="w-full table-fixed border-collapse type-detail">
         <colgroup>
           <col style={{ width: svcColWidth }} />
           {locations.map((location) => (
@@ -133,7 +130,7 @@ export function MatrixView({
             />
           ))}
         </TableBody>
-      </Table>
+      </table>
     </div>
   );
 }
@@ -213,10 +210,18 @@ function DomainRows({
   );
 }
 
-function ServiceCell({ service, selected }: { service: AvailabilityRecord; selected: boolean }) {
+function ServiceCell({
+  provider,
+  service,
+  selected,
+}: {
+  provider: ServiceIconProvider;
+  service: AvailabilityRecord;
+  selected: boolean;
+}) {
   return (
     <span className="flex min-w-0 items-center gap-2">
-      <ServiceIcon serviceId={service.id} size="sm" />
+      <ServiceIcon serviceId={service.id} provider={provider} size="sm" />
       <span className="min-w-0 flex-1 truncate font-semibold text-foreground">{service.name}</span>
       <IconChevronDown
         aria-hidden

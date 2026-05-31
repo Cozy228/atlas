@@ -20,6 +20,7 @@ export const availabilityQueryKey = ["availability"] as const;
 export const availabilityQueryOptions = queryOptions<AvailabilityResponse>({
   queryKey: availabilityQueryKey,
   queryFn: () => fetchAvailability(),
+  staleTime: Infinity,
 });
 
 export function topicDiscoveryQueryOptionsFor(request: TopicDiscoveryRequest = {}) {

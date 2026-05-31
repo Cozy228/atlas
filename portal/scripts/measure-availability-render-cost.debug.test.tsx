@@ -45,6 +45,7 @@ describe("availability render cost", () => {
       measure(`${zone.id} MatrixView`, 10, () => {
         renderToString(
           <MatrixView
+            provider={zone.id}
             locations={zone.locations}
             rows={rowModel.rows}
             groups={rowModel.groups}
@@ -77,7 +78,13 @@ describe("availability render cost", () => {
         renderToString(
           <>
             {rowModel.rows.map((row) => (
-              <ServiceCard key={row.id} row={row} selected={false} onSelect={() => {}} />
+              <ServiceCard
+                key={row.id}
+                provider={zone.id}
+                row={row}
+                selected={false}
+                onSelect={() => {}}
+              />
             ))}
           </>,
         );
