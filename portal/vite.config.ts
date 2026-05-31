@@ -23,6 +23,12 @@ const portalCodeSplittingGroups = [
   { name: "react", test: /node_modules[\\/]react[\\/]/, priority: 50 },
   { name: "motion", test: /node_modules[\\/]motion[\\/]/, priority: 30 },
   { name: "tanstack", test: /node_modules[\\/]@tanstack[\\/]/, priority: 25 },
+  { name: "aws-icons", test: /node_modules[\\/]aws-react-icons[\\/]/, priority: 23 },
+  {
+    name: "azure-icons",
+    test: /packages[\\/]azure-react-icons[\\/]src[\\/]icons[\\/]/,
+    priority: 22,
+  },
   // Consolidates `@tabler/icons-react` shared modules instead of dozens of sub‑KB icon chunks.
   { name: "tabler-icons", test: /node_modules[\\/]@tabler[\\/]icons-react[\\/]/, priority: 21 },
 ];
