@@ -14,4 +14,47 @@ describe("AWS_ICON_MAP", () => {
     expect(AWS_ICON_MAP.lambda).toBeTypeOf("function");
     expect(AWS_ICON_MAP.agentcore).toBeTypeOf("function");
   });
+
+  it("maps the expanded AWS availability services to icon components", () => {
+    const serviceIds = [
+      "cloudfront",
+      "route53",
+      "api-gateway",
+      "cloudwatch",
+      "dynamodb",
+      "rds",
+      "documentdb",
+      "neptune",
+      "opensearch",
+      "redshift",
+      "emr",
+      "msk",
+      "mq",
+      "cognito",
+      "appsync",
+      "sagemaker",
+      "rekognition",
+      "comprehend",
+      "translate",
+      "transcribe",
+      "polly",
+      "connect",
+      "iam-identity-center",
+      "kms",
+      "secrets-manager",
+      "cloudformation",
+      "cloudtrail",
+      "config",
+      "systems-manager",
+      "guardduty",
+      "security-hub",
+      "waf",
+      "direct-connect",
+      "privatelink",
+    ] as const;
+
+    for (const serviceId of serviceIds) {
+      expect(AWS_ICON_MAP[serviceId], serviceId).toBeTypeOf("function");
+    }
+  });
 });
