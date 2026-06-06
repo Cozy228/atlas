@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Anchor, Source } from "@atlas/schema";
 import { createInMemorySourceContentProvider } from "./sourceContentProvider.js";
+import { offlineResolutionContext } from "./resolverTypes.js";
 import { terraformModuleResolver } from "./terraformModuleResolver.js";
 
 const source: Source = {
@@ -29,8 +30,9 @@ const anchor: Anchor = {
 };
 
 describe("terraformModuleResolver", () => {
-  it("resolves a registered markdown heading anchor", () => {
-    const result = terraformModuleResolver.resolve({
+  it("resolves a registered markdown heading anchor", async () => {
+    const result = await terraformModuleResolver.resolve({
+      ctx: offlineResolutionContext(),
       source,
       anchors: [anchor],
       anchorId: "private-subnet-usage",
@@ -50,8 +52,9 @@ describe("terraformModuleResolver", () => {
     expect(result.warnings).toEqual([]);
   });
 
-  it("returns a broken anchor warning for missing markdown content", () => {
-    const result = terraformModuleResolver.resolve({
+  it("returns a broken anchor warning for missing markdown content", async () => {
+    const result = await terraformModuleResolver.resolve({
+      ctx: offlineResolutionContext(),
       source,
       anchors: [anchor],
       anchorId: "private-subnet-usage",
@@ -68,8 +71,9 @@ describe("terraformModuleResolver", () => {
     });
   });
 
-  it("returns source_unavailable when module content cannot be fetched", () => {
-    const result = terraformModuleResolver.resolve({
+  it("returns source_unavailable when module content cannot be fetched", async () => {
+    const result = await terraformModuleResolver.resolve({
+      ctx: offlineResolutionContext(),
       source,
       anchors: [anchor],
       anchorId: "private-subnet-usage",
@@ -83,8 +87,9 @@ describe("terraformModuleResolver", () => {
     });
   });
 
-  it("returns broken_anchor for malformed markdown anchor input", () => {
-    const result = terraformModuleResolver.resolve({
+  it("returns broken_anchor for malformed markdown anchor input", async () => {
+    const result = await terraformModuleResolver.resolve({
+      ctx: offlineResolutionContext(),
       source,
       anchors: [
         {

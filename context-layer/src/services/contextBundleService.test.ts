@@ -9,10 +9,10 @@ import {
 } from "./contextBundleService.js";
 
 describe("context bundle service", () => {
-  it("builds a schema-compatible context bundle for a known topic", () => {
+  it("builds a schema-compatible context bundle for a known topic", async () => {
     const service = createDefaultContextBundleService();
 
-    const bundle = buildContextBundle(service, {
+    const bundle = await buildContextBundle(service, {
       topic_id: "aws-textract",
       disclosure_level: 1,
     });
@@ -26,10 +26,10 @@ describe("context bundle service", () => {
     expect(bundle.expansion_paths.length).toBeGreaterThan(0);
   });
 
-  it("uses query input for deterministic source selection without LLM calls", () => {
+  it("uses query input for deterministic source selection without LLM calls", async () => {
     const service = createDefaultContextBundleService();
 
-    const bundle = buildContextBundle(service, {
+    const bundle = await buildContextBundle(service, {
       query: "How do I use Textract from a private subnet?",
       disclosure_level: 1,
     });
@@ -42,10 +42,10 @@ describe("context bundle service", () => {
     );
   });
 
-  it("returns partial bundles with warnings when an anchor is broken", () => {
+  it("returns partial bundles with warnings when an anchor is broken", async () => {
     const service = createDefaultContextBundleService();
 
-    const bundle = buildContextBundle(service, {
+    const bundle = await buildContextBundle(service, {
       topic_id: "private-networking",
       disclosure_level: 1,
     });
@@ -56,10 +56,10 @@ describe("context bundle service", () => {
     );
   });
 
-  it("surfaces restricted source warnings without dropping visible context", () => {
+  it("surfaces restricted source warnings without dropping visible context", async () => {
     const service = createDefaultContextBundleService();
 
-    const bundle = buildContextBundle(service, {
+    const bundle = await buildContextBundle(service, {
       topic_id: "regulated-landing-zone",
       disclosure_level: 1,
     });
@@ -70,10 +70,10 @@ describe("context bundle service", () => {
     expect(bundle.sources.length).toBeGreaterThan(0);
   });
 
-  it("surfaces authority conflicts instead of choosing a silent winner", () => {
+  it("surfaces authority conflicts instead of choosing a silent winner", async () => {
     const service = createDefaultContextBundleService();
 
-    const bundle = buildContextBundle(service, {
+    const bundle = await buildContextBundle(service, {
       topic_id: "s3-guardrails",
       disclosure_level: 1,
     });
@@ -83,10 +83,10 @@ describe("context bundle service", () => {
     );
   });
 
-  it("returns a no registered source warning for missing evidence", () => {
+  it("returns a no registered source warning for missing evidence", async () => {
     const service = createDefaultContextBundleService();
 
-    const bundle = buildContextBundle(service, {
+    const bundle = await buildContextBundle(service, {
       query: "mainframe",
       disclosure_level: 1,
     });
@@ -96,10 +96,10 @@ describe("context bundle service", () => {
     expect(bundle.expansion_paths).toEqual([]);
   });
 
-  it("uses disclosure level 0 for metadata and anchor references without excerpts", () => {
+  it("uses disclosure level 0 for metadata and anchor references without excerpts", async () => {
     const service = createDefaultContextBundleService();
 
-    const bundle = buildContextBundle(service, {
+    const bundle = await buildContextBundle(service, {
       topic_id: "aws-textract",
       disclosure_level: 0,
     });
@@ -109,10 +109,10 @@ describe("context bundle service", () => {
     expect(bundle.expansion_paths[0]?.disclosure_level).toBe(1);
   });
 
-  it("stops emitting expansion paths at disclosure level 3", () => {
+  it("stops emitting expansion paths at disclosure level 3", async () => {
     const service = createDefaultContextBundleService();
 
-    const bundle = buildContextBundle(service, {
+    const bundle = await buildContextBundle(service, {
       topic_id: "aws-textract",
       disclosure_level: 3,
     });
@@ -121,7 +121,7 @@ describe("context bundle service", () => {
     expect(bundle.expansion_paths).toEqual([]);
   });
 
-  it("uses disclosure level 2 to include adjacent anchors from the selected source", () => {
+  it("uses disclosure level 2 to include adjacent anchors from the selected source", async () => {
     const service = createDefaultContextBundleService();
     service.registry.anchors.put({
       id: "textract-adjacent-anchor",
@@ -134,11 +134,11 @@ describe("context bundle service", () => {
       last_validated_at: "2026-05-06T00:00:00.000Z",
     });
 
-    const levelOne = buildContextBundle(service, {
+    const levelOne = await buildContextBundle(service, {
       source_id: "textract-module-readme",
       disclosure_level: 1,
     });
-    const levelTwo = buildContextBundle(service, {
+    const levelTwo = await buildContextBundle(service, {
       source_id: "textract-module-readme",
       disclosure_level: 2,
     });
@@ -147,10 +147,10 @@ describe("context bundle service", () => {
     expect(levelTwo.sources[0]?.excerpts).toHaveLength(2);
   });
 
-  it("uses disclosure level 3 to include related sources from shared topics", () => {
+  it("uses disclosure level 3 to include related sources from shared topics", async () => {
     const service = createDefaultContextBundleService();
 
-    const bundle = buildContextBundle(service, {
+    const bundle = await buildContextBundle(service, {
       source_id: "textract-module-readme",
       disclosure_level: 3,
     });
@@ -160,13 +160,13 @@ describe("context bundle service", () => {
     );
   });
 
-  it("uses in-memory feedback persistence when no DynamoDB table is configured", () => {
+  it("uses in-memory feedback persistence when no DynamoDB table is configured", async () => {
     const repository = createFeedbackRepository({});
 
     expect(repository).toBeInstanceOf(InMemoryFeedbackRepository);
   });
 
-  it("uses DynamoDB feedback persistence when a table is configured", () => {
+  it("uses DynamoDB feedback persistence when a table is configured", async () => {
     const repository = createFeedbackRepository({
       ATLAS_FEEDBACK_TABLE: "atlas-feedback",
     });

@@ -25,11 +25,12 @@ export type ServerContextApiClient = ContextApiClient & {
 export function createServerContextApiClient(input: {
   env?: Record<string, string | undefined>;
   fetch?: FetchLike;
+  token?: string;
 } = {}): ServerContextApiClient {
   const baseUrl = input.env?.ATLAS_CONTEXT_API_BASE_URL ?? process.env.ATLAS_CONTEXT_API_BASE_URL;
   if (baseUrl) {
     return {
-      ...createFetchContextApiClient({ baseUrl, fetch: input.fetch }),
+      ...createFetchContextApiClient({ baseUrl, fetch: input.fetch, token: input.token }),
       kind: "http",
     };
   }
@@ -43,9 +44,20 @@ export function createServerContextApiClient(input: {
 export function createFetchContextApiClient(input: {
   baseUrl: string;
   fetch?: FetchLike;
+  token?: string;
 }): ContextApiClient {
-  const fetchImpl = input.fetch ?? fetch;
+  const rawFetch = input.fetch ?? fetch;
   const baseUrl = input.baseUrl.replace(/\/+$/, "");
+  // The opaque caller Bearer, attached to every outbound call when present.
+  // It is threaded unparsed and never serialized into any browser-facing body.
+  const authHeaders: Record<string, string> = input.token
+    ? { authorization: `Bearer ${input.token}` }
+    : {};
+  const fetchImpl: FetchLike = (url, init) =>
+    rawFetch(url, {
+      ...init,
+      headers: { ...authHeaders, ...((init?.headers as Record<string, string>) ?? {}) },
+    });
 
   return {
     async getTopic(id: string) {

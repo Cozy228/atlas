@@ -7,6 +7,7 @@
  * Layer; it always invokes one of these server functions.
  */
 import { createServerFn } from "@tanstack/react-start";
+import { getRequestHeader } from "@tanstack/react-start/server";
 import {
   ContextRequestSchema,
   SourceDiscoveryRequestSchema,
@@ -17,7 +18,30 @@ import {
 } from "@atlas/schema";
 import { z } from "zod";
 
-import { serverContextApiClient } from "./serverContextApiClient.js";
+import { createServerContextApiClient } from "./httpContextApiClient.js";
+
+/**
+ * Build a Context API client for the current request, forwarding whatever
+ * Bearer token the caller supplied. The token is read from the incoming
+ * `Authorization` header and threaded down; on the HTTP path it is re-attached
+ * as `Authorization: Bearer <token>`, and on the in-process path it is ignored
+ * (offline). The token never crosses into any browser-facing payload.
+ */
+function contextApiForRequest() {
+  return createServerContextApiClient({ token: callerBearerToken() });
+}
+
+function callerBearerToken(): string | undefined {
+  let header: string | undefined;
+  try {
+    header = getRequestHeader("authorization");
+  } catch {
+    // No active request context (e.g. non-HTTP invocation) — fall back offline.
+    return undefined;
+  }
+  const match = header?.match(/^Bearer\s+(.+)$/i);
+  return match ? match[1].trim() : undefined;
+}
 
 /**
  * Strict output validation is disabled because every response is already
@@ -31,24 +55,24 @@ const idSchema = z.string().min(1);
 
 export const fetchTopic = createServerFn(SERVER_FN_OPTIONS)
   .inputValidator((input: unknown): string => idSchema.parse(input))
-  .handler(async ({ data }) => serverContextApiClient.getTopic(data));
+  .handler(async ({ data }) => contextApiForRequest().getTopic(data));
 
 export const fetchSource = createServerFn(SERVER_FN_OPTIONS)
   .inputValidator((input: unknown): string => idSchema.parse(input))
-  .handler(async ({ data }) => serverContextApiClient.getSource(data));
+  .handler(async ({ data }) => contextApiForRequest().getSource(data));
 
 export const fetchContextBundle = createServerFn(SERVER_FN_OPTIONS)
   .inputValidator((input: unknown): ContextRequest => ContextRequestSchema.parse(input))
-  .handler(async ({ data }) => serverContextApiClient.getContextBundle(data));
+  .handler(async ({ data }) => contextApiForRequest().getContextBundle(data));
 
 export const fetchTopicDiscovery = createServerFn(SERVER_FN_OPTIONS)
   .inputValidator(
     (input: unknown): TopicDiscoveryRequest => TopicDiscoveryRequestSchema.parse(input ?? {}),
   )
-  .handler(async ({ data }) => serverContextApiClient.discoverTopics(data));
+  .handler(async ({ data }) => contextApiForRequest().discoverTopics(data));
 
 export const fetchSourceDiscovery = createServerFn(SERVER_FN_OPTIONS)
   .inputValidator(
     (input: unknown): SourceDiscoveryRequest => SourceDiscoveryRequestSchema.parse(input ?? {}),
   )
-  .handler(async ({ data }) => serverContextApiClient.discoverSources(data));
+  .handler(async ({ data }) => contextApiForRequest().discoverSources(data));

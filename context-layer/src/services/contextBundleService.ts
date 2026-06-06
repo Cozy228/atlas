@@ -18,6 +18,10 @@ import { loadPilotRegistry, pilotRegistrySeed, type PilotRegistry } from "../see
 import { confluencePageResolver } from "../resolvers/confluencePageResolver.js";
 import { policyDocumentResolver } from "../resolvers/policyDocumentResolver.js";
 import { createResolverRegistry, type ResolverRegistry } from "../resolvers/resolverRegistry.js";
+import {
+  offlineResolutionContext,
+  type ResolutionContext,
+} from "../resolvers/resolverTypes.js";
 import type { SourceContentProvider } from "../resolvers/sourceContentProvider.js";
 import { terraformModuleResolver } from "../resolvers/terraformModuleResolver.js";
 import { createPilotSourceContentProvider } from "../sourceContent/pilotSourceContent.js";
@@ -70,10 +74,11 @@ function readProcessEnv(): Record<string, string | undefined> {
   return processLike.process?.env ?? {};
 }
 
-export function buildContextBundle(
+export async function buildContextBundle(
   service: ContextBundleService,
   request: ContextRequest,
-): ContextBundleResponse {
+  ctx: ResolutionContext = offlineResolutionContext(),
+): Promise<ContextBundleResponse> {
   const disclosureLevel = request.disclosure_level ?? 1;
   const selectedSources = selectSources(service, request);
   const sources =
@@ -131,11 +136,12 @@ export function buildContextBundle(
         request.anchor_id,
         disclosureLevel,
       )) {
-        const resolved = resolver?.resolve({
+        const resolved = await resolver?.resolve({
           source,
           anchors,
           anchorId,
           contentProvider: service.contentProvider,
+          ctx,
         });
 
         if (resolved) {

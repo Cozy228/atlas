@@ -11,8 +11,8 @@ import {
 } from "@atlas/portal";
 
 describe("Atlas V1 acceptance", () => {
-  it("proves capability discovery from seed data through Portal rendering", () => {
-    const response = handleContextRequest({ topic_id: "aws-textract" });
+  it("proves capability discovery from seed data through Portal rendering", async () => {
+    const response = await handleContextRequest({ topic_id: "aws-textract" });
     expect(response.status).toBe(200);
 
     const bundle = ContextBundleResponseSchema.parse(response.body);
@@ -23,8 +23,8 @@ describe("Atlas V1 acceptance", () => {
     expect(html).toContain("Private subnet usage");
   });
 
-  it("proves landing zone navigation from seed data through Portal rendering", () => {
-    const response = handleContextRequest({ topic_id: "central-landing-zone" });
+  it("proves landing zone navigation from seed data through Portal rendering", async () => {
+    const response = await handleContextRequest({ topic_id: "central-landing-zone" });
     expect(response.status).toBe(200);
 
     const bundle = ContextBundleResponseSchema.parse(response.body);
@@ -36,7 +36,7 @@ describe("Atlas V1 acceptance", () => {
   });
 
   it("proves Ask Atlas answers only with accepted citations", async () => {
-    const response = handleContextRequest({
+    const response = await handleContextRequest({
       query: "How do I use Textract from a private subnet?",
     });
     const bundle = ContextBundleResponseSchema.parse(response.body);
@@ -69,15 +69,15 @@ describe("Atlas V1 acceptance", () => {
     expect(answer.rejected_claims).toHaveLength(1);
   });
 
-  it("keeps restricted, stale, broken, and missing evidence visible", () => {
+  it("keeps restricted, stale, broken, and missing evidence visible", async () => {
     const restricted = ContextBundleResponseSchema.parse(
-      handleContextRequest({ topic_id: "regulated-landing-zone" }).body,
+      (await handleContextRequest({ topic_id: "regulated-landing-zone" })).body,
     );
     const broken = ContextBundleResponseSchema.parse(
-      handleContextRequest({ topic_id: "private-networking" }).body,
+      (await handleContextRequest({ topic_id: "private-networking" })).body,
     );
     const missing = ContextBundleResponseSchema.parse(
-      handleContextRequest({ query: "mainframe" }).body,
+      (await handleContextRequest({ query: "mainframe" })).body,
     );
 
     expect(renderSourceLookup(restricted)).toContain("restricted_source");
