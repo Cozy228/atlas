@@ -65,7 +65,7 @@ export const serverContextApiClient: ContextApiClient = {
     return unwrap(handleSourceRequest(id), SourceResponseSchema);
   },
   async getContextBundle(request: ContextRequest): Promise<ContextBundleResponse> {
-    return unwrap(handleContextRequest(request), ContextBundleResponseSchema);
+    return unwrap(await handleContextRequest(request), ContextBundleResponseSchema);
   },
   async discoverSources(request: SourceDiscoveryRequest = {}): Promise<SourceDiscoveryResponse> {
     return unwrap(handleSourceDiscoveryRequest(request), SourceDiscoveryResponseSchema);

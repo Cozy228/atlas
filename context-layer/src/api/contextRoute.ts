@@ -8,12 +8,17 @@ import {
   buildContextBundle,
   createDefaultContextBundleService,
 } from "../services/contextBundleService.js";
+import {
+  offlineResolutionContext,
+  type ResolutionContext,
+} from "../resolvers/resolverTypes.js";
 import type { ApiResponse } from "./routeTypes.js";
 import { errorResponse } from "./routeTypes.js";
 
-export function handleContextRequest(
+export async function handleContextRequest(
   input: unknown,
-): ApiResponse<ApiErrorResponse | ContextBundleResponse> {
+  ctx: ResolutionContext = offlineResolutionContext(),
+): Promise<ApiResponse<ApiErrorResponse | ContextBundleResponse>> {
   const parsed = ContextRequestSchema.safeParse(input);
   if (!parsed.success) {
     return errorResponse(400, "invalid_request", "Context request is invalid.");
@@ -25,9 +30,19 @@ export function handleContextRequest(
     return explicitError;
   }
 
+  const bundle = await buildContextBundle(service, parsed.data, ctx);
+
+  // A single Confluence call happens during the build above. For an explicit
+  // source request we promote the resulting runtime warnings into HTTP errors
+  // here, so an explicit request never triggers a second resolve.
+  const promoted = promoteExplicitSourceWarning(parsed.data, bundle);
+  if (promoted) {
+    return promoted;
+  }
+
   return {
     status: 200,
-    body: buildContextBundle(service, parsed.data),
+    body: bundle,
   };
 }
 
@@ -48,23 +63,40 @@ function validateExplicitRequest(
     return errorResponse(404, "source_not_found", "Source was not found in the Atlas registry.");
   }
 
+  // Static, registry-declared restriction is known without calling Confluence.
   if (source.visibility === "restricted") {
     return errorResponse(403, "access_denied", "Source is registered but access is restricted.");
   }
 
-  const resolver = service.resolvers.get(source.source_class);
-  const resolved = resolver?.resolve({
-    source,
-    anchors: service.registry.anchors.findBySourceId(source.id),
-    anchorId: request.anchor_id,
-    contentProvider: service.contentProvider,
-  });
-  const firstWarning = resolved?.warnings[0];
+  return undefined;
+}
 
-  if (firstWarning?.code === "broken_anchor") {
+/**
+ * For an explicit `source_id` request, scan the built bundle's warnings and
+ * promote the runtime ACL / availability / anchor outcomes into HTTP errors.
+ * This reuses the single resolve already performed by `buildContextBundle`.
+ */
+function promoteExplicitSourceWarning(
+  request: ContextRequest,
+  bundle: ContextBundleResponse,
+): ApiResponse<ApiErrorResponse> | undefined {
+  if (!request.source_id) {
+    return undefined;
+  }
+
+  const codes = new Set(
+    bundle.warnings
+      .filter((warning) => !warning.source_id || warning.source_id === request.source_id)
+      .map((warning) => warning.code),
+  );
+
+  if (codes.has("restricted_source")) {
+    return errorResponse(403, "access_denied", "Source is registered but access is restricted.");
+  }
+  if (codes.has("broken_anchor")) {
     return errorResponse(422, "anchor_broken", "Requested anchor could not be resolved.");
   }
-  if (firstWarning?.code === "source_unavailable") {
+  if (codes.has("source_unavailable")) {
     return errorResponse(503, "source_unavailable", "Requested source is unavailable.");
   }
 

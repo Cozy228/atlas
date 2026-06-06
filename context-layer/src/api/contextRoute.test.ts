@@ -3,15 +3,15 @@ import { ApiErrorResponseSchema, ContextBundleResponseSchema } from "@atlas/sche
 import { handleContextRequest } from "./contextRoute.js";
 
 describe("context route", () => {
-  it("returns a context bundle response for valid input", () => {
-    const response = handleContextRequest({ topic_id: "aws-textract" });
+  it("returns a context bundle response for valid input", async () => {
+    const response = await handleContextRequest({ topic_id: "aws-textract" });
 
     expect(response.status).toBe(200);
     expect(ContextBundleResponseSchema.parse(response.body)).toEqual(response.body);
   });
 
-  it("returns structured topic_not_found errors", () => {
-    const response = handleContextRequest({ topic_id: "unknown-topic" });
+  it("returns structured topic_not_found errors", async () => {
+    const response = await handleContextRequest({ topic_id: "unknown-topic" });
 
     expect(response.status).toBe(404);
     expect(ApiErrorResponseSchema.parse(response.body)).toEqual({
@@ -22,8 +22,8 @@ describe("context route", () => {
     });
   });
 
-  it("returns structured source_not_found errors", () => {
-    const response = handleContextRequest({ source_id: "missing-source" });
+  it("returns structured source_not_found errors", async () => {
+    const response = await handleContextRequest({ source_id: "missing-source" });
 
     expect(response.status).toBe(404);
     expect(ApiErrorResponseSchema.parse(response.body).error.code).toBe(
@@ -31,8 +31,8 @@ describe("context route", () => {
     );
   });
 
-  it("returns structured anchor_broken errors for explicit bad anchor expansion", () => {
-    const response = handleContextRequest({
+  it("returns structured anchor_broken errors for explicit bad anchor expansion", async () => {
+    const response = await handleContextRequest({
       source_id: "textract-module-readme",
       anchor_id: "missing-anchor",
     });
@@ -43,8 +43,8 @@ describe("context route", () => {
     );
   });
 
-  it("returns structured access_denied errors for restricted source expansion", () => {
-    const response = handleContextRequest({ source_id: "iam-boundary-policy" });
+  it("returns structured access_denied errors for restricted source expansion", async () => {
+    const response = await handleContextRequest({ source_id: "iam-boundary-policy" });
 
     expect(response.status).toBe(403);
     expect(ApiErrorResponseSchema.parse(response.body).error.code).toBe(
@@ -52,8 +52,8 @@ describe("context route", () => {
     );
   });
 
-  it("returns structured source_unavailable errors for unavailable explicit expansion", () => {
-    const response = handleContextRequest({ source_id: "platform-reference-guide" });
+  it("returns structured source_unavailable errors for unavailable explicit expansion", async () => {
+    const response = await handleContextRequest({ source_id: "platform-reference-guide" });
 
     expect(response.status).toBe(503);
     expect(ApiErrorResponseSchema.parse(response.body).error.code).toBe(
@@ -61,8 +61,8 @@ describe("context route", () => {
     );
   });
 
-  it("returns structured invalid_request errors", () => {
-    const response = handleContextRequest({ disclosure_level: 9 });
+  it("returns structured invalid_request errors", async () => {
+    const response = await handleContextRequest({ disclosure_level: 9 });
 
     expect(response.status).toBe(400);
     expect(ApiErrorResponseSchema.parse(response.body).error.code).toBe(

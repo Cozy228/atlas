@@ -5,13 +5,13 @@ type ResolveAnchorOptions = ResolveRequest & {
   isValidLocator(locator: string): boolean;
 };
 
-export function resolveAnchor({
+export async function resolveAnchor({
   source,
   anchors,
   anchorId,
   contentProvider,
   isValidLocator,
-}: ResolveAnchorOptions): ResolveResult {
+}: ResolveAnchorOptions): Promise<ResolveResult> {
   const anchor = selectAnchor(anchors, anchorId);
   const locator = anchor ? selectorLocator(anchor) : undefined;
 
@@ -29,7 +29,7 @@ export function resolveAnchor({
     };
   }
 
-  const sourceContent = contentProvider.getSourceContent(source.id);
+  const sourceContent = await contentProvider.getSourceContent(source.id);
   if (!sourceContent) {
     return {
       excerpts: [],

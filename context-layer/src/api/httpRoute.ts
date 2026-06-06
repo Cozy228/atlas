@@ -5,11 +5,16 @@ import { handleSourceDiscoveryRequest } from "./sourceDiscoveryRoute.js";
 import { handleSourceRequest } from "./sourceRoute.js";
 import { handleTopicDiscoveryRequest } from "./topicDiscoveryRoute.js";
 import { handleTopicRequest } from "./topicRoute.js";
+import {
+  offlineResolutionContext,
+  type ResolutionContext,
+} from "../resolvers/resolverTypes.js";
 
 export type HttpRequest = {
   method: string;
   path: string;
   query?: Record<string, string | undefined>;
+  headers?: Record<string, string | undefined>;
   body?: string;
 };
 
@@ -27,6 +32,7 @@ type RouteResult = {
 export async function handleHttpRequest(request: HttpRequest): Promise<HttpResponse> {
   const method = request.method.toUpperCase();
   const path = normalizePath(request.path);
+  const ctx = resolutionContextFromHeaders(request.headers);
 
   if (method === "GET" && path === "/topics") {
     return jsonResponse(handleTopicDiscoveryRequest(compactQuery(request.query)));
@@ -40,10 +46,13 @@ export async function handleHttpRequest(request: HttpRequest): Promise<HttpRespo
   const topicContextMatch = path.match(/^\/topics\/([^/]+)\/context$/);
   if (method === "GET" && topicContextMatch) {
     return jsonResponse(
-      handleContextRequest({
-        topic_id: decodeURIComponent(topicContextMatch[1]),
-        ...contextQuery(request.query),
-      }),
+      await handleContextRequest(
+        {
+          topic_id: decodeURIComponent(topicContextMatch[1]),
+          ...contextQuery(request.query),
+        },
+        ctx,
+      ),
     );
   }
 
@@ -59,19 +68,22 @@ export async function handleHttpRequest(request: HttpRequest): Promise<HttpRespo
   const sourceContentMatch = path.match(/^\/sources\/([^/]+)\/content$/);
   if (method === "GET" && sourceContentMatch) {
     return jsonResponse(
-      handleContextRequest({
-        source_id: decodeURIComponent(sourceContentMatch[1]),
-        ...contextQuery(request.query),
-      }),
+      await handleContextRequest(
+        {
+          source_id: decodeURIComponent(sourceContentMatch[1]),
+          ...contextQuery(request.query),
+        },
+        ctx,
+      ),
     );
   }
 
   if (method === "GET" && path === "/context") {
-    return jsonResponse(handleContextRequest(contextQuery(request.query)));
+    return jsonResponse(await handleContextRequest(contextQuery(request.query), ctx));
   }
 
   if (method === "POST" && path === "/context-bundle") {
-    return jsonResponse(handleContextRequest(parseJsonBody(request.body)));
+    return jsonResponse(await handleContextRequest(parseJsonBody(request.body), ctx));
   }
 
   if (method === "POST" && path === "/feedback") {
@@ -87,6 +99,34 @@ export async function handleHttpRequest(request: HttpRequest): Promise<HttpRespo
       },
     } satisfies ApiErrorResponse,
   });
+}
+
+/**
+ * Read the opaque caller Bearer from the `Authorization` header and build the
+ * request-scoped resolution context. The token is threaded unparsed and
+ * unpersisted; Confluence enforces ACL against whatever identity it represents.
+ */
+function resolutionContextFromHeaders(
+  headers: HttpRequest["headers"],
+): ResolutionContext {
+  const base = offlineResolutionContext();
+  const token = bearerToken(headers);
+  return token ? { ...base, token } : base;
+}
+
+function bearerToken(headers: HttpRequest["headers"]): string | undefined {
+  if (!headers) {
+    return undefined;
+  }
+  for (const [key, value] of Object.entries(headers)) {
+    if (key.toLowerCase() === "authorization" && value) {
+      const match = value.match(/^Bearer\s+(.+)$/i);
+      if (match) {
+        return match[1].trim();
+      }
+    }
+  }
+  return undefined;
 }
 
 function normalizePath(path: string): string {

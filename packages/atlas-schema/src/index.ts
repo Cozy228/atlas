@@ -98,6 +98,10 @@ export const SourceSchema = z
     last_observed_at: z.string().datetime(),
     last_reviewed_at: z.string().datetime(),
     review_frequency: z.string().min(1),
+    // The source-of-record version Atlas last recorded for this Source. When
+    // the live page version exceeds it, runtime resolution emits stale_source
+    // (drift). Optional: with no recorded version, drift never fires.
+    observed_version: z.number().int().nonnegative().optional(),
   })
   .strict();
 
