@@ -5,6 +5,131 @@
 > deleted**: `atlas-design-system.html` is the living **reference implementation** (open it to see the
 > system in motion; light = `#blueprint`, dark = `#blueprint-ink`).
 
+## Home page redesign — options prototype (2026-06-07)
+
+> **Status: AWAITING PICK (round 2).** File: [`home-redesign.html`](./home-redesign.html). Question:
+> *"What should the new Home page look like, applying the locked Blueprint system?"* Flip types with
+> the floating bottom bar or `←`/`→`; `◐` (or `t`) toggles Blueprint(light)/Ink(dark). Tokens &
+> components copied verbatim from `atlas-design-system.html`. All data fictional/public-safe.
+
+**Round 1 (A/B/C) — concluded:** B (dashboard) and C (reference ledger) **dropped**. Kept C's HERO
+treatment (wide content column + large display + meta chips) and folded it into the A direction. Feedback
+that drove round 2: the "01/02" mono section-index read as generic AI; "Capability highlights" stat blocks
+had no clear value; the old journey used too much brand, gave no sense of sequence, and didn't scale past
+four. Home's real job = (1) find fast, (2) showcase what the platform actually has.
+
+**Round 2 (T1–T4) — current.** Shared: C-hero, clean `title + "View all →"` section headers (no numbered
+index), low-brand, and **real catalog content** mined from `reference/catalog_availability_preview_v2.html`
+(25 services × 9 domains × 5 regions/outposts), rendered from one JS data block so all types stay
+consistent. The lifecycle is now a **connected ribbon** (numbered nodes + `→` connectors, neutral colour,
+horizontally scrollable → scales).
+
+- **T1 — Browse-first** (`#t1`): the catalog leads — capability cards grouped by domain. Showcase + scan.
+- **T2 — Task-led** (`#t2`): "Start with a question" task cards → Popular capabilities → Availability at a
+  glance (per-region live/planned cards) → resources.
+- **T3 — Directory** (`#t3`): dense scannable index, domain **jump-nav** chips + grouped rows w/ status.
+- **T4 — Lifecycle-led** (`#t4`): the idea→production **ribbon is the spine** (with step links), catalog below.
+
+Verified all four in-browser (light). Reference pages copied from branch `codex/home-image-to-code` live in
+`reference/` (home, catalog/availability, redesign-prototype).
+
+Run: `cd prototype && python3 -m http.server 8753` → `http://localhost:8753/home-redesign.html`
+
+**Verdict / next:** [ ] pick T1 / T2 / T3 / T4 (or a graft — e.g. "T1 catalog + T2's availability glance",
+or "T2 task cards on top of T1"). Then fold the winner into `portal/src/routes/index.tsx` per
+`redesign-goal-build.md`, and delete the losing types + the switcher.
+
+## Catalog page redesign — options prototype (2026-06-07)
+
+### Round 1 (C1/C2/C3) — concluded. Archived: `catalog-redesign-v1-3variants.html`.
+
+Three radically-different list structures were explored: **C1 Browse** (Hero + type tabs + domain
+filter chips + card grid), **C2 Workbench** (facet rail + dense availability matrix table), **C3
+Split** (left index + right live preview). User feedback that drove round 2:
+- **C1**: overall good, but the header **stacked three rows** of pill-shaped things under the search
+  (stats chips → type tabs → domain filter chips) — they blur together and read as clutter.
+- **C2**: the **left facet rail is the keeper**; the flat right-hand table was "incomplete + not
+  clickable" and disliked.
+- **C3**: master-detail logic is sound, but left-full-list vs right-detail makes the two columns
+  **ragged heights**; user leaned toward **splitting list and detail into two separate pages**.
+
+### Round 2 (converged) — CURRENT. File: [`catalog-redesign.html`](./catalog-redesign.html).
+
+> **Status: AWAITING REVIEW.** One direction + a real two-page flow. Switcher flips **List ↔ Detail**;
+> `◐`/`t` toggles Blueprint(light)/Ink(dark). Clicking any card/row navigates to the detail; the detail
+> has a `← Back to catalog`. Tokens/components verbatim from `atlas-design-system.html`. Data SHAPE
+> mirrors `catalog.index.tsx` + `catalog.$topicId.tsx`. Fictional/public-safe.
+
+Resolves every round-1 note:
+- **LIST** (`#list`): header de-cluttered to **just Hero + search + ONE row of type tabs** (the stats-
+  chips row is gone; domain/status/region filtering moved OUT of the header). Below: **left facet
+  rail** (C2's keeper — Domain ✓ / Status / Region, adapts per type; hidden for Sources) + main
+  **card grid** with a **Cards/Table** toggle. The **Table** view is repaired: rows are **clickable**
+  (→ detail, with a trailing `→`) and carry a **Status column** alongside the per-region dots.
+- **DETAIL** (`#detail`): a **dedicated full-width page** (answers "two pages") laid out like the real
+  `catalog.$topicId` route — back link, detail header (icon, eyebrow `Type · Domain`, title, status +
+  id, primary action), then **main** (entry tools · availability dot grid + ETAs · "rollout in
+  progress" calm alert · related-in-domain · **Sources-cited evidence** `[n]`) + sticky **side meta
+  card** (Type/Status/Domain/Owner/Support/ID + action buttons).
+
+Verified in-browser: list cards + table, click-through to detail, back, **light + Ink dark**, no
+console errors. (Serve with a `?v=` cache-buster — the static server caches aggressively.)
+
+### Round 3 (detail IA + fixes) — CURRENT. Same file.
+
+Round-2 feedback: (1) **Cards vs Table widths didn't match** on the capability list. (2) Keep BOTH
+Cards and Table. (3) Detail's **availability block too big** — shrink it toward the real
+`AvailabilityStrip`. (4) Entry tools fine. (5) **The detail page was too thin** — rethink "what it
+shows / what the information hierarchy is".
+
+Fixes shipped:
+- **Capability Table was the wrong altitude** (the real cause of the width mess): it was rendering a
+  **per-region availability matrix**, but that belongs to the **Availability map** route — the catalog
+  is a *directory of capabilities*. Rebuilt the capability Table as a plain catalog list with the same
+  columns as the zones/guardrails tables: **Service · Domain · Status · Owner · Support**. The Status
+  cell is a catalog-altitude *summary* chip (`GA · N regions` / `Planned`), same altitude as the
+  cards' region chips; per-region status/ETA lives only on the detail page + the Availability map.
+- **Width parity** (still kept): `.content-main { min-width: 0 }` keeps any table constrained to the
+  content column. With the matrix gone the capability table is narrow and fits with room
+  (`scrollWidth === clientWidth`, no overflow); cards and table share one width.
+- **Status → per-region popover**: the table's Status cell is a chip + `▾` trigger; clicking it opens
+  a fixed-position popover "Availability by region" (each region: label · sub/ETA · status chip +
+  "Open in availability map ↗"). So the per-region detail is one click away without leaving the list
+  or changing the table's altitude. Closes on outside-click / scroll / Esc. Verified light + Ink.
+- **Availability → compact strip**: replaced the 5-row table with the real `AvailabilityStrip` shape —
+  one horizontal row of region cells (`label · sub/ETA · status chip`) + "Open in availability map ↗"
+  footer + the rollout alert. Much smaller.
+- **Detail IA rethought** (density via *structured facts*, not filler prose — per the design north
+  star). Tiered: **Header** (icon · `Type·Domain` · title · status · id + a trust line
+  `owner · channel · N sources · updated`) → **Tier 1** Where available (strip) + Get started (entry
+  tools) → **Tier 2** Guardrails & landing zones (new — applicable guardrail areas + zones it's
+  offered in) · Related capabilities · Related guidance (how-to cards with **step previews**) →
+  **Tier 3** Sources & freshness (summary line + each source's **"Backs: <claim>"** + authority/
+  freshness + stale warning). Side **meta card** gains `Updated`. Non-capability types reuse the shell
+  (availability/governance are capability-only).
+
+Verified in-browser: list cards/table width parity (measured), detail richness, light + Ink dark, no
+console errors.
+
+### Round 4 ($impeccable polish) — CURRENT. Same file.
+
+Ran the `impeccable` review (product register) with browser-measured evidence; applied:
+- **Status → per-region popover** (round-3 ask) shipped; added a 130ms fade+scale-in (reduced-motion → instant).
+- **AA contrast**: `--ink-3` measured **4.09:1** on bg (sub-AA for the slugs/channels/metadata/trust-line that use it) → darkened to `oklch(53% 0.027 264.18)` = **5.01:1**. Clears WCAG AA.
+- **Header de-hero'd**: the catalog header was a 315px landing-style hero (first card at y=530 of an 875px viewport) — wrong altitude for an in-task tool (Atlas anti-refs: no big hero; density is a feature). Compressed to a tool-page header (title `Catalog` 24px + inline search on one row + one 14px sub line): **115px, first card at y=322**. Dropped the redundant "PLATFORM CATALOG" eyebrow.
+- **Detail meta card typography unified**: the value column mixed weight (600/400) + size (13/12) + font; now uniform 12.5px/600, mono only as the family for system values (status/channel/id), baseline-aligned.
+- **Brand-button budget**: detail had three brand-primary buttons (header · Get started · side card). Removed the header action entirely; Get started is now all-secondary; the **one** primary lives in the sticky side meta card.
+- **Em dashes purged** from rendered copy (impeccable ban): card descriptions, the rollout alert, zone names (`L3 · Foundational`), and the header lede.
+
+**Verdict / next:** [ ] confirm the converged list + the enriched detail. Open calls for the user:
+header copy, facet ordering, and whether the guardrails/guidance content lands right (it's illustrative
+fictional data). Then fold into `portal/src/routes/catalog.index.tsx` (facet rail + tabs + card grid +
+table toggle) and `catalog.$topicId.tsx` (detail — already aligned to its real components:
+`AvailabilityStrip`, `EntryToolsGrid`, `RelatedGuidance`, `EvidenceSection`, `DetailMetaCard`), then
+delete the prototype + archives.
+
+---
+
 ## Final system (what was locked)
 
 - **One direction: "Blueprint"** (engineering-drawing aesthetic) in **two schemes** — Blueprint
