@@ -1,0 +1,559 @@
+<!doctype html>
+<!--
+  ATLAS PORTAL — HOME redesign · PROTOTYPE (throwaway) · round 2
+  ===================================================================
+  Round-1 verdict: B (dashboard) and C (reference ledger) dropped. Kept C's HERO treatment
+  (wide content column + large display + meta chips) and folded it into the A direction.
+  Fixes from feedback: removed the "01/02" mono section-index (read as generic AI); cut the
+  vague "Capability highlights" stat blocks; rebuilt the lifecycle as a connected, scalable
+  ribbon with neutral colour (was too much brand + no sense of sequence). Home now does two
+  jobs: (1) find fast, (2) showcase what the platform actually has — grounded in the real
+  catalog/availability content from reference/catalog_availability_preview_v2.html.
+
+  Four TYPES on one route — flip with the floating bottom bar or ← / → ; ◐ (or `t`) toggles
+  Blueprint(light)/Ink(dark):
+    T1 — Browse-first  : the catalog itself leads (cards by domain)
+    T2 — Task-led      : start from a question, then popular caps + availability glance
+    T3 — Directory     : dense scannable index with domain jump-nav
+    T4 — Lifecycle-led : the idea→production process is the spine, catalog below
+
+  Design source of truth: ../DESIGN.md + atlas-design-system.html (tokens & components verbatim).
+  All data fictional / public-safe. Run: cd prototype && python3 -m http.server 8753
+-->
+<html lang="en" data-variant="blueprint">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Atlas — Home (redesign options)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+/* ============================================================================
+   TOKENS — copied verbatim from atlas-design-system.html (Blueprint + Ink)
+   ============================================================================ */
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%;
+  --font-ui: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", "SF Mono", Menlo, Consolas, monospace;
+  --r-xs: 3px; --r-sm: 4px; --r-md: 6px; --r-lg: 10px; --r-pill: 999px;
+  --card-r: var(--r-sm); --control-r: var(--r-xs); }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-ui); font-size: 15px;
+  line-height: 1.55; font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+  -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility;
+  font-optical-sizing: auto; font-synthesis: none; padding-bottom: 92px;
+  transition: background-color .25s ease, color .25s ease; }
+:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 2px; }
+
+html[data-variant="blueprint"] {
+  --bg: oklch(98.2% 0.004 264.18); --grid: oklch(72% 0.04 264.18 / 0.08);
+  --surface: oklch(99.6% 0.0015 264.18); --surface-2: oklch(97% 0.006 264.18);
+  --ink: oklch(23% 0.03 264.18); --ink-2: oklch(46% 0.03 264.18); --ink-3: oklch(58% 0.025 264.18);
+  --line: oklch(90% 0.012 264.18); --line-2: oklch(80% 0.016 264.18);
+  --brand: oklch(46.28% 0.3059 264.18); --brand-hover: oklch(40% 0.28 264.18);
+  --brand-tint: oklch(95% 0.045 264.18); --brand-ink: oklch(45% 0.29 264.18);
+  --on-brand: oklch(99.6% 0.0015 264.18);
+  --success: oklch(56% 0.13 152); --success-tint: oklch(95% 0.05 152); --success-ink: oklch(38% 0.11 152);
+  --warning: oklch(70% 0.15 75);  --warning-tint: oklch(95% 0.07 85);  --warning-ink: oklch(45% 0.12 60);
+  --critical:oklch(55% 0.2 25);   --critical-tint:oklch(95% 0.05 25);  --critical-ink:oklch(45% 0.18 25);
+  --info:    oklch(60% 0.12 230); --info-tint:    oklch(95% 0.04 230); --info-ink:    oklch(42% 0.11 230);
+  --shadow-pop: 0 1px 2px oklch(40% 0.05 264.18 / 0.08), 0 6px 16px oklch(40% 0.05 264.18 / 0.06); }
+html[data-variant="blueprint-ink"] {
+  --bg: oklch(12% 0.008 264.18); --grid: oklch(82% 0.03 264.18 / 0.045);
+  --surface: oklch(16% 0.009 264.18); --surface-2: oklch(20% 0.011 264.18);
+  --ink: oklch(96% 0.005 264.18); --ink-2: oklch(68% 0.012 264.18); --ink-3: oklch(52% 0.012 264.18);
+  --line: oklch(24% 0.01 264.18); --line-2: oklch(34% 0.012 264.18);
+  --brand: oklch(62% 0.26 264.18); --brand-hover: oklch(69% 0.23 264.18);
+  --brand-tint: oklch(25% 0.06 264.18); --brand-ink: oklch(80% 0.15 264.18);
+  --on-brand: oklch(12% 0.008 264.18);
+  --success: oklch(72% 0.16 152); --success-tint: oklch(24% 0.06 152); --success-ink: oklch(81% 0.14 152);
+  --warning: oklch(80% 0.15 85);  --warning-tint: oklch(26% 0.07 80);  --warning-ink: oklch(86% 0.13 85);
+  --critical:oklch(67% 0.2 25);   --critical-tint:oklch(26% 0.08 25);  --critical-ink:oklch(82% 0.15 25);
+  --info:    oklch(72% 0.12 230); --info-tint:    oklch(26% 0.06 230); --info-ink:    oklch(84% 0.1 230);
+  --shadow-pop: 0 2px 8px oklch(0% 0 0 / 0.55), 0 16px 34px oklch(0% 0 0 / 0.45); }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; } }
+
+/* ============================================================================
+   SHELL — grid (negative space only) + top nav + FAB
+   ============================================================================ */
+.canvas { min-height: 100dvh; background-image:
+  linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 32px 32px; background-position: -1px -1px; }
+.wrap { max-width: 1040px; margin: 0 auto; padding: 0 24px; }
+/* same-colour plates mask the grid behind copy */
+.eyebrow, .sec-head h2, .sec-sub, .dom-head, .jump-label { background: var(--bg); }
+.hero h1, .hero p { background: var(--bg); width: fit-content; }
+
+.topbar { position: sticky; top: 0; z-index: 30; display: grid; grid-template-columns: 1fr auto 1fr;
+  align-items: center; gap: 16px; height: 56px; padding: 0 24px; background: var(--bg); border-bottom: 1px solid var(--line); }
+.tb-left { display: flex; align-items: center; gap: 12px; justify-self: start; }
+.tb-right { display: flex; align-items: center; gap: 6px; justify-self: end; }
+.brandmark { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px;
+  border-radius: 7px; background: var(--brand); color: var(--on-brand); font-family: var(--font-mono);
+  font-weight: 600; font-size: 13px; letter-spacing: -0.04em; }
+.wordmark { font-weight: 700; font-size: 16px; letter-spacing: -0.02em; }
+.topnav { display: flex; gap: 2px; justify-self: center; }
+.topnav a { padding: 6px 12px; border-radius: var(--control-r); color: var(--ink-2); text-decoration: none;
+  font-size: 14px; font-weight: 500; transition: background-color .15s, color .15s; }
+.topnav a:hover { background: var(--surface-2); color: var(--ink); }
+.topnav a[aria-current="page"] { color: var(--ink); font-weight: 600; box-shadow: inset 0 -2px 0 var(--brand);
+  border-radius: var(--control-r) var(--control-r) 0 0; }
+.icobtn { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px;
+  border-radius: var(--control-r); border: 1px solid transparent; background: transparent; color: var(--ink-2);
+  cursor: pointer; transition: background-color .15s, color .15s; }
+.icobtn:hover { background: var(--surface-2); color: var(--ink); }
+.fab { position: fixed; right: 24px; bottom: 24px; z-index: 90; display: inline-flex; align-items: center; gap: 8px;
+  padding: 11px 18px; border-radius: var(--r-pill); background: var(--brand); color: var(--on-brand); border: none;
+  cursor: pointer; font-family: var(--font-ui); font-size: 14px; font-weight: 600; box-shadow: var(--shadow-pop);
+  transition: background-color .15s, transform .06s; }
+.fab:hover { background: var(--brand-hover); } .fab:active { transform: translateY(1px); }
+
+/* ============================================================================
+   HERO (folded in from round-1 variant C) + clean section headers
+   ============================================================================ */
+.hero { padding: 56px 0 8px; }
+.eyebrow { display: inline-flex; font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+  letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); }
+.hero h1 { margin: 14px 0 0; font-size: clamp(34px, 5.4vw, 54px); line-height: 1.03; letter-spacing: -0.035em;
+  font-weight: 700; max-width: 16ch; text-wrap: balance; }
+.hero p { margin: 18px 0 26px; max-width: 60ch; color: var(--ink-2); font-size: 18px; line-height: 1.55; }
+.hero-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 18px; }
+
+.search { position: relative; display: flex; align-items: center; max-width: 580px; }
+.search .ico-search { position: absolute; left: 14px; color: var(--ink-3); pointer-events: none; display: flex; }
+.search input { font-family: var(--font-ui); font-size: 15px; color: var(--ink); height: 50px; width: 100%;
+  padding: 0 14px 0 42px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md);
+  transition: border-color .15s, box-shadow .15s; }
+.search input::placeholder { color: var(--ink-3); }
+.search input:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px color-mix(in oklab, var(--brand) 16%, transparent); }
+.search .kbd { position: absolute; right: 12px; font-family: var(--font-mono); font-size: 11px; color: var(--ink-3);
+  background: var(--bg); border: 1px solid var(--line); border-radius: 5px; padding: 2px 7px; }
+
+section.block { padding: 44px 0 0; }
+.sec-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin: 0 0 18px; }
+.sec-head h2 { margin: 0; font-size: 21px; font-weight: 700; letter-spacing: -0.02em; width: fit-content; }
+.sec-sub { margin: 5px 0 0; font-size: 13.5px; color: var(--ink-2); width: fit-content; }
+.sec-link { font-size: 13px; font-weight: 600; color: var(--brand-ink); text-decoration: none; white-space: nowrap; }
+.sec-link:hover { text-decoration: underline; }
+.mono { font-family: var(--font-mono); } .muted { color: var(--ink-2); }
+
+/* ============================================================================
+   SHARED PRIMITIVES — chips, dots, cards, etc.
+   ============================================================================ */
+.chip { display: inline-flex; align-items: center; gap: 5px; font-family: var(--font-ui); font-size: 11.5px;
+  font-weight: 600; letter-spacing: .01em; padding: 3px 8px; border-radius: 2px; border: 1px solid var(--line-2);
+  background: transparent; color: var(--ink-2); text-decoration: none; }
+.chip.brand   { border-color: color-mix(in oklab, var(--brand) 35%, var(--line)); color: var(--brand-ink); }
+.chip.success { border-color: color-mix(in oklab, var(--success) 45%, var(--line)); color: var(--success-ink); }
+.chip.warning { border-color: color-mix(in oklab, var(--warning) 50%, var(--line)); color: var(--warning-ink); }
+.chip.info    { border-color: color-mix(in oklab, var(--info) 45%, var(--line)); color: var(--info-ink); }
+.dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.dot.success { background: var(--success); } .dot.warning { background: var(--warning); }
+.dot.critical { background: var(--critical); } .dot.info { background: var(--info); } .dot.neutral { background: var(--ink-3); }
+.dot.na { background: transparent; box-shadow: inset 0 0 0 1.5px var(--line-2); }
+
+/* capability card (brand corner ticks per DESIGN.md) */
+.cap-grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+.cap { display: flex; flex-direction: column; gap: 10px; background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--card-r); padding: 16px; text-decoration: none; color: inherit; position: relative;
+  transition: border-color .15s, box-shadow .15s; }
+.cap:hover { border-color: var(--line-2); box-shadow: var(--shadow-pop); }
+.cap::before, .cap::after { content: ""; position: absolute; width: 7px; height: 7px; border-color: var(--brand);
+  border-style: solid; opacity: .5; pointer-events: none; }
+.cap::before { top: -1px; left: -1px; border-width: 1px 0 0 1px; }
+.cap::after { bottom: -1px; right: -1px; border-width: 0 1px 1px 0; }
+.cap-top { display: flex; align-items: flex-start; gap: 12px; }
+.cap-icon { width: 36px; height: 36px; flex: none; border-radius: var(--control-r); display: grid; place-items: center;
+  background: var(--brand-tint); color: var(--brand-ink); font-family: var(--font-mono); font-size: 11px; font-weight: 600; }
+.cap-title { font-size: 15px; font-weight: 700; letter-spacing: -0.01em; margin: 0; }
+.cap-slug { font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); margin-top: 2px; }
+.cap-desc { font-size: 13px; color: var(--ink-2); line-height: 1.5; margin: 0; flex: 1; }
+.cap-foot { display: flex; align-items: center; gap: 8px; margin-top: 2px; padding-top: 10px; border-top: 1px solid var(--line); }
+.cap-arrow { margin-left: auto; color: var(--ink-3); transition: transform .15s, color .15s; }
+.cap:hover .cap-arrow { transform: translateX(2px); color: var(--brand-ink); }
+
+/* domain group header (catalog browse) — mono label + count, NOT a numbered section index */
+.dom { margin-top: 4px; }
+.dom + .dom { margin-top: 28px; }
+.dom-head { display: inline-flex; align-items: center; gap: 10px; margin: 0 0 12px; }
+.dom-head .nm { font-family: var(--font-mono); font-size: 12px; font-weight: 600; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--ink-2); }
+.dom-head .ct { font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); padding: 1px 7px;
+  border-radius: var(--r-pill); background: var(--surface-2); border: 1px solid var(--line); }
+
+/* lifecycle ribbon — connected, sequential, scrolls when it grows (neutral colour) */
+.flow { display: flex; gap: 14px; overflow-x: auto; padding-bottom: 4px; }
+.flow-step { flex: 1 1 0; min-width: 184px; background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--card-r); padding: 16px; position: relative; }
+.flow-step:not(:last-child)::after { content: "→"; position: absolute; right: -13px; top: 24px; color: var(--ink-3);
+  font-size: 13px; z-index: 1; }
+.flow-n { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px;
+  border-radius: 50%; border: 1px solid var(--line-2); font-family: var(--font-mono); font-size: 11px; color: var(--ink-2); }
+.flow-st { font-size: 14px; font-weight: 700; letter-spacing: -0.01em; margin: 12px 0 4px; }
+.flow-sd { font-size: 12.5px; color: var(--ink-2); line-height: 1.5; }
+.flow-links { display: flex; flex-direction: column; gap: 3px; margin-top: 10px; }
+.flow-links a { font-size: 12.5px; font-weight: 600; color: var(--brand-ink); text-decoration: none; }
+.flow-links a:hover { text-decoration: underline; }
+
+/* directory list (dense scannable index) */
+.jump { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 18px; }
+.jump-label { font-family: var(--font-mono); font-size: 11px; font-weight: 600; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--ink-3); margin-right: 4px; }
+.dir { border: 1px solid var(--line); border-radius: var(--card-r); overflow: hidden; background: var(--surface); }
+.dir-dom { padding: 9px 14px; background: var(--surface-2); font-family: var(--font-mono); font-size: 11px;
+  font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3);
+  border-bottom: 1px solid var(--line); border-top: 1px solid var(--line); }
+.dir-dom:first-child { border-top: 0; }
+.dir-row { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 16px; padding: 11px 14px;
+  border-bottom: 1px solid var(--line); text-decoration: none; color: inherit; transition: background-color .12s; }
+.dir-row:last-child { border-bottom: 0; }
+.dir-row:hover { background: var(--surface-2); }
+.dir-name { font-weight: 600; font-size: 13.5px; }
+.dir-slug { font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); margin-left: 8px; }
+.dir-status { display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--ink-2); white-space: nowrap; }
+
+/* region summary cards (availability glance) */
+.reg-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(176px, 1fr)); gap: 12px; }
+.reg { background: var(--surface); border: 1px solid var(--line); border-radius: var(--card-r); padding: 14px 16px; }
+.reg-l { font-size: 14px; font-weight: 700; letter-spacing: -0.01em; font-family: var(--font-mono); }
+.reg-s { font-size: 12px; color: var(--ink-3); margin-top: 1px; }
+.reg-c { display: flex; gap: 16px; margin-top: 14px; font-size: 12.5px; color: var(--ink-2); }
+.reg-c span { display: inline-flex; align-items: center; gap: 6px; }
+.reg-c b { font-variant-numeric: tabular-nums; color: var(--ink); }
+
+/* recently viewed + resources */
+.recent-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.recent-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 500; padding: 6px 12px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-pill); color: var(--ink);
+  text-decoration: none; transition: border-color .15s; }
+.recent-chip:hover { border-color: var(--line-2); }
+.recent-chip .t { font-family: var(--font-mono); font-size: 9.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--ink-3); }
+.res-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.res { display: flex; align-items: center; gap: 12px; padding: 14px 16px; background: var(--surface);
+  border: 1px solid var(--line); border-radius: var(--card-r); text-decoration: none; color: inherit;
+  transition: border-color .15s, box-shadow .15s; }
+.res:hover { border-color: var(--line-2); box-shadow: var(--shadow-pop); }
+.res .ic { width: 32px; height: 32px; flex: none; border-radius: var(--control-r); display: grid; place-items: center;
+  background: var(--surface-2); border: 1px solid var(--line); color: var(--ink-2); }
+.res .rt { font-size: 13px; font-weight: 700; } .res .rd { font-size: 12px; color: var(--ink-2); }
+
+/* task entry cards (T2) — low brand */
+.task-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+.task { display: flex; flex-direction: column; gap: 8px; background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--card-r); padding: 18px; text-decoration: none; color: inherit; transition: border-color .15s, box-shadow .15s; }
+.task:hover { border-color: var(--line-2); box-shadow: var(--shadow-pop); }
+.task .q { font-size: 15px; font-weight: 700; letter-spacing: -0.01em; }
+.task .a { font-size: 13px; color: var(--ink-2); line-height: 1.5; flex: 1; }
+.task .go { font-size: 12.5px; font-weight: 600; color: var(--brand-ink); }
+
+.layout { display: none; } .layout.on { display: block; }
+.pad-end { padding-bottom: 64px; }
+
+/* ============================================================================
+   SWITCHER (neutral chrome — not part of the design under test)
+   ============================================================================ */
+.switcher { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); z-index: 100; display: flex;
+  align-items: center; gap: 4px; background: #0b0d12; color: #fff; border: 1px solid #2a2f3a; border-radius: 999px;
+  padding: 6px; box-shadow: 0 8px 30px rgba(0,0,0,.35); font-family: "Inter", system-ui, sans-serif; }
+.switcher button { background: none; border: none; color: #b8bfcc; cursor: pointer; width: 30px; height: 30px;
+  border-radius: 999px; display: grid; place-items: center; font-size: 15px; }
+.switcher button:hover { background: #1a1e27; color: #fff; }
+.switcher .label { padding: 0 10px; font-size: 13px; min-width: 184px; text-align: center; }
+.switcher .label .k { font-family: "IBM Plex Mono", monospace; color: #6f7686; font-size: 11px; }
+.switcher .dots { display: flex; gap: 5px; padding: 0 6px; }
+.switcher .dots i { width: 6px; height: 6px; border-radius: 50%; background: #3a4150; }
+.switcher .dots i.on { background: #4d6bff; }
+.switcher .sep { width: 1px; height: 20px; background: #2a2f3a; margin: 0 2px; }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="tb-left"><span class="brandmark">A</span><span class="wordmark">Atlas</span></div>
+  <nav class="topnav">
+    <a href="#" aria-current="page">Home</a><a href="#">Catalog</a><a href="#">Availability</a>
+    <a href="#">Guidance</a><a href="#">Sources</a>
+  </nav>
+  <div class="tb-right">
+    <button class="icobtn" title="Search" aria-label="Search"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35" stroke-linecap="round"/></svg></button>
+    <button class="icobtn" id="themeIco" title="Toggle theme" aria-label="Toggle theme"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" stroke-linecap="round"/></svg></button>
+  </div>
+</header>
+
+<div class="canvas">
+
+<!-- shared hero markup is injected per layout by JS (so the wide content column is identical) -->
+
+<!-- T1 — BROWSE-FIRST -->
+<div class="layout on" data-layout="t1">
+  <div class="wrap">
+    <div data-hero></div>
+    <section class="block">
+      <div class="sec-head">
+        <div><h2>Browse the catalog</h2><p class="sec-sub">Approved services grouped by domain — scan, then dive in.</p></div>
+        <a class="sec-link" href="#">All capabilities →</a>
+      </div>
+      <div data-catalog></div>
+    </section>
+    <section class="block">
+      <div class="sec-head"><div><h2>From idea to production</h2><p class="sec-sub">The platform lifecycle, end to end.</p></div></div>
+      <div data-flow></div>
+    </section>
+    <section class="block pad-end">
+      <div class="sec-head"><div><h2>Keep exploring</h2></div></div>
+      <div data-resources></div>
+    </section>
+  </div>
+</div>
+
+<!-- T2 — TASK-LED -->
+<div class="layout" data-layout="t2">
+  <div class="wrap">
+    <div data-hero></div>
+    <section class="block">
+      <div class="sec-head"><div><h2>Start with a question</h2><p class="sec-sub">Jump to the task that matches where you are.</p></div></div>
+      <div class="task-grid">
+        <a class="task" href="#"><div class="q">Which capability should I use?</div><div class="a">Browse approved services with availability and guardrails across regions.</div><span class="go">Evaluate capabilities →</span></a>
+        <a class="task" href="#"><div class="q">Which landing zone fits?</div><div class="a">Compare production, staging, and sandbox zones by guardrails and isolation.</div><span class="go">Compare zones →</span></a>
+        <a class="task" href="#"><div class="q">How do I get started?</div><div class="a">Pull entry tools, pipelines, modules, and the right support channel for your stack.</div><span class="go">Start onboarding →</span></a>
+      </div>
+    </section>
+    <section class="block">
+      <div class="sec-head">
+        <div><h2>Popular capabilities</h2><p class="sec-sub">What teams reach for most.</p></div>
+        <a class="sec-link" href="#">All capabilities →</a>
+      </div>
+      <div class="cap-grid" data-popular></div>
+    </section>
+    <section class="block">
+      <div class="sec-head">
+        <div><h2>Availability at a glance</h2><p class="sec-sub">What's live where, across regions and outposts.</p></div>
+        <a class="sec-link" href="#">Availability map →</a>
+      </div>
+      <div class="reg-grid" data-regions></div>
+    </section>
+    <section class="block pad-end">
+      <div class="sec-head"><div><h2>Keep exploring</h2></div></div>
+      <div data-resources></div>
+    </section>
+  </div>
+</div>
+
+<!-- T3 — DIRECTORY -->
+<div class="layout" data-layout="t3">
+  <div class="wrap">
+    <div data-hero></div>
+    <section class="block">
+      <div class="sec-head">
+        <div><h2>Service directory</h2><p class="sec-sub">Every approved capability, by domain. Jump or scan.</p></div>
+        <a class="sec-link" href="#">Open full catalog →</a>
+      </div>
+      <div class="jump" data-jump></div>
+      <div class="dir" data-directory></div>
+    </section>
+    <section class="block pad-end">
+      <div class="sec-head"><div><h2>From idea to production</h2><p class="sec-sub">The platform lifecycle, end to end.</p></div></div>
+      <div data-flow></div>
+    </section>
+  </div>
+</div>
+
+<!-- T4 — LIFECYCLE-LED -->
+<div class="layout" data-layout="t4">
+  <div class="wrap">
+    <div data-hero></div>
+    <section class="block">
+      <div class="sec-head"><div><h2>Where are you in the lifecycle?</h2><p class="sec-sub">Pick a stage to jump to the right tools and services.</p></div></div>
+      <div data-flow-rich></div>
+    </section>
+    <section class="block pad-end">
+      <div class="sec-head">
+        <div><h2>Browse the catalog</h2><p class="sec-sub">Approved services grouped by domain.</p></div>
+        <a class="sec-link" href="#">All capabilities →</a>
+      </div>
+      <div data-catalog></div>
+    </section>
+  </div>
+</div>
+
+</div><!-- /canvas -->
+
+<button class="fab" title="Ask Atlas">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.5 8.5 0 0 1-12.6 7.4L3 21l2.1-5.4A8.5 8.5 0 1 1 21 11.5z" stroke-linejoin="round"/></svg>
+  Ask Atlas
+</button>
+
+<div class="switcher" role="group" aria-label="Prototype variant switcher">
+  <button id="prev" title="Previous type (←)">‹</button>
+  <span class="label"><span id="lbl">T1 — Browse-first</span> <span class="k" id="lblk">#t1</span></span>
+  <button id="next" title="Next type (→)">›</button>
+  <span class="dots" id="dots"><i class="on"></i><i></i><i></i><i></i></span>
+  <span class="sep"></span>
+  <button id="theme" title="Toggle Blueprint / Ink">◐</button>
+</div>
+
+<script>
+  /* ---- fictional / public-safe catalog (from reference/catalog_availability_preview_v2.html) ---- */
+  const REGIONS = [
+    { id: "us-east-1", label: "us-east-1", sub: "N. Virginia" },
+    { id: "ca-central-1", label: "ca-central-1", sub: "Canada Central" },
+    { id: "gdc", label: "gdc", sub: "Primary Outpost" },
+    { id: "dc16", label: "dc16", sub: "DR Outpost" },
+    { id: "mt10", label: "mt10", sub: "Future DR" },
+  ];
+  const CORE = ["us-east-1", "ca-central-1"]; // most services GA here
+  const CAPS = [
+    { n: "EC2", slug: "ec2", dom: "Compute", ic: "EC2", d: "Virtual servers", av: CORE, pl: ["gdc","dc16","mt10"] },
+    { n: "Lambda", slug: "lambda", dom: "Compute", ic: "LAM", d: "Serverless functions", av: CORE, pl: [] },
+    { n: "ECS Fargate", slug: "ecs-fargate", dom: "Containers", ic: "ECS", d: "Managed containers", av: CORE, pl: [] },
+    { n: "EKS", slug: "eks", dom: "Containers", ic: "EKS", d: "Kubernetes orchestration", av: CORE, pl: [] },
+    { n: "Elastic Container Registry", slug: "ecr", dom: "Containers", ic: "ECR", d: "Private image registry", av: CORE, pl: [] },
+    { n: "S3", slug: "s3", dom: "Storage", ic: "S3", d: "Object storage", av: CORE, pl: [] },
+    { n: "Elastic File System", slug: "efs", dom: "Storage", ic: "EFS", d: "Shared file storage", av: CORE, pl: [] },
+    { n: "Elastic Block Storage", slug: "ebs", dom: "Storage", ic: "EBS", d: "Block volumes", av: CORE, pl: [] },
+    { n: "Backup", slug: "backup", dom: "Storage", ic: "BAK", d: "Centralised backup", av: CORE, pl: [] },
+    { n: "Aurora Serverless v2", slug: "aurora", dom: "Database", ic: "PG", d: "PostgreSQL-compatible", av: CORE, pl: [] },
+    { n: "ElastiCache", slug: "elasticache", dom: "Database", ic: "EC", d: "In-memory cache", av: CORE, pl: [] },
+    { n: "Kinesis", slug: "kinesis", dom: "Analytics", ic: "KIN", d: "Real-time streaming", av: CORE, pl: [] },
+    { n: "Glue", slug: "glue", dom: "Analytics", ic: "GLU", d: "Managed ETL", av: CORE, pl: [] },
+    { n: "Athena", slug: "athena", dom: "Analytics", ic: "ATH", d: "Serverless SQL queries", av: CORE, pl: [] },
+    { n: "Simple Queue Service", slug: "sqs", dom: "App Integration", ic: "SQS", d: "Message queues", av: CORE, pl: [] },
+    { n: "Simple Notification Service", slug: "sns", dom: "App Integration", ic: "SNS", d: "Pub/sub notifications", av: CORE, pl: [] },
+    { n: "EventBridge", slug: "eventbridge", dom: "App Integration", ic: "EVB", d: "Event bus", av: CORE, pl: [] },
+    { n: "Step Functions", slug: "step-functions", dom: "App Integration", ic: "SFN", d: "Workflow orchestration", av: CORE, pl: [] },
+    { n: "Managed Apache Airflow", slug: "airflow", dom: "App Integration", ic: "MWA", d: "Pipeline scheduling", av: CORE, pl: [] },
+    { n: "Bedrock", slug: "bedrock", dom: "AI Services", ic: "BDR", d: "Foundation models", av: CORE, pl: [] },
+    { n: "Bedrock AgentCore", slug: "agentcore", dom: "AI Services", ic: "AGC", d: "Agent runtime", av: CORE, pl: [] },
+    { n: "Textract", slug: "textract", dom: "AI Services", ic: "TEX", d: "Document extraction", av: CORE, pl: [] },
+    { n: "Transfer Family", slug: "transfer", dom: "Migration & Transfer", ic: "TRN", d: "Managed SFTP/FTPS", av: CORE, pl: [] },
+    { n: "Database Migration Service", slug: "dms", dom: "Migration & Transfer", ic: "DMS", d: "Schema & data migration", av: [], pl: CORE },
+    { n: "Elastic Load Balancing", slug: "elb", dom: "Networking", ic: "ELB", d: "Layer 4/7 load balancing", av: [], pl: ["gdc","dc16","mt10"] },
+  ];
+  const DOMAIN_ORDER = ["Compute","Containers","Storage","Database","Analytics","App Integration","AI Services","Migration & Transfer","Networking"];
+
+  const statusChip = (c) => c.av.length
+    ? `<span class="chip success"><span class="dot success"></span>GA · ${c.av.length} ${c.av.length>1?"regions":"region"}</span>`
+    : `<span class="chip info"><span class="dot info"></span>Planned</span>`;
+  const dirStatus = (c) => c.av.length
+    ? `<span class="dir-status"><span class="dot success"></span>GA · ${c.av.length}</span>`
+    : `<span class="dir-status"><span class="dot info"></span>Planned</span>`;
+  const byDomain = () => DOMAIN_ORDER.map(d => [d, CAPS.filter(c => c.dom === d)]).filter(([,l]) => l.length);
+
+  const capCard = (c) => `<a class="cap" href="#">
+      <div class="cap-top"><div class="cap-icon">${c.ic}</div><div><h3 class="cap-title">${c.n}</h3><div class="cap-slug">${c.slug}</div></div></div>
+      <p class="cap-desc">${c.d}</p>
+      <div class="cap-foot">${statusChip(c)}<span class="cap-arrow">→</span></div></a>`;
+
+  function renderCatalog(el) {
+    el.innerHTML = byDomain().map(([dom, list]) =>
+      `<div class="dom"><div class="dom-head"><span class="nm">${dom}</span><span class="ct">${list.length}</span></div>
+       <div class="cap-grid">${list.map(capCard).join("")}</div></div>`).join("");
+  }
+  function renderPopular(el) {
+    const pop = ["s3","ec2","eks","aurora","bedrock","sqs"].map(s => CAPS.find(c => c.slug === s));
+    el.innerHTML = pop.map(capCard).join("");
+  }
+  function renderRegions(el) {
+    el.innerHTML = REGIONS.map(r => {
+      const avc = CAPS.filter(c => c.av.includes(r.id)).length;
+      const plc = CAPS.filter(c => c.pl.includes(r.id)).length;
+      return `<div class="reg"><div class="reg-l">${r.label}</div><div class="reg-s">${r.sub}</div>
+        <div class="reg-c"><span><span class="dot success"></span><b>${avc}</b> live</span>
+        <span><span class="dot info"></span><b>${plc}</b> planned</span></div></div>`;
+    }).join("");
+  }
+  function renderJump(el) {
+    el.innerHTML = `<span class="jump-label">Jump to</span>` +
+      byDomain().map(([dom, list]) => `<a class="chip" href="#">${dom} <span style="opacity:.6">${list.length}</span></a>`).join("");
+  }
+  function renderDirectory(el) {
+    el.innerHTML = byDomain().map(([dom, list]) =>
+      `<div class="dir-dom">${dom}</div>` +
+      list.map(c => `<a class="dir-row" href="#"><span><span class="dir-name">${c.n}</span><span class="dir-slug">${c.slug}</span></span>${dirStatus(c)}</a>`).join("")
+    ).join("");
+  }
+
+  const FLOW = [
+    { st: "Understand", d: "Browse the catalog, domains, and regional availability before committing.", links: [["Service catalog","#"],["Availability map","#"]] },
+    { st: "Build", d: "Provision landing zones and services with Terraform modules and pipelines.", links: [["Terraform modules","#"],["Deployment pipelines","#"]] },
+    { st: "Validate", d: "Run the guardrail checker so the workload meets compliance and security.", links: [["Guardrail checker","#"]] },
+    { st: "Operate", d: "Track health, freshness, and availability changes as the platform evolves.", links: [["Health dashboard","#"],["What's new","#"]] },
+  ];
+  function renderFlow(el, rich) {
+    el.innerHTML = `<div class="flow">` + FLOW.map((s, i) =>
+      `<div class="flow-step"><span class="flow-n">${i+1}</span><div class="flow-st">${s.st}</div>
+       <div class="flow-sd">${s.d}</div>${rich ? `<div class="flow-links">${s.links.map(([t,h])=>`<a href="${h}">${t} →</a>`).join("")}</div>` : ""}</div>`
+    ).join("") + `</div>`;
+  }
+
+  const HERO = `<section class="hero">
+    <span class="eyebrow">Platform catalog</span>
+    <h1>Find the right platform path</h1>
+    <p>One place to find approved capabilities, see where they're available, and follow the path from idea to production.</p>
+    <div class="search"><span class="ico-search"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35" stroke-linecap="round"/></svg></span>
+      <input placeholder="Search capabilities, zones, owners…" /><span class="kbd">⌘K</span></div>
+    <div class="hero-meta">
+      <span class="chip brand">${CAPS.length} capabilities</span>
+      <span class="chip">${DOMAIN_ORDER.length} domains</span>
+      <span class="chip">${REGIONS.length} regions &amp; outposts</span>
+      <span class="chip">L3–L5 landing zones</span>
+    </div>
+  </section>`;
+  const RESOURCES = `<div class="res-grid">
+    <a class="res" href="#"><span class="ic">▤</span><div><div class="rt">All capabilities</div><div class="rd">Full service catalog by domain.</div></div></a>
+    <a class="res" href="#"><span class="ic">▣</span><div><div class="rt">Landing zones</div><div class="rd">Compare environments and guardrails.</div></div></a>
+    <a class="res" href="#"><span class="ic">◎</span><div><div class="rt">Availability map</div><div class="rd">Regional status across all services.</div></div></a>
+    <a class="res" href="#"><span class="ic">◔</span><div><div class="rt">Health dashboard</div><div class="rd">Source freshness and data quality.</div></div></a>
+  </div>`;
+
+  // populate every layout's shared slots once
+  document.querySelectorAll("[data-hero]").forEach(el => el.innerHTML = HERO);
+  document.querySelectorAll("[data-resources]").forEach(el => el.innerHTML = RESOURCES);
+  document.querySelectorAll("[data-catalog]").forEach(renderCatalog);
+  document.querySelectorAll("[data-popular]").forEach(renderPopular);
+  document.querySelectorAll("[data-regions]").forEach(renderRegions);
+  document.querySelectorAll("[data-jump]").forEach(renderJump);
+  document.querySelectorAll("[data-directory]").forEach(renderDirectory);
+  document.querySelectorAll("[data-flow]").forEach(el => renderFlow(el, false));
+  document.querySelectorAll("[data-flow-rich]").forEach(el => renderFlow(el, true));
+
+  /* ---- switcher ---- */
+  const LAYOUTS = [
+    { key: "t1", name: "Browse-first" },
+    { key: "t2", name: "Task-led" },
+    { key: "t3", name: "Directory" },
+    { key: "t4", name: "Lifecycle-led" },
+  ];
+  const html = document.documentElement;
+  let idx = 0, scheme = "blueprint";
+  function parseHash() {
+    const [l, s] = (location.hash || "").replace("#", "").split("-");
+    const f = LAYOUTS.findIndex(x => x.key === l); if (f >= 0) idx = f;
+    scheme = s === "ink" ? "blueprint-ink" : "blueprint";
+  }
+  function writeHash() { location.hash = LAYOUTS[idx].key + (scheme === "blueprint-ink" ? "-ink" : ""); }
+  function render() {
+    html.setAttribute("data-variant", scheme);
+    document.querySelectorAll(".layout").forEach(el => el.classList.toggle("on", el.dataset.layout === LAYOUTS[idx].key));
+    document.getElementById("lbl").textContent = LAYOUTS[idx].key.toUpperCase() + " — " + LAYOUTS[idx].name;
+    document.getElementById("lblk").textContent = "#" + LAYOUTS[idx].key + (scheme === "blueprint-ink" ? " · ink" : " · light");
+    document.querySelectorAll("#dots i").forEach((d, i) => d.classList.toggle("on", i === idx));
+    window.scrollTo({ top: 0 });
+  }
+  function go(n) { idx = (n + LAYOUTS.length) % LAYOUTS.length; writeHash(); render(); }
+  function toggleTheme() { scheme = scheme === "blueprint" ? "blueprint-ink" : "blueprint"; writeHash(); render(); }
+  document.getElementById("prev").onclick = () => go(idx - 1);
+  document.getElementById("next").onclick = () => go(idx + 1);
+  document.getElementById("theme").onclick = toggleTheme;
+  document.getElementById("themeIco").onclick = toggleTheme;
+  window.addEventListener("keydown", e => {
+    const t = e.target; if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
+    if (e.key === "ArrowLeft") go(idx - 1);
+    else if (e.key === "ArrowRight") go(idx + 1);
+    else if (e.key.toLowerCase() === "t") toggleTheme();
+  });
+  window.addEventListener("hashchange", () => { parseHash(); render(); });
+  parseHash(); render();
+</script>
+</body>
+</html>
