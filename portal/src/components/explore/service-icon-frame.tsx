@@ -1,4 +1,4 @@
-import type { ComponentType } from "react";
+import { useEffect, useState, type ComponentType } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -39,20 +39,42 @@ const fallbackClass = {
   hero: "type-body",
 } as const;
 
+/**
+ * Brand SVGs are detailed; mounting dozens in a single commit janks weak CPUs on the
+ * first paint of each provider tab. Render the cheap glyph first, then upgrade to the
+ * real icon during idle time so the initial commit stays light. Per-mount state means
+ * every tab's first render (rows remount on provider switch) gets the same deferral.
+ */
+function useDeferredIconMount() {
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    if (typeof requestIdleCallback === "function") {
+      const id = requestIdleCallback(() => setReady(true));
+      return () => cancelIdleCallback(id);
+    }
+    const id = setTimeout(() => setReady(true), 0);
+    return () => clearTimeout(id);
+  }, []);
+
+  return ready;
+}
+
 export function MappedServiceIcon({ serviceId, iconMap, size = "md" }: MappedServiceIconProps) {
-  const Icon = iconMap[serviceId];
+  const ready = useDeferredIconMount();
+  const ResolvedIcon = ready ? iconMap[serviceId] : undefined;
 
   return (
     <span
       aria-hidden
       className={cn(
         "flex shrink-0 items-center justify-center rounded-md",
-        Icon ? "bg-transparent" : "bg-brand-tint",
+        ResolvedIcon ? "bg-transparent" : "bg-brand-tint",
         sizeClass[size],
       )}
     >
-      {Icon ? (
-        <Icon size={iconSize[size]} />
+      {ResolvedIcon ? (
+        <ResolvedIcon size={iconSize[size]} />
       ) : (
         <ServiceIconGlyph serviceId={serviceId} size={size} />
       )}
