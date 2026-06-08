@@ -181,6 +181,9 @@ function DomainRows({
                 "cursor-pointer border-b border-border last:border-b-0 transition-colors",
                 "hover:bg-muted/50",
                 "data-[selected=true]:bg-brand-tint",
+                // Skip layout/paint of off-screen rows so only visible icons paint on first
+                // open of each tab. intrinsic-size reserves height to keep the scrollbar stable.
+                "[content-visibility:auto] [contain-intrinsic-size:auto_44px]",
               )}
               aria-expanded={isSelected}
             >
