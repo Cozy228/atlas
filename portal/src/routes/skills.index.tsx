@@ -3,7 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { IconCopy, IconDownload, IconExternalLink, IconPackage, IconTerminal2 } from "@tabler/icons-react";
 import { toast } from "sonner";
 
-import { PageBody } from "@/components/page-section";
+import { PageBody, PageHeader } from "@/components/page-section";
 import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
@@ -29,19 +29,12 @@ function SkillsRoute() {
   const [selected, setSelected] = useState<Skill | null>(null);
 
   return (
-    <PageBody width="comfortable" gap="compact" className="max-w-[1200px]">
-      <header className="flex flex-col gap-2 pt-1">
-        <p className="font-mono text-xs font-semibold uppercase tracking-[0.06em] text-muted-foreground">
-          Skills
-        </p>
-        <h1 className="type-heading-lg font-bold tracking-[-0.03em] text-balance text-foreground">
-          Skills registry
-        </h1>
-        <p className="max-w-[72ch] text-[14px] leading-[1.5] text-muted-foreground">
-          Installable automations that scaffold, validate, and roll out platform work. Open a skill
-          to copy its install command.
-        </p>
-      </header>
+    <PageBody width="comfortable" gap="compact">
+      <PageHeader
+        eyebrow="Skills"
+        title="Skills registry"
+        description="Installable automations that scaffold, validate, and roll out platform work. Open a skill to copy its install command."
+      />
 
       <ul
         className="grid gap-3.5"
@@ -143,9 +136,9 @@ function CommandBlock({ label, command }: { label: string; command: string }) {
       <p className="font-mono text-[10.5px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">
         {label}
       </p>
-      <div className="flex items-center gap-2 rounded-md border border-border bg-muted/50 px-3 py-2">
-        <IconTerminal2 aria-hidden className="size-4 shrink-0 text-muted-foreground" />
-        <code className="min-w-0 flex-1 truncate font-mono text-[12.5px] text-foreground">
+      <div className="flex items-start gap-2 rounded-md border border-border bg-muted/50 px-3 py-2">
+        <IconTerminal2 aria-hidden className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+        <code className="min-w-0 flex-1 break-words font-mono text-[12.5px] leading-[1.5] text-foreground">
           {command}
         </code>
         <button

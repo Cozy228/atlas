@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SourcesRouteImport } from './routes/sources'
+import { Route as RegionsRouteImport } from './routes/regions'
 import { Route as OverviewRouteImport } from './routes/overview'
 import { Route as GuidanceRouteImport } from './routes/guidance'
 import { Route as CatalogRouteImport } from './routes/catalog'
@@ -17,16 +18,23 @@ import { Route as AvailabilityRouteImport } from './routes/availability'
 import { Route as AskRouteImport } from './routes/ask'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SourcesIndexRouteImport } from './routes/sources.index'
+import { Route as SkillsIndexRouteImport } from './routes/skills.index'
 import { Route as GuidanceIndexRouteImport } from './routes/guidance.index'
 import { Route as CatalogIndexRouteImport } from './routes/catalog.index'
 import { Route as AvailabilityIndexRouteImport } from './routes/availability.index'
 import { Route as SourcesSourceIdRouteImport } from './routes/sources.$sourceId'
 import { Route as GuidanceGuidanceIdRouteImport } from './routes/guidance.$guidanceId'
+import { Route as GuardrailsGuardrailIdRouteImport } from './routes/guardrails.$guardrailId'
 import { Route as CatalogTopicIdRouteImport } from './routes/catalog.$topicId'
 
 const SourcesRoute = SourcesRouteImport.update({
   id: '/sources',
   path: '/sources',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RegionsRoute = RegionsRouteImport.update({
+  id: '/regions',
+  path: '/regions',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OverviewRoute = OverviewRouteImport.update({
@@ -64,6 +72,11 @@ const SourcesIndexRoute = SourcesIndexRouteImport.update({
   path: '/',
   getParentRoute: () => SourcesRoute,
 } as any)
+const SkillsIndexRoute = SkillsIndexRouteImport.update({
+  id: '/skills/',
+  path: '/skills/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const GuidanceIndexRoute = GuidanceIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -89,6 +102,11 @@ const GuidanceGuidanceIdRoute = GuidanceGuidanceIdRouteImport.update({
   path: '/$guidanceId',
   getParentRoute: () => GuidanceRoute,
 } as any)
+const GuardrailsGuardrailIdRoute = GuardrailsGuardrailIdRouteImport.update({
+  id: '/guardrails/$guardrailId',
+  path: '/guardrails/$guardrailId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CatalogTopicIdRoute = CatalogTopicIdRouteImport.update({
   id: '/$topicId',
   path: '/$topicId',
@@ -102,25 +120,31 @@ export interface FileRoutesByFullPath {
   '/catalog': typeof CatalogRouteWithChildren
   '/guidance': typeof GuidanceRouteWithChildren
   '/overview': typeof OverviewRoute
+  '/regions': typeof RegionsRoute
   '/sources': typeof SourcesRouteWithChildren
   '/catalog/$topicId': typeof CatalogTopicIdRoute
+  '/guardrails/$guardrailId': typeof GuardrailsGuardrailIdRoute
   '/guidance/$guidanceId': typeof GuidanceGuidanceIdRoute
   '/sources/$sourceId': typeof SourcesSourceIdRoute
   '/availability/': typeof AvailabilityIndexRoute
   '/catalog/': typeof CatalogIndexRoute
   '/guidance/': typeof GuidanceIndexRoute
+  '/skills/': typeof SkillsIndexRoute
   '/sources/': typeof SourcesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/ask': typeof AskRoute
   '/overview': typeof OverviewRoute
+  '/regions': typeof RegionsRoute
   '/catalog/$topicId': typeof CatalogTopicIdRoute
+  '/guardrails/$guardrailId': typeof GuardrailsGuardrailIdRoute
   '/guidance/$guidanceId': typeof GuidanceGuidanceIdRoute
   '/sources/$sourceId': typeof SourcesSourceIdRoute
   '/availability': typeof AvailabilityIndexRoute
   '/catalog': typeof CatalogIndexRoute
   '/guidance': typeof GuidanceIndexRoute
+  '/skills': typeof SkillsIndexRoute
   '/sources': typeof SourcesIndexRoute
 }
 export interface FileRoutesById {
@@ -131,13 +155,16 @@ export interface FileRoutesById {
   '/catalog': typeof CatalogRouteWithChildren
   '/guidance': typeof GuidanceRouteWithChildren
   '/overview': typeof OverviewRoute
+  '/regions': typeof RegionsRoute
   '/sources': typeof SourcesRouteWithChildren
   '/catalog/$topicId': typeof CatalogTopicIdRoute
+  '/guardrails/$guardrailId': typeof GuardrailsGuardrailIdRoute
   '/guidance/$guidanceId': typeof GuidanceGuidanceIdRoute
   '/sources/$sourceId': typeof SourcesSourceIdRoute
   '/availability/': typeof AvailabilityIndexRoute
   '/catalog/': typeof CatalogIndexRoute
   '/guidance/': typeof GuidanceIndexRoute
+  '/skills/': typeof SkillsIndexRoute
   '/sources/': typeof SourcesIndexRoute
 }
 export interface FileRouteTypes {
@@ -149,25 +176,31 @@ export interface FileRouteTypes {
     | '/catalog'
     | '/guidance'
     | '/overview'
+    | '/regions'
     | '/sources'
     | '/catalog/$topicId'
+    | '/guardrails/$guardrailId'
     | '/guidance/$guidanceId'
     | '/sources/$sourceId'
     | '/availability/'
     | '/catalog/'
     | '/guidance/'
+    | '/skills/'
     | '/sources/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/ask'
     | '/overview'
+    | '/regions'
     | '/catalog/$topicId'
+    | '/guardrails/$guardrailId'
     | '/guidance/$guidanceId'
     | '/sources/$sourceId'
     | '/availability'
     | '/catalog'
     | '/guidance'
+    | '/skills'
     | '/sources'
   id:
     | '__root__'
@@ -177,13 +210,16 @@ export interface FileRouteTypes {
     | '/catalog'
     | '/guidance'
     | '/overview'
+    | '/regions'
     | '/sources'
     | '/catalog/$topicId'
+    | '/guardrails/$guardrailId'
     | '/guidance/$guidanceId'
     | '/sources/$sourceId'
     | '/availability/'
     | '/catalog/'
     | '/guidance/'
+    | '/skills/'
     | '/sources/'
   fileRoutesById: FileRoutesById
 }
@@ -194,7 +230,10 @@ export interface RootRouteChildren {
   CatalogRoute: typeof CatalogRouteWithChildren
   GuidanceRoute: typeof GuidanceRouteWithChildren
   OverviewRoute: typeof OverviewRoute
+  RegionsRoute: typeof RegionsRoute
   SourcesRoute: typeof SourcesRouteWithChildren
+  GuardrailsGuardrailIdRoute: typeof GuardrailsGuardrailIdRoute
+  SkillsIndexRoute: typeof SkillsIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -204,6 +243,13 @@ declare module '@tanstack/react-router' {
       path: '/sources'
       fullPath: '/sources'
       preLoaderRoute: typeof SourcesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/regions': {
+      id: '/regions'
+      path: '/regions'
+      fullPath: '/regions'
+      preLoaderRoute: typeof RegionsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/overview': {
@@ -255,6 +301,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SourcesIndexRouteImport
       parentRoute: typeof SourcesRoute
     }
+    '/skills/': {
+      id: '/skills/'
+      path: '/skills'
+      fullPath: '/skills/'
+      preLoaderRoute: typeof SkillsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/guidance/': {
       id: '/guidance/'
       path: '/'
@@ -289,6 +342,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/guidance/$guidanceId'
       preLoaderRoute: typeof GuidanceGuidanceIdRouteImport
       parentRoute: typeof GuidanceRoute
+    }
+    '/guardrails/$guardrailId': {
+      id: '/guardrails/$guardrailId'
+      path: '/guardrails/$guardrailId'
+      fullPath: '/guardrails/$guardrailId'
+      preLoaderRoute: typeof GuardrailsGuardrailIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/catalog/$topicId': {
       id: '/catalog/$topicId'
@@ -359,7 +419,10 @@ const rootRouteChildren: RootRouteChildren = {
   CatalogRoute: CatalogRouteWithChildren,
   GuidanceRoute: GuidanceRouteWithChildren,
   OverviewRoute: OverviewRoute,
+  RegionsRoute: RegionsRoute,
   SourcesRoute: SourcesRouteWithChildren,
+  GuardrailsGuardrailIdRoute: GuardrailsGuardrailIdRoute,
+  SkillsIndexRoute: SkillsIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

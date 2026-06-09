@@ -25,18 +25,18 @@ export function PageHeader({
     >
       <div className="flex flex-col gap-2">
         {eyebrow ? (
-          <span className="font-mono text-xs font-semibold uppercase tracking-[0.05em] text-muted-foreground">
+          <span className="w-fit bg-background font-mono text-xs font-semibold uppercase tracking-[0.05em] text-muted-foreground">
             {eyebrow}
           </span>
         ) : null}
         <div className="flex flex-wrap items-baseline gap-3">
-          <h1 className="type-display font-semibold leading-[1.05] tracking-[-0.03em] text-balance text-foreground sm:type-display-lg">
+          <h1 className="w-fit bg-background type-heading-lg font-bold tracking-[-0.03em] text-balance text-foreground">
             {title}
           </h1>
           {badge}
         </div>
         {description ? (
-          <p className="max-w-[60ch] type-body leading-[1.6] text-pretty text-muted-foreground">
+          <p className="w-fit max-w-[60ch] bg-background type-body leading-[1.6] text-pretty text-muted-foreground">
             {description}
           </p>
         ) : null}
@@ -65,11 +65,13 @@ export function PageSection({
     <section className={cn("flex flex-col gap-3", className)}>
       {title ? (
         <div className="flex flex-col gap-1">
-          <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+          <h2 className="w-fit bg-background text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground">
             {title}
           </h2>
           {description ? (
-            <p className="max-w-[68ch] text-sm leading-6 text-muted-foreground">{description}</p>
+            <p className="w-fit max-w-[68ch] bg-background text-sm leading-6 text-muted-foreground">
+              {description}
+            </p>
           ) : null}
         </div>
       ) : null}
@@ -86,14 +88,16 @@ type PageBodyProps = {
 };
 
 const PAGE_WIDTHS: Record<NonNullable<PageBodyProps["width"]>, string> = {
+  // Canonical content column, shared across every page so widths stay consistent.
   narrow: "max-w-[960px]",
   comfortable: "max-w-[1200px]",
   wide: "max-w-[1360px]",
 };
 
 const PAGE_GAPS: Record<NonNullable<PageBodyProps["gap"]>, string> = {
-  compact: "gap-7",
-  standard: "gap-12",
+  // Prototype section rhythm ~44px (DESIGN.md §5 "Section padding ~52px").
+  compact: "gap-10",
+  standard: "gap-11",
 };
 
 export function PageBody({ children, className, width = "wide", gap = "standard" }: PageBodyProps) {

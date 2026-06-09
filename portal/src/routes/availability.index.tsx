@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useReducer } from "react";
+import { Fragment, useDeferredValue, useEffect, useMemo, useReducer } from "react";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { IconLayoutGrid, IconTable } from "@tabler/icons-react";
@@ -11,6 +11,7 @@ import {
 } from "@/api/server/availability";
 import { ExpandPanel } from "@/components/explore/expand-panel";
 import { MatrixView } from "@/components/explore/matrix-view";
+import { ViewModeToggle } from "@/components/explore/view-mode-toggle";
 import { RegionStrip } from "@/components/explore/region-strip";
 import { ServiceCard } from "@/components/explore/service-card";
 import { preloadAzureServiceIcons } from "@/components/explore/service-icon";
@@ -23,7 +24,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { CatalogSearchField } from "@/components/catalog-search-field";
 import { cn } from "@/lib/utils";
 import {
@@ -123,18 +123,30 @@ function AvailabilityRoute() {
   const activeZone = zones.find((z) => z.id === activeZoneId) ?? zones[0]!;
   const { locations, services } = activeZone;
 
+  // The search field updates `query` synchronously (input stays responsive),
+  // but the expensive matrix rebuild — Fuse index construction + re-rendering
+  // every cell — runs against the deferred value, off the critical typing path.
+  const deferredQuery = useDeferredValue(query);
   const rowModel = useMemo(
     () =>
       buildAvailabilityRowModel({
         locations,
         services,
-        query,
+        query: deferredQuery,
         statusFilter,
         domainFilter,
         activeLocationId: activeLocation,
         selectedServiceId,
       }),
-    [locations, services, query, statusFilter, domainFilter, activeLocation, selectedServiceId],
+    [
+      locations,
+      services,
+      deferredQuery,
+      statusFilter,
+      domainFilter,
+      activeLocation,
+      selectedServiceId,
+    ],
   );
 
   useEffect(() => {
@@ -156,16 +168,20 @@ function AvailabilityRoute() {
 
   return (
     <PageBody width="comfortable">
-      <Hero searchValue={query} onSearchChange={(value) => dispatch({ type: "setQuery", value })} />
+      <PageHeader
+        eyebrow="Availability"
+        title="Regional availability map"
+        description="Locate services across regions and outposts. Click any service for detailed status and next steps."
+      />
 
-      <Section
-        eyebrow="Catalog"
-        title="Services"
-        description="Filter by region, status, or domain. Click any service for next steps."
-      >
+      <div className="flex flex-col gap-4">
         <ZoneSwitcher
           active={activeZoneId}
           onChange={(value) => dispatch({ type: "setZone", value })}
+        />
+        <SearchField
+          value={query}
+          onChange={(value) => dispatch({ type: "setQuery", value })}
         />
 
         <Controls
@@ -211,27 +227,8 @@ function AvailabilityRoute() {
             onLocationSelect={(id) => dispatch({ type: "setActiveLocation", value: id })}
           />
         )}
-      </Section>
+      </div>
     </PageBody>
-  );
-}
-
-function Hero({
-  searchValue,
-  onSearchChange,
-}: {
-  searchValue: string;
-  onSearchChange: (value: string) => void;
-}) {
-  return (
-    <div className="flex flex-col gap-6">
-      <PageHeader
-        eyebrow="Availability"
-        title="Regional availability map"
-        description="Locate services across regions and outposts. Click any service for detailed status and next steps."
-      />
-      <SearchField value={searchValue} onChange={onSearchChange} />
-    </div>
   );
 }
 
@@ -251,7 +248,7 @@ function ZoneSwitcher({
     <div
       role="radiogroup"
       aria-label="Landing zone"
-      className="inline-flex w-fit rounded-lg border border-border bg-muted p-1"
+      className="inline-flex w-fit rounded-lg border border-border bg-card p-1"
     >
       {(["aws", "azure"] as const).map((zoneId) => {
         const isActive = zoneId === active;
@@ -272,13 +269,13 @@ function ZoneSwitcher({
             className={cn(
               "flex flex-col gap-0.5 rounded-md px-5 py-2 text-left transition-all",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-              isActive ? "bg-background shadow-sm" : "bg-transparent hover:bg-background/50",
+              isActive ? "bg-brand-tint" : "bg-transparent hover:bg-muted",
             )}
           >
             <span
               className={cn(
                 "text-sm font-bold tracking-[-0.01em]",
-                isActive ? "text-foreground" : "text-muted-foreground",
+                isActive ? "text-primary" : "text-muted-foreground",
               )}
             >
               {meta.label}
@@ -286,7 +283,7 @@ function ZoneSwitcher({
             <span
               className={cn(
                 "font-mono type-chip",
-                isActive ? "text-muted-foreground" : "text-muted-foreground/60",
+                isActive ? "text-primary/70" : "text-muted-foreground/60",
               )}
             >
               {meta.sub}
@@ -295,33 +292,6 @@ function ZoneSwitcher({
         );
       })}
     </div>
-  );
-}
-
-function Section({
-  eyebrow,
-  title,
-  description,
-  children,
-}: {
-  eyebrow: string;
-  title: string;
-  description?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="flex flex-col gap-4">
-      <header className="flex flex-col gap-1.5">
-        <span className="font-mono text-xs font-semibold uppercase tracking-[0.05em] text-muted-foreground">
-          {eyebrow}
-        </span>
-        <h2 className="type-section font-semibold tracking-[-0.03em] text-foreground">{title}</h2>
-        {description ? (
-          <p className="max-w-[52ch] text-sm leading-6 text-muted-foreground">{description}</p>
-        ) : null}
-      </header>
-      {children}
-    </section>
   );
 }
 
@@ -378,7 +348,10 @@ function Controls({
             onValueChange={(value) => onStatusChange(value as LocationStatus | "all")}
           >
             <SelectTrigger size="sm" aria-label="Status" className="text-xs">
-              <SelectValue />
+              <SelectValue>
+                {(value: LocationStatus | "all") =>
+                  STATUS_OPTIONS.find((option) => option.value === value)?.label ?? value}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent alignItemWithTrigger={false}>
               {STATUS_OPTIONS.map((option) => (
@@ -399,7 +372,9 @@ function Controls({
             }}
           >
             <SelectTrigger size="sm" aria-label="Domain" className="text-xs">
-              <SelectValue />
+              <SelectValue>
+                {(value: string) => (value === "all" ? "All domains" : value)}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent alignItemWithTrigger={false}>
               {domainOptions.map((domain) => (
@@ -413,32 +388,23 @@ function Controls({
 
         <span className="ml-auto font-mono text-xs text-muted-foreground">{resultsLabel}</span>
 
-        <ToggleGroup
-          type="single"
+        <ViewModeToggle
           value={view}
-          onValueChange={(value) => {
-            if (value === "cards" || value === "matrix") onViewChange(value);
-          }}
-          size="sm"
-          spacing={1}
-          aria-label="View mode"
-          className="gap-0.5 rounded-lg bg-muted p-0.5"
-        >
-          <ToggleGroupItem
-            value="cards"
-            className="rounded-md border-0 bg-transparent text-xs font-semibold aria-pressed:bg-background aria-pressed:shadow-sm"
-          >
-            <IconLayoutGrid className="size-3.5" data-icon="inline-start" />
-            Cards
-          </ToggleGroupItem>
-          <ToggleGroupItem
-            value="matrix"
-            className="rounded-md border-0 bg-transparent text-xs font-semibold aria-pressed:bg-background aria-pressed:shadow-sm"
-          >
-            <IconTable className="size-3.5" data-icon="inline-start" />
-            Matrix
-          </ToggleGroupItem>
-        </ToggleGroup>
+          onChange={onViewChange}
+          ariaLabel="View mode"
+          options={[
+            {
+              value: "cards",
+              label: "Cards",
+              icon: <IconLayoutGrid className="size-3.5" aria-hidden />,
+            },
+            {
+              value: "matrix",
+              label: "Matrix",
+              icon: <IconTable className="size-3.5" aria-hidden />,
+            },
+          ]}
+        />
       </div>
     </div>
   );
