@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type MouseEvent } from "react";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   IconArrowRight,
@@ -648,7 +648,7 @@ function TableView({
                       <Link
                         to="/guardrails/$guardrailId"
                         params={{ guardrailId: topic.id }}
-                        onClick={(event) => event.stopPropagation()}
+                        onClick={(event: MouseEvent<HTMLAnchorElement>) => event.stopPropagation()}
                         className="truncate font-semibold text-foreground focus-visible:underline focus-visible:outline-none"
                       >
                         {topic.name}
@@ -657,7 +657,7 @@ function TableView({
                       <Link
                         to="/catalog/$topicId"
                         params={{ topicId: topic.id }}
-                        onClick={(event) => event.stopPropagation()}
+                        onClick={(event: MouseEvent<HTMLAnchorElement>) => event.stopPropagation()}
                         className="truncate font-semibold text-foreground focus-visible:underline focus-visible:outline-none"
                       >
                         {topic.name}
