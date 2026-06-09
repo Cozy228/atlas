@@ -21,11 +21,13 @@
     "SF Mono", SFMono-Regular, Menlo, Monaco, Consolas,
     "Liberation Mono", "Courier New", monospace;
 
-  --radius: 0.5rem;
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  /* Engineering-drawing radii (DESIGN.md §4 / prototype): control 3px, card 4px,
+     chip 2px, larger panels 6px. Tight and square — never pill except `rounded-full`. */
+  --radius: 0.25rem; /* 4px — bare `rounded`, card baseline */
+  --radius-sm: calc(var(--radius) - 2px); /* 2px */
+  --radius-md: calc(var(--radius) - 1px); /* 3px — controls (buttons, inputs, nav) */
+  --radius-lg: var(--radius); /* 4px — cards, panels, tables */
+  --radius-xl: calc(var(--radius) + 2px); /* 6px — dialogs, sheets */
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -51,15 +53,23 @@
   --color-brand: var(--brand);
   --color-brand-tint: var(--brand-tint);
   --color-brand-foreground: var(--brand-foreground);
+  /* Brand as text on light surfaces (links, active nav, citation markers). */
+  --color-brand-ink: var(--brand-ink);
+  /* Faint coordinate-grid line, shown only in negative space (DESIGN.md §5). */
+  --color-grid: var(--grid);
 
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
+  --color-success-ink: var(--success-ink);
   --color-warning: var(--warning);
   --color-warning-foreground: var(--warning-foreground);
+  --color-warning-ink: var(--warning-ink);
   --color-critical: var(--critical);
   --color-critical-foreground: var(--critical-foreground);
+  --color-critical-ink: var(--critical-ink);
   --color-info: var(--info);
   --color-info-foreground: var(--info-foreground);
+  --color-info-ink: var(--info-ink);
 
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
@@ -75,6 +85,16 @@
 }
 
 @custom-variant dark (&:where(.dark, .dark *));
+
+/* 32px square coordinate grid — lives in negative space behind content; text
+   blocks carry a same-colour plate (bg-background) so it never sits behind copy. */
+@utility bg-coordinate-grid {
+  background-image:
+    linear-gradient(var(--color-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--color-grid) 1px, transparent 1px);
+  background-size: 32px 32px;
+  background-position: -1px -1px;
+}
 
 @utility type-icon-glyph {
   font-size: 0.625rem;
@@ -139,55 +159,59 @@
 :root {
   color-scheme: light;
 
-  /* Tinted neutrals: hue 264 (matching brand), low chroma. Never pure white. */
-  --background: oklch(98.6% 0.005 264.18);
-  --foreground: oklch(20% 0.02 264.18);
+  /* Tinted neutrals — exact prototype Blueprint values (DESIGN.md §2). */
+  --background: oklch(98.2% 0.004 264.18);
+  --foreground: oklch(23% 0.03 264.18);
 
-  --card: oklch(99.5% 0.003 264.18);
-  --card-foreground: oklch(20% 0.02 264.18);
-  --popover: oklch(99.5% 0.003 264.18);
-  --popover-foreground: oklch(20% 0.02 264.18);
+  --card: oklch(99.6% 0.0015 264.18);
+  --card-foreground: oklch(23% 0.03 264.18);
+  --popover: oklch(99.6% 0.0015 264.18);
+  --popover-foreground: oklch(23% 0.03 264.18);
 
   /* Primary == brand: #001aff. Reserved for action and selection. */
   --primary: oklch(46.28% 0.3059 264.18);
-  --primary-foreground: oklch(98.6% 0.005 264.18);
+  --primary-foreground: oklch(99.6% 0.0015 264.18);
 
-  /* Secondary surface: muted brand-tinted neutral for hover and selection
-     backgrounds; never used as a primary action color. */
-  --secondary: oklch(95% 0.012 264.18);
-  --secondary-foreground: oklch(25% 0.04 264.18);
+  /* Secondary / muted / accent surfaces == prototype surface-2 (hover/selection). */
+  --secondary: oklch(97% 0.006 264.18);
+  --secondary-foreground: oklch(23% 0.03 264.18);
 
-  --muted: oklch(96% 0.008 264.18);
-  --muted-foreground: oklch(48% 0.025 264.18);
+  --muted: oklch(97% 0.006 264.18);
+  --muted-foreground: oklch(46% 0.03 264.18);
 
-  --accent: oklch(95% 0.012 264.18);
-  --accent-foreground: oklch(25% 0.04 264.18);
+  --accent: oklch(97% 0.006 264.18);
+  --accent-foreground: oklch(23% 0.03 264.18);
 
   /* Critical maps to broken_anchor / source_unavailable / access_denied. */
-  --destructive: oklch(56% 0.18 25);
-  --destructive-foreground: oklch(98.6% 0.005 264.18);
+  --destructive: oklch(55% 0.2 25);
+  --destructive-foreground: oklch(99.6% 0.0015 264.18);
 
-  --border: oklch(91% 0.01 264.18);
-  --border-strong: oklch(82% 0.012 264.18);
-  --input: oklch(91% 0.01 264.18);
+  --border: oklch(90% 0.012 264.18);
+  --border-strong: oklch(80% 0.016 264.18);
+  --input: oklch(90% 0.012 264.18);
   --ring: oklch(46.28% 0.3059 264.18);
 
   /* Brand accent + reduced-chroma tint, used for selected rows, focus halos,
      active nav, and brand strips. Tint stays well below 10% viewport. */
   --brand: oklch(46.28% 0.3059 264.18);
-  --brand-tint: oklch(94% 0.05 264.18);
-  --brand-foreground: oklch(98.6% 0.005 264.18);
+  --brand-tint: oklch(95% 0.045 264.18);
+  --brand-foreground: oklch(99.6% 0.0015 264.18);
+  --brand-ink: oklch(45% 0.29 264.18);
+  --grid: oklch(72% 0.04 264.18 / 0.08);
 
-  /* Atlas semantic state tokens. Each has a distinct hue so that no signal
-     gets folded into the brand color. */
-  --success: oklch(58% 0.13 152);
-  --success-foreground: oklch(98.6% 0.005 152);
-  --warning: oklch(72% 0.16 75);
-  --warning-foreground: oklch(20% 0.02 75);
-  --critical: oklch(56% 0.18 25);
-  --critical-foreground: oklch(98.6% 0.005 25);
-  --info: oklch(62% 0.12 230);
-  --info-foreground: oklch(98.6% 0.005 230);
+  /* Atlas semantic state tokens (base / -ink text). Exact prototype values. */
+  --success: oklch(56% 0.13 152);
+  --success-foreground: oklch(99.6% 0.0015 152);
+  --success-ink: oklch(38% 0.11 152);
+  --warning: oklch(70% 0.15 75);
+  --warning-foreground: oklch(23% 0.02 75);
+  --warning-ink: oklch(45% 0.12 60);
+  --critical: oklch(55% 0.2 25);
+  --critical-foreground: oklch(99.6% 0.0015 25);
+  --critical-ink: oklch(45% 0.18 25);
+  --info: oklch(60% 0.12 230);
+  --info-foreground: oklch(99.6% 0.0015 230);
+  --info-ink: oklch(42% 0.11 230);
 
   --sidebar: oklch(97% 0.008 264.18);
   --sidebar-foreground: oklch(25% 0.025 264.18);
@@ -210,46 +234,52 @@
 .dark {
   color-scheme: dark;
 
-  --background: oklch(14% 0.008 264.18);
-  --foreground: oklch(93% 0.006 264.18);
+  --background: oklch(12% 0.008 264.18);
+  --foreground: oklch(96% 0.005 264.18);
 
-  --card: oklch(18% 0.01 264.18);
-  --card-foreground: oklch(93% 0.006 264.18);
-  --popover: oklch(20% 0.01 264.18);
-  --popover-foreground: oklch(93% 0.006 264.18);
+  --card: oklch(16% 0.009 264.18);
+  --card-foreground: oklch(96% 0.005 264.18);
+  --popover: oklch(20% 0.011 264.18);
+  --popover-foreground: oklch(96% 0.005 264.18);
 
-  --primary: oklch(58% 0.26 264.18);
-  --primary-foreground: oklch(14% 0.008 264.18);
+  --primary: oklch(62% 0.26 264.18);
+  --primary-foreground: oklch(12% 0.008 264.18);
 
-  --secondary: oklch(22% 0.014 264.18);
-  --secondary-foreground: oklch(88% 0.008 264.18);
+  --secondary: oklch(20% 0.011 264.18);
+  --secondary-foreground: oklch(96% 0.005 264.18);
 
-  --muted: oklch(20% 0.01 264.18);
-  --muted-foreground: oklch(62% 0.012 264.18);
+  --muted: oklch(20% 0.011 264.18);
+  --muted-foreground: oklch(68% 0.012 264.18);
 
-  --accent: oklch(22% 0.014 264.18);
-  --accent-foreground: oklch(88% 0.008 264.18);
+  --accent: oklch(20% 0.011 264.18);
+  --accent-foreground: oklch(96% 0.005 264.18);
 
-  --destructive: oklch(58% 0.16 25);
-  --destructive-foreground: oklch(93% 0.006 264.18);
+  --destructive: oklch(67% 0.2 25);
+  --destructive-foreground: oklch(96% 0.005 264.18);
 
-  --border: oklch(26% 0.01 264.18);
-  --border-strong: oklch(36% 0.012 264.18);
-  --input: oklch(26% 0.01 264.18);
-  --ring: oklch(58% 0.26 264.18);
+  --border: oklch(24% 0.01 264.18);
+  --border-strong: oklch(34% 0.012 264.18);
+  --input: oklch(24% 0.01 264.18);
+  --ring: oklch(62% 0.26 264.18);
 
-  --brand: oklch(58% 0.26 264.18);
-  --brand-tint: oklch(24% 0.035 264.18);
-  --brand-foreground: oklch(14% 0.008 264.18);
+  --brand: oklch(62% 0.26 264.18);
+  --brand-tint: oklch(25% 0.06 264.18);
+  --brand-foreground: oklch(12% 0.008 264.18);
+  --brand-ink: oklch(80% 0.15 264.18);
+  --grid: oklch(82% 0.03 264.18 / 0.045);
 
-  --success: oklch(62% 0.11 152);
-  --success-foreground: oklch(14% 0.008 152);
-  --warning: oklch(74% 0.14 75);
-  --warning-foreground: oklch(14% 0.008 75);
-  --critical: oklch(60% 0.16 25);
-  --critical-foreground: oklch(93% 0.006 25);
-  --info: oklch(66% 0.10 230);
-  --info-foreground: oklch(14% 0.008 230);
+  --success: oklch(72% 0.16 152);
+  --success-foreground: oklch(12% 0.008 152);
+  --success-ink: oklch(81% 0.14 152);
+  --warning: oklch(80% 0.15 85);
+  --warning-foreground: oklch(12% 0.008 85);
+  --warning-ink: oklch(86% 0.13 85);
+  --critical: oklch(67% 0.2 25);
+  --critical-foreground: oklch(96% 0.005 25);
+  --critical-ink: oklch(82% 0.15 25);
+  --info: oklch(72% 0.12 230);
+  --info-foreground: oklch(12% 0.008 230);
+  --info-ink: oklch(84% 0.1 230);
 
   --sidebar: oklch(16% 0.008 264.18);
   --sidebar-foreground: oklch(88% 0.008 264.18);
