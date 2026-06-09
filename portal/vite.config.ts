@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import { nitro } from "nitro/vite";
-import viteReact from "@vitejs/plugin-react";
+import viteReact, { reactCompilerPreset } from "@vitejs/plugin-react";
 import babel from "@rolldown/plugin-babel";
 import tailwindcss from "@tailwindcss/vite";
 
@@ -51,23 +51,7 @@ export default defineConfig({
     viteReact(),
     // React Compiler: auto-memoizes components/values/callbacks so manual
     // memo()/useMemo()/useCallback() are no longer load-bearing for re-render perf.
-    //
-    // We inline the equivalent of `reactCompilerPreset()` rather than calling it
-    // directly: that helper restricts itself to `env.config.consumer === "client"`,
-    // a hook that never matches under TanStack Start's nitro environments, so the
-    // preset gets filtered out and the compiler silently never runs. Dropping the
-    // env hook applies the compiler across environments (valid for SSR output too).
-    babel({
-      presets: [
-        {
-          preset: () => ({ plugins: [["babel-plugin-react-compiler", {}]] }),
-          rolldown: {
-            filter: { code: /\b[A-Z]|\buse/ },
-            optimizeDeps: { include: ["react/compiler-runtime"] },
-          },
-        },
-      ],
-    }),
+    babel({ presets: [reactCompilerPreset()] }),
     tailwindcss(),
   ],
   build: {
