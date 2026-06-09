@@ -56,7 +56,7 @@ export function createFetchContextApiClient(input: {
   const fetchImpl: FetchLike = (url, init) =>
     rawFetch(url, {
       ...init,
-      headers: { ...authHeaders, ...((init?.headers as Record<string, string>) ?? {}) },
+      headers: { ...authHeaders, ...(init?.headers as Record<string, string> | undefined) },
     });
 
   return {

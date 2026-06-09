@@ -17,6 +17,8 @@ export type Location = {
   label: string;
   sub: string;
   kind: LocationKind;
+  /** [longitude, latitude] in degrees, used to place the location on the map. */
+  coordinates?: [number, number];
 };
 
 type LocationAvailability = {
@@ -52,11 +54,11 @@ export type AvailabilityResponse = {
 /* -------------------------------------------------------------------------- */
 
 const AWS_LOCATIONS: ReadonlyArray<Location> = [
-  { id: "us-east-1", label: "US-East-1", sub: "North Virginia", kind: "region" },
-  { id: "ca-central-1", label: "CA-Central-1", sub: "Canada Central", kind: "region" },
-  { id: "gdc", label: "GDC", sub: "Primary Outpost", kind: "outpost" },
-  { id: "dc16", label: "DC16", sub: "DR Outpost", kind: "outpost" },
-  { id: "mt10", label: "MT10", sub: "Future DR", kind: "outpost" },
+  { id: "us-east-1", label: "US-East-1", sub: "North Virginia", kind: "region", coordinates: [-78.0, 38.9] },
+  { id: "ca-central-1", label: "CA-Central-1", sub: "Canada Central", kind: "region", coordinates: [-73.6, 45.5] },
+  { id: "gdc", label: "GDC", sub: "Primary Outpost", kind: "outpost", coordinates: [-0.1, 51.5] },
+  { id: "dc16", label: "DC16", sub: "DR Outpost", kind: "outpost", coordinates: [8.7, 50.1] },
+  { id: "mt10", label: "MT10", sub: "Future DR", kind: "outpost", coordinates: [103.8, 1.3] },
 ];
 
 const av = (note?: string): LocationAvailability => ({ status: "available", note });
@@ -323,16 +325,16 @@ const AWS_SERVICES: ReadonlyArray<AvailabilityRecord> = [
 /* -------------------------------------------------------------------------- */
 
 const AZURE_LOCATIONS: ReadonlyArray<Location> = [
-  { id: "eastus", label: "East US", sub: "Virginia", kind: "region" },
-  { id: "westus2", label: "West US 2", sub: "Washington", kind: "region" },
-  { id: "centralus", label: "Central US", sub: "Iowa", kind: "region" },
-  { id: "northeurope", label: "North EU", sub: "Ireland", kind: "region" },
-  { id: "westeurope", label: "West EU", sub: "Netherlands", kind: "region" },
-  { id: "southeastasia", label: "SE Asia", sub: "Singapore", kind: "region" },
-  { id: "eastasia", label: "East Asia", sub: "Hong Kong", kind: "region" },
-  { id: "australiaeast", label: "AU East", sub: "Sydney", kind: "region" },
-  { id: "canadacentral", label: "CA Central", sub: "Toronto", kind: "region" },
-  { id: "uksouth", label: "UK South", sub: "London", kind: "region" },
+  { id: "eastus", label: "East US", sub: "Virginia", kind: "region", coordinates: [-79.0, 37.5] },
+  { id: "westus2", label: "West US 2", sub: "Washington", kind: "region", coordinates: [-119.7, 47.2] },
+  { id: "centralus", label: "Central US", sub: "Iowa", kind: "region", coordinates: [-93.6, 41.9] },
+  { id: "northeurope", label: "North EU", sub: "Ireland", kind: "region", coordinates: [-6.3, 53.3] },
+  { id: "westeurope", label: "West EU", sub: "Netherlands", kind: "region", coordinates: [4.9, 52.4] },
+  { id: "southeastasia", label: "SE Asia", sub: "Singapore", kind: "region", coordinates: [103.8, 1.3] },
+  { id: "eastasia", label: "East Asia", sub: "Hong Kong", kind: "region", coordinates: [114.2, 22.3] },
+  { id: "australiaeast", label: "AU East", sub: "Sydney", kind: "region", coordinates: [151.2, -33.9] },
+  { id: "canadacentral", label: "CA Central", sub: "Toronto", kind: "region", coordinates: [-79.4, 43.7] },
+  { id: "uksouth", label: "UK South", sub: "London", kind: "region", coordinates: [-0.1, 51.5] },
 ];
 
 /** Deterministic hash so Azure data stays stable across requests. */
