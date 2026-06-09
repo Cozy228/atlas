@@ -1,4 +1,4 @@
-import { createFileRoute, notFound } from "@tanstack/react-router";
+import { Link, createFileRoute, notFound } from "@tanstack/react-router";
 import { IconArrowUpRight, IconLink } from "@tabler/icons-react";
 import type { ContextBundleResponse, Topic, TopicDiscoveryResponse } from "@atlas/schema";
 
@@ -33,6 +33,9 @@ import { cn } from "@/lib/utils";
 type LoaderData = {
   topic: Topic;
   related: ReadonlyArray<Topic>;
+  /** Platform governance context for capabilities (derived from the topic list). */
+  guardrailAreas: ReadonlyArray<Topic>;
+  landingZones: ReadonlyArray<Topic>;
   bundle: ContextBundleResponse | null;
   defaultZone: LandingZoneData;
   totalZones: number;
@@ -80,6 +83,8 @@ export const Route = createFileRoute("/catalog/$topicId")({
     return {
       topic,
       related,
+      guardrailAreas: topicsResp.topics.filter((entry) => entry.topic_type === "guardrail-area"),
+      landingZones: topicsResp.topics.filter((entry) => entry.topic_type === "landing-zone"),
       bundle,
       defaultZone: availability.zones[0]!,
       totalZones: availability.zones.length,
@@ -89,7 +94,8 @@ export const Route = createFileRoute("/catalog/$topicId")({
 });
 
 function CatalogDetailRoute() {
-  const { topic, related, bundle, defaultZone, totalZones } = Route.useLoaderData();
+  const { topic, related, guardrailAreas, landingZones, bundle, defaultZone, totalZones } =
+    Route.useLoaderData();
 
   const recent: RecentItem | null =
     topic.topic_type === "capability"
@@ -103,22 +109,28 @@ function CatalogDetailRoute() {
   const isLandingZone = topic.topic_type === "landing-zone";
 
   const service = isCapability ? findAvailabilityServiceForTopic(topic, defaultZone.services) : null;
-  const capabilities =
+  const relatedCapabilities =
     topic.topic_type !== "capability"
       ? related.filter((entry) => entry.topic_type === "capability")
       : [];
-  const landingZones =
+  const relatedLandingZones =
     topic.topic_type !== "landing-zone"
       ? related.filter((entry) => entry.topic_type === "landing-zone")
       : [];
-  const guardrails =
+  const relatedGuardrails =
     topic.topic_type !== "guardrail-area"
       ? related.filter((entry) => entry.topic_type === "guardrail-area")
       : [];
   const guidance = relatedGuidanceForTopic(topic.id);
   const primaryTool = topic.entry_tools[0];
   const hasRelationships =
-    capabilities.length > 0 || landingZones.length > 0 || guardrails.length > 0;
+    relatedCapabilities.length > 0 ||
+    relatedLandingZones.length > 0 ||
+    relatedGuardrails.length > 0;
+  const hasGovernance =
+    isCapability && (guardrailAreas.length > 0 || landingZones.length > 0);
+
+  const updated = freshestObserved(bundle);
 
   return (
     <PageBody width="comfortable" gap="compact">
@@ -129,49 +141,27 @@ function CatalogDetailRoute() {
         title={topic.name}
         description={topic.description}
         leading={service ? <ServiceIcon serviceId={service.id} size="hero" /> : undefined}
-        badges={
-          <>
-            <StatusBadge status={topic.status} />
-            <Badge variant="outline" className="font-mono type-caption">
-              {topic.id}
-            </Badge>
-          </>
-        }
-        actions={
-          primaryTool ? (
-            <a
-              href={primaryTool.url}
-              target="_blank"
-              rel="noreferrer noopener"
-              className={cn(
-                "inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground transition-colors",
-                "hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-              )}
-            >
-              {primaryTool.label}
-              <IconArrowUpRight className="size-3.5" />
-            </a>
-          ) : null
-        }
+        badges={<StatusBadge status={topic.status} />}
       />
 
       <DetailLayout
         main={
           <>
-            {topic.entry_tools.length > 0 ? (
-              <DetailSection eyebrow="Get started" title="Entry tools">
-                <EntryToolsGrid tools={topic.entry_tools} />
-              </DetailSection>
-            ) : null}
-
+            {/* Tier 1 — can I use it, where, and how do I start. */}
             {isCapability ? (
-              <DetailSection eyebrow="Availability" title="Where this is available">
+              <DetailSection title="Where this is available">
                 <AvailabilityStrip service={service} locations={defaultZone.locations} />
               </DetailSection>
             ) : null}
 
+            {topic.entry_tools.length > 0 ? (
+              <DetailSection title="Entry tools">
+                <EntryToolsGrid tools={topic.entry_tools} />
+              </DetailSection>
+            ) : null}
+
             {isLandingZone && defaultZone.services.length > 0 ? (
-              <DetailSection eyebrow="Capabilities" title="Catalog scope">
+              <DetailSection title="Catalog scope">
                 <p className="rounded-lg border border-border bg-card px-3.5 py-2.5 text-xs text-muted-foreground">
                   <span className="font-mono font-bold text-foreground">
                     {defaultZone.services.length}
@@ -187,31 +177,45 @@ function CatalogDetailRoute() {
               </DetailSection>
             ) : null}
 
-            {hasRelationships ? (
-              <DetailSection eyebrow="Relationships" title="Related catalog">
+            {/* Tier 2 — governance and the rest of the catalog around it. */}
+            {hasGovernance ? (
+              <DetailSection title="Guardrails & landing zones">
                 <div className="grid gap-3 sm:grid-cols-2">
-                  {capabilities.length > 0 ? (
-                    <RelatedColumn title="Capabilities" topics={capabilities} />
+                  <GovernancePanel title="Guardrail areas" topics={guardrailAreas} />
+                  <GovernancePanel title="Landing zones" topics={landingZones} />
+                </div>
+              </DetailSection>
+            ) : null}
+
+            {hasRelationships ? (
+              <DetailSection title="Related catalog">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {relatedCapabilities.length > 0 ? (
+                    <RelatedColumn title="Capabilities" topics={relatedCapabilities} />
                   ) : null}
-                  {landingZones.length > 0 ? (
-                    <RelatedColumn title="Landing zones" topics={landingZones} />
+                  {relatedLandingZones.length > 0 ? (
+                    <RelatedColumn title="Landing zones" topics={relatedLandingZones} />
                   ) : null}
-                  {guardrails.length > 0 ? (
-                    <RelatedColumn title="Guardrail areas" topics={guardrails} />
+                  {relatedGuardrails.length > 0 ? (
+                    <RelatedColumn title="Guardrail areas" topics={relatedGuardrails} />
                   ) : null}
                 </div>
               </DetailSection>
             ) : null}
 
             {guidance.length > 0 ? (
-              <DetailSection eyebrow="Guidance" title="Related guidance">
+              <DetailSection title="Related guidance">
                 <RelatedGuidance items={guidance} />
               </DetailSection>
             ) : null}
 
-            <DetailSection eyebrow="Evidence" title="Sources cited">
+            {/* Tier 3 — the trust layer: what backs every claim, and how fresh it is. */}
+            <DetailSection title="Sources cited">
               {bundle ? (
-                <EvidenceSection bundle={bundle} />
+                <div className="flex flex-col gap-3">
+                  <FreshnessSummary bundle={bundle} updated={updated} />
+                  <EvidenceSection bundle={bundle} />
+                </div>
               ) : (
                 <div className="rounded-lg border border-dashed border-border bg-card p-3.5 text-xs text-muted-foreground">
                   No registered sources resolved. Use feedback below to suggest one.
@@ -219,7 +223,7 @@ function CatalogDetailRoute() {
               )}
             </DetailSection>
 
-            <DetailSection eyebrow="Feedback" title="Help Atlas stay accurate">
+            <DetailSection title="Help Atlas stay accurate">
               <FeedbackInlineForm target={{ target_type: "topic", target_id: topic.id }} />
             </DetailSection>
           </>
@@ -228,14 +232,16 @@ function CatalogDetailRoute() {
           <DetailMetaCard
             items={[
               { label: "Type", value: TYPE_LABEL[topic.topic_type] },
-              { label: "Status", value: topic.status, mono: true },
+              { label: "Status", value: topic.status },
               { label: "Domain", value: topic.category },
               { label: "Owner", value: topic.owner_team },
-              { label: "Support", value: topic.support_channel, mono: true },
-              { label: "ID", value: topic.id, mono: true },
+              { label: "Support", value: topic.support_channel },
+              ...(updated ? [{ label: "Updated", value: updated }] : []),
+              { label: "ID", value: topic.id },
             ]}
             actions={
               <>
+                {/* The page's single brand-primary action lives here. */}
                 {primaryTool ? (
                   <a
                     href={primaryTool.url}
@@ -276,8 +282,111 @@ function CatalogDetailRoute() {
   );
 }
 
+function TrustSep() {
+  return (
+    <span aria-hidden className="text-border">
+      ·
+    </span>
+  );
+}
+
+const STATUS_DOT: Record<Topic["status"], string> = {
+  active: "bg-success",
+  planned: "bg-info",
+  deprecated: "bg-critical",
+};
+
+/**
+ * Platform governance context for a capability: the guardrail areas and landing
+ * zones registered in the catalog. Per-capability applicability is not yet a
+ * first-class relationship in the topic model, so this lists the platform set;
+ * confirm specific applicability with the owning team.
+ */
+function GovernancePanel({ title, topics }: { title: string; topics: ReadonlyArray<Topic> }) {
+  if (topics.length === 0) {
+    return (
+      <div className="rounded-lg border border-border bg-card p-3">
+        <p className="mb-2 font-mono type-caption font-bold uppercase tracking-wider text-muted-foreground">
+          {title}
+        </p>
+        <p className="type-caption text-muted-foreground">None registered.</p>
+      </div>
+    );
+  }
+  return (
+    <div className="rounded-lg border border-border bg-card p-3">
+      <p className="mb-2 font-mono type-caption font-bold uppercase tracking-wider text-muted-foreground">
+        {title}
+      </p>
+      <ul className="flex flex-col gap-0.5">
+        {topics.map((topic) => (
+          <li key={topic.id}>
+            <Link
+              to="/catalog/$topicId"
+              params={{ topicId: topic.id }}
+              className="flex items-center gap-2 rounded-md px-2 py-1.5 transition-colors hover:bg-muted"
+            >
+              <span
+                aria-hidden
+                className={cn("size-1.5 shrink-0 rounded-full", STATUS_DOT[topic.status])}
+              />
+              <span className="min-w-0 flex-1 truncate text-xs font-semibold text-foreground">
+                {topic.name}
+              </span>
+              <span className="font-mono type-caption text-muted-foreground">{topic.category}</span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function FreshnessSummary({
+  bundle,
+  updated,
+}: {
+  bundle: ContextBundleResponse;
+  updated: string | null;
+}) {
+  const count = bundle.sources.length;
+  const allAuthoritative =
+    count > 0 && bundle.sources.every((entry) => entry.source.authority_level === "authoritative");
+  const hasWarnings = bundle.warnings.length > 0;
+
+  return (
+    <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 type-caption text-muted-foreground">
+      <span
+        aria-hidden
+        className={cn("size-1.5 rounded-full", hasWarnings ? "bg-warning" : "bg-success")}
+      />
+      <span>
+        {count} {count === 1 ? "source" : "sources"} cited
+      </span>
+      <TrustSep />
+      <span>{allAuthoritative ? "all authoritative" : "mixed authority"}</span>
+      {updated ? (
+        <>
+          <TrustSep />
+          <span>Updated {updated}</span>
+        </>
+      ) : null}
+    </p>
+  );
+}
+
+/** Most recent `last_observed_at` across the bundle's sources, as a YYYY-MM-DD label. */
+function freshestObserved(bundle: ContextBundleResponse | null): string | null {
+  if (!bundle || bundle.sources.length === 0) return null;
+  let latest = "";
+  for (const entry of bundle.sources) {
+    if (entry.source.last_observed_at > latest) latest = entry.source.last_observed_at;
+  }
+  return latest ? latest.slice(0, 10) : null;
+}
+
 function StatusBadge({ status }: { status: Topic["status"] }) {
   const variant: React.ComponentProps<typeof Badge>["variant"] =
-    status === "deprecated" ? "critical" : status === "planned" ? "warning" : "success";
+    status === "deprecated" ? "critical" : status === "planned" ? "info" : "success";
   return <Badge variant={variant}>{status}</Badge>;
 }

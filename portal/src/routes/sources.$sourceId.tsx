@@ -135,29 +135,26 @@ function SourceDetailRoute() {
         side={
           <DetailMetaCard
             items={[
-              { label: "Class", value: source.source_class, mono: true },
+              { label: "Class", value: source.source_class },
               { label: "Steward", value: source.steward },
-              { label: "Visibility", value: source.visibility, mono: true },
+              { label: "Visibility", value: source.visibility },
               {
                 label: "Cadence",
                 value: source.review_frequency,
-                mono: true,
               },
               {
                 label: "Reviewed",
                 value: source.last_reviewed_at.slice(0, 10),
-                mono: true,
               },
               {
                 label: "Observed",
                 value: source.last_observed_at.slice(0, 10),
-                mono: true,
               },
               {
                 label: "Scope",
                 value: source.authority_scope.join(", "),
               },
-              { label: "ID", value: source.id, mono: true },
+              { label: "ID", value: source.id },
             ]}
             actions={<SourceClassBadge value={source.source_class} />}
           />

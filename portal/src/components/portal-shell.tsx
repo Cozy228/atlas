@@ -1,9 +1,10 @@
 import { useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
-import { IconMenu2, IconMessageCircle } from "@tabler/icons-react";
+import { IconMenu2, IconSearch } from "@tabler/icons-react";
 
 import { AskAtlasFab } from "@/components/ask-atlas-fab";
 import { AskAtlasProvider, useAskAtlas } from "@/components/ask-atlas/context";
+import { PortalFooter } from "@/components/portal-footer";
 import { ThemeToggle } from "@/components/theme-toggle";
 import {
   Sheet,
@@ -30,6 +31,7 @@ const PRIMARY_NAV: ReadonlyArray<NavItem> = [
   { to: "/availability", label: "Availability" },
   { to: "/catalog", label: "Catalog" },
   { to: "/guidance", label: "Guidance" },
+  { to: "/skills", label: "Skills" },
 ];
 
 export function PortalShell({ children }: PortalShellProps) {
@@ -38,7 +40,11 @@ export function PortalShell({ children }: PortalShellProps) {
       <AskAtlasProvider>
         <div className="flex min-h-dvh w-full flex-col bg-background text-foreground">
           <TopBar />
-          <main className="min-w-0 flex-1">{children}</main>
+          {/* 32px coordinate grid on a full-width canvas, beginning below the
+              opaque top bar. Shows only in negative space; text-bearing blocks
+              carry bg-background plates to mask it (DESIGN.md §5). */}
+          <main className="min-w-0 flex-1 bg-coordinate-grid">{children}</main>
+          <PortalFooter />
           <AskAtlasFab />
         </div>
       </AskAtlasProvider>
@@ -52,19 +58,20 @@ function TopBar() {
   return (
     <header
       className={cn(
-        "sticky top-0 z-40 grid h-14 grid-cols-[auto_1fr_auto] items-center gap-2 border-b border-border px-4 sm:px-8",
-        "bg-background/85 backdrop-blur-sm",
+        // 56px, sticky, opaque (the grid starts cleanly below it). DESIGN.md §4.
+        "sticky top-0 z-40 grid h-14 grid-cols-[1fr_auto_1fr] items-center gap-2 border-b border-border px-4 sm:px-8",
+        "bg-background",
       )}
     >
       <BrandLink />
-      <nav aria-label="Primary" className="hidden items-center justify-center gap-0.5 md:flex">
+      <nav aria-label="Primary" className="hidden items-center justify-center gap-1 md:flex">
         {PRIMARY_NAV.map((item) => (
           <TopNavLink key={item.to} item={item} />
         ))}
       </nav>
-      <div className="flex items-center justify-end gap-2">
+      <div className="flex items-center justify-end gap-1">
         <NavMenu open={menuOpen} onOpenChange={(open) => setMenuOpen(open)} />
-        <InlineAskButton />
+        <SearchButton />
         <ThemeToggle />
       </div>
     </header>
@@ -102,9 +109,11 @@ function TopNavLink({ item }: { item: NavItem }) {
       activeOptions={{ exact: item.exact ?? false }}
       activeProps={{ "data-active": "true" } as Record<string, string>}
       className={cn(
-        "rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors",
-        "hover:bg-muted hover:text-foreground",
-        "data-[active=true]:bg-brand-tint data-[active=true]:font-semibold data-[active=true]:text-primary",
+        // Active = brand underline (no tinted pill). DESIGN.md §4 "Top nav / Tabs".
+        "rounded-sm px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors",
+        "hover:bg-secondary hover:text-foreground",
+        "data-[active=true]:rounded-b-none data-[active=true]:font-semibold data-[active=true]:text-foreground",
+        "data-[active=true]:shadow-[inset_0_-2px_0_var(--color-brand)] data-[active=true]:hover:bg-transparent",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
       )}
     >
@@ -113,21 +122,21 @@ function TopNavLink({ item }: { item: NavItem }) {
   );
 }
 
-function InlineAskButton() {
-  const { openAsk } = useAskAtlas();
+function SearchButton() {
+  const { openSearch } = useAskAtlas();
   return (
     <button
       type="button"
-      aria-label="Open Ask Atlas"
-      onClick={openAsk}
+      aria-label="Search Atlas catalog"
+      onClick={openSearch}
       className={cn(
-        "flex size-7 items-center justify-center rounded-md text-muted-foreground lg:hidden",
-        "transition-colors hover:bg-muted hover:text-foreground",
+        "flex size-8 items-center justify-center rounded-sm text-muted-foreground",
+        "transition-colors hover:bg-secondary hover:text-foreground",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
       )}
     >
-      <IconMessageCircle size={15} strokeWidth={2} aria-hidden />
-      <span className="sr-only">Ask Atlas</span>
+      <IconSearch size={17} strokeWidth={2} aria-hidden />
+      <span className="sr-only">Search</span>
     </button>
   );
 }

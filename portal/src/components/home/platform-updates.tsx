@@ -56,71 +56,70 @@ function formatDate(iso: string): string {
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-const KIND_CONFIG: Record<UpdateKind, { label: string; tagClass: string }> = {
-  new: {
-    label: "NEW",
-    tagClass: "bg-success/10 text-success",
-  },
-  updated: {
-    label: "UPDATED",
-    tagClass: "bg-info/10 text-info",
-  },
+const KIND_CONFIG: Record<UpdateKind, { label: string; dotClass: string; textClass: string }> = {
+  new: { label: "New", dotClass: "bg-success", textClass: "text-success-ink" },
+  updated: { label: "Updated", dotClass: "bg-info", textClass: "text-info-ink" },
+  policy: { label: "Policy", dotClass: "bg-warning", textClass: "text-warning-ink" },
   deprecated: {
-    label: "DEPRECATED",
-    tagClass: "bg-muted text-muted-foreground",
-  },
-  policy: {
-    label: "POLICY",
-    tagClass: "bg-warning/10 text-warning",
+    label: "Deprecated",
+    dotClass: "bg-muted-foreground",
+    textClass: "text-muted-foreground",
   },
 };
 
+/**
+ * Changelog timeline: a date-stamped feed (no card wrapper). Each entry carries a
+ * same-colour plate so the coordinate grid shows only in the gaps between entries.
+ */
 export function PlatformUpdates() {
   return (
-    <div className="overflow-hidden rounded-xl border border-border bg-card">
-      {UPDATES.map((update, index) => (
-        <UpdateRow key={update.title} update={update} divider={index > 0} />
+    <ol className="flex flex-col gap-4">
+      {UPDATES.map((update) => (
+        <UpdateEntry key={update.title} update={update} />
       ))}
-    </div>
+    </ol>
   );
 }
 
-function UpdateRow({ update, divider }: { update: PlatformUpdate; divider: boolean }) {
+function UpdateEntry({ update }: { update: PlatformUpdate }) {
   const config = KIND_CONFIG[update.kind];
 
   return (
-    <article className={cn("px-4 py-3.5", divider && "border-t border-border")}>
-      <div className="flex min-w-0 items-baseline gap-2">
-        <span
-          className={cn(
-            "shrink-0 rounded px-1.5 py-px font-mono type-caption font-bold tracking-[0.04em]",
-            config.tagClass,
-          )}
-        >
-          {config.label}
-        </span>
-        <span className="flex min-w-0 flex-1 items-baseline justify-between gap-2">
+    <li className="grid grid-cols-[3.5rem_1fr] gap-x-4 sm:grid-cols-[4.5rem_1fr]">
+      <time
+        dateTime={update.date}
+        className="w-fit bg-background font-mono text-xs leading-5 tabular-nums text-muted-foreground"
+      >
+        {formatDate(update.date)}
+      </time>
+      <div className="w-fit max-w-[68ch] bg-background">
+        <p className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+          <span className="inline-flex items-center gap-1.5">
+            <span aria-hidden className={cn("size-2 shrink-0 rounded-full", config.dotClass)} />
+            <span
+              className={cn(
+                "font-mono type-caption font-semibold uppercase tracking-[0.04em]",
+                config.textClass,
+              )}
+            >
+              {config.label}
+            </span>
+          </span>
           {update.href ? (
             <a
               href={update.href}
-              className="truncate type-detail font-semibold text-foreground hover:text-primary focus-visible:rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="type-detail font-semibold text-foreground hover:text-primary focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               {update.title}
             </a>
           ) : (
-            <span className="truncate type-detail font-semibold text-foreground">
-              {update.title}
-            </span>
+            <span className="type-detail font-semibold text-foreground">{update.title}</span>
           )}
-          <time
-            dateTime={update.date}
-            className="shrink-0 font-mono text-xs tabular-nums text-muted-foreground"
-          >
-            {formatDate(update.date)}
-          </time>
-        </span>
+        </p>
+        <p className="mt-1 text-xs leading-5 text-pretty text-muted-foreground">
+          {update.description}
+        </p>
       </div>
-      <p className="mt-0.5 text-xs leading-5 text-muted-foreground">{update.description}</p>
-    </article>
+    </li>
   );
 }

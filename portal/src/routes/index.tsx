@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import type { Topic, TopicDiscoveryResponse } from "@atlas/schema";
 
-import { topicDiscoveryQueryOptions } from "@/api/queries";
+import { availabilityQueryOptions, topicDiscoveryQueryOptions } from "@/api/queries";
 import { cn } from "@/lib/utils";
 import { EntryCards } from "@/components/home/entry-cards";
 import { JourneyGrid } from "@/components/home/journey-grid";
@@ -11,33 +11,42 @@ import { RecentlyViewed } from "@/components/home/recently-viewed";
 import { ResourceLinkGrid } from "@/components/home/resource-link-grid";
 import { IntentSearch } from "@/components/intent-search";
 import { PageBody } from "@/components/page-section";
-import { SectionEyebrow } from "@/components/section-eyebrow";
+import { Badge } from "@/components/ui/badge";
 
 type HomeLoaderData = {
   capabilities: ReadonlyArray<Topic>;
   landingZones: ReadonlyArray<Topic>;
+  /** Total regions + outposts across all landing zones (for the hero meta chip). */
+  regionCount: number;
 };
 
 export const Route = createFileRoute("/")({
   loader: async ({ context }): Promise<HomeLoaderData> => {
-    const topicsResp: TopicDiscoveryResponse = await context.queryClient.ensureQueryData(
-      topicDiscoveryQueryOptions,
-    );
+    const [topicsResp, availability] = await Promise.all([
+      context.queryClient.ensureQueryData(topicDiscoveryQueryOptions) as Promise<TopicDiscoveryResponse>,
+      context.queryClient.ensureQueryData(availabilityQueryOptions),
+    ]);
 
     return {
       capabilities: topicsResp.topics.filter((topic) => topic.topic_type === "capability"),
       landingZones: topicsResp.topics.filter((topic) => topic.topic_type === "landing-zone"),
+      regionCount: availability.zones.reduce((sum, zone) => sum + zone.locations.length, 0),
     };
   },
   component: HomeRoute,
 });
 
 function HomeRoute() {
-  const { capabilities, landingZones } = Route.useLoaderData();
+  const { capabilities, landingZones, regionCount } = Route.useLoaderData();
+  const domainCount = new Set(capabilities.map((topic) => topic.category)).size;
 
   return (
     <PageBody width="comfortable">
-      <Hero />
+      <Hero
+        capabilityCount={capabilities.length}
+        domainCount={domainCount}
+        regionCount={regionCount}
+      />
       <Section
         title="Choose your starting point"
         description="Pick the question that matches where you are in your platform journey."
@@ -68,19 +77,37 @@ function HomeRoute() {
   );
 }
 
-function Hero() {
+function Hero({
+  capabilityCount,
+  domainCount,
+  regionCount,
+}: {
+  capabilityCount: number;
+  domainCount: number;
+  regionCount: number;
+}) {
   return (
     <div className="flex flex-col gap-6 pt-2">
-      <div className="flex flex-col gap-2">
-        <h1 className="max-w-[20ch] type-display font-semibold leading-[1.1] tracking-[-0.03em] text-foreground sm:type-display-lg">
+      <div className="flex flex-col gap-3.5">
+        {/* Same-colour plates (bg-background w-fit) keep the grid out from behind copy. */}
+        <span className="w-fit bg-background font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+          Platform catalog
+        </span>
+        <h1 className="w-fit max-w-[16ch] bg-background type-display font-bold leading-[1.03] tracking-[-0.035em] text-balance text-foreground sm:type-display-lg">
           Find the right platform path
         </h1>
-        <p className="max-w-[52ch] type-body leading-[1.6] text-muted-foreground">
-          Search across capabilities, landing zones, tools, and owners. Start from a question or
-          browse the catalog.
+        <p className="w-fit max-w-[60ch] bg-background text-[1.125rem] leading-[1.55] text-pretty text-muted-foreground">
+          One place to find approved capabilities, see where they're available, and follow the path
+          from idea to production.
         </p>
       </div>
-      <IntentSearch />
+      <IntentSearch className="h-12" />
+      <div className="flex flex-wrap gap-2">
+        <Badge variant="brand">{capabilityCount} capabilities</Badge>
+        <Badge variant="outline">{domainCount} domains</Badge>
+        <Badge variant="outline">{regionCount} regions &amp; outposts</Badge>
+        <Badge variant="outline">L3–L5 landing zones</Badge>
+      </div>
     </div>
   );
 }
@@ -98,7 +125,19 @@ function Section({
 }) {
   return (
     <section className={cn("flex flex-col gap-4", className)}>
-      <SectionEyebrow title={title} description={description} />
+      {title ? (
+        <div className="flex flex-col gap-1">
+          {/* Prototype .sec-head: 21px/700/-0.02em title + 13.5px sub, on bg plates. */}
+          <h2 className="w-fit bg-background text-[1.3125rem] font-bold leading-tight tracking-[-0.02em] text-foreground">
+            {title}
+          </h2>
+          {description ? (
+            <p className="w-fit max-w-[60ch] bg-background type-detail leading-[1.5] text-muted-foreground">
+              {description}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
       {children}
     </section>
   );
