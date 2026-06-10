@@ -47,7 +47,10 @@ export default defineConfig({
         generatedRouteTree: `${portalRoot}src/routeTree.gen.ts`,
       },
     }),
-    !isVitest && nitro(),
+    // `serverDir` enables Nitro filesystem routing for the agent-facing
+    // server surface (`server/routes/**`, `server/middleware/**`) without
+    // touching the TanStack route tree.
+    !isVitest && nitro({ serverDir: "server" }),
     viteReact(),
     // React Compiler: auto-memoizes components/values/callbacks so manual
     // memo()/useMemo()/useCallback() are no longer load-bearing for re-render perf.
