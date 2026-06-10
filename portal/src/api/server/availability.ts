@@ -453,7 +453,10 @@ const ZONES: ReadonlyArray<LandingZoneData> = [
   { id: "azure", name: "Azure", locations: AZURE_LOCATIONS, services: AZURE_SERVICES },
 ];
 
+/** Plain projection for non-loader consumers (the MCP availability tool). */
+export const availabilityProjection: AvailabilityResponse = { zones: ZONES };
+
 export const fetchAvailability = createServerFn({
   method: "GET",
   strict: { output: false },
-}).handler(async (): Promise<AvailabilityResponse> => ({ zones: ZONES }));
+}).handler(async (): Promise<AvailabilityResponse> => availabilityProjection);
