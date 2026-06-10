@@ -13,6 +13,7 @@
   "include": [
     "src/**/*.ts",
     "src/**/*.tsx",
+    "server/**/*.ts",
     "scripts/**/*.ts",
     "scripts/**/*.tsx",
     "vite.config.ts"
