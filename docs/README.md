@@ -16,6 +16,9 @@ This folder separates product narrative, architecture, review history, and raw n
 - `architecture/catalog.md` - Current source projection for regional availability data used by the Portal availability surface.
 - `architecture/dynamodb_feedback_table.md` - DynamoDB key design for V1 feedback persistence.
 - `architecture/constraints.md` - Implementation constraints that must be checked before code changes.
+- `architecture/agent_readiness.md` - Active plan for exposing Atlas to AI agents via discovery/content protocols (robots/sitemap/llms.txt/Markdown negotiation/OpenAPI/Agent Skills/MCP), scoped and phased against the Context API.
+- `architecture/goal_prompt_agent_readiness.md` - Executable distillation of the agent-readiness plan: locked decisions, four independently-shippable batches (Skill Discovery, OpenAPI/api-catalog/llms.txt, read-only MCP, web-crawler baseline), and a two-layer Definition of Done.
+- `architecture/agent_readiness_e2e_example.md` - Worked blind-agent E2E test example: discovery chain from `GET /` Link headers through digest-verified skill install, API consumption, and MCP calls, with per-surface verdicts and known friction.
 
 ## Archive
 
