@@ -66,6 +66,7 @@
   },
   "devDependencies": {
     "@rolldown/plugin-babel": "0.2.3",
+    "@seriousme/openapi-schema-validator": "^2.9.0",
     "@tailwindcss/vite": "4.3.0",
     "@tanstack/router-plugin": "1.168.13",
     "@types/node": "25.9.1",
