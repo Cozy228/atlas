@@ -47,6 +47,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [mode, setModeState] = useState<ThemeMode>("system");
   const [systemPref, setSystemPref] = useState<ResolvedTheme>("light");
   const isTransitioning = useRef(false);
+  const hasMounted = useRef(false);
 
   const resolved: ResolvedTheme = mode === "system" ? systemPref : mode;
 
@@ -70,8 +71,17 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      const x = event?.clientX ?? window.innerWidth / 2;
-      const y = event?.clientY ?? 0;
+      let x = event?.clientX ?? window.innerWidth / 2;
+      let y = event?.clientY ?? 0;
+      // Keyboard-triggered clicks report (0, 0); expand from the control instead.
+      if (event && event.clientX === 0 && event.clientY === 0) {
+        const target = event.currentTarget;
+        if (target instanceof Element) {
+          const rect = target.getBoundingClientRect();
+          x = rect.left + rect.width / 2;
+          y = rect.top + rect.height / 2;
+        }
+      }
       const endRadius = Math.hypot(
         Math.max(x, window.innerWidth - x),
         Math.max(y, window.innerHeight - y),
@@ -88,7 +98,20 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
       startTransition(() => setModeState(next));
 
-      await transition.ready;
+      // Release the guard however the transition ends, including when the
+      // browser skips it (`ready`/`finished` reject in that case).
+      transition.finished
+        .catch(() => {})
+        .finally(() => {
+          isTransitioning.current = false;
+        });
+
+      try {
+        await transition.ready;
+      } catch {
+        // Transition was skipped; the theme is already applied.
+        return;
+      }
 
       document.documentElement.animate(
         {
@@ -103,10 +126,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
           pseudoElement: "::view-transition-new(root)",
         },
       );
-
-      transition.finished.then(() => {
-        isTransitioning.current = false;
-      });
     },
     [],
   );
@@ -117,6 +136,12 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    // Skip the first run: `resolved` still holds the SSR default here, and the
+    // inline head script already applied the correct class before first paint.
+    if (!hasMounted.current) {
+      hasMounted.current = true;
+      return;
+    }
     applyThemeToDOM(resolved);
   }, [resolved]);
 
