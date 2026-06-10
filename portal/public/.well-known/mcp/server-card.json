@@ -1,0 +1,35 @@
+{
+  "name": "atlas",
+  "title": "Atlas Context Layer",
+  "version": "1.0.0",
+  "description": "Read-only MCP facade over the Atlas Context API: governed, citation-backed platform context (capabilities, sources, regional availability). Every Excerpt carries its Citation; warnings such as restricted_source and stale_source are relayed verbatim.",
+  "transport": {
+    "type": "streamable-http",
+    "url": "https://portal.example.com/mcp"
+  },
+  "authentication": {
+    "scheme": "bearer",
+    "description": "Optional. The caller's Bearer token is threaded unparsed to the system of record (identity-agnostic Bearer pipe); without one, a narrow service-token fallback applies."
+  },
+  "capabilities": {
+    "tools": {}
+  },
+  "tools": [
+    {
+      "name": "atlas_search_capability",
+      "description": "Search Atlas's registered topics (capabilities, landing zones, guardrail areas) by free text. Start here to resolve a question to a topic_id, then call atlas_get_context_bundle."
+    },
+    {
+      "name": "atlas_get_source",
+      "description": "Get one registered Source's registry record (steward, authority, review cadence) by source_id. Use atlas_get_context_bundle with that source_id to read its cited content."
+    },
+    {
+      "name": "atlas_get_availability",
+      "description": "Check which platform services are available, planned, or interim per region/outpost in the AWS and Azure landing zones."
+    },
+    {
+      "name": "atlas_get_context_bundle",
+      "description": "Fetch Atlas's governed context bundle for a topic_id, source_id, or free-text query. Every Excerpt is paired with its Citation; relay warnings (restricted_source, stale_source) verbatim."
+    }
+  ]
+}
