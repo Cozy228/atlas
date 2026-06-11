@@ -41,7 +41,8 @@ export function MatrixView({
 }: MatrixViewProps) {
   const totalCols = locations.length + 1;
   const isWide = locations.length > 6;
-  const svcColWidth = isWide ? "22%" : "30%";
+  // Columns share the container width by percentage; every region fits.
+  const svcColWidth = isWide ? "20%" : "26%";
   const locColWidth = `${(100 - parseFloat(svcColWidth)) / locations.length}%`;
   const hasActiveCol = activeLocationId !== null;
   const tableData = useMemo(() => [...rows], [rows]);
@@ -66,9 +67,18 @@ export function MatrixView({
             <button
               type="button"
               onClick={() => onLocationSelect(isActive ? null : location.id)}
-              className="flex h-full w-full items-center justify-center text-inherit transition-colors hover:text-foreground"
+              className="flex h-full w-full flex-col items-center justify-center gap-0.5 text-inherit transition-colors hover:text-foreground"
             >
-              {location.label}
+              <span className="max-w-full font-sans text-xs font-semibold normal-case leading-tight tracking-normal text-foreground">
+                {location.label}
+              </span>
+              {/* The region code only fits comfortably when there are few
+                  columns; in dense zones the short name carries the header. */}
+              {!isWide ? (
+                <span className="max-w-full font-mono text-[0.625rem] font-normal lowercase leading-tight tracking-normal text-muted-foreground">
+                  {location.id}
+                </span>
+              ) : null}
             </button>
           ),
           cell: ({ row }) => (
@@ -104,7 +114,7 @@ export function MatrixView({
                   key={header.id}
                   scope="col"
                   colSpan={header.colSpan}
-                  className={matrixHeadClass(header.column.id, activeLocationId, isWide)}
+                  className={matrixHeadClass(header.column.id, activeLocationId)}
                 >
                   {header.isPlaceholder
                     ? null
@@ -178,7 +188,7 @@ function DomainRows({
               onClick={() => onSelect(row.original.id)}
               data-selected={isSelected ? "true" : undefined}
               className={cn(
-                "cursor-pointer border-b border-border last:border-b-0 transition-colors",
+                "group cursor-pointer border-b border-border last:border-b-0 transition-colors",
                 "hover:bg-muted/50",
                 "data-[selected=true]:bg-brand-tint",
                 // Skip layout/paint of off-screen rows so only visible icons paint on first
@@ -190,12 +200,7 @@ function DomainRows({
               {row.getVisibleCells().map((cell) => (
                 <TableCell
                   key={cell.id}
-                  className={matrixCellClass(
-                    cell.column.id,
-                    activeLocationId,
-                    isWide,
-                    hasActiveCol,
-                  )}
+                  className={matrixCellClass(cell.column.id, activeLocationId, isWide, hasActiveCol)}
                 >
                   {flexRender(cell.column.columnDef.cell, cell.getContext())}
                 </TableCell>
@@ -223,9 +228,11 @@ function ServiceCell({
   selected: boolean;
 }) {
   return (
-    <span className="flex min-w-0 items-center gap-2">
+    <span className="flex w-full min-w-0 items-center gap-2">
       <ServiceIcon serviceId={service.id} provider={provider} size="sm" />
-      <span className="min-w-0 flex-1 truncate font-semibold text-foreground">{service.name}</span>
+      <span className="min-w-0 flex-1 whitespace-normal font-semibold leading-tight text-foreground [overflow-wrap:anywhere]">
+        {service.name}
+      </span>
       <IconChevronDown
         aria-hidden
         className={cn(
@@ -258,16 +265,15 @@ function AvailabilityCell({
   return <StatusDot status={status} note={note} size={isWide ? "sm" : "md"} />;
 }
 
-function matrixHeadClass(columnId: string, activeLocationId: string | null, isWide: boolean) {
+function matrixHeadClass(columnId: string, activeLocationId: string | null) {
   const isServiceColumn = columnId === "service";
   const isActive = columnId === activeLocationId;
   return cn(
+    // Header pins just below the 56px top bar.
     "sticky top-14 z-20 border-b border-border bg-background",
     "font-mono text-xs font-bold uppercase tracking-[0.04em] text-muted-foreground",
     isServiceColumn && "px-3 py-2.5 text-left",
-    !isServiceColumn && "cursor-pointer select-none px-0 py-0 text-center transition-colors",
-    !isServiceColumn && isWide && "type-caption",
-    !isServiceColumn && !isWide && "whitespace-nowrap",
+    !isServiceColumn && "cursor-pointer select-none px-2 py-2 align-bottom transition-colors",
     isActive && "bg-brand-tint text-primary",
   );
 }
