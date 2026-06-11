@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect } from "react";
+import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { IconMessageCircle, IconSearch } from "@tabler/icons-react";
 
 import { useAskAtlas } from "@/components/ask-atlas/context";
@@ -29,6 +30,15 @@ const AskAtlasSearch = lazy(() =>
 export function AskAtlasFab() {
   const { open, activeTab, openAsk, openSearch, setOpen, setActiveTab } =
     useAskAtlas();
+  const navigate = useNavigate();
+  // On the prototype suite, the FAB opens the full-page `/proto/ask` reading
+  // room instead of the mainline dialog; everywhere else it keeps the dialog.
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const isProto = pathname.startsWith("/proto");
+  const onAsk = () => {
+    if (isProto) void navigate({ to: "/proto/ask" });
+    else openAsk();
+  };
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
@@ -50,13 +60,15 @@ export function AskAtlasFab() {
 
   return (
     <>
-      <Button
-        onClick={openAsk}
-        className="fixed bottom-8 right-8 z-50 hidden h-10 items-center gap-2 rounded-lg px-4 shadow-lg lg:flex"
-      >
-        <IconMessageCircle className="size-4" aria-hidden />
-        Ask Atlas
-      </Button>
+      {pathname === "/proto/ask" ? null : (
+        <Button
+          onClick={onAsk}
+          className="fixed bottom-8 right-8 z-50 hidden h-10 items-center gap-2 rounded-lg px-4 shadow-lg lg:flex"
+        >
+          <IconMessageCircle className="size-4" aria-hidden />
+          Ask Atlas
+        </Button>
+      )}
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent

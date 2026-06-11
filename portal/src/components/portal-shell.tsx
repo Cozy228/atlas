@@ -1,17 +1,12 @@
 import { useState, type ReactNode } from "react";
-import { Link } from "@tanstack/react-router";
+import { Link, useLocation } from "@tanstack/react-router";
 import { IconMenu2, IconSearch } from "@tabler/icons-react";
 
 import { AskAtlasFab } from "@/components/ask-atlas-fab";
 import { AskAtlasProvider, useAskAtlas } from "@/components/ask-atlas/context";
 import { PortalFooter } from "@/components/portal-footer";
 import { ThemeToggle } from "@/components/theme-toggle";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { ThemeProvider } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
@@ -34,6 +29,27 @@ const PRIMARY_NAV: ReadonlyArray<NavItem> = [
   { to: "/skills", label: "Skills" },
 ];
 
+/**
+ * Prototype-suite nav: while browsing the redesign candidates (`/proto/*`,
+ * `/regions`) the bar links within the suite so the flow stays coherent.
+ * Remove together with the proto routes once they fold into the mainline.
+ */
+const PROTO_NAV: ReadonlyArray<NavItem> = [
+  { to: "/proto/home", label: "Home" },
+  { to: "/proto/overview", label: "Dashboard" },
+  { to: "/regions", label: "Availability" },
+  { to: "/proto/catalog", label: "Catalog" },
+  { to: "/proto/guidance", label: "Guidance" },
+  { to: "/proto/skills", label: "Skills" },
+  { to: "/proto/sources", label: "Sources" },
+];
+
+function useActiveNav(): ReadonlyArray<NavItem> {
+  const pathname = useLocation({ select: (location) => location.pathname });
+  const inProtoSuite = pathname.startsWith("/proto") || pathname.startsWith("/regions");
+  return inProtoSuite ? PROTO_NAV : PRIMARY_NAV;
+}
+
 export function PortalShell({ children }: PortalShellProps) {
   return (
     <ThemeProvider>
@@ -54,6 +70,7 @@ export function PortalShell({ children }: PortalShellProps) {
 
 function TopBar() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const nav = useActiveNav();
 
   return (
     <header
@@ -65,7 +82,7 @@ function TopBar() {
     >
       <BrandLink />
       <nav aria-label="Primary" className="hidden items-center justify-center gap-1 md:flex">
-        {PRIMARY_NAV.map((item) => (
+        {nav.map((item) => (
           <TopNavLink key={item.to} item={item} />
         ))}
       </nav>
@@ -79,9 +96,11 @@ function TopBar() {
 }
 
 function BrandLink() {
+  const pathname = useLocation({ select: (location) => location.pathname });
+  const inProtoSuite = pathname.startsWith("/proto") || pathname.startsWith("/regions");
   return (
     <Link
-      to="/"
+      to={inProtoSuite ? "/proto/home" : "/"}
       aria-label="Atlas Portal home"
       className={cn(
         "mr-5 flex shrink-0 items-center gap-2 rounded-md py-1 pr-1",
@@ -147,6 +166,7 @@ type NavMenuProps = {
 };
 
 function NavMenu({ open, onOpenChange }: NavMenuProps) {
+  const nav = useActiveNav();
   return (
     <>
       <button
@@ -169,7 +189,7 @@ function NavMenu({ open, onOpenChange }: NavMenuProps) {
             <SheetTitle className="text-sm font-bold tracking-[-0.03em]">Atlas</SheetTitle>
           </SheetHeader>
           <nav aria-label="Primary" className="flex flex-col gap-0.5 p-2">
-            {PRIMARY_NAV.map((item) => (
+            {nav.map((item) => (
               <SheetNavLink key={item.to} item={item} onNavigate={() => onOpenChange(false)} />
             ))}
           </nav>
