@@ -1,5 +1,65 @@
 # Atlas Design System — prototype notes
 
+## In-app page prototypes — round 4 (2026-06-11)
+
+> **Status: SECOND PASS APPLIED.** Round-3 review refined further: Home sections
+> re-formed, the broadsheet rebuilt with real hierarchy, Overview renamed
+> **Dashboard** and consolidated to a merged read + a compact one, Guidance index
+> regained a switcher (3 organizing axes), Skills man pages set default and its
+> index/header fixed, Sources gained directions, and the Ask Atlas reading room
+> is now wired to the FAB. All data real-loader or fictional/public-safe;
+> `/proto/overview` is mock ops fixtures and self-describes as a demo snapshot.
+> `pnpm lint` / `typecheck` / `test` (96) clean.
+
+| URL | Direction (one line) |
+|---|---|
+| `/proto/home` | **Single** "Welcome desk" — hero + JourneyGrid; "Jump back in" re-formed as a quiet resume line (not a panel); Browse by intent = a featured door (with example chips) over a de-slopped switchboard list; catalog book index; change timeline |
+| `/proto/whatsnew` | "What's New" broadsheet, rebuilt with size hierarchy: a **lead** story, a **secondary** two-column band, then compact **briefs** by month; rail carries an "in this issue" type tally + month index. Home's "What changed → View all" lands here |
+| `/proto/overview?variant=dashboard` (default) | **Renamed "Dashboard".** The merged read: KPI scorecard (sparklines) + condition gauge & priority "needs attention" feed + fleet health table + dev→staging→prod promotion state (pending-promotions rail + prod column) |
+| `/proto/overview?variant=compact` | The same snapshot distilled to one screen: condition strip + top of the attention feed + a tight fleet list. (standalone Signal grid / Pulse folded in) |
+| `/proto/catalog?variant=adopted` (default) | "Adopted mainline" — the liked mainline catalog, reusing its exported components read-only |
+| `/proto/catalog?variant=specsheet` | "Spec sheet" — typographic domain blocks; carries the `#domain-…` anchors Home targets |
+| `/proto/guidance?variant=outcomes` (default) | "Outcomes" — flows filed under the outcome they reach (wayfinding bands) |
+| `/proto/guidance?variant=directory` | "Directory" — every flow in one dense table (outcome · shape · size · status) |
+| `/proto/guidance?variant=byshape` | "By shape" — grouped by journey shape: Walkthroughs · Decisions · Checklists |
+| `/proto/guidance/new-app-onboarding?variant=board` (default) / `?variant=line` | Detail "Journey log" (default) ↔ "Track" — in-page toggle; both kept |
+| `/proto/skills?variant=manpage` (default) | "Man pages" — filterable apropos index (friendly name + id, stage-grouped) + a manual page that leads with one title block (name once) then SYNOPSIS/DESCRIPTION/HISTORY; install bay is the synopsis |
+| `/proto/skills?variant=shelf` | "Tool shelf" — marketplace rows; each skill links to its detail page (`/proto/skills/$skillId`) |
+| `/proto/sources?variant=ledger` (default) | "Registry ledger" — health band + numbered accession ledger, sortable by authority/freshness |
+| `/proto/sources?variant=board` | "Stewardship board" — triage grouped by freshness, action-needed first |
+| `/proto/sources?variant=byclass` | "By class" — browse by what the evidence is (Terraform / Confluence / Policy) |
+| `/proto/ask` | "Reading room" Ask Atlas (already built) — now reachable: the **FAB opens it on `/proto/*`** routes (mainline dialog elsewhere) |
+
+Notes: proto-only guidance flows live in `proto/guidance/catalog.ts` (shared
+`lib/guidance.ts` untouched; detail resolves via `getProtoGuidance`). Overview
+helpers (`needsAttention`, sparkline series, deploy/promotion derived) in
+`lib/ops.ts`; the attention feed + status vocab are shared in
+`proto/overview/shared.tsx`. Sources split into `proto/sources/{ledger,board,byclass}.tsx`.
+Nav label `/proto/overview` reads "Dashboard". Capability / regions proto pages
+untouched.
+
+## In-app page prototypes — production candidates (2026-06-10)
+
+> **Status: AWAITING REVIEW.** Five new in-app routes alongside `/proto/home` and `/regions`,
+> one per remaining surface. These are **not throwaways** — they are production candidates
+> intended to replace their mainline routes once reviewed. Each runs on real loader data
+> (topics, availability, sources, context bundles, guidance fixtures); fictional copy is
+> public-safe. All verified in-browser (light + Ink dark), `pnpm lint`/`typecheck` clean.
+
+| Route | Direction (one line) | Replaces |
+|---|---|---|
+| `/proto/catalog` | "Drafting-room parts catalog" — sticky domain jump rail (scrollspy) + domain shelves of corner-tick cards + dense Index toggle; body = availability projection (60 services × 12 domains) enriched by real topics | `/catalog` list |
+| `/proto/capability` | "Component datasheet" — identity band + trust line, numbered sections (specs table · where-it-runs strip · get-started tools · application notes · references), sticky evidence rail with the page's single brand button | `/catalog/$topicId` |
+| `/proto/guidance` | "Itinerary board" — family legend (Onboard/Decide/Enable/Validate) + destination-led route cards with mini station tracks (lifecycle-ribbon pattern) | `/guidance` index |
+| `/proto/sources` | "Registry ledger" — computed health band (authority composition · freshness · stewardship) over the §07 Document Sources numbered panel, sortable by authority/freshness | sources tab / redirect |
+| `/proto/ask` | "Reading room" — real `AskAtlasChat` centre + sticky grounding rail (live registry coverage, behaviour rules, owner-team escalation list) | `/ask` |
+
+Open calls: confirm each direction, then fold into the mainline routes and retire the proto
+paths. Known gap: narrow-viewport (≤500px) pass not yet exercised (browser harness could not
+shrink below Chrome's min window width); layouts use the same responsive conventions as the
+shipped pages — do a quick devtools check during review.
+
+
 > **Status: CONCLUDED.** The design system is now settled and written up in the root
 > [`DESIGN.md`](../DESIGN.md) — that is the source of truth. This `prototype/` folder is **kept, not
 > deleted**: `atlas-design-system.html` is the living **reference implementation** (open it to see the
