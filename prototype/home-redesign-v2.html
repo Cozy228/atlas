@@ -1,0 +1,443 @@
+<!doctype html>
+<!--
+  ATLAS PORTAL — HOME redesign v2 · PROTOTYPE (throwaway)
+  ===================================================================
+  Brief: HERO + "From idea to production" (lifecycle) are LOCKED (identical in every
+  direction). Everything else — Choose your starting point, Recently viewed, What's new,
+  Keep exploring — is reimagined. Three structurally-different directions, flip with the
+  bottom bar or ← / → ; ◐ (or `t`) toggles Blueprint(light)/Ink(dark).
+
+    D1 — Workbench   : asymmetric 2-column. Tasks as an action list + lifecycle + changelog
+                       in the main column; a right rail holds Recently viewed + Keep exploring.
+    D2 — Index       : editorial, low-card. Tasks as big typographic rows; recently-viewed as
+                       one inline run; changelog timeline; keep-exploring as a 2-col link index.
+    D3 — Launcher    : task-first. A prominent 3-up launcher, then an Activity 2-up
+                       (Recently viewed | What's new), keep-exploring as a quiet link row.
+
+  Tokens copied verbatim from atlas-design-system.html. Data fictional / public-safe.
+  Run: cd prototype && python3 -m http.server 8753  →  /home-redesign-v2.html
+-->
+<html lang="en" data-variant="blueprint">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Atlas — Home redesign v2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%;
+  --font-ui: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", "SF Mono", Menlo, Consolas, monospace;
+  --r-xs: 3px; --r-sm: 4px; --r-md: 6px; --r-lg: 10px; --r-pill: 999px; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-ui); font-size: 15px;
+  line-height: 1.55; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
+  font-optical-sizing: auto; font-synthesis: none; padding-bottom: 96px;
+  transition: background-color .25s ease, color .25s ease; }
+:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 2px; }
+
+html[data-variant="blueprint"] {
+  --bg: oklch(98.2% 0.004 264.18); --grid: oklch(72% 0.04 264.18 / 0.08);
+  --surface: oklch(99.6% 0.0015 264.18); --surface-2: oklch(97% 0.006 264.18);
+  --ink: oklch(23% 0.03 264.18); --ink-2: oklch(46% 0.03 264.18); --ink-3: oklch(58% 0.025 264.18);
+  --line: oklch(90% 0.012 264.18); --line-2: oklch(80% 0.016 264.18);
+  --brand: oklch(46.28% 0.3059 264.18); --brand-hover: oklch(40% 0.28 264.18);
+  --brand-tint: oklch(95% 0.045 264.18); --brand-ink: oklch(45% 0.29 264.18);
+  --on-brand: oklch(99.6% 0.0015 264.18);
+  --success: oklch(56% 0.13 152); --success-ink: oklch(38% 0.11 152);
+  --warning: oklch(70% 0.15 75);  --warning-ink: oklch(45% 0.12 60);
+  --critical:oklch(55% 0.2 25);   --critical-ink:oklch(45% 0.18 25);
+  --info:    oklch(60% 0.12 230); --info-ink:    oklch(42% 0.11 230);
+  --shadow-pop: 0 1px 2px oklch(40% 0.05 264.18 / 0.08), 0 6px 16px oklch(40% 0.05 264.18 / 0.06); }
+html[data-variant="blueprint-ink"] {
+  --bg: oklch(12% 0.008 264.18); --grid: oklch(82% 0.03 264.18 / 0.045);
+  --surface: oklch(16% 0.009 264.18); --surface-2: oklch(20% 0.011 264.18);
+  --ink: oklch(96% 0.005 264.18); --ink-2: oklch(68% 0.012 264.18); --ink-3: oklch(52% 0.012 264.18);
+  --line: oklch(24% 0.01 264.18); --line-2: oklch(34% 0.012 264.18);
+  --brand: oklch(62% 0.26 264.18); --brand-hover: oklch(69% 0.23 264.18);
+  --brand-tint: oklch(25% 0.06 264.18); --brand-ink: oklch(80% 0.15 264.18);
+  --on-brand: oklch(12% 0.008 264.18);
+  --success: oklch(72% 0.16 152); --success-ink: oklch(81% 0.14 152);
+  --warning: oklch(80% 0.15 85);  --warning-ink: oklch(86% 0.13 85);
+  --critical:oklch(67% 0.2 25);   --critical-ink:oklch(82% 0.15 25);
+  --info:    oklch(72% 0.12 230); --info-ink:    oklch(84% 0.1 230);
+  --shadow-pop: 0 2px 8px oklch(0% 0 0 / 0.55), 0 16px 34px oklch(0% 0 0 / 0.45); }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; } }
+
+/* ---- shell ---- */
+.canvas { min-height: 100dvh; background-image:
+  linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 32px 32px; background-position: -1px -1px; }
+.wrap { max-width: 1040px; margin: 0 auto; padding: 0 24px; }
+.plate { background: var(--bg); width: fit-content; }
+.topbar { position: sticky; top: 0; z-index: 30; display: grid; grid-template-columns: 1fr auto 1fr;
+  align-items: center; gap: 16px; height: 56px; padding: 0 24px; background: var(--bg); border-bottom: 1px solid var(--line); }
+.tb-left { display: flex; align-items: center; gap: 12px; justify-self: start; }
+.tb-right { display: flex; align-items: center; gap: 6px; justify-self: end; }
+.brandmark { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px;
+  border-radius: 7px; background: var(--brand); color: var(--on-brand); font-family: var(--font-mono); font-weight: 600; font-size: 13px; letter-spacing: -0.04em; }
+.wordmark { font-weight: 700; font-size: 16px; letter-spacing: -0.02em; }
+.topnav { display: flex; gap: 2px; justify-self: center; }
+.topnav a { padding: 6px 12px; border-radius: var(--r-xs); color: var(--ink-2); text-decoration: none; font-size: 14px; font-weight: 500; }
+.topnav a[aria-current="page"] { color: var(--ink); font-weight: 600; box-shadow: inset 0 -2px 0 var(--brand); border-radius: var(--r-xs) var(--r-xs) 0 0; }
+.icobtn { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: var(--r-xs); border: 0; background: transparent; color: var(--ink-2); cursor: pointer; }
+.icobtn:hover { background: var(--surface-2); color: var(--ink); }
+.fab { position: fixed; right: 24px; bottom: 24px; z-index: 90; display: inline-flex; align-items: center; gap: 8px; padding: 11px 18px; border-radius: var(--r-pill); background: var(--brand); color: var(--on-brand); border: none; cursor: pointer; font-family: var(--font-ui); font-size: 14px; font-weight: 600; box-shadow: var(--shadow-pop); }
+
+/* ---- hero (LOCKED) ---- */
+.hero { padding: 52px 0 4px; }
+.eyebrow { display: inline-flex; font-family: var(--font-mono); font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); background: var(--bg); }
+.hero h1 { margin: 14px 0 0; font-size: clamp(34px, 5.4vw, 54px); line-height: 1.03; letter-spacing: -0.035em; font-weight: 700; max-width: 16ch; text-wrap: balance; background: var(--bg); width: fit-content; }
+.hero p { margin: 18px 0 24px; max-width: 60ch; color: var(--ink-2); font-size: 18px; line-height: 1.55; background: var(--bg); width: fit-content; }
+.hero-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 18px; }
+.search { position: relative; display: flex; align-items: center; max-width: 560px; }
+.search .ico { position: absolute; left: 14px; color: var(--ink-3); display: flex; }
+.search input { font-family: var(--font-ui); font-size: 15px; color: var(--ink); height: 48px; width: 100%; padding: 0 14px 0 42px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-xs); }
+.search .kbd { position: absolute; right: 12px; font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); background: var(--bg); border: 1px solid var(--line); border-radius: 4px; padding: 2px 7px; }
+
+/* ---- shared section header ---- */
+.sec { padding: 40px 0 0; }
+.sec-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin: 0 0 16px; }
+.sec-head h2 { margin: 0; font-size: 21px; font-weight: 700; letter-spacing: -0.02em; background: var(--bg); width: fit-content; }
+.sec-sub { margin: 4px 0 0; font-size: 13.5px; color: var(--ink-2); background: var(--bg); width: fit-content; }
+.sec-link { font-size: 13px; font-weight: 600; color: var(--brand-ink); text-decoration: none; white-space: nowrap; }
+.sec-link:hover { text-decoration: underline; }
+
+/* ---- chips / tags ---- */
+.chip { display: inline-flex; align-items: center; gap: 5px; font-family: var(--font-ui); font-size: 11.5px; font-weight: 600; padding: 3px 8px; border-radius: 2px; border: 1px solid var(--line-2); background: transparent; color: var(--ink-2); }
+.chip.brand { border-color: color-mix(in oklab, var(--brand) 35%, var(--line)); color: var(--brand-ink); }
+.tag { font-family: var(--font-mono); font-size: 9.5px; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-3); }
+.dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.dot.s { background: var(--success); } .dot.w { background: var(--warning); } .dot.i { background: var(--info); } .dot.n { background: var(--ink-3); }
+.arr { color: var(--ink-3); transition: transform .15s; }
+a:hover > .arr { transform: translateX(2px); color: var(--brand-ink); }
+
+/* corner ticks (signature) */
+.tick { position: relative; }
+.tick::before, .tick::after { content: ""; position: absolute; width: 7px; height: 7px; border-color: var(--brand); border-style: solid; opacity: .5; pointer-events: none; }
+.tick::before { top: -1px; left: -1px; border-width: 1px 0 0 1px; }
+.tick::after { bottom: -1px; right: -1px; border-width: 0 1px 1px 0; }
+
+/* ---- lifecycle "From idea to production" (LOCKED) ---- */
+.journey { display: grid; grid-template-columns: repeat(4, 1fr); }
+.jstep { padding: 4px 20px 0; border-left: 1px solid var(--line); }
+.jstep:first-child { padding-left: 0; border-left: 0; }
+.jnum { font-size: 40px; font-weight: 700; line-height: 1; letter-spacing: -0.04em; color: var(--line-2); font-variant-numeric: tabular-nums; }
+.jphase { margin: 16px 0 6px; font-family: var(--font-mono); font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--brand-ink); }
+.jtitle { font-size: 15px; font-weight: 700; letter-spacing: -0.01em; margin: 0 0 6px; }
+.jdesc { font-size: 13px; color: var(--ink-2); line-height: 1.5; margin: 0 0 12px; }
+.jlinks { display: flex; flex-direction: column; gap: 5px; }
+.jlinks a { display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; font-weight: 600; color: var(--brand-ink); text-decoration: none; width: fit-content; }
+.jlinks a:hover { text-decoration: underline; }
+
+/* ============================================================== D1 — WORKBENCH */
+.d1-grid { display: grid; grid-template-columns: 1fr 308px; gap: 40px; align-items: start; }
+.d1-main > .sec:first-child { padding-top: 0; }
+.act-list { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: var(--r-sm); overflow: hidden; background: var(--surface); }
+.act { display: flex; align-items: center; gap: 14px; padding: 15px 18px; text-decoration: none; color: inherit; border-top: 1px solid var(--line); transition: background-color .12s; }
+.act:first-child { border-top: 0; }
+.act:hover { background: var(--surface-2); }
+.act-ic { width: 38px; height: 38px; flex: none; display: grid; place-items: center; border-radius: var(--r-xs); background: var(--brand-tint); color: var(--brand-ink); }
+.act-body { flex: 1; min-width: 0; }
+.act-t { font-size: 15px; font-weight: 700; letter-spacing: -0.01em; }
+.act-s { font-size: 13px; color: var(--ink-2); margin-top: 1px; }
+.act-go { font-size: 12px; font-weight: 600; color: var(--brand-ink); white-space: nowrap; display: flex; align-items: center; gap: 4px; }
+.rail { display: flex; flex-direction: column; gap: 16px; position: sticky; top: 72px; }
+.rail-card { border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--surface); padding: 4px 4px 6px; }
+.rail-h { display: flex; align-items: center; justify-content: space-between; padding: 11px 12px 8px; }
+.rail-h .t { font-family: var(--font-mono); font-size: 11px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: var(--ink-3); }
+.rail-h a { font-size: 11.5px; font-weight: 600; color: var(--brand-ink); text-decoration: none; }
+.rail-row { display: flex; align-items: center; gap: 10px; padding: 8px 12px; text-decoration: none; color: inherit; border-radius: var(--r-xs); }
+.rail-row:hover { background: var(--surface-2); }
+.rail-row .ico { width: 24px; height: 24px; flex: none; display: grid; place-items: center; border-radius: var(--r-xs); border: 1px solid var(--line); background: var(--bg); color: var(--ink-2); font-size: 13px; }
+.rail-row .nm { flex: 1; min-width: 0; font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rail-row .tg { font-family: var(--font-mono); font-size: 9px; text-transform: uppercase; letter-spacing: .05em; color: var(--ink-3); }
+
+/* changelog (used by D1 + D2) */
+.log { display: flex; flex-direction: column; gap: 16px; }
+.log-row { display: grid; grid-template-columns: 4.5rem 1fr; gap: 16px; }
+.log-date { font-family: var(--font-mono); font-size: 12px; line-height: 1.5; color: var(--ink-3); font-variant-numeric: tabular-nums; background: var(--bg); width: fit-content; }
+.log-body { background: var(--bg); width: fit-content; max-width: 64ch; }
+.log-head { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px; }
+.log-kind { display: inline-flex; align-items: center; gap: 6px; font-family: var(--font-mono); font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
+.log-title { font-size: 14px; font-weight: 600; }
+.log-desc { margin: 4px 0 0; font-size: 12.5px; color: var(--ink-2); line-height: 1.5; }
+.k-new { color: var(--success-ink); } .k-pol { color: var(--warning-ink); } .k-upd { color: var(--info-ink); } .k-dep { color: var(--ink-3); }
+
+/* ============================================================== D2 — INDEX */
+.idx { border-top: 1px solid var(--line); }
+.idx-row { display: grid; grid-template-columns: 2.5rem 1fr auto; gap: 22px; align-items: start; padding: 22px 0; border-bottom: 1px solid var(--line); }
+.idx-mk { font-family: var(--font-mono); font-size: 13px; font-weight: 600; color: var(--brand-ink); padding-top: 3px; }
+.idx-t { font-size: 19px; font-weight: 700; letter-spacing: -0.02em; }
+.idx-q { font-size: 14px; color: var(--ink-2); margin-top: 4px; max-width: 56ch; }
+.idx-links { display: flex; flex-direction: column; gap: 7px; align-items: flex-end; }
+.idx-links a { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--brand-ink); text-decoration: none; white-space: nowrap; }
+.idx-links a:hover { text-decoration: underline; }
+.run { display: flex; flex-wrap: wrap; gap: 6px 18px; }
+.run a { display: inline-flex; align-items: baseline; gap: 7px; text-decoration: none; color: var(--ink); font-size: 13.5px; font-weight: 600; }
+.run a:hover { color: var(--brand-ink); }
+.run a .tag { align-self: center; }
+.exp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 28px; }
+.exp { display: flex; align-items: baseline; gap: 10px; padding: 13px 0; border-top: 1px solid var(--line); text-decoration: none; color: inherit; }
+.exp:hover .exp-t { color: var(--brand-ink); }
+.exp .n { font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); }
+.exp-t { font-size: 14px; font-weight: 600; }
+.exp-d { font-size: 12.5px; color: var(--ink-2); margin-top: 1px; }
+
+/* ============================================================== D3 — LAUNCHER */
+.lp { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.lp-card { display: flex; flex-direction: column; gap: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 20px; }
+.lp-ic { width: 40px; height: 40px; display: grid; place-items: center; border-radius: var(--r-xs); background: var(--brand-tint); color: var(--brand-ink); }
+.lp-t { font-size: 16px; font-weight: 700; letter-spacing: -0.01em; }
+.lp-d { font-size: 13px; color: var(--ink-2); line-height: 1.5; flex: 1; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; height: 34px; padding: 0 14px; border-radius: var(--r-xs); font-size: 13px; font-weight: 600; text-decoration: none; cursor: pointer; width: fit-content; }
+.btn-primary { background: var(--brand); color: var(--on-brand); }
+.btn-secondary { background: var(--surface); color: var(--ink); border: 1px solid var(--line-2); }
+.btn-secondary:hover { border-color: var(--brand); color: var(--brand-ink); }
+.two-up { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+.panel { border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--surface); overflow: hidden; }
+.panel-h { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+.panel-h .t { font-size: 14px; font-weight: 700; letter-spacing: -0.01em; }
+.panel-h a { font-size: 12px; font-weight: 600; color: var(--brand-ink); text-decoration: none; }
+.rv2 { display: flex; align-items: center; gap: 11px; padding: 11px 16px; text-decoration: none; color: inherit; border-top: 1px solid var(--line); }
+.rv2:hover { background: var(--surface-2); }
+.rv2 .ico { width: 26px; height: 26px; flex: none; display: grid; place-items: center; border-radius: var(--r-xs); background: var(--brand-tint); color: var(--brand-ink); font-family: var(--font-mono); font-size: 11px; font-weight: 600; }
+.rv2 .nm { flex: 1; font-size: 13px; font-weight: 600; }
+.upd2 { display: flex; gap: 10px; padding: 12px 16px; border-top: 1px solid var(--line); }
+.upd2:first-child { border-top: 0; }
+.upd2 .ln { font-size: 13px; font-weight: 600; }
+.upd2 .ds { font-size: 12px; color: var(--ink-2); margin-top: 1px; line-height: 1.45; }
+.upd2 .dt { font-family: var(--font-mono); font-size: 10px; color: var(--ink-3); white-space: nowrap; }
+.linkrow { display: flex; flex-wrap: wrap; gap: 8px; }
+.linkrow a { display: inline-flex; align-items: center; gap: 7px; padding: 9px 14px; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--surface); text-decoration: none; color: var(--ink); font-size: 13px; font-weight: 600; }
+.linkrow a:hover { border-color: var(--line-2); color: var(--brand-ink); }
+
+.layout { display: none; } .layout.on { display: block; }
+.pad-end { padding-bottom: 56px; }
+
+/* ---- switcher ---- */
+.switcher { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); z-index: 100; display: flex; align-items: center; gap: 4px; background: #0b0d12; color: #fff; border: 1px solid #2a2f3a; border-radius: 999px; padding: 6px; box-shadow: 0 8px 30px rgba(0,0,0,.35); font-family: "Inter", system-ui, sans-serif; }
+.switcher button { background: none; border: none; color: #b8bfcc; cursor: pointer; width: 30px; height: 30px; border-radius: 999px; display: grid; place-items: center; font-size: 15px; }
+.switcher button:hover { background: #1a1e27; color: #fff; }
+.switcher .label { padding: 0 10px; font-size: 13px; min-width: 188px; text-align: center; }
+.switcher .label .k { font-family: "IBM Plex Mono", monospace; color: #6f7686; font-size: 11px; }
+.switcher .dots { display: flex; gap: 5px; padding: 0 6px; }
+.switcher .dots i { width: 6px; height: 6px; border-radius: 50%; background: #3a4150; }
+.switcher .dots i.on { background: #4d6bff; }
+.switcher .sep { width: 1px; height: 20px; background: #2a2f3a; margin: 0 2px; }
+
+@media (max-width: 860px) { .d1-grid, .two-up, .exp-grid, .lp { grid-template-columns: 1fr; } .journey { grid-template-columns: 1fr 1fr; gap: 24px 0; } }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="tb-left"><span class="brandmark">A</span><span class="wordmark">Atlas</span></div>
+  <nav class="topnav"><a href="#" aria-current="page">Home</a><a href="#">Overview</a><a href="#">Availability</a><a href="#">Catalog</a><a href="#">Guidance</a></nav>
+  <div class="tb-right">
+    <button class="icobtn" title="Search"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35" stroke-linecap="round"/></svg></button>
+    <button class="icobtn" id="themeIco" title="Toggle theme"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" stroke-linecap="round"/></svg></button>
+  </div>
+</header>
+
+<div class="canvas">
+
+  <!-- D1 — WORKBENCH -->
+  <div class="layout on" data-layout="d1">
+    <div class="wrap">
+      <div data-hero></div>
+      <div class="d1-grid" style="margin-top:8px">
+        <div class="d1-main">
+          <section class="sec">
+            <div class="sec-head"><div><h2>Choose your starting point</h2><p class="sec-sub">Jump to the task that matches where you are.</p></div></div>
+            <div data-actions></div>
+          </section>
+          <section class="sec"><div class="sec-head"><div><h2>From idea to production</h2><p class="sec-sub">The platform lifecycle, end to end.</p></div></div><div data-journey></div></section>
+          <section class="sec pad-end"><div class="sec-head"><div><h2>What's new</h2></div></div><div data-log></div></section>
+        </div>
+        <aside class="rail">
+          <div class="rail-card" data-rail-recent></div>
+          <div class="rail-card" data-rail-explore></div>
+        </aside>
+      </div>
+    </div>
+  </div>
+
+  <!-- D2 — INDEX -->
+  <div class="layout" data-layout="d2">
+    <div class="wrap">
+      <div data-hero></div>
+      <section class="sec"><div class="sec-head"><div><h2>Choose your starting point</h2><p class="sec-sub">Three ways in, by where you are.</p></div></div><div data-index></div></section>
+      <section class="sec"><div class="sec-head"><div><h2>From idea to production</h2><p class="sec-sub">The platform lifecycle, end to end.</p></div></div><div data-journey></div></section>
+      <section class="sec"><div class="sec-head"><div><h2>Recently viewed</h2></div></div><div class="run" data-run></div></section>
+      <section class="sec"><div class="sec-head"><div><h2>What's new</h2></div></div><div data-log></div></section>
+      <section class="sec pad-end"><div class="sec-head"><div><h2>Keep exploring</h2></div></div><div class="exp-grid" data-explore-index></div></section>
+    </div>
+  </div>
+
+  <!-- D3 — LAUNCHER -->
+  <div class="layout" data-layout="d3">
+    <div class="wrap">
+      <div data-hero></div>
+      <section class="sec"><div class="sec-head"><div><h2>Choose your starting point</h2><p class="sec-sub">Pick a path and go.</p></div></div><div class="lp" data-launcher></div></section>
+      <section class="sec"><div class="sec-head"><div><h2>From idea to production</h2><p class="sec-sub">The platform lifecycle, end to end.</p></div></div><div data-journey></div></section>
+      <section class="sec">
+        <div class="two-up">
+          <div><div class="sec-head"><div><h2 style="font-size:16px">Recently viewed</h2></div></div><div class="panel" data-recent-panel></div></div>
+          <div><div class="sec-head"><div><h2 style="font-size:16px">What's new</h2></div><a class="sec-link" href="#">Changelog →</a></div><div class="panel" data-updates-panel></div></div>
+        </div>
+      </section>
+      <section class="sec pad-end"><div class="sec-head"><div><h2>Keep exploring</h2></div></div><div class="linkrow" data-explore-row></div></section>
+    </div>
+  </div>
+
+</div>
+
+<button class="fab" title="Ask Atlas"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.5 8.5 0 0 1-12.6 7.4L3 21l2.1-5.4A8.5 8.5 0 1 1 21 11.5z" stroke-linejoin="round"/></svg> Ask Atlas</button>
+
+<div class="switcher" role="group" aria-label="Direction switcher">
+  <button id="prev" title="Previous (←)">‹</button>
+  <span class="label"><span id="lbl">D1 — Workbench</span> <span class="k" id="lblk">#d1</span></span>
+  <button id="next" title="Next (→)">›</button>
+  <span class="dots" id="dots"><i class="on"></i><i></i><i></i></span>
+  <span class="sep"></span>
+  <button id="theme" title="Toggle Blueprint / Ink">◐</button>
+</div>
+
+<script>
+  const ICO = {
+    search: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35" stroke-linecap="round"/></svg>',
+    swap:   '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 7h13l-3-3M17 17H4l3 3" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    rocket: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 15c-1 1-1 4-1 4s3 0 4-1m9.5-12.5C19 7 16 13 13 14l-3-3c1-3 7-6 8.5-7.5zM9 11l-4 1m8 4l-1 4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    arr:    '<svg class="arr" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  };
+
+  /* fictional / public-safe data */
+  const TASKS = [
+    { ic: "search", t: "Find a service", s: "Which approved capability fits your use case?",
+      links: [["Browse 3 capabilities", "#"], ["Check regional availability", "#"]] },
+    { ic: "swap", t: "Migrate an app", s: "Find the target environment and the platform team for your move.",
+      links: [["Compare 3 landing zones", "#"], ["Read migration guidance", "#"]] },
+    { ic: "rocket", t: "Onboard a new app", s: "Landing zones, provisioning tools, and support contacts.",
+      links: [["Choose a landing zone", "#"], ["Browse onboarding guidance", "#"]] },
+  ];
+  const RECENT = [
+    { ab: "B", nm: "AWS Bedrock", tg: "Capability" },
+    { ab: "S", nm: "Serverless Compute", tg: "Capability" },
+    { ab: "C", nm: "Central Landing Zone", tg: "Landing zone" },
+    { ab: "R", nm: "Regulated Landing Zone", tg: "Landing zone" },
+    { ab: "S", nm: "Amazon S3", tg: "Capability" },
+    { ab: "B", nm: "Bedrock Terraform Module", tg: "Source" },
+  ];
+  const UPDATES = [
+    { k: "new", kl: "New", c: "k-new", d: "s", date: "May 8", t: "Object Storage (S3-Compatible)", ds: "Added to the catalog. Available in US-East-1 and DC16; multipart upload, versioning, and lifecycle rules supported." },
+    { k: "pol", kl: "Policy", c: "k-pol", d: "w", date: "May 6", t: "GDC Deployment Approval", ds: "Two-step approval now required for all GDC landing zone deployments. Provisioning runbook updated." },
+    { k: "upd", kl: "Updated", c: "k-upd", d: "i", date: "May 3", t: "Kubernetes Platform", ds: "Authority source refreshed from platform CMDB. Level raised to L1; previously stale anchor resolved." },
+    { k: "dep", kl: "Deprecated", c: "k-dep", d: "n", date: "Apr 28", t: "VMware vSphere Provisioning", ds: "End-of-life July 31. Migrate to the Cloud VM capability before the deadline." },
+  ];
+  const EXPLORE = [
+    { ic: "▤", t: "Browse by domain", d: "Filter services by compute, storage, database, AI, or integration." },
+    { ic: "▣", t: "Compare environments", d: "Match your workload's requirements to the right landing zone." },
+    { ic: "◎", t: "Check regional coverage", d: "See which services are available in US-East-1, GDC, DC16, and more." },
+    { ic: "◇", t: "Review authoritative sources", d: "Inspect authority level, review freshness, and broken-anchor status." },
+  ];
+  const JOURNEY = [
+    { ph: "Get started", t: "Understand the catalog", d: "Browse available capabilities, service domains, and regional availability before committing.", links: [["Service catalog", "#"], ["Availability map", "#"]] },
+    { ph: "Build", t: "Provision and configure", d: "Use approved Terraform modules and Harness pipelines to provision landing zones and services.", links: [["Guidance", "#"]] },
+    { ph: "Validate", t: "Check guardrails", d: "Review applicable guardrails before deploy. Authoritative source citations are inline on each surface.", links: [["Sources", "#"]] },
+    { ph: "Operate", t: "Monitor and evolve", d: "Track availability changes across regions and stay current with the platform catalog.", links: [["Availability map", "#"]] },
+  ];
+
+  const HERO = `<section class="hero">
+    <span class="eyebrow plate">Platform catalog</span>
+    <h1>Find the right platform path</h1>
+    <p>One place to find approved capabilities, see where they're available, and follow the path from idea to production.</p>
+    <div class="search"><span class="ico">${ICO.search}</span><input placeholder="What are you looking for?" /><span class="kbd">⌘K</span></div>
+    <div class="hero-meta"><span class="chip brand">3 capabilities</span><span class="chip">2 domains</span><span class="chip">15 regions &amp; outposts</span><span class="chip">L3–L5 landing zones</span></div>
+  </section>`;
+
+  const journeyHTML = () => `<div class="journey">` + JOURNEY.map((s, i) =>
+    `<div class="jstep"><div class="jnum">0${i + 1}</div><div class="jphase">${s.ph}</div><div class="jtitle">${s.t}</div><p class="jdesc">${s.d}</p>
+     <div class="jlinks">${s.links.map(([t, h]) => `<a href="${h}">${t} ${ICO.arr}</a>`).join("")}</div></div>`).join("") + `</div>`;
+
+  const logHTML = () => `<div class="log">` + UPDATES.map(u =>
+    `<div class="log-row"><time class="log-date">${u.date}</time><div class="log-body">
+       <div class="log-head"><span class="log-kind ${u.c}"><span class="dot ${u.d}"></span>${u.kl.toUpperCase()}</span><span class="log-title">${u.t}</span></div>
+       <p class="log-desc">${u.ds}</p></div></div>`).join("") + `</div>`;
+
+  /* D1 */
+  const actionsHTML = () => `<div class="act-list tick">` + TASKS.map(t =>
+    `<a class="act" href="#"><span class="act-ic">${ICO[t.ic]}</span><span class="act-body"><span class="act-t">${t.t}</span><div class="act-s">${t.s}</div></span><span class="act-go">${t.links[0][0]} ${ICO.arr}</span></a>`).join("") + `</div>`;
+  const railRecentHTML = () => `<div class="rail-h"><span class="t">Recently viewed</span></div>` +
+    RECENT.slice(0, 5).map(r => `<a class="rail-row" href="#"><span class="ico">${r.ab}</span><span class="nm">${r.nm}</span><span class="tg">${r.tg}</span></a>`).join("");
+  const railExploreHTML = () => `<div class="rail-h"><span class="t">Keep exploring</span></div>` +
+    EXPLORE.map(e => `<a class="rail-row" href="#"><span class="ico">${e.ic}</span><span class="nm">${e.t}</span>${ICO.arr}</a>`).join("");
+
+  /* D2 */
+  const indexHTML = () => `<div class="idx">` + TASKS.map((t, i) =>
+    `<div class="idx-row"><div class="idx-mk">0${i + 1}</div><div><div class="idx-t">${t.t}</div><div class="idx-q">${t.s}</div></div>
+     <div class="idx-links">${t.links.map(([l, h]) => `<a href="${h}">${l} ${ICO.arr}</a>`).join("")}</div></div>`).join("") + `</div>`;
+  const runHTML = () => RECENT.map(r => `<a href="#">${r.nm} <span class="tag">${r.tg}</span></a>`).join("");
+  const exploreIndexHTML = () => EXPLORE.map((e, i) =>
+    `<a class="exp" href="#"><span class="n">0${i + 1}</span><span><div class="exp-t">${e.t}</div><div class="exp-d">${e.d}</div></span></a>`).join("");
+
+  /* D3 */
+  const launcherHTML = () => TASKS.map((t, i) =>
+    `<div class="lp-card tick"><span class="lp-ic">${ICO[t.ic]}</span><div class="lp-t">${t.t}</div><p class="lp-d">${t.s}</p>
+     <a class="btn ${i === 0 ? "btn-primary" : "btn-secondary"}" href="#">${t.links[0][0].replace(/^Browse |^Compare |^Choose /, "")} ${ICO.arr}</a></div>`).join("");
+  const recentPanelHTML = () => `<div class="panel-h"><span class="t">Recently viewed</span></div>` +
+    RECENT.slice(0, 5).map(r => `<a class="rv2" href="#"><span class="ico">${r.ab}</span><span class="nm">${r.nm}</span><span class="tag">${r.tg}</span></a>`).join("");
+  const updatesPanelHTML = () => UPDATES.map(u =>
+    `<div class="upd2"><span class="dot ${u.d}" style="margin-top:5px"></span><div style="flex:1"><div style="display:flex;justify-content:space-between;gap:8px"><span class="ln">${u.t}</span><span class="dt">${u.date}</span></div><div class="ds">${u.ds}</div></div></div>`).join("");
+  const exploreRowHTML = () => EXPLORE.map(e => `<a href="#"><span style="color:var(--ink-3)">${e.ic}</span>${e.t} ${ICO.arr}</a>`).join("");
+
+  const fill = (sel, html) => document.querySelectorAll(sel).forEach(el => el.innerHTML = html);
+  fill("[data-hero]", HERO);
+  fill("[data-journey]", journeyHTML());
+  fill("[data-log]", logHTML());
+  fill("[data-actions]", actionsHTML());
+  fill("[data-rail-recent]", railRecentHTML());
+  fill("[data-rail-explore]", railExploreHTML());
+  fill("[data-index]", indexHTML());
+  fill("[data-run]", runHTML());
+  fill("[data-explore-index]", exploreIndexHTML());
+  fill("[data-launcher]", launcherHTML());
+  fill("[data-recent-panel]", recentPanelHTML());
+  fill("[data-updates-panel]", updatesPanelHTML());
+  fill("[data-explore-row]", exploreRowHTML());
+
+  /* switcher */
+  const DIRS = [{ k: "d1", n: "Workbench" }, { k: "d2", n: "Index" }, { k: "d3", n: "Launcher" }];
+  const html = document.documentElement;
+  let idx = 0, scheme = "blueprint";
+  function parseHash() {
+    const [l, s] = (location.hash || "").replace("#", "").split("-");
+    const f = DIRS.findIndex(x => x.k === l); if (f >= 0) idx = f;
+    scheme = s === "ink" ? "blueprint-ink" : "blueprint";
+  }
+  function writeHash() { location.hash = DIRS[idx].k + (scheme === "blueprint-ink" ? "-ink" : ""); }
+  function render() {
+    html.setAttribute("data-variant", scheme);
+    document.querySelectorAll(".layout").forEach(el => el.classList.toggle("on", el.dataset.layout === DIRS[idx].k));
+    document.getElementById("lbl").textContent = "D" + (idx + 1) + " — " + DIRS[idx].n;
+    document.getElementById("lblk").textContent = "#" + DIRS[idx].k + (scheme === "blueprint-ink" ? " · ink" : " · light");
+    document.querySelectorAll("#dots i").forEach((d, i) => d.classList.toggle("on", i === idx));
+    window.scrollTo({ top: 0 });
+  }
+  function go(n) { idx = (n + DIRS.length) % DIRS.length; writeHash(); render(); }
+  function toggleTheme() { scheme = scheme === "blueprint" ? "blueprint-ink" : "blueprint"; writeHash(); render(); }
+  document.getElementById("prev").onclick = () => go(idx - 1);
+  document.getElementById("next").onclick = () => go(idx + 1);
+  document.getElementById("theme").onclick = toggleTheme;
+  document.getElementById("themeIco").onclick = toggleTheme;
+  window.addEventListener("keydown", e => {
+    const t = e.target; if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA")) return;
+    if (e.key === "ArrowLeft") go(idx - 1); else if (e.key === "ArrowRight") go(idx + 1);
+    else if (e.key.toLowerCase() === "t") toggleTheme();
+  });
+  window.addEventListener("hashchange", () => { parseHash(); render(); });
+  parseHash(); render();
+</script>
+</body>
+</html>
