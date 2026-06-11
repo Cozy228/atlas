@@ -35,24 +35,26 @@ const topology = JSON.parse(
   readFileSync(join(findPkgDir("world-atlas"), "countries-110m.json"), "utf8"),
 );
 
-// Display frame. Slightly cropped from the full sphere: trims empty polar ocean
-// while keeping every inhabited region. Geographic proportion is preserved
-// (height / width === latSpan / lonSpan), so the silhouette is not stretched.
+// Equirectangular projection cropped to a sensible latitude band (84°N..56°S):
+// it keeps every inhabited region while trimming empty polar ocean, and
+// clipExtent clips the geometry to the frame so no stray edges are drawn where
+// a landmass would otherwise run past the viewBox.
 const WIDTH = 900;
-const LON0 = -169;
-const LON1 = 191;
-const LAT1 = 80;
-const LAT0 = -58;
-const HEIGHT = Math.round((WIDTH * (LAT1 - LAT0)) / (LON1 - LON0));
+const LAT_TOP = 84;
+const LAT_BOTTOM = -56;
+const SCALE = WIDTH / (2 * Math.PI);
+const TRANSLATE_X = WIDTH / 2;
+const TRANSLATE_Y = (SCALE * LAT_TOP * Math.PI) / 180;
+const HEIGHT = Math.round(TRANSLATE_Y - (SCALE * LAT_BOTTOM * Math.PI) / 180);
 
-const projection = d3geo.geoTransform({
-  point(lon, lat) {
-    this.stream.point(
-      ((lon - LON0) / (LON1 - LON0)) * WIDTH,
-      ((LAT1 - lat) / (LAT1 - LAT0)) * HEIGHT,
-    );
-  },
-});
+const projection = d3geo
+  .geoEquirectangular()
+  .scale(SCALE)
+  .translate([TRANSLATE_X, TRANSLATE_Y])
+  .clipExtent([
+    [0, 0],
+    [WIDTH, HEIGHT],
+  ]);
 const toPath = d3geo.geoPath(projection);
 
 // Merge every country except Antarctica (id "010") into one land silhouette.
@@ -72,20 +74,21 @@ export const WORLD_MAP = {
   /** viewBox dimensions, in user units. */
   width: ${WIDTH},
   height: ${HEIGHT},
-  /** Geographic bounds the frame spans, in degrees. */
-  lon0: ${LON0},
-  lon1: ${LON1},
-  lat0: ${LAT0},
-  lat1: ${LAT1},
   /** Merged land silhouette, in viewBox coordinates. */
   land:
     "${path}",
 } as const;
 
+// Equirectangular projection constants — must match the generator that produced
+// the land path above, so markers land exactly on their coastlines.
+const SCALE = ${SCALE};
+const TRANSLATE_X = ${TRANSLATE_X};
+const TRANSLATE_Y = ${TRANSLATE_Y};
+
 /** Project [lon, lat] (degrees) into WORLD_MAP viewBox coordinates. */
 export function projectWorld(lon: number, lat: number): readonly [number, number] {
-  const x = ((lon - WORLD_MAP.lon0) / (WORLD_MAP.lon1 - WORLD_MAP.lon0)) * WORLD_MAP.width;
-  const y = ((WORLD_MAP.lat1 - lat) / (WORLD_MAP.lat1 - WORLD_MAP.lat0)) * WORLD_MAP.height;
+  const x = TRANSLATE_X + (SCALE * lon * Math.PI) / 180;
+  const y = TRANSLATE_Y - (SCALE * lat * Math.PI) / 180;
   return [x, y];
 }
 `;
