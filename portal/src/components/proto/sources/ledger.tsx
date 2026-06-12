@@ -171,7 +171,7 @@ function SortButton({ active, onClick, children }: { active: boolean; onClick: (
 function LedgerEntry({ source, index }: { source: Source; index: number }) {
   return (
     <Link
-      to="/sources/$sourceId"
+      to="/proto/sources/$sourceId"
       params={{ sourceId: source.id }}
       className={cn(
         "group grid grid-cols-[2.5rem_minmax(0,1fr)] gap-x-2 gap-y-2 px-4 py-4 sm:grid-cols-[2.5rem_minmax(0,1fr)_200px]",

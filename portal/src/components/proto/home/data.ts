@@ -4,15 +4,6 @@
  * domains, regions) come from the real availability projection instead.
  */
 
-import type { Icon } from "@tabler/icons-react";
-import {
-  IconActivityHeartbeat,
-  IconRocket,
-  IconShieldCheck,
-  IconSitemap,
-  IconStack2,
-} from "@tabler/icons-react";
-
 /** Targets inside the prototype suite (plus the pages that have no proto yet). */
 export type ProtoRoute =
   | "/proto/home"
@@ -42,58 +33,51 @@ export type HomeLoaderData = {
   domains: ReadonlyArray<DomainSummary>;
 };
 
-export type IntentExample = { label: string; to: ProtoRoute };
-
 export type Intent = {
+  /** Short imperative verb used as the scannable left-column category. */
+  verb: string;
   title: string;
   description: string;
   to: ProtoRoute;
-  icon: Icon;
   /** Where the door lands, in one phrase (trailing hint). */
   lands: string;
-  /** Concrete entry points; the featured door surfaces these. */
-  examples?: ReadonlyArray<IntentExample>;
 };
 
-/** Ordered by frequency; the first is the page's featured door. */
+/** Five parallel doors, one per thing you might be trying to do. */
 export const INTENTS: ReadonlyArray<Intent> = [
   {
+    verb: "Build",
     title: "Start a new service",
     description: "Stand up a new workload the approved way, from access to first deploy.",
     to: "/proto/guidance",
-    icon: IconRocket,
     lands: "Guidance routes",
-    examples: [
-      { label: "New app onboarding", to: "/proto/guidance" },
-      { label: "Connect a pipeline", to: "/proto/guidance" },
-    ],
   },
   {
+    verb: "Browse",
     title: "Find a capability",
     description: "Browse what the platform offers, grouped by the domain it lives in.",
     to: "/proto/catalog",
-    icon: IconStack2,
     lands: "Service catalog",
   },
   {
+    verb: "Decide",
     title: "Make a platform decision",
     description: "Branch through the approved options and leave with a defensible choice.",
     to: "/proto/guidance",
-    icon: IconSitemap,
     lands: "Decision routes",
   },
   {
+    verb: "Verify",
     title: "Check policy and guardrails",
     description: "Confirm what's required, and cite it, before you ship.",
     to: "/proto/sources",
-    icon: IconShieldCheck,
     lands: "Source registry",
   },
   {
+    verb: "Watch",
     title: "See platform health",
     description: "Deployments, service health, and open incidents as they stand now.",
     to: "/proto/overview",
-    icon: IconActivityHeartbeat,
     lands: "Operations overview",
   },
 ];

@@ -13,30 +13,32 @@
 
 | URL | Direction (one line) |
 |---|---|
-| `/proto/home` | **Single** "Welcome desk" — hero + JourneyGrid; "Jump back in" re-formed as a quiet resume line (not a panel); Browse by intent = a featured door (with example chips) over a de-slopped switchboard list; catalog book index; change timeline |
-| `/proto/whatsnew` | "What's New" broadsheet, rebuilt with size hierarchy: a **lead** story, a **secondary** two-column band, then compact **briefs** by month; rail carries an "in this issue" type tally + month index. Home's "What changed → View all" lands here |
-| `/proto/overview?variant=dashboard` (default) | **Renamed "Dashboard".** The merged read: KPI scorecard (sparklines) + condition gauge & priority "needs attention" feed + fleet health table + dev→staging→prod promotion state (pending-promotions rail + prod column) |
-| `/proto/overview?variant=compact` | The same snapshot distilled to one screen: condition strip + top of the attention feed + a tight fleet list. (standalone Signal grid / Pulse folded in) |
+| `/proto/home` | **Single** "Welcome desk" — hero + JourneyGrid; "Jump back in" re-formed as a quiet resume line (not a panel); **Browse by intent = an ASYMMETRIC SPLIT** that bets on the dominant goal — a featured primary intent (big title · why · one CTA) beside a quick-pick rail of the other four (verb-tagged); intent-driven, hierarchy by scale not icon. Catalog book index; change timeline |
+| `/proto/whatsnew` | "What's New" broadsheet: a **lead** story, a **secondary** two-column band, a boxed **"Today's dispatch"** roundup for the heavy snapshot day (multi-column), then older entries flowing as **briefs in newspaper columns** under month run-ins (no per-day headers for thin days). Rail: at-a-glance tally · by-type · archive · editor's note. Home's "What changed → View all" lands here |
+| `/proto/overview` | **Single "Operations dashboard"** (the Ops-board / Delivery directions were dropped). Dense operator read: KPI scorecard (incl. scan findings) + condition gauge & "needs attention" feed + fleet table + a **Delivery & security band** (CI/CD pipeline stage tracks, security-scan gate summary, open ServiceNow tickets). Motion: the condition gauge draws its stroke; content is never hidden behind an entrance animation |
 | `/proto/catalog?variant=adopted` (default) | "Adopted mainline" — the liked mainline catalog, reusing its exported components read-only |
 | `/proto/catalog?variant=specsheet` | "Spec sheet" — typographic domain blocks; carries the `#domain-…` anchors Home targets |
 | `/proto/guidance?variant=outcomes` (default) | "Outcomes" — flows filed under the outcome they reach (wayfinding bands) |
-| `/proto/guidance?variant=directory` | "Directory" — every flow in one dense table (outcome · shape · size · status) |
 | `/proto/guidance?variant=byshape` | "By shape" — grouped by journey shape: Walkthroughs · Decisions · Checklists |
-| `/proto/guidance/new-app-onboarding?variant=board` (default) / `?variant=line` | Detail "Journey log" (default) ↔ "Track" — in-page toggle; both kept |
+| `/proto/guidance/new-app-onboarding?variant=board` (default) / `?variant=line` | Detail "Journey log" (default) ↔ "Track" — in-page toggle; the Journey log **smooth-scrolls to the resume station on open** (calm tint highlight) |
 | `/proto/skills?variant=manpage` (default) | "Man pages" — filterable apropos index (friendly name + id, stage-grouped) + a manual page that leads with one title block (name once) then SYNOPSIS/DESCRIPTION/HISTORY; install bay is the synopsis |
 | `/proto/skills?variant=shelf` | "Tool shelf" — marketplace rows; each skill links to its detail page (`/proto/skills/$skillId`) |
 | `/proto/sources?variant=ledger` (default) | "Registry ledger" — health band + numbered accession ledger, sortable by authority/freshness |
-| `/proto/sources?variant=board` | "Stewardship board" — triage grouped by freshness, action-needed first |
 | `/proto/sources?variant=byclass` | "By class" — browse by what the evidence is (Terraform / Confluence / Policy) |
-| `/proto/ask` | "Reading room" Ask Atlas (already built) — now reachable: the **FAB opens it on `/proto/*`** routes (mainline dialog elsewhere) |
+| `/proto/sources/$sourceId?variant=dossier` (default) / `?variant=provenance` | **Source detail (new).** Two clearly-different registers: Dossier = accession record (full meta ledger + **related records** sharing class/scope + resting citations); Provenance = chain of custody (a **freshness-math readout** — days-since-review vs window — + observed→reviewed→cadence→due timeline + version/drift). Ledger/by-class rows link here |
+| Ask Atlas (lean dialog overlay) + `/proto/ask` (reference) | Asking is an **in-place dialog overlay** opened by the FAB on `/proto/*` (never a separate page); the overlay stays lean — header + real `AskAtlasChat` + a footer "Owning teams →". That link lands on the restored **`/proto/ask` reference page** (grounding line · how-it-behaves rules · owning-team channels) — the accountability content that would crowd the dialog. Components: `proto/ask/ask-overlay.tsx` + `routes/proto.ask.tsx`; wired in `ask-atlas-fab.tsx` (mainline dialog still used off-proto) |
 
 Notes: proto-only guidance flows live in `proto/guidance/catalog.ts` (shared
 `lib/guidance.ts` untouched; detail resolves via `getProtoGuidance`). Overview
-helpers (`needsAttention`, sparkline series, deploy/promotion derived) in
-`lib/ops.ts`; the attention feed + status vocab are shared in
-`proto/overview/shared.tsx`. Sources split into `proto/sources/{ledger,board,byclass}.tsx`.
-Nav label `/proto/overview` reads "Dashboard". Capability / regions proto pages
-untouched.
+fixtures + helpers (services, deploys, incidents, **pipelines, scans, tickets**,
+plus `needsAttention`/sparkline/promotion derived) live in `lib/ops.ts`; status
+vocab (health, deploy, **pipeline stage track, scan gate, ticket chips**) + the
+attention feed are shared in `proto/overview/shared.tsx`. Sources split into
+`proto/sources/{ledger,byclass,detail}.tsx`. Nav label `/proto/overview` reads
+"Dashboard". Capability / regions proto pages untouched. **Recently removed:**
+the Overview Ops-board + Delivery variants (→ single Dashboard), the dashboard's
+fragile section entrance motion, the Ask overlay's drawer/palette forms (→ a lean
+dialog only), and the catalog category-title fade on tab/view switch.
 
 ## In-app page prototypes — production candidates (2026-06-10)
 

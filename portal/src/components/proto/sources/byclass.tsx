@@ -59,7 +59,7 @@ export function SourcesByClass({ sources }: { sources: ReadonlyArray<Source> }) 
 function ClassRow({ source }: { source: Source }) {
   return (
     <Link
-      to="/sources/$sourceId"
+      to="/proto/sources/$sourceId"
       params={{ sourceId: source.id }}
       className={cn(
         "group flex h-full flex-col gap-1.5 rounded-[4px] px-3 py-2.5",

@@ -1,30 +1,35 @@
 /**
- * PROTOTYPE (production candidate) — Ask Atlas redesign · route `/proto/ask`
- * ==========================================================================
- * Brainstorm direction: "the reading room". One centered column, the
- * conversation is the room. The header states the contract in a single
- * GROUNDING LINE (live registry coverage, computed — what the assistant can
- * see), the real `AskAtlasChat` (server-side ask, cited answers) fills the
- * page, and accountability sits below the conversation as two quiet bands:
- * how it behaves (evidence rules) and where the humans are (owning teams +
- * channels). No side rail — context should not compete with the answer.
+ * PROTOTYPE (production candidate) — Reach a team · route `/proto/ask`
+ * ===================================================================
+ * The reference behind the Ask Atlas overlay, reframed around its real job:
+ * when Atlas can't answer, find the human who can — fast. The CENTRE of the
+ * page is a support directory split BY DOMAIN, each domain showing its owning
+ * team and a few ways to reach them (email · Teams · ServiceNow). A filter sits
+ * on top; how Ask Atlas behaves (evidence rules) sits underneath as context.
+ * The overlay's "Owning teams →" footer link lands here.
  *
- * References: Claude.ai (the conversation is the page), Perplexity
- * (citation-first answers), Glean (workplace grounding).
- *
- * Data: real topic + source discovery projections; the chat itself is the
- * production component, not a mock.
+ * Data: real topic + source discovery projections; the contact channels are
+ * fictional, public-safe mock derived from the owning team name.
  */
-import { Fragment } from "react";
+import { useMemo, useState } from "react";
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { IconArrowRight, IconScale, IconUsers, IconWorldOff } from "@tabler/icons-react";
+import {
+  IconArrowRight,
+  IconMail,
+  IconMessages,
+  IconScale,
+  IconSearch,
+  IconTicket,
+  IconUsers,
+  IconWorldOff,
+} from "@tabler/icons-react";
 import type { Icon } from "@tabler/icons-react";
 import type { SourceDiscoveryResponse, TopicDiscoveryResponse } from "@atlas/schema";
 
 import { sourceDiscoveryQueryOptions, topicDiscoveryQueryOptions } from "@/api/queries";
-import { AskAtlasChat } from "@/components/ask/ask-atlas-chat";
-import { ClientOnly } from "@/components/client-only";
-import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
+
+type Domain = { domain: string; team: string; channel: string; areas: number };
 
 export const Route = createFileRoute("/proto/ask")({
   loader: async ({ context }) => {
@@ -33,14 +38,21 @@ export const Route = createFileRoute("/proto/ask")({
       context.queryClient.ensureQueryData(sourceDiscoveryQueryOptions) as Promise<SourceDiscoveryResponse>,
     ]);
     const topics = topicsResp.topics;
-    // Unique (team, channel) pairs: one team can run several support channels.
-    const teams = [...new Map(
-      topics.map((topic) => [
-        `${topic.owner_team}|${topic.support_channel}`,
-        { team: topic.owner_team, channel: topic.support_channel },
-      ]),
-    ).values()].toSorted((a, b) => a.team.localeCompare(b.team));
+    // One row per domain (topic category) → the team that owns it + area count.
+    const map = new Map<string, Domain>();
+    for (const topic of topics) {
+      const entry = map.get(topic.category) ?? {
+        domain: topic.category,
+        team: topic.owner_team,
+        channel: topic.support_channel,
+        areas: 0,
+      };
+      entry.areas += 1;
+      map.set(topic.category, entry);
+    }
+    const domains = [...map.values()].toSorted((a, b) => a.domain.localeCompare(b.domain));
     return {
+      domains,
       capabilityCount: topics.filter((topic) => topic.topic_type === "capability").length,
       landingZoneCount: topics.filter((topic) => topic.topic_type === "landing-zone").length,
       guardrailCount: topics.filter((topic) => topic.topic_type === "guardrail-area").length,
@@ -48,82 +60,87 @@ export const Route = createFileRoute("/proto/ask")({
       authoritativeCount: sourcesResp.sources.filter(
         (source) => source.authority_level === "authoritative",
       ).length,
-      teams,
     };
   },
   component: ProtoAsk,
 });
 
-const SUGGESTIONS = [
-  { category: "Capability", prompt: "Which storage service should a multi-region workload use?" },
-  { category: "Availability", prompt: "Is Bedrock available in the DR outpost?" },
-  { category: "Governance", prompt: "What approvals does a GDC deployment need?" },
-  { category: "Onboarding", prompt: "How do I onboard a new application to the platform?" },
-] as const;
-
 const RULES: ReadonlyArray<{ icon: Icon; title: string; copy: string }> = [
-  {
-    icon: IconScale,
-    title: "Evidence first",
-    copy: "Claims without a registered citation are blocked, not paraphrased.",
-  },
-  {
-    icon: IconWorldOff,
-    title: "Registry only",
-    copy: "Answers draw on cited platform context. No web retrieval.",
-  },
-  {
-    icon: IconUsers,
-    title: "Humans stay in the loop",
-    copy: "Every answer names its sources' stewards; escalation is one click.",
-  },
+  { icon: IconScale, title: "Evidence first", copy: "Claims without a registered citation are blocked, not paraphrased." },
+  { icon: IconWorldOff, title: "Registry only", copy: "Answers draw on cited platform context. No web retrieval." },
+  { icon: IconUsers, title: "Humans in the loop", copy: "Every answer names its sources' stewards; escalation is one click." },
 ];
-
-/* ========================================================================== *
- * Page — one centered column; the conversation is the room
- * ========================================================================== */
 
 function ProtoAsk() {
   const data = Route.useLoaderData();
+  const [query, setQuery] = useState("");
+
+  const domains = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return data.domains;
+    return data.domains.filter(
+      (d) =>
+        d.domain.toLowerCase().includes(q) ||
+        d.team.toLowerCase().includes(q) ||
+        d.channel.toLowerCase().includes(q),
+    );
+  }, [data.domains, query]);
 
   return (
-    <div className="mx-auto flex w-full max-w-[880px] flex-col gap-10 px-6 py-12 sm:px-8">
-      <header className="flex flex-col items-center gap-4 text-center">
-        {/* pl matches the tracking: letter-spacing trails the last glyph, so a
-            centered box otherwise renders its text visibly left of the axis. */}
-        <span className="w-fit bg-background pl-[0.14em] font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-          Ask Atlas
+    <div className="mx-auto flex w-full max-w-[1080px] flex-col gap-8 px-6 py-12 sm:px-8">
+      <header className="flex flex-col gap-2.5">
+        <span className="w-fit bg-background font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+          Reach a team
         </span>
-        <h1 className="w-fit max-w-[22ch] bg-background text-[2rem] font-bold leading-[1.1] tracking-[-0.03em] text-balance text-foreground">
-          Ask a question about the platform
+        <h1 className="w-fit max-w-[22ch] bg-background text-[2rem] font-bold leading-[1.1] tracking-[-0.03em] text-foreground">
+          Find the team that owns it
         </h1>
-        <p className="w-fit max-w-[52ch] bg-background text-[14px] leading-[1.55] text-pretty text-muted-foreground">
-          Cited answers from the same registry the rest of this portal renders. If Atlas cannot
-          back a claim, it says so instead of guessing.
+        <p className="w-fit max-w-[58ch] bg-background text-[14px] leading-[1.55] text-muted-foreground">
+          Ask Atlas answers most questions with citations — when you need a human, here&rsquo;s who
+          owns each part of the platform and how to reach them.
         </p>
-        <GroundingLine data={data} />
       </header>
 
-      {/* The conversation — the real production chat component */}
-      <ClientOnly fallback={<Skeleton className="h-[600px] w-full rounded-xl" />}>
-        <AskAtlasChat
-          suggestions={SUGGESTIONS}
-          className="min-h-[600px] overflow-hidden rounded-xl border border-border bg-card"
-        />
-      </ClientOnly>
+      <section aria-label="Owning teams by domain" className="flex flex-col gap-4">
+        <label className="flex items-center gap-2.5 rounded-[5px] border border-border-strong bg-card px-3.5 py-2.5 focus-within:border-primary focus-within:ring-2 focus-within:ring-ring">
+          <IconSearch aria-hidden className="size-4 shrink-0 text-muted-foreground" />
+          <input
+            type="text"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Filter by domain, team, or channel…"
+            className="w-full bg-transparent text-[14px] text-foreground outline-none placeholder:text-muted-foreground"
+          />
+          <span className="shrink-0 font-mono text-[11px] tabular-nums text-muted-foreground">
+            {domains.length}
+          </span>
+        </label>
 
-      {/* Accountability, below the conversation: rules, then the humans. */}
-      <section aria-label="How Ask Atlas behaves" className="border-t border-border pt-6">
-        <div className="grid gap-6 sm:grid-cols-3">
+        {domains.length === 0 ? (
+          <p className="border-t border-border py-6 text-center text-[13px] text-muted-foreground">
+            No domain matches “{query}”. Try “network”, “identity”, or “storage”.
+          </p>
+        ) : (
+          <ul className="grid gap-x-8 gap-y-6 border-t border-border pt-5 sm:grid-cols-2 lg:grid-cols-3">
+            {domains.map((domain) => (
+              <DomainCell key={domain.domain} domain={domain} />
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section aria-label="How Ask Atlas behaves" className="flex flex-col gap-4 border-t border-border pt-6">
+        <h2 className="w-fit bg-background font-mono text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+          How Ask Atlas behaves
+        </h2>
+        <div className="grid gap-5 sm:grid-cols-3">
           {RULES.map((rule) => {
             const RuleIcon = rule.icon;
             return (
               <div key={rule.title} className="flex flex-col gap-1.5">
                 <span className="flex items-center gap-2">
                   <RuleIcon aria-hidden className="size-4 shrink-0 text-muted-foreground" />
-                  <span className="bg-background text-[13px] font-bold text-foreground">
-                    {rule.title}
-                  </span>
+                  <span className="bg-background text-[13px] font-bold text-foreground">{rule.title}</span>
                 </span>
                 <p className="w-fit bg-background text-[12.5px] leading-[1.5] text-muted-foreground">
                   {rule.copy}
@@ -132,39 +149,62 @@ function ProtoAsk() {
             );
           })}
         </div>
-      </section>
-
-      <section aria-label="Ask a person instead">
-        <div className="mb-3 flex items-baseline gap-3">
-          <h2 className="w-fit bg-background text-[15px] font-bold tracking-[-0.01em] text-foreground">
-            Rather ask a person?
-          </h2>
-          <span className="bg-background text-[12.5px] text-muted-foreground">
-            The teams behind the registry, and where to reach them.
-          </span>
-        </div>
-        <ul className="grid gap-x-10 sm:grid-cols-2">
-          {data.teams.map((entry) => (
-            <li
-              key={`${entry.team}|${entry.channel}`}
-              className="flex items-baseline justify-between gap-3 border-t border-border py-2"
-            >
-              <span className="truncate text-[12.5px] font-medium text-foreground">{entry.team}</span>
-              <code className="shrink-0 font-mono text-[10.5px] text-muted-foreground">
-                {entry.channel}
-              </code>
-            </li>
-          ))}
-        </ul>
+        <GroundingLine data={data} />
       </section>
     </div>
   );
 }
 
-/**
- * One inline line of live coverage facts — what the assistant can see —
- * instead of a stat rail competing with the conversation.
- */
+function DomainCell({ domain }: { domain: Domain }) {
+  const email = `${domain.team}@atlas.example`;
+  return (
+    <li className="flex flex-col gap-2.5">
+      <div className="flex flex-col gap-0.5">
+        <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+          {domain.domain}
+        </span>
+        <span className="truncate text-[15px] font-bold tracking-[-0.01em] text-foreground">
+          {domain.team}
+        </span>
+        <span className="font-mono text-[11px] tabular-nums text-muted-foreground">
+          {domain.channel} · {domain.areas} {domain.areas === 1 ? "area" : "areas"}
+        </span>
+      </div>
+      {/* Contacts collapse to icons; each expands its label on hover. */}
+      <div className="flex items-center gap-3">
+        <Contact icon={IconMail} label={email} href={`mailto:${email}`} />
+        <Contact icon={IconMessages} label="Teams chat" />
+        <Contact icon={IconTicket} label="ServiceNow ticket" />
+      </div>
+    </li>
+  );
+}
+
+function Contact({ icon: ContactIcon, label, href }: { icon: Icon; label: string; href?: string }) {
+  const className = cn(
+    "group/c inline-flex items-center text-muted-foreground",
+    href ? "transition-colors hover:text-brand-ink" : "hover:text-foreground",
+  );
+  const content = (
+    <>
+      <ContactIcon aria-hidden className="size-4 shrink-0" />
+      <span className="max-w-0 overflow-hidden whitespace-nowrap font-mono text-[11px] transition-[max-width,padding] duration-200 group-hover/c:max-w-[200px] group-hover/c:pl-1.5">
+        {label}
+      </span>
+    </>
+  );
+  return href ? (
+    <a href={href} title={label} className={className}>
+      {content}
+    </a>
+  ) : (
+    <span title={label} className={className}>
+      {content}
+    </span>
+  );
+}
+
+/** One inline line of live coverage facts — what the assistant can see. */
 function GroundingLine({
   data,
 }: {
@@ -183,16 +223,13 @@ function GroundingLine({
     { value: data.sourceCount, label: `sources (${data.authoritativeCount} authoritative)` },
   ];
   return (
-    <p className="flex flex-wrap items-baseline justify-center gap-x-2 gap-y-1 bg-background text-[12.5px] text-muted-foreground">
-      <span>Grounded in</span>
+    <p className="flex flex-wrap items-baseline gap-x-2 gap-y-1 border-t border-border pt-4 text-[12px] text-muted-foreground">
+      <span>Atlas is grounded in</span>
       {facts.map((fact, i) => (
-        <Fragment key={fact.label}>
-          {i > 0 ? <span aria-hidden className="text-border-strong">·</span> : null}
-          <span className="whitespace-nowrap">
-            <span className="font-bold tabular-nums text-foreground">{fact.value}</span>{" "}
-            {fact.label}
-          </span>
-        </Fragment>
+        <span key={fact.label} className="whitespace-nowrap">
+          {i > 0 ? <span aria-hidden className="mr-2 text-border-strong">·</span> : null}
+          <span className="font-bold tabular-nums text-foreground">{fact.value}</span> {fact.label}
+        </span>
       ))}
       <Link
         to="/proto/sources"

@@ -338,3 +338,14 @@
     outline-offset: 2px;
   }
 }
+
+/* PROTOTYPE — horizontal marquee for the Home hero "What's new" ticker.
+   The track holds the items twice; translating by -50% loops seamlessly. */
+@keyframes proto-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}

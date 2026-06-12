@@ -1,8 +1,9 @@
-import { lazy, Suspense, useEffect } from "react";
-import { useNavigate, useRouterState } from "@tanstack/react-router";
+import { lazy, Suspense, useEffect, useState } from "react";
+import { useRouterState } from "@tanstack/react-router";
 import { IconMessageCircle, IconSearch } from "@tabler/icons-react";
 
 import { useAskAtlas } from "@/components/ask-atlas/context";
+import { ProtoAskOverlay, type AskTab } from "@/components/proto/ask/ask-overlay";
 import { ClientOnly } from "@/components/client-only";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,24 +31,34 @@ const AskAtlasSearch = lazy(() =>
 export function AskAtlasFab() {
   const { open, activeTab, openAsk, openSearch, setOpen, setActiveTab } =
     useAskAtlas();
-  const navigate = useNavigate();
-  // On the prototype suite, the FAB opens the full-page `/proto/ask` reading
-  // room instead of the mainline dialog; everywhere else it keeps the dialog.
+  // On the prototype suite, Ask/Search open the redesigned in-place overlay
+  // (Search ⇄ Ask toggle); everywhere else they open the mainline dialog. Either
+  // way it's an overlay over the current surface — never a separate page.
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const isProto = pathname.startsWith("/proto");
+  const [protoAskOpen, setProtoAskOpen] = useState(false);
+  const [protoAskTab, setProtoAskTab] = useState<AskTab>("ask");
   const onAsk = () => {
-    if (isProto) void navigate({ to: "/proto/ask" });
-    else openAsk();
+    if (isProto) {
+      setProtoAskTab("ask");
+      setProtoAskOpen(true);
+    } else {
+      openAsk();
+    }
   };
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
-      if (
-        (event.metaKey || event.ctrlKey) &&
-        event.key.toLowerCase() === "k"
-      ) {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
-        if (open) {
+        if (isProto) {
+          if (protoAskOpen) {
+            setProtoAskOpen(false);
+          } else {
+            setProtoAskTab("search");
+            setProtoAskOpen(true);
+          }
+        } else if (open) {
           setOpen(false);
         } else {
           openSearch();
@@ -56,19 +67,24 @@ export function AskAtlasFab() {
     }
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [open, openSearch, setOpen]);
+  }, [open, openSearch, setOpen, isProto, protoAskOpen]);
 
   return (
     <>
-      {pathname === "/proto/ask" ? null : (
-        <Button
-          onClick={onAsk}
-          className="fixed bottom-8 right-8 z-50 hidden h-10 items-center gap-2 rounded-lg px-4 shadow-lg lg:flex"
-        >
-          <IconMessageCircle className="size-4" aria-hidden />
-          Ask Atlas
-        </Button>
-      )}
+      <Button
+        onClick={onAsk}
+        className="fixed bottom-8 right-8 z-50 hidden h-10 items-center gap-2 rounded-lg px-4 shadow-lg lg:flex"
+      >
+        <IconMessageCircle className="size-4" aria-hidden />
+        Ask Atlas
+      </Button>
+
+      <ProtoAskOverlay
+        open={protoAskOpen}
+        onOpenChange={setProtoAskOpen}
+        tab={protoAskTab}
+        onTabChange={setProtoAskTab}
+      />
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent
