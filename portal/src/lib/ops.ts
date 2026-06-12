@@ -369,6 +369,227 @@ export const OPS_ANNOUNCEMENTS: ReadonlyArray<OpsAnnouncement> = [
   },
 ];
 
+/* -------------------------------------------------------------------------- */
+/*  CI/CD pipelines (Harness-style: Build · Test · Scan · Deploy)             */
+/* -------------------------------------------------------------------------- */
+
+export type PipelineStageStatus = "passed" | "running" | "failed" | "skipped" | "pending";
+
+export type PipelineStage = { name: string; status: PipelineStageStatus };
+
+export type PipelineRun = {
+  id: string;
+  service: string;
+  serviceId: string;
+  trigger: "push" | "pull-request" | "scheduled" | "manual";
+  ref: string;
+  status: DeployStatus;
+  stages: ReadonlyArray<PipelineStage>;
+  duration: string;
+  at: string;
+  actor: string;
+};
+
+const STAGE_NAMES = ["Build", "Test", "Scan", "Deploy"] as const;
+
+/** Build a stage list where everything up to `reached` passed; `reached` takes `state`. */
+function stages(reached: number, state: PipelineStageStatus): PipelineStage[] {
+  return STAGE_NAMES.map((name, i) => ({
+    name,
+    status: i < reached ? "passed" : i === reached ? state : "pending",
+  }));
+}
+
+export const PIPELINES: ReadonlyArray<PipelineRun> = [
+  {
+    id: "PIPE-3391",
+    service: "Checkout Web",
+    serviceId: "checkout-web",
+    trigger: "push",
+    ref: "9c41f2a",
+    status: "running",
+    stages: stages(3, "running"),
+    duration: "2m 18s",
+    at: "Jun 11, 09:51",
+    actor: "release-bot",
+  },
+  {
+    id: "PIPE-3390",
+    service: "Billing API",
+    serviceId: "billing-api",
+    trigger: "manual",
+    ref: "b7e0c93",
+    status: "failed",
+    stages: stages(1, "failed"),
+    duration: "1m 44s",
+    at: "Jun 11, 09:22",
+    actor: "m.okafor",
+  },
+  {
+    id: "PIPE-3389",
+    service: "Atlas Portal",
+    serviceId: "atlas-portal",
+    trigger: "pull-request",
+    ref: "f3a92c1",
+    status: "success",
+    stages: stages(4, "passed"),
+    duration: "4m 12s",
+    at: "Jun 11, 08:40",
+    actor: "j.wei",
+  },
+  {
+    id: "PIPE-3388",
+    service: "Search Indexer",
+    serviceId: "search-indexer",
+    trigger: "scheduled",
+    ref: "5b6e9f0",
+    status: "success",
+    stages: stages(4, "passed"),
+    duration: "6m 09s",
+    at: "Jun 11, 06:30",
+    actor: "scheduler",
+  },
+  {
+    id: "PIPE-3387",
+    service: "Notification Hub",
+    serviceId: "notification-hub",
+    trigger: "push",
+    ref: "7a2d510",
+    status: "success",
+    stages: stages(4, "passed"),
+    duration: "3m 02s",
+    at: "Jun 10, 16:48",
+    actor: "release-bot",
+  },
+  {
+    id: "PIPE-3386",
+    service: "Media Transcoder",
+    serviceId: "media-transcoder",
+    trigger: "push",
+    ref: "30cc7d2",
+    status: "cancelled",
+    stages: stages(2, "skipped"),
+    duration: "1m 04s",
+    at: "Jun 09, 09:02",
+    actor: "p.virtanen",
+  },
+];
+
+/* -------------------------------------------------------------------------- */
+/*  Security scans (SAST + SCA + container, per service)                      */
+/* -------------------------------------------------------------------------- */
+
+export type ScanGate = "pass" | "warn" | "fail";
+
+export type SecurityScan = {
+  serviceId: string;
+  service: string;
+  critical: number;
+  high: number;
+  medium: number;
+  /** Worst gate across the service's SAST/SCA/container scans. */
+  gate: ScanGate;
+  scannedAt: string;
+};
+
+export const SCANS: ReadonlyArray<SecurityScan> = [
+  { serviceId: "billing-api", service: "Billing API", critical: 1, high: 3, medium: 7, gate: "fail", scannedAt: "Jun 11, 07:10" },
+  { serviceId: "checkout-web", service: "Checkout Web", critical: 0, high: 2, medium: 5, gate: "warn", scannedAt: "Jun 11, 09:14" },
+  { serviceId: "identity-gateway", service: "Identity Gateway", critical: 0, high: 0, medium: 2, gate: "pass", scannedAt: "Jun 10, 16:01" },
+  { serviceId: "atlas-portal", service: "Atlas Portal", critical: 0, high: 1, medium: 4, gate: "warn", scannedAt: "Jun 11, 08:36" },
+  { serviceId: "ingest-worker", service: "Ingest Worker", critical: 0, high: 0, medium: 1, gate: "pass", scannedAt: "Jun 09, 11:20" },
+  { serviceId: "media-transcoder", service: "Media Transcoder", critical: 0, high: 1, medium: 3, gate: "pass", scannedAt: "Jun 06, 17:30" },
+];
+
+/* -------------------------------------------------------------------------- */
+/*  Change & incident tickets (ServiceNow-style)                             */
+/* -------------------------------------------------------------------------- */
+
+export type TicketKind = "change" | "incident" | "request";
+export type TicketStatus = "new" | "in-progress" | "review" | "scheduled" | "done";
+export type TicketPriority = "P1" | "P2" | "P3" | "P4";
+
+export type Ticket = {
+  id: string;
+  kind: TicketKind;
+  title: string;
+  service: string;
+  serviceId: string;
+  priority: TicketPriority;
+  status: TicketStatus;
+  assignee: string;
+  opened: string;
+};
+
+export const TICKETS: ReadonlyArray<Ticket> = [
+  {
+    id: "INC0048231",
+    kind: "incident",
+    title: "Invoice retry storm on Billing API",
+    service: "Billing API",
+    serviceId: "billing-api",
+    priority: "P2",
+    status: "in-progress",
+    assignee: "m.okafor",
+    opened: "Jun 11, 06:48",
+  },
+  {
+    id: "CHG0048210",
+    kind: "change",
+    title: "Promote Checkout Web 2026.6.11 to prod",
+    service: "Checkout Web",
+    serviceId: "checkout-web",
+    priority: "P3",
+    status: "review",
+    assignee: "l.santos",
+    opened: "Jun 11, 09:20",
+  },
+  {
+    id: "CHG0048198",
+    kind: "change",
+    title: "Identity Gateway WebAuthn step-up rollout",
+    service: "Identity Gateway",
+    serviceId: "identity-gateway",
+    priority: "P2",
+    status: "scheduled",
+    assignee: "a.novak",
+    opened: "Jun 10, 14:02",
+  },
+  {
+    id: "REQ0048177",
+    kind: "request",
+    title: "Provision archive tier bucket for analytics",
+    service: "Ingest Worker",
+    serviceId: "ingest-worker",
+    priority: "P4",
+    status: "new",
+    assignee: "unassigned",
+    opened: "Jun 11, 08:05",
+  },
+  {
+    id: "CHG0048165",
+    kind: "change",
+    title: "Search Indexer shard-aware restore to prod",
+    service: "Search Indexer",
+    serviceId: "search-indexer",
+    priority: "P3",
+    status: "done",
+    assignee: "d.fontaine",
+    opened: "Jun 10, 10:40",
+  },
+  {
+    id: "INC0048150",
+    kind: "incident",
+    title: "EU outpost media preview latency",
+    service: "Media Transcoder",
+    serviceId: "media-transcoder",
+    priority: "P3",
+    status: "done",
+    assignee: "p.virtanen",
+    opened: "Jun 09, 13:10",
+  },
+];
+
 /**
  * Trailing mini-series for the dashboard sparklines (fictional, unitless where
  * noted). Frozen with the snapshot; not a live feed.
@@ -503,4 +724,42 @@ export function needsAttention(): ReadonlyArray<AttentionItem> {
   }
 
   return items.sort((a, b) => a.priority - b.priority);
+}
+
+/** Count of pipeline runs in each terminal/active status. */
+export function pipelineStatusCounts(
+  runs: ReadonlyArray<PipelineRun> = PIPELINES,
+): Record<DeployStatus, number> {
+  const counts: Record<DeployStatus, number> = { success: 0, failed: 0, running: 0, cancelled: 0 };
+  for (const run of runs) counts[run.status] += 1;
+  return counts;
+}
+
+/** Open tickets (anything not yet done), highest priority first. */
+export function openTickets(tickets: ReadonlyArray<Ticket> = TICKETS): ReadonlyArray<Ticket> {
+  const rank: Record<TicketPriority, number> = { P1: 0, P2: 1, P3: 2, P4: 3 };
+  return tickets.filter((t) => t.status !== "done").toSorted((a, b) => rank[a.priority] - rank[b.priority]);
+}
+
+/** Count of services whose scan gate is in each state. */
+export function scanGateCounts(scans: ReadonlyArray<SecurityScan> = SCANS): Record<ScanGate, number> {
+  const counts: Record<ScanGate, number> = { pass: 0, warn: 0, fail: 0 };
+  for (const scan of scans) counts[scan.gate] += 1;
+  return counts;
+}
+
+/** Fleet-wide finding totals across all scanned services. */
+export function scanTotals(scans: ReadonlyArray<SecurityScan> = SCANS): {
+  critical: number;
+  high: number;
+  medium: number;
+} {
+  return scans.reduce(
+    (acc, s) => ({
+      critical: acc.critical + s.critical,
+      high: acc.high + s.high,
+      medium: acc.medium + s.medium,
+    }),
+    { critical: 0, high: 0, medium: 0 },
+  );
 }

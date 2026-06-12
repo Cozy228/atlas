@@ -10,6 +10,7 @@
  *   - Service catalog → a typographic BOOK INDEX (columned link lines)
  *   - What changed   → a DATE-LED TIMELINE with recency hierarchy
  */
+import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { IconArrowRight } from "@tabler/icons-react";
 
@@ -17,9 +18,9 @@ import { JourneyGrid } from "@/components/home/journey-grid";
 import { IntentSearch } from "@/components/intent-search";
 import { cn } from "@/lib/utils";
 
+import { CHANGES, TONE_DOT } from "@/components/proto/whatsnew/data";
+
 import {
-  ANNOUNCE_TONE,
-  ANNOUNCEMENTS,
   INTENTS,
   POPULAR,
   RECENTS,
@@ -47,7 +48,51 @@ export function HomeWelcome({ data }: { data: HomeLoaderData }) {
         <JourneyGrid linkTargets="proto" />
       </section>
       <CatalogIndex serviceCount={data.serviceCount} domains={data.domains} />
-      <WhatChanged />
+    </div>
+  );
+}
+
+/* ========================================================================== *
+ * What's new ticker — the changelog as a HERO MARQUEE: recent platform changes
+ * scroll across one hairline band under the hero. The whole band links to the
+ * full broadsheet; hover pauses the scroll; reduced-motion renders it static.
+ * ========================================================================== */
+
+const TICKER_CHANGES = CHANGES.slice(0, 8);
+
+function WhatsNewTicker() {
+  return (
+    <Link
+      to="/proto/whatsnew"
+      aria-label="What's new — read the full dispatch"
+      className="group flex w-full items-center gap-4 border-y border-border py-2.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    >
+      <span className="flex shrink-0 items-center gap-1.5 bg-background font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-brand-ink">
+        What&rsquo;s new
+        <IconArrowRight aria-hidden className="size-3 transition-transform group-hover:translate-x-0.5" />
+      </span>
+      <div className="relative min-w-0 flex-1 overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_4%,black_96%,transparent)]">
+        <div className="flex w-max animate-[proto-marquee_50s_linear_infinite] group-hover:[animation-play-state:paused] motion-reduce:animate-none">
+          <TickerTrack />
+          <TickerTrack ariaHidden />
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+function TickerTrack({ ariaHidden = false }: { ariaHidden?: boolean }) {
+  return (
+    <div aria-hidden={ariaHidden || undefined} className="flex shrink-0 items-center">
+      {TICKER_CHANGES.map((change) => (
+        <span key={change.id} className="flex items-center gap-2 whitespace-nowrap px-6">
+          <span aria-hidden className={cn("size-1.5 shrink-0 rounded-full", TONE_DOT[change.tone])} />
+          <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
+            {change.kind}
+          </span>
+          <span className="text-[12.5px] text-foreground/80">{change.title}</span>
+        </span>
+      ))}
     </div>
   );
 }
@@ -99,11 +144,9 @@ function Hero({
 }) {
   return (
     <section className="flex flex-col items-center gap-5 text-center">
-      {/* pl matches the tracking: letter-spacing trails the last glyph, so a
-          centered box otherwise renders its text visibly left of the axis. */}
-      <span className="w-fit bg-background pl-[0.14em] font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-        Atlas Platform
-      </span>
+      {/* The What's-new ticker stands in for the eyebrow: the platform's pulse
+          above the welcome, not a static label. */}
+      <WhatsNewTicker />
       <h1 className="w-fit max-w-[18ch] bg-background text-[2.5rem] font-bold leading-[1.05] tracking-[-0.035em] text-balance text-foreground">
         Welcome to Atlas Portal
       </h1>
@@ -188,101 +231,86 @@ function ResumeBand() {
 }
 
 /* ========================================================================== *
- * Browse by intent — one FEATURED door (the most-trodden path, with concrete
- * example entries) over a compact list of the rest. Hierarchy, not five equal
- * doors: the eye lands on the common case first.
+ * Browse by intent — intent-driven entry: guess where the user is headed and
+ * give the fastest door. The "Focus" register: a collapsed sentence list where
+ * the focused row expands editorially (verb eyebrow + big title + the why).
+ * Hover moves the focus; default falls on the first (the platform's bet).
  * ========================================================================== */
 
 function IntentDoors() {
-  const [featured, ...rest] = INTENTS;
   return (
     <section>
       <SectionHead
         title="Browse by intent"
-        description="Start from what you're trying to do."
+        description="Tell us what you're here to do — we'll put the fastest door first."
         action={{ to: "/proto/guidance", label: "View all paths" }}
       />
-      <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
-        {featured ? <FeaturedDoor intent={featured} /> : null}
-        <ul className="flex flex-col overflow-hidden rounded-[4px] border border-border bg-card">
-          {rest.map((intent, i) => (
-            <li key={intent.title} className={cn("flex-1", i > 0 && "border-t border-border")}>
-              <Link
-                to={intent.to}
-                className={cn(
-                  "group grid h-full items-baseline gap-x-4 px-4 py-3 sm:grid-cols-[minmax(0,1fr)_auto]",
-                  "transition-colors hover:bg-muted/60",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
-                )}
-              >
-                <span className="flex min-w-0 flex-col gap-0.5">
-                  <span className="text-[13.5px] font-bold tracking-[-0.01em] text-foreground group-hover:text-brand-ink">
-                    {intent.title}
-                  </span>
-                  <span className="truncate text-[12px] leading-[1.45] text-muted-foreground">
-                    {intent.description}
-                  </span>
-                </span>
-                <span className="mt-1 flex items-center gap-1.5 sm:mt-0">
-                  <span className="font-mono text-[10px] uppercase tracking-[0.06em] text-muted-foreground">
-                    {intent.lands}
-                  </span>
-                  <IconArrowRight
-                    aria-hidden
-                    className="size-3.5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-brand-ink"
-                  />
-                </span>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </div>
+      <IntentFocus />
     </section>
   );
 }
 
-function FeaturedDoor({ intent }: { intent: (typeof INTENTS)[number] }) {
-  const Glyph = intent.icon;
+function IntentFocus() {
+  const [hovered, setHovered] = useState<number | null>(null);
+  const active = hovered ?? 0;
   return (
-    <div className="flex flex-col justify-between gap-4 rounded-[4px] border border-border bg-card p-5">
-      <div className="flex flex-col gap-3">
-        <span className="flex size-9 items-center justify-center rounded-[4px] bg-brand-tint text-brand-ink">
-          <Glyph aria-hidden className="size-5" />
-        </span>
-        <Link
-          to={intent.to}
-          className="group flex w-fit items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          <span className="text-[1.0625rem] font-bold tracking-[-0.015em] text-foreground group-hover:text-brand-ink">
-            {intent.title}
-          </span>
-          <IconArrowRight
-            aria-hidden
-            className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-brand-ink"
-          />
-        </Link>
-        <p className="max-w-[42ch] text-[13px] leading-[1.55] text-muted-foreground">
-          {intent.description}
-        </p>
-      </div>
-      {intent.examples ? (
-        <div className="flex flex-wrap gap-2 border-t border-border pt-3.5">
-          {intent.examples.map((example) => (
+    <ol className="flex flex-col" onMouseLeave={() => setHovered(null)}>
+      {INTENTS.map((intent, i) => {
+        const open = i === active;
+        return (
+          <li
+            key={intent.title}
+            onMouseEnter={() => setHovered(i)}
+            className={cn(i > 0 && "border-t border-border")}
+          >
             <Link
-              key={example.label}
-              to={example.to}
-              className={cn(
-                "rounded-[3px] border border-border-strong bg-card px-2.5 py-1 text-[12px] font-semibold text-foreground",
-                "transition-colors hover:border-primary hover:text-brand-ink",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-              )}
+              to={intent.to}
+              className="group grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-6 py-3.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
-              {example.label}
+              <div className="flex min-w-0 flex-col">
+                <span
+                  className={cn(
+                    "w-fit bg-background font-mono font-semibold uppercase tracking-[0.14em] transition-all duration-200",
+                    open
+                      ? "mb-1 text-[10px] text-muted-foreground group-hover:text-brand-ink"
+                      : "mb-0 text-[0px] opacity-0",
+                  )}
+                >
+                  {intent.verb}
+                </span>
+                <span
+                  className={cn(
+                    "w-fit bg-background font-bold tracking-[-0.02em] transition-all duration-200 group-hover:text-brand-ink",
+                    open ? "text-[1.5rem] leading-[1.1] text-foreground" : "text-[1.0625rem] text-foreground/55",
+                  )}
+                >
+                  {intent.title}
+                </span>
+                <div
+                  className={cn(
+                    "grid transition-all duration-200",
+                    open ? "mt-1 grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0",
+                  )}
+                >
+                  <p className="w-fit max-w-[54ch] overflow-hidden bg-background text-[13px] leading-[1.5] text-muted-foreground">
+                    {intent.description}
+                  </p>
+                </div>
+              </div>
+              <span
+                className={cn(
+                  "flex items-center gap-1.5 self-center bg-background font-mono text-[10px] uppercase tracking-[0.06em] transition-colors duration-200 group-hover:text-brand-ink",
+                  open ? "text-muted-foreground" : "text-muted-foreground/50",
+                )}
+              >
+                {intent.lands}
+                <IconArrowRight aria-hidden className="size-3.5 transition-transform group-hover:translate-x-0.5" />
+              </span>
             </Link>
-          ))}
-        </div>
-      ) : null}
-    </div>
+          </li>
+        );
+      })}
+    </ol>
   );
 }
 
@@ -337,58 +365,3 @@ function CatalogIndex({
   );
 }
 
-/* ========================================================================== *
- * What changed — a date-led timeline with recency hierarchy: the newest entry
- * carries full weight, older ones compress. "View all" lands on the new
- * operations overview.
- * ========================================================================== */
-
-function WhatChanged() {
-  return (
-    <section>
-      <SectionHead title="What changed" action={{ to: "/proto/whatsnew", label: "View all" }} />
-      <ol className="flex flex-col">
-        {ANNOUNCEMENTS.map((a, i) => {
-          const lead = i === 0;
-          return (
-            <li
-              key={a.title}
-              className={cn(
-                "grid gap-x-6 gap-y-1 py-4 sm:grid-cols-[110px_minmax(0,1fr)]",
-                i > 0 && "border-t border-border",
-              )}
-            >
-              <span className="bg-background font-mono text-[11px] tabular-nums leading-[1.6] text-muted-foreground">
-                {a.date}
-              </span>
-              <div className="flex min-w-0 flex-col gap-1">
-                <span className="flex items-center gap-2">
-                  <span aria-hidden className={cn("size-2 rounded-full", ANNOUNCE_TONE[a.tone])} />
-                  <span className="bg-background font-mono text-[10.5px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">
-                    {a.kind}
-                  </span>
-                  <span
-                    className={cn(
-                      "bg-background font-bold tracking-[-0.01em] text-foreground",
-                      lead ? "text-[15px]" : "text-[13.5px]",
-                    )}
-                  >
-                    {a.title}
-                  </span>
-                </span>
-                <p
-                  className={cn(
-                    "w-fit max-w-[72ch] bg-background leading-[1.5] text-muted-foreground",
-                    lead ? "text-[13.5px]" : "text-[12.5px]",
-                  )}
-                >
-                  {a.description}
-                </p>
-              </div>
-            </li>
-          );
-        })}
-      </ol>
-    </section>
-  );
-}

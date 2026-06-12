@@ -115,13 +115,13 @@ export function KpiCard({
   area?: boolean;
 }) {
   return (
-    <div className="flex flex-col gap-2 rounded-[4px] border border-border bg-card p-3.5">
+    <div className="flex flex-col gap-1.5 rounded-[4px] border border-border bg-card px-3.5 py-2.5">
       <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
         {label}
       </span>
       <div className="flex items-end justify-between gap-3">
         <span className="flex items-baseline gap-1">
-          <span className="text-[1.75rem] font-bold leading-none tabular-nums tracking-[-0.02em] text-foreground">
+          <span className="text-[1.5rem] font-bold leading-none tabular-nums tracking-[-0.02em] text-foreground">
             {value}
           </span>
           {unit ? <span className="text-[12px] text-muted-foreground">{unit}</span> : null}
@@ -134,7 +134,7 @@ export function KpiCard({
           />
         ) : null}
       </div>
-      {note ? <span className="text-[11.5px] leading-[1.4] text-muted-foreground">{note}</span> : null}
+      {note ? <span className="text-[11px] leading-[1.35] text-muted-foreground">{note}</span> : null}
     </div>
   );
 }
@@ -142,8 +142,8 @@ export function KpiCard({
 /* -- condition gauge (a single dominant readout for the "pulse" dashboard) ----- */
 
 export function ConditionGauge({ pct, label }: { pct: number; label: string }) {
-  const size = 132;
-  const stroke = 10;
+  const size = 108;
+  const stroke = 9;
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
   const dash = (pct / 100) * c;

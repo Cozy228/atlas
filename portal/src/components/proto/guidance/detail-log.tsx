@@ -9,7 +9,7 @@
  * The register follows how Stripe quickstarts and Atlassian plays actually
  * read: scroll, don't navigate.
  */
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { IconArrowLeft, IconCheck, IconCircleCheck, IconFlag } from "@tabler/icons-react";
 import type { Source } from "@atlas/schema";
@@ -42,6 +42,29 @@ export function GuidanceDetailLog({
   const sourceMap = useMemo(() => new Map(sources.map((s) => [s.id, s])), [sources]);
   const steps = completableSteps(guidance);
   const allDone = steps.length > 0 && steps.every((s) => progress.completedSteps.has(s.id));
+
+  // Resume: the first incomplete station. On open we glide to it (smooth, once)
+  // and leave a brief calm tint so the eye lands without being yanked there.
+  const resumeId = steps.find((s) => !progress.completedSteps.has(s.id))?.id ?? null;
+  const stationRefs = useRef(new Map<string, HTMLLIElement>());
+  const didScroll = useRef(false);
+  const [highlightId, setHighlightId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!progress.hydrated || didScroll.current) return;
+    didScroll.current = true;
+    if (!resumeId) return;
+    const idx = guidance.steps.findIndex((s) => s.id === resumeId);
+    if (idx <= 0) return; // already at the top — nothing to glide past
+    const el = stationRefs.current.get(resumeId);
+    if (!el) return;
+    const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+    requestAnimationFrame(() => {
+      el.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+      setHighlightId(resumeId);
+      window.setTimeout(() => setHighlightId(null), 1500);
+    });
+  }, [progress.hydrated, resumeId, guidance.steps]);
 
   return (
     <div className="mx-auto flex w-full max-w-[860px] flex-col gap-8">
@@ -92,6 +115,11 @@ export function GuidanceDetailLog({
             sourceMap={sourceMap}
             progress={progress}
             allDone={allDone}
+            highlight={highlightId === step.id}
+            registerRef={(el) => {
+              if (el) stationRefs.current.set(step.id, el);
+              else stationRefs.current.delete(step.id);
+            }}
           />
         ))}
       </ol>
@@ -107,6 +135,8 @@ function Station({
   sourceMap,
   progress,
   allDone,
+  highlight,
+  registerRef,
 }: {
   guidance: Guidance;
   step: GuidanceStep;
@@ -115,12 +145,20 @@ function Station({
   sourceMap: ReadonlyMap<string, Source>;
   progress: GuidanceProgress;
   allDone: boolean;
+  highlight: boolean;
+  registerRef: (el: HTMLLIElement | null) => void;
 }) {
   const isDestination = step.kind === "destination";
   const done = isDestination ? allDone : progress.completedSteps.has(step.id);
 
   return (
-    <li className="flex gap-4 sm:gap-5">
+    <li
+      ref={registerRef}
+      className={cn(
+        "-mx-3 flex scroll-mt-24 gap-4 rounded-[6px] px-3 transition-colors duration-1000 sm:gap-5",
+        highlight && "bg-brand-tint/30 duration-300",
+      )}
+    >
       {/* Spine: node + connecting line */}
       <div className="flex flex-col items-center">
         <span

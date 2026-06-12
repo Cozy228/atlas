@@ -127,7 +127,7 @@ export function CatalogAdopted({
         </div>
       </div>
 
-      <div key={tab} className="animate-in fade-in duration-150 motion-reduce:animate-none">
+      <div key={tab}>
         {tab === "capabilities" ? (
           <TopicWorkspace type="capability" topics={capabilities} zone={zone} query={query} view={view} />
         ) : null}
@@ -327,7 +327,7 @@ function TopicWorkspace({
         {filtered.length === 0 ? (
           <EmptyState label={TYPE_NOUN[type]} />
         ) : (
-          <div key={view} className="animate-in fade-in duration-150 motion-reduce:animate-none">
+          <div key={view}>
             {view === "cards" ? (
               <CardsView type={type} topics={filtered} zone={zone} serviceFor={serviceFor} />
             ) : (

@@ -12,7 +12,12 @@ import {
   type AttentionItem,
   type DeployStatus,
   type Env,
+  type PipelineStageStatus,
+  type ScanGate,
   type ServiceHealth,
+  type TicketKind,
+  type TicketPriority,
+  type TicketStatus,
 } from "@/lib/ops";
 import { cn } from "@/lib/utils";
 
@@ -132,6 +137,107 @@ export function AttentionFeed({
         </li>
       ))}
     </ul>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/*  CI/CD pipeline vocabulary                                                 */
+/* -------------------------------------------------------------------------- */
+
+const STAGE_DOT: Record<PipelineStageStatus, string> = {
+  passed: "bg-success",
+  running: "bg-info motion-safe:animate-pulse",
+  failed: "bg-critical",
+  skipped: "bg-muted-foreground/40",
+  pending: "bg-border-strong",
+};
+
+/** A horizontal Build · Test · Scan · Deploy track with per-stage state. */
+export function PipelineStageTrack({
+  stages,
+}: {
+  stages: ReadonlyArray<{ name: string; status: PipelineStageStatus }>;
+}) {
+  return (
+    <ol className="flex items-center gap-1.5">
+      {stages.map((stage, i) => (
+        <li key={stage.name} className="flex items-center gap-1.5" title={`${stage.name}: ${stage.status}`}>
+          {i > 0 ? <span aria-hidden className="h-px w-3 bg-border" /> : null}
+          <span className="flex items-center gap-1">
+            <span aria-hidden className={cn("size-1.5 rounded-full", STAGE_DOT[stage.status])} />
+            <span className="font-mono text-[9.5px] uppercase tracking-[0.04em] text-muted-foreground">
+              {stage.name}
+            </span>
+          </span>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Security scan vocabulary                                                  */
+/* -------------------------------------------------------------------------- */
+
+const SCAN_GATE_META: Record<ScanGate, { label: string; dot: string; text: string }> = {
+  pass: { label: "Pass", dot: "bg-success", text: "text-success" },
+  warn: { label: "Warn", dot: "bg-warning", text: "text-warning" },
+  fail: { label: "Fail", dot: "bg-critical", text: "text-critical" },
+};
+
+export function ScanGateBadge({ gate }: { gate: ScanGate }) {
+  const meta = SCAN_GATE_META[gate];
+  return (
+    <span className="inline-flex items-center gap-1.5 font-mono text-[10.5px] font-semibold uppercase tracking-[0.04em]">
+      <span aria-hidden className={cn("size-2 rounded-full", meta.dot)} />
+      <span className={meta.text}>{meta.label}</span>
+    </span>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Ticket vocabulary (ServiceNow-style)                                      */
+/* -------------------------------------------------------------------------- */
+
+const TICKET_KIND_LABEL: Record<TicketKind, string> = {
+  change: "Change",
+  incident: "Incident",
+  request: "Request",
+};
+
+const TICKET_STATUS_LABEL: Record<TicketStatus, string> = {
+  new: "New",
+  "in-progress": "In progress",
+  review: "In review",
+  scheduled: "Scheduled",
+  done: "Done",
+};
+
+const PRIORITY_TONE: Record<TicketPriority, string> = {
+  P1: "border-critical/40 text-critical",
+  P2: "border-warning/40 text-warning",
+  P3: "border-border-strong text-muted-foreground",
+  P4: "border-border text-muted-foreground",
+};
+
+export function ticketStatusLabel(status: TicketStatus): string {
+  return TICKET_STATUS_LABEL[status];
+}
+
+export function ticketKindLabel(kind: TicketKind): string {
+  return TICKET_KIND_LABEL[kind];
+}
+
+export function PriorityChip({ priority }: { priority: TicketPriority }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center rounded-[2px] border px-1.5 py-px font-mono text-[10px] font-semibold tabular-nums",
+        PRIORITY_TONE[priority],
+      )}
+    >
+      {priority}
+    </span>
   );
 }
 

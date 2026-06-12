@@ -1,9 +1,8 @@
 /**
  * PROTOTYPE (production candidate) — Guidance index · route `/proto/guidance`
  * =========================================================================
- * Round 4: three index directions behind `?variant=`, all destination-aware:
+ * Round 4: two index directions behind `?variant=`, both destination-aware:
  *   - `outcomes`  (default) — flows filed under the outcome they reach.
- *   - `directory` — every flow in one dense table (outcome · shape · size).
  *   - `byshape`   — organised by journey shape (Walkthrough / Decision / Checklist).
  *
  * Rows land on the proto detail `/proto/guidance/$guidanceId`, which keeps its
@@ -14,7 +13,6 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { GuidanceIndex } from "@/components/proto/guidance/index";
 import { GuidanceIndexShape } from "@/components/proto/guidance/index-shape";
-import { GuidanceIndexTable } from "@/components/proto/guidance/index-table";
 import { VariantBar, type ProtoVariant } from "@/components/proto/variant-bar";
 
 /** Index directions (the switcher on this page). */
@@ -23,11 +21,6 @@ const INDEX_VARIANTS = [
     id: "outcomes",
     label: "Outcomes",
     summary: "Flows filed under the outcome they reach — a wayfinding directory.",
-  },
-  {
-    id: "directory",
-    label: "Directory",
-    summary: "Every flow in one dense table: outcome, shape, size, status.",
   },
   {
     id: "byshape",
@@ -82,7 +75,6 @@ function ProtoGuidance() {
         onSelect={(id) => void navigate({ search: { variant: id }, replace: true })}
       />
       {active === "outcomes" ? <GuidanceIndex /> : null}
-      {active === "directory" ? <GuidanceIndexTable /> : null}
       {active === "byshape" ? <GuidanceIndexShape /> : null}
     </div>
   );
