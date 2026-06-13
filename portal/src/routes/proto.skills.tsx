@@ -19,8 +19,8 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { SkillsManpage } from "@/components/proto/skills/manpage";
 import { SkillsShelf } from "@/components/proto/skills/shelf";
+import { SCALE_SKILLS as SKILLS } from "@/components/proto/skills/scale";
 import { VariantBar, type ProtoVariant } from "@/components/proto/variant-bar";
-import { SKILLS } from "@/lib/skills";
 
 const SKILLS_VARIANTS = [
   {
@@ -60,7 +60,7 @@ function ProtoSkills() {
   const active: SkillsVariant = variant ?? "manpage";
 
   return (
-    <div className="mx-auto flex w-full max-w-[1080px] flex-col gap-8 px-6 py-8 sm:px-8">
+    <div className="mx-auto flex w-full max-w-[1180px] flex-col gap-8 px-6 py-8 sm:px-8">
       <VariantBar
         variants={SKILLS_VARIANTS}
         active={active}

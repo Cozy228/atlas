@@ -51,7 +51,7 @@ function ProtoGuidanceDetail() {
     step && guidance.steps.some((s) => s.id === step) ? step : defaultStepId(guidance);
 
   return (
-    <div className="mx-auto flex w-full max-w-[1080px] flex-col gap-6 px-6 py-8 sm:px-8">
+    <div className="mx-auto flex w-full max-w-[1180px] flex-col gap-6 px-6 py-8 sm:px-8">
       <VariantBar
         variants={GUIDANCE_VARIANTS}
         active={active}

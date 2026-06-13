@@ -17,6 +17,14 @@ export type ProtoRoute =
   | "/proto/ask"
   | "/regions";
 
+export type DomainService = {
+  id: string;
+  name: string;
+  status: "ga" | "planned" | "none";
+  liveRegions: number;
+  plannedRegions: number;
+};
+
 export type DomainSummary = {
   domain: string;
   /** Anchor id of the matching domain shelf on `/proto/catalog`. */
@@ -24,6 +32,10 @@ export type DomainSummary = {
   count: number;
   /** First few service names, pre-joined for a one-line preview. */
   preview: string;
+  /** One-line domain blurb for the expanded spec-sheet header. */
+  blurb: string;
+  /** Full service list, for the inline spec-sheet that opens on expand. */
+  services: ReadonlyArray<DomainService>;
 };
 
 export type HomeLoaderData = {

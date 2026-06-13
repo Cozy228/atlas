@@ -3,7 +3,7 @@ import { useRouterState } from "@tanstack/react-router";
 import { IconMessageCircle, IconSearch } from "@tabler/icons-react";
 
 import { useAskAtlas } from "@/components/ask-atlas/context";
-import { ProtoAskOverlay, type AskTab } from "@/components/proto/ask/ask-overlay";
+import { ProtoAskOverlay } from "@/components/proto/ask/ask-overlay";
 import { ClientOnly } from "@/components/client-only";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,34 +29,63 @@ const AskAtlasSearch = lazy(() =>
 );
 
 export function AskAtlasFab() {
-  const { open, activeTab, openAsk, openSearch, setOpen, setActiveTab } =
-    useAskAtlas();
+  const {
+    open,
+    activeTab,
+    openAsk,
+    openSearch,
+    setOpen,
+    setActiveTab,
+    protoOpen,
+    protoTab,
+    openProto,
+    setProtoOpen,
+    setProtoTab,
+  } = useAskAtlas();
   // On the prototype suite, Ask/Search open the redesigned in-place overlay
   // (Search ⇄ Ask toggle); everywhere else they open the mainline dialog. Either
   // way it's an overlay over the current surface — never a separate page.
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const isProto = pathname.startsWith("/proto");
-  const [protoAskOpen, setProtoAskOpen] = useState(false);
-  const [protoAskTab, setProtoAskTab] = useState<AskTab>("ask");
   const onAsk = () => {
     if (isProto) {
-      setProtoAskTab("ask");
-      setProtoAskOpen(true);
+      openProto("ask");
     } else {
       openAsk();
     }
   };
+
+  // Hand off to dedicated ask surfaces: when a footer or a page's "just ask"
+  // band scrolls into view (any [data-fab-dismiss]), the FAB fades out so it
+  // never overlaps or competes with them.
+  const [dismissed, setDismissed] = useState(false);
+  useEffect(() => {
+    const zones = Array.from(document.querySelectorAll("[data-fab-dismiss]"));
+    if (zones.length === 0) return;
+    const visible = new Set<Element>();
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) visible.add(entry.target);
+          else visible.delete(entry.target);
+        }
+        setDismissed(visible.size > 0);
+      },
+      { threshold: 0 },
+    );
+    for (const zone of zones) observer.observe(zone);
+    return () => observer.disconnect();
+  }, [pathname]);
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
         if (isProto) {
-          if (protoAskOpen) {
-            setProtoAskOpen(false);
+          if (protoOpen) {
+            setProtoOpen(false);
           } else {
-            setProtoAskTab("search");
-            setProtoAskOpen(true);
+            openProto("search");
           }
         } else if (open) {
           setOpen(false);
@@ -67,23 +96,28 @@ export function AskAtlasFab() {
     }
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [open, openSearch, setOpen, isProto, protoAskOpen]);
+  }, [open, openSearch, setOpen, isProto, protoOpen, openProto, setProtoOpen]);
 
   return (
     <>
       <Button
         onClick={onAsk}
-        className="fixed bottom-8 right-8 z-50 hidden h-10 items-center gap-2 rounded-lg px-4 shadow-lg lg:flex"
+        className={cn(
+          "fixed bottom-8 right-8 z-50 hidden h-10 items-center gap-2 rounded-lg px-4 shadow-lg lg:flex",
+          "transition-[opacity,transform] duration-300 ease-out motion-reduce:transition-none",
+          // Fade/sink away when a dedicated ask surface is in view.
+          dismissed && "pointer-events-none translate-y-3 scale-90 opacity-0",
+        )}
       >
         <IconMessageCircle className="size-4" aria-hidden />
         Ask Atlas
       </Button>
 
       <ProtoAskOverlay
-        open={protoAskOpen}
-        onOpenChange={setProtoAskOpen}
-        tab={protoAskTab}
-        onTabChange={setProtoAskTab}
+        open={protoOpen}
+        onOpenChange={setProtoOpen}
+        tab={protoTab}
+        onTabChange={setProtoTab}
       />
 
       <Dialog open={open} onOpenChange={setOpen}>

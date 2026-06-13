@@ -42,7 +42,7 @@ function ProtoWhatsNew() {
   const earlierMonths = groupByMonth(earlier);
 
   return (
-    <div className="mx-auto flex w-full max-w-[1160px] flex-col gap-8 px-6 py-8 sm:px-8">
+    <div className="mx-auto flex w-full max-w-[1180px] flex-col gap-8 px-6 py-8 sm:px-8">
       <Masthead />
       <div className="grid gap-x-12 gap-y-10 lg:grid-cols-[minmax(0,1fr)_240px]">
         <main className="flex min-w-0 flex-col">

@@ -11,11 +11,17 @@ import { IconArrowRight } from "@tabler/icons-react";
 
 import { cn } from "@/lib/utils";
 
-import { FLOW_SHAPE, FLOW_SHAPE_BLURB, flowMetric, flowTotal, flowsByShape } from "./catalog";
+import {
+  FLOW_SHAPE,
+  FLOW_SHAPE_BLURB,
+  flowMetric,
+  scaledFlowTotal,
+  scaledFlowsByShape,
+} from "./catalog";
 import { GuidanceStatusBadge, TYPE_META } from "./shared";
 
 export function GuidanceIndexShape() {
-  const groups = flowsByShape();
+  const groups = scaledFlowsByShape();
 
   return (
     <div className="flex flex-col gap-8">
@@ -24,8 +30,8 @@ export function GuidanceIndexShape() {
           Guidance
         </h1>
         <p className="w-fit max-w-[60ch] bg-background text-[13.5px] leading-[1.55] text-muted-foreground">
-          {flowTotal()} flows, sorted by the kind of journey each one is. Pick the shape that fits
-          how you need to work.
+          {scaledFlowTotal()} flows, sorted by the kind of journey each one is. Pick the shape that
+          fits how you need to work.
         </p>
       </header>
 

@@ -516,10 +516,7 @@ function CardsView({
         {grouped.map(([category, items]) => (
           <section key={category} className="flex flex-col gap-3">
             <CategoryHeader category={category} count={items.length} />
-            <div
-              className="grid gap-3.5"
-              style={{ gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))" }}
-            >
+            <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
               {items.map((topic) => (
                 <CapabilityCard
                   key={topic.id}
@@ -537,10 +534,7 @@ function CardsView({
 
   const sorted = topics.toSorted((a, b) => a.name.localeCompare(b.name));
   return (
-    <ul
-      className="grid gap-3.5"
-      style={{ gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))" }}
-    >
+    <ul className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
       {sorted.map((topic) => (
         <li key={topic.id}>
           <TopicCard topic={topic} />

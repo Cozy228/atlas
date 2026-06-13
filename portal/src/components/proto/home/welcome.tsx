@@ -12,18 +12,29 @@
  */
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { IconArrowRight } from "@tabler/icons-react";
+import { IconArrowLeft, IconArrowRight, IconMessageCircle } from "@tabler/icons-react";
+import {
+  AnimatePresence,
+  LazyMotion,
+  MotionConfig,
+  domAnimation,
+  m,
+  type Variants,
+} from "motion/react";
 
+import { useAskAtlas } from "@/components/ask-atlas/context";
 import { JourneyGrid } from "@/components/home/journey-grid";
 import { IntentSearch } from "@/components/intent-search";
 import { cn } from "@/lib/utils";
 
+import { ENTRY_DOT } from "@/components/proto/catalog/data";
 import { CHANGES, TONE_DOT } from "@/components/proto/whatsnew/data";
 
 import {
   INTENTS,
   POPULAR,
   RECENTS,
+  type DomainService,
   type HomeLoaderData,
   type ProtoRoute,
 } from "./data";
@@ -48,6 +59,7 @@ export function HomeWelcome({ data }: { data: HomeLoaderData }) {
         <JourneyGrid linkTargets="proto" />
       </section>
       <CatalogIndex serviceCount={data.serviceCount} domains={data.domains} />
+      <HelpCloser />
     </div>
   );
 }
@@ -315,10 +327,38 @@ function IntentFocus() {
 }
 
 /* ========================================================================== *
- * Service catalog — a BOOK INDEX into /proto/catalog: columned link lines per
- * domain (name + count), typographic rather than tiled. The catalog page owns
- * the data; this is just its index.
+ * Service catalog — a first-level domain index (the original typographic book
+ * index). Click a domain and the whole index is REPLACED, in place, by that
+ * domain's SPEC SHEET (its services as a flowing, status-dotted, columned
+ * list) — the spec-sheet form used where it belongs, one bounded domain at a
+ * time.
+ *
+ * Motion: AnimatePresence (mode="wait") cleanly swaps index ↔ detail. On the
+ * detail, the label glides in from the left, then the service lines rise and
+ * fade in a gentle stagger — physics-based easing, small travel, so it reads
+ * calm rather than busy. reducedMotion="user" drops the transforms.
  * ========================================================================== */
+
+/**
+ * Click → switch transition ("push"): the index list slides out to the left as
+ * the chosen domain's detail pushes in from the right, its service lines fading
+ * in a quick light stagger. A drawer-style master→detail move.
+ */
+const INDEX_VARIANTS: Variants = {
+  hidden: { opacity: 0, x: -28 },
+  show: { opacity: 1, x: 0, transition: { duration: 0.22, ease: "easeOut" } },
+  exit: { opacity: 0, x: -28, transition: { duration: 0.18, ease: "easeIn" } },
+};
+const DETAIL_VARIANTS: Variants = {
+  hidden: { opacity: 0, x: 32 },
+  show: { opacity: 1, x: 0, transition: { duration: 0.28, ease: "easeOut", staggerChildren: 0.02 } },
+  exit: { opacity: 0, transition: { duration: 0.12 } },
+};
+const LIST_VARIANTS: Variants = { hidden: {}, show: { transition: { staggerChildren: 0.02 } } };
+const LINE_VARIANTS: Variants = {
+  hidden: { opacity: 0 },
+  show: { opacity: 1, transition: { duration: 0.2 } },
+};
 
 function CatalogIndex({
   serviceCount,
@@ -327,40 +367,153 @@ function CatalogIndex({
   serviceCount: number;
   domains: HomeLoaderData["domains"];
 }) {
+  const [selected, setSelected] = useState<string | null>(null);
+  const domain = selected ? domains.find((d) => d.domain === selected) : undefined;
+
   return (
     <section>
       <SectionHead
         title="Service catalog"
-        description={`${serviceCount} services, grouped by domain. Jump straight to a shelf.`}
+        description={`${serviceCount} services across ${domains.length} domains. Open one to see what's in it.`}
         action={{ to: "/proto/catalog", label: "View all services" }}
       />
-      <ul className="gap-x-12 sm:columns-2 lg:columns-3">
-        {domains.map((d) => (
-          <li key={d.domain} className="break-inside-avoid">
-            <Link
-              to="/proto/catalog"
-              search={{ variant: "specsheet" }}
-              hash={d.anchor}
-              className={cn(
-                "group flex items-baseline justify-between gap-3 border-b border-border py-2.5",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-              )}
-            >
-              <span className="flex min-w-0 flex-col">
-                <span className="truncate bg-background text-[13.5px] font-semibold text-foreground group-hover:text-brand-ink">
-                  {d.domain}
-                </span>
-                <span className="truncate bg-background text-[11.5px] text-muted-foreground">
-                  {d.preview}
-                </span>
-              </span>
-              <span className="shrink-0 bg-background text-[12px] tabular-nums text-muted-foreground">
-                {d.count}
-              </span>
-            </Link>
-          </li>
-        ))}
-      </ul>
+      <LazyMotion features={domAnimation}>
+        <MotionConfig reducedMotion="user">
+          <AnimatePresence mode="wait" initial={false}>
+            {domain ? (
+              <m.div
+                key={domain.domain}
+                variants={DETAIL_VARIANTS}
+                initial="hidden"
+                animate="show"
+                exit="exit"
+                className="grid gap-x-12 gap-y-4 lg:grid-cols-[220px_minmax(0,1fr)]"
+              >
+                <div className="flex flex-col gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setSelected(null)}
+                    className="group flex w-fit items-center gap-1.5 bg-background text-[12.5px] font-medium text-muted-foreground transition-colors hover:text-brand-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <IconArrowLeft aria-hidden className="size-3.5 transition-transform group-hover:-translate-x-0.5" />
+                    All domains
+                  </button>
+                  <h3 className="w-fit bg-background text-[1.25rem] font-bold tracking-[-0.02em] text-foreground">
+                    {domain.domain}
+                  </h3>
+                  <span className="w-fit bg-background font-mono text-[11px] tabular-nums text-muted-foreground">
+                    {domain.count} services
+                  </span>
+                  {domain.blurb ? (
+                    <p className="w-fit max-w-[30ch] bg-background text-[12.5px] leading-[1.5] text-muted-foreground">
+                      {domain.blurb}
+                    </p>
+                  ) : null}
+                </div>
+                <m.ul variants={LIST_VARIANTS} className="grid gap-x-10 sm:grid-cols-2">
+                  {domain.services.map((service) => (
+                    <ServiceLine key={service.id} service={service} variants={LINE_VARIANTS} />
+                  ))}
+                </m.ul>
+              </m.div>
+            ) : (
+              <m.ul
+                key="index"
+                variants={INDEX_VARIANTS}
+                initial="hidden"
+                animate="show"
+                exit="exit"
+                className="gap-x-12 sm:columns-2 lg:columns-3"
+              >
+                {domains.map((d) => (
+                  <li key={d.domain} className="break-inside-avoid">
+                    <button
+                      type="button"
+                      onClick={() => setSelected(d.domain)}
+                      className="group flex w-full items-baseline justify-between gap-3 border-b border-border py-2.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      <span className="flex min-w-0 flex-col">
+                        <span className="truncate bg-background text-[13.5px] font-semibold text-foreground group-hover:text-brand-ink">
+                          {d.domain}
+                        </span>
+                        <span className="truncate bg-background text-[11.5px] text-muted-foreground">
+                          {d.preview}
+                        </span>
+                      </span>
+                      <span className="shrink-0 self-center bg-background text-[12px] tabular-nums text-muted-foreground">
+                        {d.count}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </m.ul>
+            )}
+          </AnimatePresence>
+        </MotionConfig>
+      </LazyMotion>
+    </section>
+  );
+}
+
+function ServiceLine({ service, variants }: { service: DomainService; variants: Variants }) {
+  const note =
+    service.status === "ga"
+      ? `${service.liveRegions} live${service.plannedRegions ? ` · ${service.plannedRegions} planned` : ""}`
+      : service.status === "planned"
+        ? "planned"
+        : "not offered";
+  return (
+    <m.li variants={variants}>
+      <Link
+        to="/proto/capability"
+        className="group flex items-baseline gap-2.5 border-b border-border/60 py-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <span aria-hidden className={cn("size-1.5 shrink-0 self-center rounded-full", ENTRY_DOT[service.status])} />
+        <span className="min-w-0 truncate bg-background text-[13px] font-medium text-foreground underline decoration-border underline-offset-[3px] group-hover:text-brand-ink group-hover:decoration-current">
+          {service.name}
+        </span>
+        <span className="ml-auto shrink-0 bg-background font-mono text-[10px] tabular-nums text-muted-foreground">
+          {note}
+        </span>
+      </Link>
+    </m.li>
+  );
+}
+
+/* ========================================================================== *
+ * Help closer — the page's final band, and the resting home of the Ask action.
+ * It is marked [data-fab-dismiss], so when it scrolls into view the floating
+ * FAB fades out and THIS becomes the live ask affordance: same overlay, fuller
+ * invitation. One ask control at a time — no overlap, no redundancy.
+ * ========================================================================== */
+
+function HelpCloser() {
+  const { openProto } = useAskAtlas();
+  return (
+    <section
+      data-fab-dismiss
+      className="flex flex-col items-center gap-3 border-t border-border py-7 text-center"
+    >
+      <span className="flex items-center gap-1.5 bg-background font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-brand-ink">
+        <IconMessageCircle aria-hidden className="size-3.5" />
+        Ask Atlas
+      </span>
+      <h2 className="w-fit max-w-[28ch] bg-background text-[1.25rem] font-bold tracking-[-0.02em] text-foreground">
+        Didn&rsquo;t find it? Just ask.
+      </h2>
+      <p className="w-fit max-w-[50ch] bg-background text-[13px] leading-[1.55] text-muted-foreground">
+        Describe what you&rsquo;re trying to do in plain language. Every answer links back to the
+        guidance, service, or policy it came from.
+      </p>
+      {/* Same icon + shape as the floating FAB — this is its resting form. */}
+      <button
+        type="button"
+        onClick={() => openProto("ask")}
+        className="mt-1 inline-flex h-10 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-brand-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+      >
+        <IconMessageCircle aria-hidden className="size-4" />
+        Ask Atlas
+      </button>
     </section>
   );
 }

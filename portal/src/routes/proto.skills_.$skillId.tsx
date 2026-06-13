@@ -12,14 +12,15 @@
 import { Link, createFileRoute, notFound } from "@tanstack/react-router";
 import { IconArrowLeft } from "@tabler/icons-react";
 
+import { getProtoSkill } from "@/components/proto/skills/scale";
 import { CommandBlock, InstallBay } from "@/components/proto/skills/shared";
 import { Badge } from "@/components/ui/badge";
-import { SKILL_STAGES, getSkill, skillRunCommand } from "@/lib/skills";
+import { SKILL_STAGES, skillRunCommand } from "@/lib/skills";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/proto/skills_/$skillId")({
   loader: ({ params }) => {
-    const skill = getSkill(params.skillId);
+    const skill = getProtoSkill(params.skillId);
     if (!skill) throw notFound();
     return { skill };
   },

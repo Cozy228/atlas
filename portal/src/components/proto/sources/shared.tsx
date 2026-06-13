@@ -40,3 +40,18 @@ export function reviewedLabel(source: Source): string {
     year: "numeric",
   });
 }
+
+/** Page title block for the source registry surface. */
+export function Header({ sources }: { sources: ReadonlyArray<Source> }) {
+  return (
+    <header className="flex flex-col gap-1.5">
+      <h1 className="w-fit bg-background text-2xl font-bold tracking-[-0.02em] text-foreground">
+        Source registry
+      </h1>
+      <p className="w-fit max-w-[66ch] bg-background text-[13.5px] leading-[1.55] text-muted-foreground">
+        Every claim in Atlas resolves to one of these {sources.length} registered documents.
+        Authority and freshness are computed live from the registry, not asserted.
+      </p>
+    </header>
+  );
+}
