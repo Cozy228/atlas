@@ -87,7 +87,7 @@ function ProtoAsk() {
   }, [data.domains, query]);
 
   return (
-    <div className="mx-auto flex w-full max-w-[1080px] flex-col gap-8 px-6 py-12 sm:px-8">
+    <div className="mx-auto flex w-full max-w-[1180px] flex-col gap-8 px-6 py-12 sm:px-8">
       <header className="flex flex-col gap-2.5">
         <span className="w-fit bg-background font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
           Reach a team

@@ -11,9 +11,10 @@ import { useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { IconSearch } from "@tabler/icons-react";
 
-import { SKILLS, SKILL_STAGES, type Skill } from "@/lib/skills";
+import { SKILL_STAGES, type Skill, type SkillStage } from "@/lib/skills";
 import { cn } from "@/lib/utils";
 
+import { SCALE_SKILLS as SKILLS } from "./scale";
 import { InstallBay } from "./shared";
 
 export function SkillsManpage({ selectedId }: { selectedId: string }) {
@@ -41,31 +42,41 @@ export function SkillsManpage({ selectedId }: { selectedId: string }) {
 
 function MasterList({ selectedId }: { selectedId: string }) {
   const [query, setQuery] = useState("");
+  const [stageFilter, setStageFilter] = useState<SkillStage | "all">("all");
 
-  const groups = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return SKILL_STAGES.map((stage) => ({
-      stage,
-      items: SKILLS.filter(
+  const q = query.trim().toLowerCase();
+  const searchHits = useMemo(
+    () =>
+      SKILLS.filter(
         (skill) =>
-          skill.stage === stage.id &&
-          (q === "" ||
-            [skill.id, skill.name, skill.description].join(" ").toLowerCase().includes(q)),
+          q === "" ||
+          [skill.id, skill.name, skill.description, ...skill.tags].join(" ").toLowerCase().includes(q),
       ),
-    })).filter((group) => group.items.length > 0);
-  }, [query]);
+    [q],
+  );
+
+  const groups = useMemo(
+    () =>
+      SKILL_STAGES.map((stage) => ({
+        stage,
+        items: searchHits.filter(
+          (skill) => skill.stage === stage.id && (stageFilter === "all" || stageFilter === stage.id),
+        ),
+      })).filter((group) => group.items.length > 0),
+    [searchHits, stageFilter],
+  );
 
   const shown = groups.reduce((n, g) => n + g.items.length, 0);
 
   return (
-    <nav aria-label="Skill index" className="flex flex-col gap-3 lg:sticky lg:top-[76px]">
+    <nav aria-label="Skill index" className="flex flex-col gap-2.5 lg:sticky lg:top-[76px]">
       <label className="flex h-9 items-center gap-2 rounded-[4px] border border-border bg-card px-3 focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/30">
         <IconSearch aria-hidden className="size-3.5 shrink-0 text-muted-foreground" />
         <input
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           type="search"
-          placeholder="Filter skills"
+          placeholder="Filter name, id, or tag"
           aria-label="Filter skills"
           className="h-full flex-1 bg-transparent text-[13px] text-foreground outline-none placeholder:text-muted-foreground"
         />
@@ -74,13 +85,34 @@ function MasterList({ selectedId }: { selectedId: string }) {
         </span>
       </label>
 
-      <div className="flex flex-col gap-4">
+      {/* Stage filter pills — narrow the index to one lifecycle stage */}
+      <div className="flex flex-wrap gap-1">
+        <StagePill active={stageFilter === "all"} onClick={() => setStageFilter("all")}>
+          All
+        </StagePill>
+        {SKILL_STAGES.map((stage) => {
+          const count = searchHits.filter((s) => s.stage === stage.id).length;
+          if (count === 0) return null;
+          return (
+            <StagePill
+              key={stage.id}
+              active={stageFilter === stage.id}
+              onClick={() => setStageFilter(stage.id)}
+            >
+              {stage.label}
+            </StagePill>
+          );
+        })}
+      </div>
+
+      {/* Fixed-height scroll region so the index never outgrows the viewport */}
+      <div className="flex flex-col gap-4 overflow-y-auto pr-0.5 lg:max-h-[calc(100dvh-188px)]">
         {groups.length === 0 ? (
-          <p className="px-1 py-2 text-[12.5px] text-muted-foreground">No skill matches “{query}”.</p>
+          <p className="px-1 py-2 text-[12.5px] text-muted-foreground">No skill matches the filter.</p>
         ) : (
           groups.map((group) => (
             <section key={group.stage.id} className="flex flex-col gap-1">
-              <h3 className="px-1 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+              <h3 className="sticky top-0 bg-background px-1 py-0.5 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
                 {group.stage.label}
               </h3>
               <ul className="flex flex-col">
@@ -94,7 +126,7 @@ function MasterList({ selectedId }: { selectedId: string }) {
                         replace
                         aria-current={isSelected ? "page" : undefined}
                         className={cn(
-                          "flex flex-col gap-0.5 rounded-[4px] px-2.5 py-2 transition-colors",
+                          "flex flex-col gap-0.5 rounded-[4px] px-2.5 py-1.5 transition-colors",
                           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                           isSelected ? "bg-brand-tint/60" : "hover:bg-muted/60",
                         )}
@@ -120,6 +152,33 @@ function MasterList({ selectedId }: { selectedId: string }) {
         )}
       </div>
     </nav>
+  );
+}
+
+function StagePill({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={active}
+      onClick={onClick}
+      className={cn(
+        "rounded-[4px] px-2 py-0.5 text-[11.5px] transition-colors",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        active
+          ? "bg-brand-tint/60 font-semibold text-brand-ink"
+          : "text-muted-foreground hover:bg-muted hover:text-foreground",
+      )}
+    >
+      {children}
+    </button>
   );
 }
 

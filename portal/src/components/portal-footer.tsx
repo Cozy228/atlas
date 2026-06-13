@@ -10,7 +10,7 @@ export function PortalFooter() {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="border-t border-border bg-background px-4 py-6 sm:px-8">
+    <footer data-fab-dismiss className="border-t border-border bg-background px-4 py-6 sm:px-8">
       <div
         className={cn(
           "flex flex-col gap-3 text-xs text-muted-foreground",

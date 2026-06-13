@@ -23,6 +23,8 @@ import {
   type GuidanceType,
 } from "@/lib/guidance";
 
+import { SCALE_FLOWS } from "./scale";
+
 /* -------------------------------------------------------------------------- *
  * Proto-only flows — fictional, public-safe; reuse existing source ids so the
  * evidence rows resolve against the real source registry.
@@ -205,6 +207,7 @@ const PROTO_EXTRA: ReadonlyArray<Guidance> = [
 const PROTO_BY_ID: ReadonlyMap<string, Guidance> = new Map([
   ...listGuidance().map((g) => [g.id, g] as const),
   ...PROTO_EXTRA.map((g) => [g.id, g] as const),
+  ...SCALE_FLOWS.map((g) => [g.id, g] as const),
 ]);
 
 /** Resolve a proto guidance by id (proto-only flows + shared fixtures). */
@@ -295,6 +298,27 @@ export function flowsByShape(): ReadonlyArray<{
     type,
     items: flows.filter((g) => g.type === type),
   })).filter((entry) => entry.items.length > 0);
+}
+
+/**
+ * Scale variant of {@link flowsByShape}: the curated flows plus the synthetic
+ * SCALE_FLOWS, so the by-shape index can be reviewed with dozens of rows per
+ * shape. Used only by the `byshape` direction.
+ */
+export function scaledFlowsByShape(): ReadonlyArray<{
+  type: GuidanceType;
+  items: ReadonlyArray<Guidance>;
+}> {
+  const flows = [...allFlows().map((f) => f.guidance), ...SCALE_FLOWS];
+  return SHAPE_ORDER.map((type) => ({
+    type,
+    items: flows.filter((g) => g.type === type),
+  })).filter((entry) => entry.items.length > 0);
+}
+
+/** Total flow count behind the scaled by-shape index. */
+export function scaledFlowTotal(): number {
+  return flowTotal() + SCALE_FLOWS.length;
 }
 
 /** The metric that reads naturally for a flow's shape. */
