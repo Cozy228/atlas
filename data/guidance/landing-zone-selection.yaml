@@ -1,0 +1,69 @@
+# Atlas Guidance manifest — public-safe, fictional sample.
+#
+# Exemplar for the `decision` renderer preset (branch options). Forward-compatible
+# only: MVP renders `route`; this file demonstrates the `kind: decision` + options
+# shape for AI few-shot authoring and a later renderer.
+
+id: landing-zone-selection
+title: Landing Zone Selection
+type: decision
+scenario: service_enablement
+family: decide
+objective: Match a workload's data sensitivity and lifecycle to the right landing zone.
+destination:
+  title: Landing zone selected with rationale
+  description: You can justify the chosen zone against its guardrails and intended use.
+owner:
+  team: Cloud Platform
+  support: cloud-platform-support
+status: published
+version: 1.0.0
+last_reviewed: "2026-03-30"
+applies_to:
+  landing_zones:
+    - central-landing-zone
+    - regulated-landing-zone
+    - sandbox-landing-zone
+sources:
+  - central-lz-confluence
+  - regulated-lz-confluence
+  - sandbox-lz-confluence
+
+steps:
+  - id: gather-requirements
+    title: Gather requirements
+    kind: action
+    description: Capture the workload's data classification, environment, and lifecycle.
+    why: Zone fit is driven by data sensitivity and how long the workload lives.
+    tasks:
+      - id: classify-data
+        title: Classify the workload's data sensitivity
+        required: true
+      - id: confirm-lifecycle
+        title: Confirm expected lifecycle (temporary vs long-lived)
+
+  - id: choose-zone
+    title: Choose a landing zone
+    kind: decision
+    description: Pick the zone whose guardrails match the requirements you gathered.
+    why: Each zone trades flexibility for control differently.
+    options:
+      - id: central
+        title: Central Landing Zone
+        description: Standard production workloads with baseline guardrails.
+        to: /catalog/central-landing-zone
+      - id: regulated
+        title: Regulated Landing Zone
+        description: Sensitive or compliance-bound workloads with stricter controls.
+        to: /catalog/regulated-landing-zone
+      - id: sandbox
+        title: Sandbox Landing Zone
+        description: Short-lived experiments that expire automatically.
+        to: /catalog/sandbox-landing-zone
+    sources:
+      - regulated-lz-confluence
+
+  - id: decided
+    title: Selection complete
+    kind: destination
+    description: Continue to onboarding with the chosen landing zone.
