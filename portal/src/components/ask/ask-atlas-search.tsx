@@ -68,7 +68,7 @@ const STATIC_NAV: ReadonlyArray<SearchResult> = [
 ];
 
 const TOPIC_ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
-  capability: IconLayoutGrid,
+  service: IconLayoutGrid,
   "landing-zone": IconMapPin,
 };
 
@@ -121,7 +121,7 @@ export function AskAtlasSearch({
               ? "Landing Zones"
               : topic.topic_type === "guardrail-area"
                 ? "Guardrails"
-                : "Capabilities",
+                : "Services",
         });
       }
     }

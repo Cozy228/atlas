@@ -34,7 +34,7 @@ type ChatMessage =
 
 const DEFAULT_SUGGESTIONS = [
   {
-    category: "Capability",
+    category: "Service",
     prompt: "Which storage service for a multi-region workload?",
   },
   {

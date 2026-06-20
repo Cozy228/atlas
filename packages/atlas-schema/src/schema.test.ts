@@ -48,10 +48,10 @@ const source = {
 const topic = {
   id: "aws-textract",
   name: "AWS Textract",
-  topic_type: "capability",
+  topic_type: "service",
   category: "ai-ml",
   status: "active",
-  description: "Managed OCR capability for document workflows.",
+  description: "Managed OCR service for document workflows.",
   owner_team: "cloud-platform",
   support_channel: "#cloud-platform",
   entry_tools: [
@@ -73,7 +73,7 @@ describe("contract enums", () => {
 
   it("matches the V1 topic types exactly", () => {
     expect(topicTypes).toEqual([
-      "capability",
+      "service",
       "landing-zone",
       "guardrail-area",
     ]);
@@ -165,8 +165,8 @@ describe("request and response schemas", () => {
     expect(SourceDiscoveryRequestSchema.parse({ query: "textract" })).toEqual({
       query: "textract",
     });
-    expect(TopicDiscoveryRequestSchema.parse({ topic_type: "capability" })).toEqual({
-      topic_type: "capability",
+    expect(TopicDiscoveryRequestSchema.parse({ topic_type: "service" })).toEqual({
+      topic_type: "service",
     });
     expect(ContextRequestSchema.parse({ topic_id: "aws-textract" })).toEqual({
       topic_id: "aws-textract",

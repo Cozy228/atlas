@@ -14,7 +14,8 @@ import {
   InMemoryFeedbackRepository,
   type FeedbackRepository,
 } from "../repositories/feedbackRepository.js";
-import { loadPilotRegistry, pilotRegistrySeed, type PilotRegistry } from "../seeds/pilotRegistry.js";
+import { loadPilotRegistry, type PilotRegistry, type PilotRegistrySeed } from "../seeds/pilotRegistry.js";
+import { DATA_DIR, loadRegistryFromManifests } from "../seeds/loadRegistryFromManifests.js";
 import { confluencePageResolver } from "../resolvers/confluencePageResolver.js";
 import { policyDocumentResolver } from "../resolvers/policyDocumentResolver.js";
 import { createResolverRegistry, type ResolverRegistry } from "../resolvers/resolverRegistry.js";
@@ -36,17 +37,29 @@ export type ContextBundleService = {
 export type ContextBundleServiceOptions = {
   env?: Record<string, string | undefined>;
   feedbackRepository?: FeedbackRepository;
+  /** Injection seam: override the manifest-loaded registry seed (tests). */
+  registrySeed?: PilotRegistrySeed;
 };
+
+// The default registry now comes from the `data/*.yaml` manifest control plane.
+// The loader reads + validates the filesystem, so we memoize it: the routes
+// build a fresh service per request and must not re-read/parse YAML each time.
+let cachedRegistrySeed: PilotRegistrySeed | undefined;
+
+function getDefaultRegistrySeed(): PilotRegistrySeed {
+  return (cachedRegistrySeed ??= loadRegistryFromManifests(DATA_DIR));
+}
 
 export function createDefaultContextBundleService(
   options: ContextBundleServiceOptions = {},
 ): ContextBundleService {
+  const seed = options.registrySeed ?? getDefaultRegistrySeed();
   const feedbackRepository =
     options.feedbackRepository ??
-    createFeedbackRepository(options.env ?? readProcessEnv());
+    createFeedbackRepository(options.env ?? readProcessEnv(), seed.feedback);
 
   return {
-    registry: loadPilotRegistry(pilotRegistrySeed, { feedback: feedbackRepository }),
+    registry: loadPilotRegistry(seed, { feedback: feedbackRepository }),
     resolvers: createResolverRegistry([
       terraformModuleResolver,
       confluencePageResolver,
@@ -59,12 +72,13 @@ export function createDefaultContextBundleService(
 
 export function createFeedbackRepository(
   env: Record<string, string | undefined>,
+  feedback?: PilotRegistrySeed["feedback"],
 ): FeedbackRepository {
   const tableName = env.ATLAS_FEEDBACK_TABLE;
   if (tableName) {
     return new DynamoFeedbackRepository({ tableName });
   }
-  return new InMemoryFeedbackRepository(pilotRegistrySeed.feedback);
+  return new InMemoryFeedbackRepository(feedback ?? getDefaultRegistrySeed().feedback);
 }
 
 function readProcessEnv(): Record<string, string | undefined> {

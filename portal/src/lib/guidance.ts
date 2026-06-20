@@ -81,7 +81,7 @@ export type Guidance = {
   version: string;
   lastReviewed: string;
   appliesTo?: {
-    capabilities?: ReadonlyArray<string>;
+    services?: ReadonlyArray<string>;
     landingZones?: ReadonlyArray<string>;
     guardrails?: ReadonlyArray<string>;
   };
@@ -96,7 +96,7 @@ export const SCENARIO_FAMILIES: ReadonlyArray<{
 }> = [
   { id: "onboard", label: "Onboard", description: "Bring a new workload onto the platform." },
   { id: "decide", label: "Decide", description: "Choose between approved platform paths." },
-  { id: "enable", label: "Enable", description: "Turn on an approved capability or tool." },
+  { id: "enable", label: "Enable", description: "Turn on an approved service or tool." },
   { id: "validate", label: "Validate", description: "Confirm readiness before production." },
 ];
 
@@ -117,7 +117,7 @@ const GUIDANCES: ReadonlyArray<Guidance> = [
     version: "1.2.0",
     lastReviewed: "2026-04-18",
     appliesTo: {
-      capabilities: ["serverless-compute"],
+      services: ["serverless-compute"],
       landingZones: ["central-landing-zone"],
     },
     sources: ["platform-reference-guide", "central-lz-confluence"],
@@ -309,7 +309,7 @@ const GUIDANCES: ReadonlyArray<Guidance> = [
     version: "0.9.0",
     lastReviewed: "2025-11-12",
     appliesTo: {
-      capabilities: ["aws-textract", "aws-bedrock", "serverless-compute"],
+      services: ["aws-textract", "aws-bedrock", "serverless-compute"],
       guardrails: ["logging-monitoring", "iam-boundary", "s3-guardrails"],
     },
     sources: ["logging-standard-doc", "iam-boundary-policy", "s3-policy-doc"],
@@ -385,7 +385,7 @@ export function relatedGuidanceForTopic(topicId: string): ReadonlyArray<Guidance
     const applies = guidance.appliesTo;
     if (!applies) return false;
     return (
-      (applies.capabilities?.includes(topicId) ?? false) ||
+      (applies.services?.includes(topicId) ?? false) ||
       (applies.landingZones?.includes(topicId) ?? false) ||
       (applies.guardrails?.includes(topicId) ?? false)
     );

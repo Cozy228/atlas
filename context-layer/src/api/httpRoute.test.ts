@@ -11,12 +11,12 @@ describe("context API HTTP route adapter", () => {
     const response = await handleHttpRequest({
       method: "GET",
       path: "/topics",
-      query: { topic_type: "capability" },
+      query: { topic_type: "service" },
     });
 
     expect(response.status).toBe(200);
     const body = TopicDiscoveryResponseSchema.parse(JSON.parse(response.body));
-    expect(body.topics.every((topic) => topic.topic_type === "capability")).toBe(true);
+    expect(body.topics.every((topic) => topic.topic_type === "service")).toBe(true);
   });
 
   it("maps API Gateway /api-prefixed routes to the same HTTP adapter", async () => {

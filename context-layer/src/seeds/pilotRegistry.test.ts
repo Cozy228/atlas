@@ -13,10 +13,10 @@ describe("pilot registry seed", () => {
     expect(registry.mappings.list().length).toBeGreaterThan(12);
   });
 
-  it("supports capability, landing-zone, and guardrail-area scenarios", () => {
+  it("supports service, landing-zone, and guardrail-area scenarios", () => {
     const registry = loadPilotRegistry(pilotRegistrySeed);
 
-    expect(registry.topics.findByType("capability").length).toBeGreaterThan(0);
+    expect(registry.topics.findByType("service").length).toBeGreaterThan(0);
     expect(registry.topics.findByType("landing-zone").length).toBeGreaterThan(0);
     expect(registry.topics.findByType("guardrail-area").length).toBeGreaterThan(0);
   });

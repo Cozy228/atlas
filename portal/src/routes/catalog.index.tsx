@@ -2,7 +2,7 @@
  * Catalog · route `/catalog`
  * ==========================
  * Facet rail, type tabs, and a Cards ↔ Table toggle over the real topic +
- * availability projection. Capabilities and landing zones open the datasheet at
+ * availability projection. Services and landing zones open the datasheet at
  * `/catalog/$topicId`; guardrail areas keep their `/guardrails/$guardrailId`
  * route. Sources are their own surface at `/sources`.
  */

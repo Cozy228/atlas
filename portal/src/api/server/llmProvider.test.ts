@@ -1,6 +1,6 @@
 import type { LanguageModel } from "ai";
 import { describe, expect, it, vi } from "vitest";
-import { capabilityBundle } from "@/fixtures/contextBundles";
+import { serviceBundle } from "@/fixtures/contextBundles";
 import {
   claimResponseSchema,
   createBedrockClaimsAdapter,
@@ -12,7 +12,7 @@ import {
 describe("Ask Atlas LLM provider selection", () => {
   it("falls back to the simulated adapter without provider configuration", async () => {
     const adapter = createConfiguredClaimsAdapter({
-      bundle: capabilityBundle,
+      bundle: serviceBundle,
       env: {},
     });
 
@@ -58,7 +58,7 @@ describe("Ask Atlas LLM provider selection", () => {
   it("accepts uppercase RAI provider configuration", async () => {
     expect(() =>
       createConfiguredClaimsAdapter({
-        bundle: capabilityBundle,
+        bundle: serviceBundle,
         env: { ATLAS_LLM_PROVIDER: "RAI" },
       }),
     ).toThrow("RAI_BASE_URL");

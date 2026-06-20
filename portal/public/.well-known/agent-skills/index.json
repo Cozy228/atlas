@@ -4,9 +4,9 @@
     {
       "name": "atlas-context-consumer",
       "type": "skill-md",
-      "description": "Resolve governed, citation-backed platform context from Atlas (capabilities, sources, regional availability) through the Context API bundle. Use when an agent needs an authoritative, sourced answer about a cloud platform capability instead of guessing.",
+      "description": "Resolve governed, citation-backed platform context from Atlas (services, sources, regional availability) through the Context API bundle. Use when an agent needs an authoritative, sourced answer about a cloud platform service instead of guessing.",
       "url": "/.well-known/agent-skills/atlas-context-consumer/SKILL.md",
-      "digest": "sha256:e3ee0762225604e18639684827593a82942f1ebe51452797580b53209ebae27c"
+      "digest": "sha256:9bfeca68085cffbdbcf5042d81842fe597fd615e913dee486a603907fc665b1e"
     }
   ]
 }

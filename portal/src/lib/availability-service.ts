@@ -12,7 +12,7 @@ export function findAvailabilityServiceForTopic(
   topic: Pick<Topic, "id" | "name">,
   services: ReadonlyArray<AvailabilityRecord>,
 ): AvailabilityRecord | null {
-  const serviceId = resolveCapabilityServiceId(topic);
+  const serviceId = resolveServiceId(topic);
 
   return (
     services.find((service) => service.id === serviceId) ??
@@ -21,7 +21,7 @@ export function findAvailabilityServiceForTopic(
   );
 }
 
-function resolveCapabilityServiceId(topic: Pick<Topic, "id" | "name">): string {
+function resolveServiceId(topic: Pick<Topic, "id" | "name">): string {
   return TOPIC_SERVICE_ALIASES[topic.id] ?? topic.id.replace(/^aws-/, "");
 }
 

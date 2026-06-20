@@ -22,7 +22,7 @@ import { cn } from "@/lib/utils";
 type LoaderData = {
   topic: Topic;
   bundle: ContextBundleResponse | null;
-  relatedCapabilities: ReadonlyArray<Topic>;
+  relatedServices: ReadonlyArray<Topic>;
   relatedGuardrails: ReadonlyArray<Topic>;
   relatedLandingZones: ReadonlyArray<Topic>;
 };
@@ -61,7 +61,7 @@ export const Route = createFileRoute("/guardrails/$guardrailId")({
     return {
       topic,
       bundle,
-      relatedCapabilities: related.filter((entry) => entry.topic_type === "capability"),
+      relatedServices: related.filter((entry) => entry.topic_type === "service"),
       relatedGuardrails: related.filter((entry) => entry.topic_type === "guardrail-area"),
       relatedLandingZones: related.filter((entry) => entry.topic_type === "landing-zone"),
     };
@@ -70,13 +70,13 @@ export const Route = createFileRoute("/guardrails/$guardrailId")({
 });
 
 function GuardrailDetailRoute() {
-  const { topic, bundle, relatedCapabilities, relatedGuardrails, relatedLandingZones } =
+  const { topic, bundle, relatedServices, relatedGuardrails, relatedLandingZones } =
     Route.useLoaderData();
 
   const rules = getGuardrailRules(topic.id);
   const primaryTool = topic.entry_tools[0];
   const hasRelationships =
-    relatedCapabilities.length > 0 || relatedGuardrails.length > 0 || relatedLandingZones.length > 0;
+    relatedServices.length > 0 || relatedGuardrails.length > 0 || relatedLandingZones.length > 0;
 
   return (
     <PageBody width="comfortable" gap="compact">
@@ -124,8 +124,8 @@ function GuardrailDetailRoute() {
             {hasRelationships ? (
               <DetailSection title="Related catalog">
                 <div className="grid gap-3 sm:grid-cols-2">
-                  {relatedCapabilities.length > 0 ? (
-                    <RelatedColumn title="Capabilities" topics={relatedCapabilities} />
+                  {relatedServices.length > 0 ? (
+                    <RelatedColumn title="Services" topics={relatedServices} />
                   ) : null}
                   {relatedGuardrails.length > 0 ? (
                     <RelatedColumn title="Guardrail areas" topics={relatedGuardrails} />

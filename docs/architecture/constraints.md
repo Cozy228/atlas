@@ -14,7 +14,7 @@ Rules that AI must follow when implementing the Atlas design. Check every code c
 
 ## API Contract
 
-5. `context-layer` exposes a single API surface. Every capability (source registry, topic registry, context delivery) is accessed through this API. No direct DynamoDB access from `portal`.
+5. `context-layer` exposes a single API surface. Every function (source registry, topic registry, context delivery) is accessed through this API. No direct DynamoDB access from `portal`.
 
 6. API request and response types must be defined in a shared schema package (e.g., OpenAPI spec or shared TypeScript types). Both `context-layer` and `portal` reference this schema. Do not duplicate type definitions.
 
@@ -34,7 +34,7 @@ Rules that AI must follow when implementing the Atlas design. Check every code c
 
 13. `authority_level` is an enum with exactly these values: `authoritative`, `reference`, `example`, `draft`, `deprecated`. Do not add new levels without updating this constraint.
 
-14. `topic_type` is an enum with exactly these values: `capability`, `landing-zone`, `guardrail-area`. Do not add new types without updating this constraint.
+14. `topic_type` is an enum with exactly these values: `service`, `landing-zone`, `guardrail-area`. Do not add new types without updating this constraint.
 
 15. `source_class` is an enum with exactly these values in V1: `terraform-module`, `confluence-page`, `policy-document`. Adding a new source class requires a corresponding anchor strategy implementation. Do not add a source class enum value without implementing its anchor resolver.
 
@@ -104,7 +104,7 @@ Rules that AI must follow when implementing the Atlas design. Check every code c
 
 42. Do not rely on snapshot tests alone for context bundles, citations, visibility signals, warnings, or AI answer validation. These behaviors require explicit assertions.
 
-43. Portal UI must not hardcode pilot source truth. Capability, landing zone, source badge, authority, freshness, and warning data must come from registry/API data or explicit seed data.
+43. Portal UI must not hardcode pilot source truth. Service, landing zone, source badge, authority, freshness, and warning data must come from registry/API data or explicit seed data.
 
 44. Bedrock or another approved model provider may be used for model invocation, but V1 must not use Bedrock Knowledge Bases, Kendra, OpenSearch, or another managed retrieval layer that bypasses Atlas Context Layer source selection and locator resolution.
 

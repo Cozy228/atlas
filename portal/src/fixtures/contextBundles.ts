@@ -1,6 +1,6 @@
 import type { ContextBundleResponse } from "@atlas/schema";
 
-export const capabilityBundle: ContextBundleResponse = {
+export const serviceBundle: ContextBundleResponse = {
   bundle_id: "bundle-aws-textract",
   request: { topic_id: "aws-textract", disclosure_level: 1 },
   sources: [

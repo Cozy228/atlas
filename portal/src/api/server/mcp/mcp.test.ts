@@ -54,7 +54,7 @@ describe("mcp protocol surface", () => {
       "atlas_get_availability",
       "atlas_get_context_bundle",
       "atlas_get_source",
-      "atlas_search_capability",
+      "atlas_search_service",
     ]);
     for (const tool of tools) {
       expect(tool.name).toMatch(/^atlas_/);
@@ -72,8 +72,8 @@ describe("mcp protocol surface", () => {
 });
 
 describe("mcp tools against the pilot fixtures", () => {
-  it("atlas_search_capability resolves a query to semantic topic ids", async () => {
-    const result = await callTool("atlas_search_capability", { query: "textract" });
+  it("atlas_search_service resolves a query to semantic topic ids", async () => {
+    const result = await callTool("atlas_search_service", { query: "textract" });
     const data = result.structuredContent as {
       topics: { id: string; name: string; description: string }[];
       total: number;

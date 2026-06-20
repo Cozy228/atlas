@@ -21,7 +21,7 @@ const STEPS: ReadonlyArray<JourneyStep> = [
     phase: "Get started",
     title: "Understand the catalog",
     description:
-      "Browse available capabilities, service domains, and regional availability before committing.",
+      "Browse available services, service domains, and regional availability before committing.",
     links: [
       { label: "Service catalog", to: "/catalog" },
       { label: "Availability map", to: "/availability" },

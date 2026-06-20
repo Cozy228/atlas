@@ -57,7 +57,7 @@ export const Route = createFileRoute("/ask")({
     const domains = [...map.values()].toSorted((a, b) => a.domain.localeCompare(b.domain));
     return {
       domains,
-      capabilityCount: topics.filter((topic) => topic.topic_type === "capability").length,
+      serviceCount: topics.filter((topic) => topic.topic_type === "service").length,
       landingZoneCount: topics.filter((topic) => topic.topic_type === "landing-zone").length,
       guardrailCount: topics.filter((topic) => topic.topic_type === "guardrail-area").length,
       sourceCount: sourcesResp.sources.length,
@@ -230,7 +230,7 @@ function GroundingLine({
   data,
 }: {
   data: {
-    capabilityCount: number;
+    serviceCount: number;
     landingZoneCount: number;
     guardrailCount: number;
     sourceCount: number;
@@ -238,7 +238,7 @@ function GroundingLine({
   };
 }) {
   const facts: ReadonlyArray<{ value: number; label: string }> = [
-    { value: data.capabilityCount, label: "capabilities" },
+    { value: data.serviceCount, label: "services" },
     { value: data.landingZoneCount, label: "landing zones" },
     { value: data.guardrailCount, label: "guardrail areas" },
     { value: data.sourceCount, label: `sources (${data.authoritativeCount} authoritative)` },

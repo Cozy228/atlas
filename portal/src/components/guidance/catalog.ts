@@ -40,7 +40,7 @@ const PROTO_EXTRA: ReadonlyArray<Guidance> = [
     status: "published",
     version: "1.1.0",
     lastReviewed: "2026-05-20",
-    appliesTo: { capabilities: ["serverless-compute"] },
+    appliesTo: { services: ["serverless-compute"] },
     steps: [
       {
         id: "pick-template",
