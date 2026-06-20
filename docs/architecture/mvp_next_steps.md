@@ -315,7 +315,6 @@ MVP is complete when:
 - Pilot source data is manifest-driven and validated.
 - Metadata fetchers can detect source lifecycle signals.
 - Context API can return citation-ready bundles with warnings.
-- The minimal AWS chain is deployed.
 - Portal consumes the configured Context API.
 - The Skill consumes the same Context API.
 - `/skills`, `/guidance`, and `/catalog` are real product surfaces, not placeholders.
