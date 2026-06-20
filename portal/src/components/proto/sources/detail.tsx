@@ -1,14 +1,10 @@
 /**
- * PROTOTYPE (production candidate) — Source detail directions for
+ * PROTOTYPE (production candidate) — Source detail for
  * `/proto/sources/$sourceId`. Sources are Atlas's evidence backbone, so the
  * record deserves a first-class detail with its own register — not the generic
- * detail shell. Two directions, toggled in-page:
- *
- *   - `dossier`    (default) → an accession RECORD: mono record number, badge
- *     row, a meta ledger rail, and the citations that rest on this source.
- *   - `provenance` → a chain-of-custody TIMELINE: observed → reviewed →
- *     cadence → next review due, with a calm freshness verdict, then the
- *     evidence resting on the source.
+ * detail shell. Rendered as the "dossier": an accession RECORD — mono record
+ * number, badge row, a meta ledger rail, and the citations that rest on this
+ * source.
  *
  * Real data: the source-discovery projection + the live context bundle (which
  * may be absent — handled gracefully). Evidence badges are reused read-only
@@ -214,6 +210,34 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
+/** Shared identity header — back link, record line, title, status badges. */
+function DetailHeader({ source }: { source: Source }) {
+  return (
+    <>
+      <BackLink />
+      <header className="flex flex-col gap-3">
+        <span className="flex flex-wrap items-center gap-x-2.5 gap-y-1 bg-background font-mono text-[11px] uppercase tracking-[0.08em] text-muted-foreground">
+          <span className="font-semibold">{CLASS_LABEL[source.source_class]}</span>
+          <span aria-hidden className="text-border-strong">·</span>
+          <span>{source.id}</span>
+        </span>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <h1 className="w-fit max-w-[24ch] bg-background text-[1.875rem] font-bold leading-[1.1] tracking-[-0.03em] text-foreground">
+            {source.title}
+          </h1>
+          <OpenAtSource source={source} />
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <AuthorityBadge level={source.authority_level} />
+          <FreshnessIndicator source={source} />
+          <VisibilityBadge value={source.visibility} />
+        </div>
+      </header>
+      {source.visibility === "restricted" ? <RestrictedNotice /> : null}
+    </>
+  );
+}
+
 /* -------------------------------------------------------------------------- */
 /*  Variant 1 — Dossier (accession record)                                    */
 /* -------------------------------------------------------------------------- */
@@ -233,28 +257,7 @@ export function SourceDossier({
 
   return (
     <div className="mx-auto flex w-full max-w-[960px] flex-col gap-7">
-      <BackLink />
-
-      <header className="flex flex-col gap-3">
-        <span className="flex flex-wrap items-center gap-x-2.5 gap-y-1 bg-background font-mono text-[11px] uppercase tracking-[0.08em] text-muted-foreground">
-          <span className="font-semibold">{CLASS_LABEL[source.source_class]}</span>
-          <span aria-hidden className="text-border-strong">·</span>
-          <span>{source.id}</span>
-        </span>
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <h1 className="w-fit max-w-[24ch] bg-background text-[1.875rem] font-bold leading-[1.1] tracking-[-0.03em] text-foreground">
-            {source.title}
-          </h1>
-          <OpenAtSource source={source} />
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <AuthorityBadge level={source.authority_level} />
-          <FreshnessIndicator source={source} />
-          <VisibilityBadge value={source.visibility} />
-        </div>
-      </header>
-
-      {source.visibility === "restricted" ? <RestrictedNotice /> : null}
+      <DetailHeader source={source} />
 
       <div className="grid gap-x-10 gap-y-7 lg:grid-cols-[minmax(0,1fr)_260px]">
         <main className="flex min-w-0 flex-col gap-7">
@@ -408,4 +411,3 @@ function MetaRow({ label, value, mono }: { label: string; value: string; mono?: 
     </div>
   );
 }
-

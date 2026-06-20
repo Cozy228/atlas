@@ -64,6 +64,7 @@ export const Route = createFileRoute("/proto/sources_/$sourceId")({
 
 function ProtoSourceDetail() {
   const { source, bundle, related } = Route.useLoaderData();
+
   return (
     <div className="mx-auto flex w-full max-w-[1180px] flex-col gap-6 px-6 py-8 sm:px-8">
       <SourceDossier source={source} bundle={bundle} related={related} />

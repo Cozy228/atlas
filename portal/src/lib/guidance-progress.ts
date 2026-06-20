@@ -45,6 +45,17 @@ export function taskKey(stepId: string, taskId: string): string {
   return `${stepId}:${taskId}`;
 }
 
+/** Completed step ids per guidance, read once (client-only). For index surfaces
+ * that summarise "what you have already started" without mounting each flow. */
+export function readAllProgress(): Record<string, ReadonlySet<string>> {
+  const all = readAll();
+  const out: Record<string, ReadonlySet<string>> = {};
+  for (const [id, entry] of Object.entries(all)) {
+    out[id] = new Set(entry.steps ?? []);
+  }
+  return out;
+}
+
 export function useGuidanceProgress(guidanceId: string): GuidanceProgress {
   const [state, setState] = useState<{ tasks: Set<string>; steps: Set<string> }>(() => ({
     tasks: new Set(),

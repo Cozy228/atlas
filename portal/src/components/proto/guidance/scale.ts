@@ -1,15 +1,14 @@
 /**
  * PROTOTYPE (scale fixture) — synthetic guidance flows for stress-testing the
- * "By shape" index direction at realistic volume.
+ * filterable "Routes" index direction at realistic volume.
  *
- * The destination-grouped catalog only carries a handful of real flows, which
- * hides how the shape-grouped layout (Walkthroughs / Decisions / Checklists)
- * behaves once each shape holds dozens of rows. This module generates ~42
- * fictional, public-safe flows with enough structure that the shape metric
+ * The curated catalog only carries a handful of real flows, which hides how the
+ * index behaves once each family holds dozens of rows. This module generates
+ * ~42 fictional, public-safe flows with enough structure that the shape metric
  * (steps / paths / checks) and the detail page both resolve.
  *
- * Wired ONLY into the `byshape` variant; the `outcomes` default keeps reading
- * the curated destination groups. Everything here is fictional.
+ * Wired into the `routes` variant via `scaledFlows()`; the `outcomes` default
+ * keeps reading the curated destination groups. Everything here is fictional.
  */
 import type { Guidance } from "@/lib/guidance";
 
@@ -134,6 +133,13 @@ function buildChecklist([title, slug, dest, size]: Spec, i: number): Guidance {
   return baseFlow(title, slug, "checklist", "validate", dest, i, steps);
 }
 
+/** Deterministic review dates spread across 2026 H1, so the Ledger sort bites. */
+function reviewDate(i: number): string {
+  const month = ((i * 5) % 6) + 1;
+  const day = ((i * 7) % 27) + 1;
+  return `2026-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
 function baseFlow(
   title: string,
   slug: string,
@@ -154,7 +160,7 @@ function baseFlow(
     owner: OWNERS[i % OWNERS.length]!,
     status: STATUS_CYCLE[i % STATUS_CYCLE.length]!,
     version: "1.0.0",
-    lastReviewed: "2026-05-01",
+    lastReviewed: reviewDate(i),
     steps,
   };
 }
