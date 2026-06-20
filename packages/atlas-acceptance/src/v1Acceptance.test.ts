@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { ContextBundleResponseSchema } from "@atlas/schema";
-import { handleContextRequest } from "@atlas/context-layer";
+import { handleContextRequest, handleTopicRequest } from "@atlas/context-layer";
 import {
   askAtlas,
   createDailyRateLimiter,
@@ -87,41 +87,78 @@ describe("Atlas V1 acceptance", () => {
     expect(missing.warnings[0]?.code).toBe("no_registered_source");
   });
 
-  it("HARD GATE: proves the API Gateway adoption journey is answerable end-to-end, grounded and cited", async () => {
-    // 1. The service is registered and its governed bundle resolves.
-    const response = await handleContextRequest({ topic_id: "api-gateway" });
-    expect(response.status).toBe(200);
-    const bundle = ContextBundleResponseSchema.parse(response.body);
+  it("HARD GATE: proves the S3 / API Gateway / Textract adoption journeys are answerable end-to-end, grounded and cited", async () => {
+    const HERO_SERVICES = [
+      {
+        topicId: "api-gateway",
+        displayName: "API Gateway",
+        moduleSourceId: "apigateway-module-readme",
+        guidanceId: "api-gateway-adoption",
+        terraformQuery: "api gateway terraform",
+        unrelatedModuleId: "textract-module-readme",
+      },
+      {
+        topicId: "aws-s3",
+        displayName: "AWS S3",
+        moduleSourceId: "s3-module-readme",
+        guidanceId: "s3-adoption",
+        terraformQuery: "amazon s3 storage terraform",
+        unrelatedModuleId: "textract-module-readme",
+      },
+      {
+        topicId: "aws-textract",
+        displayName: "AWS Textract",
+        moduleSourceId: "textract-module-readme",
+        guidanceId: "textract-adoption",
+        terraformQuery: "textract terraform",
+        unrelatedModuleId: "apigateway-module-readme",
+      },
+    ];
 
-    // 2. The Portal renders the datasheet for a human adopter.
-    const html = renderServiceDetail(bundle);
-    expect(html).toContain("API Gateway");
-    expect(html).toContain("authoritative");
+    for (const hero of HERO_SERVICES) {
+      // 1. The service is registered and its governed bundle resolves (disclosure 2 so
+      //    every cited module excerpt — including the Terraform starter — is present).
+      const response = await handleContextRequest({
+        topic_id: hero.topicId,
+        disclosure_level: 2,
+      });
+      expect(response.status, hero.topicId).toBe(200);
+      const bundle = ContextBundleResponseSchema.parse(response.body);
 
-    // 3. "Give me terraform": an authoritative terraform-module Source leads with a
-    //    cited starter snippet — grounded, never synthesized.
-    const moduleSource = bundle.sources.find(
-      (entry) => entry.source.source_class === "terraform-module",
-    );
-    expect(moduleSource?.source.authority_level).toBe("authoritative");
-    const starter = moduleSource?.excerpts[0];
-    expect(starter?.text).toContain('module "api"');
-    expect(starter?.citation.source_id).toBe("apigateway-module-readme");
+      // 2. The Portal renders the datasheet for a human adopter.
+      const html = renderServiceDetail(bundle);
+      expect(html, hero.displayName).toContain(hero.displayName);
+      expect(html).toContain("authoritative");
 
-    // 4. Relevance: a free-text "api gateway terraform" query returns the API Gateway
-    //    module and NOT unrelated terraform modules (Textract/Bedrock/Lambda).
-    const queryBundle = ContextBundleResponseSchema.parse(
-      (await handleContextRequest({ query: "api gateway terraform" })).body,
-    );
-    const queriedIds = queryBundle.sources.map((entry) => entry.source.id);
-    expect(queriedIds).toContain("apigateway-module-readme");
-    expect(queriedIds).not.toContain("textract-module-readme");
+      // 3. "Give me terraform": an authoritative terraform-module Source carries a cited
+      //    HCL starter — grounded, never synthesized — via the terraform module integration.
+      const moduleSource = bundle.sources.find((entry) => entry.source.id === hero.moduleSourceId);
+      expect(moduleSource?.source.source_class, hero.moduleSourceId).toBe("terraform-module");
+      expect(moduleSource?.source.authority_level).toBe("authoritative");
+      const starter = moduleSource?.excerpts.find((excerpt) => excerpt.text.includes('module "'));
+      expect(starter?.citation.source_id, hero.moduleSourceId).toBe(hero.moduleSourceId);
 
-    // 5. A governed adoption guide exists, is a route, and is wired to the topic.
-    const guide = getGuidance("api-gateway-adoption");
-    expect(guide?.type).toBe("route");
-    expect(relatedGuidanceForTopic("api-gateway").map((g) => g.id)).toContain(
-      "api-gateway-adoption",
-    );
+      // 4. Relevance: a free-text terraform query returns this service's module and NOT an
+      //    unrelated module (no cross-service bleed).
+      const queryBundle = ContextBundleResponseSchema.parse(
+        (await handleContextRequest({ query: hero.terraformQuery })).body,
+      );
+      const queriedIds = queryBundle.sources.map((entry) => entry.source.id);
+      expect(queriedIds, hero.terraformQuery).toContain(hero.moduleSourceId);
+      expect(queriedIds).not.toContain(hero.unrelatedModuleId);
+
+      // 5. The user guide is a link on the service datasheet (not the adoption route).
+      const topicResponse = handleTopicRequest(hero.topicId);
+      expect(topicResponse.status).toBe(200);
+      const topic = "topic" in topicResponse.body ? topicResponse.body.topic : undefined;
+      expect(
+        topic?.entry_tools.map((tool) => tool.label),
+        hero.topicId,
+      ).toContain("User guide");
+
+      // 6. A governed adoption guide exists, is a route, and is wired to the topic.
+      expect(getGuidance(hero.guidanceId)?.type, hero.guidanceId).toBe("route");
+      expect(relatedGuidanceForTopic(hero.topicId).map((g) => g.id)).toContain(hero.guidanceId);
+    }
   });
 });

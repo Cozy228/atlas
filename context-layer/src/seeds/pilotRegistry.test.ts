@@ -6,8 +6,8 @@ describe("pilot registry seed", () => {
   it("loads validated repositories for V1 pilot topics and governed sources", async () => {
     const registry = loadPilotRegistry(pilotRegistrySeed);
 
-    expect(registry.topics.list()).toHaveLength(11);
-    expect(registry.sources.list()).toHaveLength(14);
+    expect(registry.topics.list()).toHaveLength(12);
+    expect(registry.sources.list()).toHaveLength(15);
     expect(registry.anchors.list().length).toBeGreaterThan(10);
     expect((await registry.feedback.list()).length).toBeGreaterThan(0);
     expect(registry.mappings.list().length).toBeGreaterThan(12);

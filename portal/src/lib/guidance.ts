@@ -345,6 +345,206 @@ const GUIDANCES: ReadonlyArray<Guidance> = [
     ],
   },
   {
+    id: "s3-adoption",
+    title: "Adopt Amazon S3",
+    type: "route",
+    scenario: "service_enablement",
+    family: "enable",
+    objective:
+      "Help an application team provision an approved, guarded S3 bucket for its workload.",
+    destination: {
+      title: "Application backed by a guarded S3 bucket",
+      description:
+        "The app stores data in a module-provisioned bucket with encryption and no public access.",
+    },
+    owner: { team: "Cloud Platform", support: "cloud-platform-support" },
+    status: "published",
+    version: "1.0.0",
+    lastReviewed: "2026-05-02",
+    appliesTo: {
+      services: ["aws-s3"],
+      landingZones: ["central-landing-zone"],
+    },
+    sources: ["s3-module-readme", "s3-policy-doc"],
+    steps: [
+      {
+        id: "understand-fit",
+        title: "Understand how it fits",
+        kind: "action",
+        description: "Review the storage guardrails your bucket must satisfy.",
+        why: "Buckets inherit the platform's public-access and encryption policy — design for it up front.",
+        tasks: [
+          {
+            id: "open-datasheet",
+            title: "Open the Amazon S3 datasheet",
+            action: { type: "atlas_page", label: "Open Amazon S3", target: "/catalog/aws-s3" },
+          },
+          {
+            id: "review-user-guide",
+            title: "Review the S3 user guide",
+            action: {
+              type: "external_link",
+              label: "View user guide",
+              target: "https://confluence.example.com/display/CLOUD/S3+User+Guide",
+            },
+          },
+        ],
+        sources: ["s3-policy-doc"],
+      },
+      {
+        id: "get-terraform",
+        title: "Get the Terraform starter",
+        kind: "action",
+        description: "Use the approved module — copy the starter and pin it in your workspace.",
+        why: "Provisioning runs through the approved module, not the console.",
+        tasks: [
+          {
+            id: "open-module",
+            title: "Open the S3 module",
+            required: true,
+            action: {
+              type: "tool_link",
+              label: "Open module",
+              target: "https://github.com/acme/terraform-aws-s3",
+            },
+          },
+          {
+            id: "copy-starter",
+            title: "Copy the Terraform starter",
+            action: {
+              type: "copy_text",
+              label: "Copy starter",
+              text: 'module "bucket" {\n  source              = "app.terraform.io/acme/s3/aws"\n  name                = "orders-assets"\n  versioning          = true\n  block_public_access = true\n  encryption          = "aws:kms"\n}',
+            },
+          },
+        ],
+        sources: ["s3-module-readme"],
+      },
+      {
+        id: "validate",
+        title: "Validate before production",
+        kind: "checklist",
+        description: "Confirm the bucket meets storage guardrails.",
+        why: "Public exposure of buckets is a hard production blocker.",
+        tasks: [
+          { id: "no-public", title: "Block-public-access enabled", required: true },
+          { id: "encryption", title: "Default encryption (KMS) enabled", required: true },
+          { id: "versioning", title: "Versioning enabled for recoverability", required: true },
+        ],
+        sources: ["s3-policy-doc"],
+      },
+      {
+        id: "done",
+        title: "Amazon S3 adopted",
+        kind: "destination",
+        description: "The application stores data in a guarded, module-provisioned bucket.",
+      },
+    ],
+  },
+  {
+    id: "textract-adoption",
+    title: "Adopt AWS Textract",
+    type: "route",
+    scenario: "service_enablement",
+    family: "enable",
+    objective:
+      "Help an application team call Textract from a private subnet using the approved module.",
+    destination: {
+      title: "Application calling Textract privately",
+      description: "The app reaches Textract through a module-provisioned private endpoint.",
+    },
+    owner: { team: "Cloud Platform", support: "cloud-platform-support" },
+    status: "published",
+    version: "1.0.0",
+    lastReviewed: "2026-05-02",
+    appliesTo: {
+      services: ["aws-textract"],
+      landingZones: ["central-landing-zone"],
+    },
+    sources: ["textract-module-readme"],
+    steps: [
+      {
+        id: "understand-fit",
+        title: "Understand how it fits",
+        kind: "action",
+        description: "Review how Textract is reached from a private subnet.",
+        why: "Document workloads reach Textract through a private interface endpoint, not the public internet.",
+        tasks: [
+          {
+            id: "open-datasheet",
+            title: "Open the AWS Textract datasheet",
+            action: {
+              type: "atlas_page",
+              label: "Open AWS Textract",
+              target: "/catalog/aws-textract",
+            },
+          },
+          {
+            id: "review-user-guide",
+            title: "Review the Textract user guide",
+            action: {
+              type: "external_link",
+              label: "View user guide",
+              target: "https://confluence.example.com/display/CLOUD/Textract+User+Guide",
+            },
+          },
+        ],
+        sources: ["textract-module-readme"],
+      },
+      {
+        id: "get-terraform",
+        title: "Get the Terraform starter",
+        kind: "action",
+        description: "Use the approved module — copy the starter and pin it in your workspace.",
+        why: "Provisioning runs through the approved module, not the console.",
+        tasks: [
+          {
+            id: "open-module",
+            title: "Open the Textract module",
+            required: true,
+            action: {
+              type: "tool_link",
+              label: "Open module",
+              target: "https://github.com/acme/terraform-aws-textract",
+            },
+          },
+          {
+            id: "copy-starter",
+            title: "Copy the Terraform starter",
+            action: {
+              type: "copy_text",
+              label: "Copy starter",
+              text: 'module "textract" {\n  source             = "app.terraform.io/acme/textract/aws"\n  name               = "doc-ocr"\n  endpoint_type      = "interface"\n  private_subnet_ids = var.private_subnet_ids\n}',
+            },
+          },
+        ],
+        sources: ["textract-module-readme"],
+      },
+      {
+        id: "validate",
+        title: "Validate before production",
+        kind: "checklist",
+        description: "Confirm private connectivity before promoting.",
+        why: "Textract access must stay on the private path.",
+        tasks: [
+          {
+            id: "private-endpoint",
+            title: "Interface endpoint reachable from the subnet",
+            required: true,
+          },
+          { id: "no-public", title: "No public egress path required", required: true },
+        ],
+        sources: ["textract-module-readme"],
+      },
+      {
+        id: "done",
+        title: "AWS Textract adopted",
+        kind: "destination",
+        description: "The application calls Textract through a private endpoint.",
+      },
+    ],
+  },
+  {
     id: "landing-zone-selection",
     title: "Landing Zone Selection",
     type: "decision",

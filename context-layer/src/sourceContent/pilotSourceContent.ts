@@ -5,6 +5,8 @@ export function createPilotSourceContentProvider() {
     "textract-module-readme": {
       "#private-subnet-usage":
         "Use the Textract module with private endpoint configuration for private subnet workloads.",
+      "#terraform-starter":
+        'module "textract" {\n  source             = "app.terraform.io/acme/textract/aws"\n  name               = "doc-ocr"\n  endpoint_type      = "interface"\n  private_subnet_ids = var.private_subnet_ids\n}',
     },
     "bedrock-module-readme": {
       "#model-access": "Use approved Bedrock model access through the platform module.",
@@ -47,6 +49,12 @@ export function createPilotSourceContentProvider() {
     "apigateway-integration-guide": {
       "apigateway-app-integration":
         "Put API Gateway at your application's edge: it terminates TLS, validates and throttles requests, then forwards to your Lambda or a private VPC-link target. Keep backends private and let the gateway be the only public entry point.",
+    },
+    "s3-module-readme": {
+      "#terraform-starter":
+        'module "bucket" {\n  source              = "app.terraform.io/acme/s3/aws"\n  name                = "orders-assets"\n  versioning          = true\n  block_public_access = true\n  encryption          = "aws:kms"\n}',
+      "#bucket-setup":
+        "Declare the bucket through the module: it enforces block-public-access, default KMS encryption, and versioning, and emits the bucket name and ARN as outputs.",
     },
   });
 }

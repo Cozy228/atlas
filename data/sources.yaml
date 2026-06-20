@@ -180,3 +180,16 @@
   last_observed_at: 2026-05-05T00:00:00.000Z
   last_reviewed_at: 2026-05-02T00:00:00.000Z
   review_frequency: P120D
+- id: s3-module-readme
+  title: S3 Terraform Module
+  source_class: terraform-module
+  location: github.com/acme/terraform-aws-s3
+  steward: cloud-platform
+  visibility: internal
+  authority_scope:
+    - module-usage
+    - storage
+  authority_level: authoritative
+  last_observed_at: 2026-05-05T00:00:00.000Z
+  last_reviewed_at: 2026-05-02T00:00:00.000Z
+  review_frequency: P90D

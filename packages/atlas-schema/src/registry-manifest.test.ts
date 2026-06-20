@@ -35,10 +35,10 @@ describe("data/* registry manifests", () => {
   });
 
   it("parses the expected number of records per kind", () => {
-    expect(result.sources).toHaveLength(14);
-    expect(result.topics).toHaveLength(11);
-    expect(result.anchors).toHaveLength(16);
-    expect(result.mappings).toHaveLength(18);
+    expect(result.sources).toHaveLength(15);
+    expect(result.topics).toHaveLength(12);
+    expect(result.anchors).toHaveLength(19);
+    expect(result.mappings).toHaveLength(20);
   });
 });
 

@@ -146,3 +146,32 @@
   citation_label: Fitting API Gateway into your app
   status: valid
   last_validated_at: 2026-05-05T00:00:00.000Z
+# S3 module — starter leads so disclosure level 1 surfaces it.
+- id: s3-terraform-starter
+  source_id: s3-module-readme
+  anchor_strategy: markdown-heading
+  title: Terraform starter
+  selector:
+    locator: "#terraform-starter"
+  citation_label: Terraform starter
+  status: valid
+  last_validated_at: 2026-05-05T00:00:00.000Z
+- id: s3-bucket-setup
+  source_id: s3-module-readme
+  anchor_strategy: markdown-heading
+  title: Bucket setup
+  selector:
+    locator: "#bucket-setup"
+  citation_label: Bucket setup
+  status: valid
+  last_validated_at: 2026-05-05T00:00:00.000Z
+# Textract module — add the cited Terraform starter alongside private-subnet usage.
+- id: textract-terraform-starter
+  source_id: textract-module-readme
+  anchor_strategy: markdown-heading
+  title: Terraform starter
+  selector:
+    locator: "#terraform-starter"
+  citation_label: Terraform starter
+  status: valid
+  last_validated_at: 2026-05-05T00:00:00.000Z

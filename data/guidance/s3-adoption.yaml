@@ -1,0 +1,102 @@
+# Atlas Guidance manifest — public-safe, fictional sample.
+#
+# HERO GATE (MVP): "Adopt Amazon S3". Mirrors the portal fixture in
+# portal/src/lib/guidance.ts; validated by `pnpm validate:guidance`.
+
+id: s3-adoption
+title: Adopt Amazon S3
+type: route
+scenario: service_enablement
+family: enable
+objective: Help an application team provision an approved, guarded S3 bucket for its workload.
+destination:
+  title: Application backed by a guarded S3 bucket
+  description: The app stores data in a module-provisioned bucket with encryption and no public access.
+owner:
+  team: Cloud Platform
+  support: cloud-platform-support
+status: published
+version: 1.0.0
+last_reviewed: "2026-05-02"
+applies_to:
+  services:
+    - aws-s3
+  landing_zones:
+    - central-landing-zone
+sources:
+  - s3-module-readme
+  - s3-policy-doc
+
+steps:
+  - id: understand-fit
+    title: Understand how it fits
+    kind: action
+    description: Review the storage guardrails your bucket must satisfy.
+    why: Buckets inherit the platform's public-access and encryption policy — design for it up front.
+    tasks:
+      - id: open-datasheet
+        title: Open the Amazon S3 datasheet
+        action:
+          type: atlas_page
+          label: Open Amazon S3
+          target: /catalog/aws-s3
+      - id: review-user-guide
+        title: Review the S3 user guide
+        action:
+          type: external_link
+          label: View user guide
+          target: https://confluence.example.com/display/CLOUD/S3+User+Guide
+    sources:
+      - s3-policy-doc
+
+  - id: get-terraform
+    title: Get the Terraform starter
+    kind: action
+    description: Use the approved module — copy the starter and pin it in your workspace.
+    why: Provisioning runs through the approved module, not the console.
+    tasks:
+      - id: open-module
+        title: Open the S3 module
+        required: true
+        action:
+          type: tool_link
+          label: Open module
+          target: https://github.com/acme/terraform-aws-s3
+      - id: copy-starter
+        title: Copy the Terraform starter
+        action:
+          type: copy_text
+          label: Copy starter
+          text: |-
+            module "bucket" {
+              source              = "app.terraform.io/acme/s3/aws"
+              name                = "orders-assets"
+              versioning          = true
+              block_public_access = true
+              encryption          = "aws:kms"
+            }
+    sources:
+      - s3-module-readme
+
+  - id: validate
+    title: Validate before production
+    kind: checklist
+    description: Confirm the bucket meets storage guardrails.
+    why: Public exposure of buckets is a hard production blocker.
+    tasks:
+      - id: no-public
+        title: Block-public-access enabled
+        required: true
+      - id: encryption
+        title: Default encryption (KMS) enabled
+        required: true
+      - id: versioning
+        title: Versioning enabled for recoverability
+        required: true
+    sources:
+      - s3-policy-doc
+
+  - id: done
+    title: Amazon S3 adopted
+    kind: destination
+    description: The application stores data in a guarded, module-provisioned bucket.
