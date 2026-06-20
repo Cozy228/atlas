@@ -55,3 +55,9 @@
 - id: map-apigateway-integration
   source_id: apigateway-integration-guide
   topic_id: api-gateway
+- id: map-s3-module
+  source_id: s3-module-readme
+  topic_id: aws-s3
+- id: map-s3-policy-service
+  source_id: s3-policy-doc
+  topic_id: aws-s3

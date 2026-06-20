@@ -20,9 +20,7 @@ describe("context bundle service", () => {
     expect(ContextBundleResponseSchema.parse(bundle)).toEqual(bundle);
     expect(bundle.sources.length).toBeGreaterThan(0);
     expect(bundle.sources[0]?.source.id).toBe("textract-module-readme");
-    expect(bundle.sources[0]?.excerpts[0]?.citation.source_id).toBe(
-      "textract-module-readme",
-    );
+    expect(bundle.sources[0]?.excerpts[0]?.citation.source_id).toBe("textract-module-readme");
     expect(bundle.expansion_paths.length).toBeGreaterThan(0);
   });
 
@@ -34,12 +32,8 @@ describe("context bundle service", () => {
       disclosure_level: 1,
     });
 
-    expect(bundle.sources.map((source) => source.source.id)).toContain(
-      "textract-module-readme",
-    );
-    expect(bundle.sources.map((source) => source.source.id)).toContain(
-      "private-networking-policy",
-    );
+    expect(bundle.sources.map((source) => source.source.id)).toContain("textract-module-readme");
+    expect(bundle.sources.map((source) => source.source.id)).toContain("private-networking-policy");
   });
 
   it("returns partial bundles with warnings when an anchor is broken", async () => {
@@ -51,9 +45,7 @@ describe("context bundle service", () => {
     });
 
     expect(bundle.sources.length).toBeGreaterThan(0);
-    expect(bundle.warnings.some((warning) => warning.code === "broken_anchor")).toBe(
-      true,
-    );
+    expect(bundle.warnings.some((warning) => warning.code === "broken_anchor")).toBe(true);
   });
 
   it("surfaces restricted source warnings without dropping visible context", async () => {
@@ -64,9 +56,7 @@ describe("context bundle service", () => {
       disclosure_level: 1,
     });
 
-    expect(bundle.warnings.some((warning) => warning.code === "restricted_source")).toBe(
-      true,
-    );
+    expect(bundle.warnings.some((warning) => warning.code === "restricted_source")).toBe(true);
     expect(bundle.sources.length).toBeGreaterThan(0);
   });
 
@@ -78,9 +68,7 @@ describe("context bundle service", () => {
       disclosure_level: 1,
     });
 
-    expect(bundle.warnings.some((warning) => warning.code === "authority_conflict")).toBe(
-      true,
-    );
+    expect(bundle.warnings.some((warning) => warning.code === "authority_conflict")).toBe(true);
   });
 
   it("returns a no registered source warning for missing evidence", async () => {
@@ -143,8 +131,10 @@ describe("context bundle service", () => {
       disclosure_level: 2,
     });
 
+    // textract-module-readme now carries two seed anchors (private-subnet-usage +
+    // terraform-starter); the test adds one more, so disclosure 2 resolves three.
     expect(levelOne.sources[0]?.excerpts).toHaveLength(1);
-    expect(levelTwo.sources[0]?.excerpts).toHaveLength(2);
+    expect(levelTwo.sources[0]?.excerpts).toHaveLength(3);
   });
 
   it("uses disclosure level 3 to include related sources from shared topics", async () => {
@@ -155,9 +145,7 @@ describe("context bundle service", () => {
       disclosure_level: 3,
     });
 
-    expect(bundle.sources.map((source) => source.source.id)).toContain(
-      "private-networking-policy",
-    );
+    expect(bundle.sources.map((source) => source.source.id)).toContain("private-networking-policy");
   });
 
   it("uses in-memory feedback persistence when no DynamoDB table is configured", async () => {

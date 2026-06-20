@@ -1,0 +1,97 @@
+# Atlas Guidance manifest — public-safe, fictional sample.
+#
+# HERO GATE (MVP): "Adopt AWS Textract". Mirrors the portal fixture in
+# portal/src/lib/guidance.ts; validated by `pnpm validate:guidance`.
+
+id: textract-adoption
+title: Adopt AWS Textract
+type: route
+scenario: service_enablement
+family: enable
+objective: Help an application team call Textract from a private subnet using the approved module.
+destination:
+  title: Application calling Textract privately
+  description: The app reaches Textract through a module-provisioned private endpoint.
+owner:
+  team: Cloud Platform
+  support: cloud-platform-support
+status: published
+version: 1.0.0
+last_reviewed: "2026-05-02"
+applies_to:
+  services:
+    - aws-textract
+  landing_zones:
+    - central-landing-zone
+sources:
+  - textract-module-readme
+
+steps:
+  - id: understand-fit
+    title: Understand how it fits
+    kind: action
+    description: Review how Textract is reached from a private subnet.
+    why: Document workloads reach Textract through a private interface endpoint, not the public internet.
+    tasks:
+      - id: open-datasheet
+        title: Open the AWS Textract datasheet
+        action:
+          type: atlas_page
+          label: Open AWS Textract
+          target: /catalog/aws-textract
+      - id: review-user-guide
+        title: Review the Textract user guide
+        action:
+          type: external_link
+          label: View user guide
+          target: https://confluence.example.com/display/CLOUD/Textract+User+Guide
+    sources:
+      - textract-module-readme
+
+  - id: get-terraform
+    title: Get the Terraform starter
+    kind: action
+    description: Use the approved module — copy the starter and pin it in your workspace.
+    why: Provisioning runs through the approved module, not the console.
+    tasks:
+      - id: open-module
+        title: Open the Textract module
+        required: true
+        action:
+          type: tool_link
+          label: Open module
+          target: https://github.com/acme/terraform-aws-textract
+      - id: copy-starter
+        title: Copy the Terraform starter
+        action:
+          type: copy_text
+          label: Copy starter
+          text: |-
+            module "textract" {
+              source             = "app.terraform.io/acme/textract/aws"
+              name               = "doc-ocr"
+              endpoint_type      = "interface"
+              private_subnet_ids = var.private_subnet_ids
+            }
+    sources:
+      - textract-module-readme
+
+  - id: validate
+    title: Validate before production
+    kind: checklist
+    description: Confirm private connectivity before promoting.
+    why: Textract access must stay on the private path.
+    tasks:
+      - id: private-endpoint
+        title: Interface endpoint reachable from the subnet
+        required: true
+      - id: no-public
+        title: No public egress path required
+        required: true
+    sources:
+      - textract-module-readme
+
+  - id: done
+    title: AWS Textract adopted
+    kind: destination
+    description: The application calls Textract through a private endpoint.

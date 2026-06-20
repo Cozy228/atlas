@@ -101,6 +101,10 @@ export const pilotRegistrySeed = {
           label: "Terraform module",
           url: "https://github.com/acme/terraform-aws-textract",
         },
+        {
+          label: "User guide",
+          url: "https://confluence.example.com/display/CLOUD/Textract+User+Guide",
+        },
       ],
     },
     {
@@ -219,6 +223,30 @@ export const pilotRegistrySeed = {
         {
           label: "Integration guide",
           url: "https://confluence.example.com/display/CLOUD/API+Gateway+Integration",
+        },
+        {
+          label: "User guide",
+          url: "https://confluence.example.com/display/CLOUD/API+Gateway+User+Guide",
+        },
+      ],
+    },
+    {
+      id: "aws-s3",
+      name: "Amazon S3",
+      topic_type: "service",
+      category: "storage",
+      status: "active",
+      description: "Object storage for application data, backups, and static assets.",
+      owner_team: "cloud-platform",
+      support_channel: "#cloud-platform",
+      entry_tools: [
+        {
+          label: "Terraform module",
+          url: "https://github.com/acme/terraform-aws-s3",
+        },
+        {
+          label: "User guide",
+          url: "https://confluence.example.com/display/CLOUD/S3+User+Guide",
         },
       ],
     },
@@ -406,6 +434,19 @@ export const pilotRegistrySeed = {
       last_reviewed_at: "2026-05-02T00:00:00.000Z",
       review_frequency: "P120D",
     },
+    {
+      id: "s3-module-readme",
+      title: "S3 Terraform Module",
+      source_class: "terraform-module",
+      location: "github.com/acme/terraform-aws-s3",
+      steward: "cloud-platform",
+      visibility: "internal",
+      authority_scope: ["module-usage", "storage"],
+      authority_level: "authoritative",
+      last_observed_at: "2026-05-05T00:00:00.000Z",
+      last_reviewed_at: "2026-05-02T00:00:00.000Z",
+      review_frequency: "P90D",
+    },
   ],
   anchors: [
     {
@@ -568,6 +609,36 @@ export const pilotRegistrySeed = {
       status: "valid",
       last_validated_at: "2026-05-05T00:00:00.000Z",
     },
+    {
+      id: "s3-terraform-starter",
+      source_id: "s3-module-readme",
+      anchor_strategy: "markdown-heading",
+      title: "Terraform starter",
+      selector: { locator: "#terraform-starter" },
+      citation_label: "Terraform starter",
+      status: "valid",
+      last_validated_at: "2026-05-05T00:00:00.000Z",
+    },
+    {
+      id: "s3-bucket-setup",
+      source_id: "s3-module-readme",
+      anchor_strategy: "markdown-heading",
+      title: "Bucket setup",
+      selector: { locator: "#bucket-setup" },
+      citation_label: "Bucket setup",
+      status: "valid",
+      last_validated_at: "2026-05-05T00:00:00.000Z",
+    },
+    {
+      id: "textract-terraform-starter",
+      source_id: "textract-module-readme",
+      anchor_strategy: "markdown-heading",
+      title: "Terraform starter",
+      selector: { locator: "#terraform-starter" },
+      citation_label: "Terraform starter",
+      status: "valid",
+      last_validated_at: "2026-05-05T00:00:00.000Z",
+    },
   ],
   feedback: pilotFeedbackSeed,
   mappings: [
@@ -625,5 +696,7 @@ export const pilotRegistrySeed = {
       source_id: "apigateway-integration-guide",
       topic_id: "api-gateway",
     },
+    { id: "map-s3-module", source_id: "s3-module-readme", topic_id: "aws-s3" },
+    { id: "map-s3-policy-service", source_id: "s3-policy-doc", topic_id: "aws-s3" },
   ],
 } satisfies PilotRegistrySeed;

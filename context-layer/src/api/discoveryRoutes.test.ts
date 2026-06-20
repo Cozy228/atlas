@@ -10,7 +10,7 @@ describe("discovery routes", () => {
     });
 
     expect(response.status).toBe(200);
-    expect(SourceDiscoveryResponseSchema.parse(response.body).sources.length).toBe(4);
+    expect(SourceDiscoveryResponseSchema.parse(response.body).sources.length).toBe(5);
   });
 
   it("discovers topics by type through the shared response schema", () => {
