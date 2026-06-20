@@ -10,9 +10,10 @@ export const confluencePageResolver: AnchorResolver = {
     const env = readProcessEnv();
     const token = request.ctx.token ?? env.ATLAS_CONFLUENCE_TOKEN;
     const baseUrl = env.ATLAS_CONFLUENCE_BASE_URL;
+    const email = env.ATLAS_CONFLUENCE_EMAIL;
 
     if (token && baseUrl) {
-      return resolveConfluencePageLive(request, { token, baseUrl });
+      return resolveConfluencePageLive(request, { token, baseUrl, email });
     }
 
     return resolveAnchor({
