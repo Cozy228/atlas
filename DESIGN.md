@@ -116,6 +116,14 @@ This system ships in two schemes from one structure:
 - **Ink** (dark) — near-black, high-contrast (OLED-friendly); same components recoloured, brand
   lifted to punch against the black.
 
+**Register & re-skin** (see [ADR-0005](docs/adr/0005-blueprint-design-identity-and-reskin-seam.md)).
+"Instrument, not spectacle" still admits a *restrained welcoming entry* (the Home "Welcome
+desk") and an *editorial change surface* (What's New) — these are sanctioned, provided they
+earn attention through information integrity, not decoration. Blueprint is this repo's design
+identity; it is **not** assumed to survive import into a company environment unchanged. The
+system is fully token-driven, so a re-skin (e.g. to a "Geist"-style direction) is a **token
+swap, not a rewrite** — the token layer is the re-skin seam.
+
 **Principles (these drive every token and component):**
 1. **Evidence before confidence.** Every authoritative claim surfaces its source; citation/evidence
    is a first-class component.

@@ -76,12 +76,6 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 **These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
 
-是，压成最小版：
-
-````md
-
-This repo is developed on a personal computer and may be imported into a company-isolated environment.
-
 ## Rules
 
 1. **Public-safe only**
@@ -98,24 +92,3 @@ This repo is developed on a personal computer and may be imported into a company
 
 4. **Fake data only**
    - Tests, fixtures, docs, and examples must use fictional names and generic sample data.
-
-5. **Small importable changes**
-   - Keep commits focused.
-   - Prefer changes that can be exported as `.diff` or `.patch`.
-
-## Import
-
-Use one of:
-
-```bash
-git diff main..feature-name > feature-name.diff
-````
-
-```bash
-git format-patch main..feature-name --stdout > feature-name.patch
-```
-
-## Mental model
-
-Personal repo = public-safe core and prototypes.
-Company repo = internal implementation and source of truth.

@@ -83,3 +83,95 @@ Atlas keeps two separate credential paths. The **health/lifecycle plane** uses
 a service credential for background metadata. The **runtime resolution plane**
 uses the [[Bearer pipe]]: the caller's token when supplied, else the narrow
 service-token fallback. They never mix.
+
+**Wayfinding**:
+Atlas's core job: telling a consumer, fast and authoritatively, what exists, who
+owns it, where the authoritative source is, and how fresh it is. The MVP's center
+of gravity; browsing and asking both serve it.
+_Avoid_: Search, discovery (when you mean the directed where/who/how-fresh answer).
+
+**Evidence**:
+Any content derived from a citable [[Source]] — an [[Excerpt]], a Terraform module
+doc, the parsed [[Availability]] matrix. Always carries a [[Citation]] and flows
+through the consumer-neutral Context API.
+_Avoid_: Data, content (when you mean cited, source-derived material).
+
+**Operational status**:
+Live, uncited state of a provisioning system (Terraform Enterprise runs/workspaces).
+Portal-native — fetched by the Portal directly, never entering the Context API and
+never presented as [[Evidence]]. Atlas shows it read-only, as a pointer to act in
+TFE/Harness; Atlas never provisions.
+_Avoid_: Metrics, telemetry, evidence.
+
+**Availability**:
+The region×[[Service]] matrix, parsed once from a governed Confluence [[Source]] into a
+structured `service × region → status` and cached behind a lazy TTL (performance only). It
+is [[Evidence]] (returned with a [[Citation]] and freshness/drift signals), not a
+free-standing UI projection. Addressed by the **`availability-cell`** anchor parametrically:
+**response precision mirrors query precision** — Service+region pinned → a cell, only Service
+→ a row, only region → a column, and the Citation carries that same grain. If the table
+can't be parsed, the bundle returns **no data + a warning** and never serves a stale cached
+matrix ([ADR-0009](docs/adr/0009-availability-matrix-resolver.md)).
+_Avoid_: Regions matrix, availability projection (when you mean the governed source).
+
+**Review-decay**:
+The visible aging of a human-curated claim (owner, `authority_level`, source↔topic mapping)
+measured per-object as `now − last_reviewed_at` against that object's `review_frequency`, in
+**two stages**: **aging** past ~80% of the frequency, **overdue** past 100%. Derived at
+resolve time (no scanner). The UI shows the claim as unverified rather than asserting it
+confidently. Distinct from [[stale_source]] (which is excerpt/version drift on a live
+source); review-decay is the honesty mechanism for curated fields no live source can refresh.
+_Avoid_: Expiry, decay (unqualified).
+
+**Authority conflict**:
+Two Sources that are **both currently valid** and have **different owners** claiming
+authority for the same scope with differing guidance. Atlas surfaces both with a conflict
+warning and **picks no side**. Supersession (a current record replacing a legacy one) is
+**not** a conflict — the legacy record is [[stale_source]]/deprecated, single truth remains;
+a [[Guardrail]] is single-truth and never conflicts. The one seeded conflict
+([ADR-0010](docs/adr/0010-module-and-confluence-source-division.md)) is **Textract
+private-subnet configuration**: the module README (module owner) ⟷ a platform Confluence
+runbook (platform team), both current, disagreeing.
+_Avoid_: Disagreement, ambiguity; calling current-vs-legacy a conflict.
+
+**Service**:
+A catalog entry for an AWS service Atlas governs (S3, API Gateway, Textract). A presentation
+facet of a [[Topic]] — the schema core type stays `Topic`; "Service" is the catalog's word
+for the AWS-service subset. Landing Zones, [[Guardrail]]s, and [[Availability]] are **their
+own surfaces**, never labeled Services. The hero slice governs three Services deep (S3, API
+Gateway, Textract) in the Federated Landing Zone.
+_Avoid_: Capability (as the schema type — that is `Topic`); calling a Landing Zone or
+Guardrail a Service.
+
+**Guardrail**:
+A platform rule projected from a **single** policy-document [[Source]] (via an anchor),
+carrying an authority + a **severity** (a governance attribute held on the source↔topic
+mapping, not in the source doc). Single-truth: a Guardrail can only go [[stale_source]],
+**never** [[Authority conflict|conflict]]. No dedicated guardrails manifest.
+_Avoid_: Policy, control (when you mean the governed, severity-bearing rule).
+
+**Beyond registered scope**:
+The honest dead-end when no Source is registered for a topic: Atlas says so plainly and
+offers a path to file [[Feedback]] (missing), never falling back to ungoverned search.
+_Avoid_: Not found, no results, empty state.
+
+**Candidate / Promotion**:
+A **Candidate** is a manifest awaiting review — from AI authoring or Phase-2 discovery —
+carried as review `status: draft` and shown badged `unverified`. **Promotion** is the
+human-reviewed merge that moves it to `published` in the Git-versioned registry (the
+governance truth). Objects enter through the Git ingestion seam, **never a mutable store**.
+_Avoid_: Pending, staging (and do not confuse review `status: draft` with the `draft`
+`authority_level`).
+
+**Auto-classified**:
+A Source whose `authority_scope`/`authority_level` was *proposed* by Phase-2 discovery
+classification, not yet human-confirmed; shown `unverified` until reviewed. High-confidence
+proposals emit a `status: draft` manifest PR; low-confidence or conflicting ones go to a
+human queue.
+_Avoid_: Inferred, guessed.
+
+**Lifecycle plane**:
+The credential/execution plane that runs **scheduled** governance work (broad-scan
+discovery, metadata re-validation). Distinct from the runtime resolution plane, which is
+request-time and **never** runs background workers.
+_Avoid_: Background, worker (unqualified).

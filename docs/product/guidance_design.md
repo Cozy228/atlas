@@ -1,5 +1,13 @@
 # Atlas Guidance Design Doc
 
+> **V1 scope.** The MVP builds only the `route` type and **one** journey (the hero domain —
+> Central Landing Zone onboarding), registry-backed. The `decision` and `checklist` *types*
+> are modeled in `@atlas/schema` (`guidanceTypes`) for forward-compatibility but **not
+> built for MVP**. `destination` is the **required terminal step kind** (schema-enforced) —
+> it is *not* cut. Sections below describing decision/checklist are forward design, not V1
+> build scope. MVP scope of record: [`mvp-product-design.md`](./mvp-product-design.md); authoring guide:
+> [`guidance-authoring.md`](./guidance-authoring.md).
+
 ## 1. Purpose
 
 Atlas Guidance is a lightweight, Git-managed route guidance object for internal platform processes.

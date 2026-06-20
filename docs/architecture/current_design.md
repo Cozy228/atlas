@@ -1,5 +1,9 @@
 # Atlas — Cloud Platform DevEx Portal & Governed Context Layer
 
+> **Status:** Foundational thesis. The current *settled* product identity and MVP boundary
+> live in [`../product/mvp-product-design.md`](../product/mvp-product-design.md); decisions are in
+> [`../adr/`](../adr/). Where this doc disagrees with those, **they win.**
+
 ## Product Definition
 
 Atlas is a **governed internal cloud knowledge context layer** that powers a **Cloud Platform DevEx Portal**.
