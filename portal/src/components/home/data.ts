@@ -65,7 +65,7 @@ export const INTENTS: ReadonlyArray<Intent> = [
   },
   {
     verb: "Browse",
-    title: "Find a capability",
+    title: "Find a service",
     description: "Browse what the platform offers, grouped by the domain it lives in.",
     to: "/catalog",
     lands: "Service catalog",
@@ -103,7 +103,7 @@ export const POPULAR: ReadonlyArray<string> = [
 export type RecentItem = { name: string; type: string; to: MainlineRoute };
 
 export const RECENTS: ReadonlyArray<RecentItem> = [
-  { name: "Object Storage", type: "Capability", to: "/catalog" },
+  { name: "Object Storage", type: "Service", to: "/catalog" },
   { name: "GDC Foundation", type: "Landing zone", to: "/catalog" },
   { name: "Service authentication flow", type: "Guide", to: "/guidance" },
   { name: "RBAC policy templates", type: "Policy", to: "/sources" },

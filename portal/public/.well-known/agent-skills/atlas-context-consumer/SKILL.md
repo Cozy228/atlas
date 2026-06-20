@@ -1,6 +1,6 @@
 ---
 name: atlas-context-consumer
-description: Resolve governed, citation-backed platform context from Atlas (capabilities, sources, regional availability) through the Context API bundle. Use when an agent needs an authoritative, sourced answer about a cloud platform capability instead of guessing.
+description: Resolve governed, citation-backed platform context from Atlas (services, sources, regional availability) through the Context API bundle. Use when an agent needs an authoritative, sourced answer about a cloud platform service instead of guessing.
 ---
 
 # Consuming Atlas context
@@ -22,9 +22,9 @@ Vocabulary (use these terms exactly):
 
 ## Steps
 
-1. **Discover the capability.** `GET /api/topics?query=<terms>` returns
+1. **Discover the service.** `GET /api/topics?query=<terms>` returns
    matching topics. Pick the topic whose `id` fits the question.
-   (MCP alternative: `Atlas:atlas_search_capability`.)
+   (MCP alternative: `Atlas:atlas_search_service`.)
 2. **Fetch the context bundle.** `GET /api/topics/{topic_id}/context` returns
    a `ContextBundleResponse`: `sources[]` (each with `excerpts[]`),
    `anchor_references[]`, `warnings[]`, and `expansion_paths[]`.

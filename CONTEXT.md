@@ -137,11 +137,14 @@ _Avoid_: Disagreement, ambiguity; calling current-vs-legacy a conflict.
 **Service**:
 A catalog entry for an AWS service Atlas governs (S3, API Gateway, Textract). A presentation
 facet of a [[Topic]] — the schema core type stays `Topic`; "Service" is the catalog's word
-for the AWS-service subset. Landing Zones, [[Guardrail]]s, and [[Availability]] are **their
-own surfaces**, never labeled Services. The hero slice governs three Services deep (S3, API
-Gateway, Textract) in the Federated Landing Zone.
-_Avoid_: Capability (as the schema type — that is `Topic`); calling a Landing Zone or
-Guardrail a Service.
+for the AWS-service subset, carried as the `topic_type` value **`service`** (renamed from the
+former `capability`; goal `goal_prompt_capability_to_service_rename.md`). Landing Zones,
+[[Guardrail]]s, and [[Availability]] are **their own surfaces** — sibling `topic_type` values
+`landing-zone` / `guardrail-area`, never labeled Services. The hero slice governs three
+Services deep (S3, API Gateway, Textract) in the Federated Landing Zone.
+_Avoid_: **Capability** anywhere — the word is purged from live code, schema, and UI; the
+`topic_type` value is `service`, and the schema type itself is `Topic`. Do not call a Landing
+Zone or Guardrail a Service.
 
 **Guardrail**:
 A platform rule projected from a **single** policy-document [[Source]] (via an anchor),

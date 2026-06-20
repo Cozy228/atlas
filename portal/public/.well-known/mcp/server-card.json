@@ -2,7 +2,7 @@
   "name": "atlas",
   "title": "Atlas Context Layer",
   "version": "1.0.0",
-  "description": "Read-only MCP facade over the Atlas Context API: governed, citation-backed platform context (capabilities, sources, regional availability). Every Excerpt carries its Citation; warnings such as restricted_source and stale_source are relayed verbatim.",
+  "description": "Read-only MCP facade over the Atlas Context API: governed, citation-backed platform context (services, sources, regional availability). Every Excerpt carries its Citation; warnings such as restricted_source and stale_source are relayed verbatim.",
   "transport": {
     "type": "streamable-http",
     "url": "https://portal.example.com/mcp"
@@ -16,8 +16,8 @@
   },
   "tools": [
     {
-      "name": "atlas_search_capability",
-      "description": "Search Atlas's registered topics (capabilities, landing zones, guardrail areas) by free text. Start here to resolve a question to a topic_id, then call atlas_get_context_bundle."
+      "name": "atlas_search_service",
+      "description": "Search Atlas's registered topics (services, landing zones, guardrail areas) by free text. Start here to resolve a question to a topic_id, then call atlas_get_context_bundle."
     },
     {
       "name": "atlas_get_source",

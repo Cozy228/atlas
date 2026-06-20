@@ -7,7 +7,7 @@
 import type { Topic } from "@atlas/schema";
 
 import type { AvailabilityRecord, Location } from "@/api/server/availability";
-import { findAvailabilityServiceForTopic } from "@/lib/capability-service";
+import { findAvailabilityServiceForTopic } from "@/lib/availability-service";
 
 /** One-line blurbs keyed by service id; fallback derives from the domain. */
 export const SERVICE_NOTES: Record<string, string> = {
@@ -138,9 +138,9 @@ export function buildEntries(
   locations: ReadonlyArray<Location>,
   topics: ReadonlyArray<Topic>,
 ): ReadonlyArray<CatalogEntry> {
-  const capabilities = topics.filter((topic) => topic.topic_type === "capability");
+  const serviceTopics = topics.filter((topic) => topic.topic_type === "service");
   const topicByService = new Map<string, Topic>();
-  for (const topic of capabilities) {
+  for (const topic of serviceTopics) {
     const service = findAvailabilityServiceForTopic(topic, services);
     if (service) topicByService.set(service.id, topic);
   }

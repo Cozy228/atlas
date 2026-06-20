@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { capabilityBundle, landingZoneBundle } from "../fixtures/contextBundles.js";
+import { serviceBundle, landingZoneBundle } from "../fixtures/contextBundles.js";
 import {
   buildFeedbackPayload,
-  renderCapabilityDetail,
+  renderServiceDetail,
   renderLandingZoneNavigator,
   renderPortalHome,
   renderSourceLookup,
@@ -11,17 +11,17 @@ import {
 describe("Portal core views", () => {
   it("organizes the home screen around user intent", () => {
     const html = renderPortalHome({
-      capabilities: [capabilityBundle],
+      services: [serviceBundle],
       landingZones: [landingZoneBundle],
     });
 
-    expect(html).toContain("Find a platform capability");
+    expect(html).toContain("Find a platform service");
     expect(html).toContain("Choose a landing zone");
     expect(html).toContain("Ask Atlas");
   });
 
-  it("renders capability detail data from API responses", () => {
-    const html = renderCapabilityDetail(capabilityBundle);
+  it("renders service detail data from API responses", () => {
+    const html = renderServiceDetail(serviceBundle);
 
     expect(html).toContain("AWS Textract");
     expect(html).toContain("cloud-platform");
@@ -39,7 +39,7 @@ describe("Portal core views", () => {
 
   it("renders source lookup warning states visibly", () => {
     const html = renderSourceLookup({
-      ...capabilityBundle,
+      ...serviceBundle,
       warnings: [
         {
           code: "stale_source",

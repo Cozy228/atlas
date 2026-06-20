@@ -4,19 +4,19 @@ import { handleContextRequest } from "@atlas/context-layer";
 import {
   askAtlas,
   createDailyRateLimiter,
-  renderCapabilityDetail,
+  renderServiceDetail,
   renderLandingZoneNavigator,
   renderSourceLookup,
   type LlmAdapter,
 } from "@atlas/portal";
 
 describe("Atlas V1 acceptance", () => {
-  it("proves capability discovery from seed data through Portal rendering", async () => {
+  it("proves service discovery from seed data through Portal rendering", async () => {
     const response = await handleContextRequest({ topic_id: "aws-textract" });
     expect(response.status).toBe(200);
 
     const bundle = ContextBundleResponseSchema.parse(response.body);
-    const html = renderCapabilityDetail(bundle);
+    const html = renderServiceDetail(bundle);
 
     expect(html).toContain("AWS Textract");
     expect(html).toContain("authoritative");

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { AskAtlasClaim } from "@/ask/askAtlas";
-import { capabilityBundle } from "@/fixtures/contextBundles";
+import { serviceBundle } from "@/fixtures/contextBundles";
 import {
   buildAskContextRequest,
   createAskAtlasResponse,
@@ -47,7 +47,7 @@ describe("Ask Atlas server contract", () => {
 
     const response = await createAskAtlasResponse({
       question: "How do I use Textract from a private subnet?",
-      bundle: capabilityBundle,
+      bundle: serviceBundle,
       adapter,
       userId: "pilot-user",
     });

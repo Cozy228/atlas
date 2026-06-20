@@ -29,7 +29,7 @@ export function ServiceCard({ provider, row, selected, onSelect }: ServiceCardPr
         "hover:border-border-strong hover:shadow-sm",
         // Skip paint of off-screen cards so only the visible grid paints on first open.
         "[content-visibility:auto] [contain-intrinsic-size:auto_112px]",
-        // Brand corner ticks (DESIGN.md §06 capability card): 7px L-brackets, opacity .5.
+        // Brand corner ticks (DESIGN.md §06 service card): 7px L-brackets, opacity .5.
         "before:pointer-events-none before:absolute before:-top-px before:-left-px before:size-[7px] before:border-t before:border-l before:border-brand before:opacity-50 before:content-['']",
         "after:pointer-events-none after:absolute after:-right-px after:-bottom-px after:size-[7px] after:border-r after:border-b after:border-brand after:opacity-50 after:content-['']",
         "data-[selected=true]:border-primary data-[selected=true]:shadow-[0_0_0_2px_color-mix(in_srgb,var(--primary)_8%,transparent)]",

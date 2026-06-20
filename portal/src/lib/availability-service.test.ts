@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { Topic } from "@atlas/schema";
 
 import type { AvailabilityRecord } from "@/api/server/availability";
-import { findAvailabilityServiceForTopic } from "./capability-service";
+import { findAvailabilityServiceForTopic } from "./availability-service";
 
 const services = [
   { id: "textract", name: "Amazon Textract", iconKey: "TEX", domain: "AI", availability: {} },
@@ -14,7 +14,7 @@ function topic(id: string, name: string): Topic {
   return {
     id,
     name,
-    topic_type: "capability",
+    topic_type: "service",
     category: "ai-ml",
     status: "active",
     description: "Test topic",
@@ -25,7 +25,7 @@ function topic(id: string, name: string): Topic {
 }
 
 describe("findAvailabilityServiceForTopic", () => {
-  it("maps seeded capability topic IDs to AWS availability services", () => {
+  it("maps seeded service topic IDs to AWS availability services", () => {
     expect(findAvailabilityServiceForTopic(topic("aws-textract", "AWS Textract"), services)?.id).toBe(
       "textract",
     );

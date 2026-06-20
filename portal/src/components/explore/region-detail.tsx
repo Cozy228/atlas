@@ -140,7 +140,7 @@ export function RegionDetail({
           <HelpfulLink
             icon={IconBook2}
             title="Region guide"
-            description="Learn about endpoints and capabilities."
+            description="Learn about endpoints and features."
           />
           <HelpfulLink
             icon={IconShieldLock}

@@ -45,7 +45,7 @@ typography:
     letterSpacing: "-0.02em"
   title:
     fontFamily: "Inter"
-    fontSize: "0.9375rem"                    # 15px card / capability name
+    fontSize: "0.9375rem"                    # 15px card / service name
     fontWeight: 700
     letterSpacing: "-0.01em"
   body:
@@ -88,7 +88,7 @@ components:
   button-ghost:     { backgroundColor: "transparent", textColor: "{colors.ink-2}", hover: "background {colors.surface-2}; color {colors.ink}" }
   input:            { height: "40px", backgroundColor: "{colors.surface}", border: "1px solid {colors.line}", rounded: "{rounded.xs}", focus: "border {colors.brand}; ring 3px {colors.brand}/16%" }
   chip:             { fontFamily: "Inter", fontSize: "11.5px", fontWeight: 600, rounded: "2px", border: "1px solid {colors.line-2}", backgroundColor: "transparent" }
-  capability-card:  { backgroundColor: "{colors.surface}", border: "1px solid {colors.line}", rounded: "{rounded.sm}", padding: "16px", accent: "brand corner ticks (7px, opacity .5)" }
+  service-card:  { backgroundColor: "{colors.surface}", border: "1px solid {colors.line}", rounded: "{rounded.sm}", padding: "16px", accent: "brand corner ticks (7px, opacity .5)" }
   table:            { fontSize: "13px", numerics: "tabular-nums", header: "Inter uppercase 11px tracked", identifier: "weight 600 (no monospace)" }
   top-nav:          { height: "56px", layout: "grid 1fr auto 1fr — brand left · tabs centred · search+theme icons right", active: "brand underline", sticky: true, opaque: true }
   fab:              { content: "Ask Atlas", position: "fixed bottom-right", backgroundColor: "{colors.brand}", textColor: "{colors.on-brand}", rounded: "{rounded.pill}" }
@@ -101,7 +101,7 @@ components:
 **Creative North Star: "The Engineering Drawing."**
 
 Atlas is an instrument, not a destination. An engineer arrives mid-task with one question — which
-capability to adopt, whether a service is available in a region, whether a choice is policy-approved
+service to adopt, whether a service is available in a region, whether a choice is policy-approved
 — and a deadline. The interface answers fast and gets out of the way. It earns attention through
 information integrity, never spectacle.
 
@@ -188,7 +188,7 @@ a card's `object-storage` slug). **Never** for data-table columns.
 ### Scale (fixed rem, not fluid — except the hero)
 - **Display** — `clamp(2rem, 5vw, 3.25rem)` / 1.04 / −0.03em / 700. Hero only, once per route.
 - **Heading** — 22–24px / −0.02em / 700. Section titles.
-- **Title** — 15px / 700 / −0.01em. Card & capability names.
+- **Title** — 15px / 700 / −0.01em. Card & service names.
 - **Body** — 15px / 1.55. Prose; cap line length ~65ch.
 - **Label** — 13px. Supporting text, form labels.
 - **Detail / help** — 12px. Metadata, timestamps (content floor).
@@ -228,7 +228,7 @@ Every interactive component ships: **default, hover, focus, active, disabled, lo
   the cell font.
 - **Status dots.** 8px. success / warning / critical / neutral (`ink-3`) / **na** (transparent with a
   1.5px inset ring). The primary availability signal.
-- **Capability card.** Surface, 1px `line`, radius 4px, 16px pad, **brand corner ticks** (top-left /
+- **Service card.** Surface, 1px `line`, radius 4px, 16px pad, **brand corner ticks** (top-left /
   bottom-right, 7px, opacity .5). Icon 36px on `brand-tint`; title 15/700; `slug` mono 11px; 2-line
   desc (`ink-2`, 13px); status chips; mono footer (owner · channel) above a hairline; arrow nudges
   right + turns brand on hover. Hover: border → `line-2` + `shadow-pop`. No nested anchors.
@@ -313,7 +313,7 @@ Stacking order (semantic z-scale): content → sticky top bar (30) → FAB (90) 
 `prototype/atlas-design-system.html` (light = `#blueprint`, dark = `#blueprint-ink`).
 
 Ready-to-use prompts:
-- "Build a capability catalog page in the Atlas **Blueprint** system: faint 32px coordinate grid in
+- "Build a service catalog page in the Atlas **Blueprint** system: faint 32px coordinate grid in
   the negative space (masked behind text by same-colour plates), `#001AFF` for action/selection only,
   Inter throughout, IBM Plex Mono for inline codes only. Cards have brand corner ticks; tables use
   Inter + tabular figures (no mono columns); availability uses status dots."

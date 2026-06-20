@@ -28,7 +28,7 @@ const CONCISE_EXCERPT_CHARS = 1500;
 
 const NARROW_HINT = "Result was truncated; narrow your search (add query terms or filters).";
 
-const SearchCapabilityInput = z.object({
+const SearchServiceInput = z.object({
   query: z.string().min(1).optional().describe("Free-text search, e.g. 'textract ocr'."),
   topic_type: z.enum(topicTypes).optional(),
   category: z.string().min(1).optional(),
@@ -52,7 +52,7 @@ const GetAvailabilityInput = z.object({
 });
 
 const GetContextBundleInput = z.object({
-  topic_id: z.string().min(1).optional().describe("Topic id from atlas_search_capability."),
+  topic_id: z.string().min(1).optional().describe("Topic id from atlas_search_service."),
   source_id: z.string().min(1).optional(),
   anchor_id: z.string().min(1).optional(),
   query: z.string().min(1).optional().describe("Free-text intent when no id is known."),
@@ -99,12 +99,12 @@ function conciseBundle(bundle: ContextBundleResponse) {
 
 export const mcpTools: McpToolDefinition[] = [
   {
-    name: "atlas_search_capability",
+    name: "atlas_search_service",
     description:
-      "Search Atlas's registered topics (capabilities, landing zones, guardrail areas) by free text. Start here to resolve a question to a topic_id, then call atlas_get_context_bundle.",
-    inputSchema: toInputSchema(SearchCapabilityInput),
+      "Search Atlas's registered topics (services, landing zones, guardrail areas) by free text. Start here to resolve a question to a topic_id, then call atlas_get_context_bundle.",
+    inputSchema: toInputSchema(SearchServiceInput),
     async run(args, client) {
-      const input = SearchCapabilityInput.parse(args ?? {});
+      const input = SearchServiceInput.parse(args ?? {});
       const { topics } = await client.discoverTopics({
         query: input.query,
         topic_type: input.topic_type,
@@ -210,7 +210,7 @@ export const mcpTools: McpToolDefinition[] = [
  */
 export function toolErrorMessage(toolName: string, error: unknown): string {
   const example: Record<string, string> = {
-    atlas_search_capability: `{"query": "textract"}`,
+    atlas_search_service: `{"query": "textract"}`,
     atlas_get_source: `{"source_id": "textract-module-readme"}`,
     atlas_get_availability: `{"zone": "aws", "service_query": "textract"}`,
     atlas_get_context_bundle: `{"topic_id": "aws-textract"}`,

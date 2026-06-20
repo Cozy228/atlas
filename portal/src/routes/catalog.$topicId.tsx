@@ -3,13 +3,13 @@
  * ==========================================
  * "The component datasheet" — a topic reads like an electronic component's
  * datasheet: an IDENTITY BAND (icon, designation, status, trust line), a dense
- * SPECIFICATIONS table, WHERE IT RUNS (capability region strip / landing-zone
+ * SPECIFICATIONS table, WHERE IT RUNS (service region strip / landing-zone
  * catalog scope), GET STARTED (numbered entry tools), APPLICATION NOTES (related
  * guidance), REFERENCES (the Document Sources panel), RELATED IN DOMAIN, and a
  * FEEDBACK section. A sticky evidence rail keeps source health and the page's
  * single primary action in view.
  *
- * Generalised over every catalog topic type (capability · landing-zone ·
+ * Generalised over every catalog topic type (service · landing-zone ·
  * guardrail-area) from real loader data: the topic, its context bundle (sources,
  * excerpts, warnings — typed-error tolerant), availability record, and related
  * topics. `useRecordRecent` keeps the topic in the Home "recently viewed" trail.
@@ -32,7 +32,7 @@ import { ServiceIcon } from "@/components/explore/service-icon";
 import { ServiceIconFallback } from "@/components/explore/service-icon-frame";
 import { useRecordRecent, type RecentItem } from "@/components/home/recently-viewed";
 import { Badge } from "@/components/ui/badge";
-import { findAvailabilityServiceForTopic } from "@/lib/capability-service";
+import { findAvailabilityServiceForTopic } from "@/lib/availability-service";
 import { relatedGuidanceForTopic, type Guidance } from "@/lib/guidance";
 import { cn } from "@/lib/utils";
 
@@ -45,7 +45,7 @@ type LoaderData = {
 };
 
 const TYPE_LABEL: Record<Topic["topic_type"], string> = {
-  capability: "Capability",
+  service: "Service",
   "landing-zone": "Landing zone",
   "guardrail-area": "Guardrail area",
 };
@@ -115,16 +115,16 @@ function CatalogDetailRoute() {
   const { topic, related, bundle, defaultZone, totalZones } = Route.useLoaderData();
 
   const recent: RecentItem | null =
-    topic.topic_type === "capability"
-      ? { kind: "capability", topicId: topic.id, name: topic.name }
+    topic.topic_type === "service"
+      ? { kind: "service", topicId: topic.id, name: topic.name }
       : topic.topic_type === "landing-zone"
         ? { kind: "landing-zone", topicId: topic.id, name: topic.name }
         : null;
   useRecordRecent(recent);
 
-  const isCapability = topic.topic_type === "capability";
+  const isService = topic.topic_type === "service";
   const locations = defaultZone.locations;
-  const service = isCapability
+  const service = isService
     ? findAvailabilityServiceForTopic(topic, defaultZone.services)
     : null;
 
@@ -155,7 +155,7 @@ function CatalogDetailRoute() {
       label: "Support",
       value: <code className="font-mono text-[11.5px]">{topic.support_channel}</code>,
     },
-    ...(isCapability
+    ...(isService
       ? [
           { label: "Landing zone", value: defaultZone.name },
           {
@@ -192,7 +192,7 @@ function CatalogDetailRoute() {
         </dl>
       ),
     },
-    ...(isCapability
+    ...(isService
       ? [
           {
             title: "Where it runs",
@@ -407,7 +407,7 @@ function WhereItRuns({
         </div>
       ) : (
         <p className="rounded-[4px] border border-dashed border-border bg-card px-4 py-5 text-[13px] text-muted-foreground">
-          No availability record is registered for this capability yet. Region rollout will appear
+          No availability record is registered for this service yet. Region rollout will appear
           here once the projection includes it.
         </p>
       )}

@@ -9,21 +9,21 @@ export type FeedbackPayload = {
 };
 
 export function renderPortalHome(input: {
-  capabilities: ContextBundleResponse[];
+  services: ContextBundleResponse[];
   landingZones: ContextBundleResponse[];
 }): string {
   return [
     "<main>",
     "<section><h1>Atlas Portal</h1></section>",
-    `<section><h2>Find a platform capability</h2>${input.capabilities.map(renderBundleSummary).join("")}</section>`,
+    `<section><h2>Find a platform service</h2>${input.services.map(renderBundleSummary).join("")}</section>`,
     `<section><h2>Choose a landing zone</h2>${input.landingZones.map(renderBundleSummary).join("")}</section>`,
     "<section><h2>Ask Atlas</h2><p>Ask with governed citations.</p></section>",
     "</main>",
   ].join("");
 }
 
-export function renderCapabilityDetail(bundle: ContextBundleResponse): string {
-  return renderBundleDetail("Capability", bundle);
+export function renderServiceDetail(bundle: ContextBundleResponse): string {
+  return renderBundleDetail("Service", bundle);
 }
 
 export function renderLandingZoneNavigator(bundles: ContextBundleResponse[]): string {

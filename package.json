@@ -6,9 +6,23 @@
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test",
-    "validate:guidance": "pnpm --filter @atlas/schema validate:guidance"
+    "validate:guidance": "pnpm --filter @atlas/schema validate:guidance",
+    "validate:registry": "pnpm --filter @atlas/schema validate:registry",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "oxfmt",
+      "oxlint --fix --vitest-plugin"
+    ]
   },
   "devDependencies": {
+    "@commitlint/cli": "^21.0.2",
+    "@commitlint/config-conventional": "^21.0.2",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.0.7",
+    "oxfmt": "^0.55.0",
+    "oxlint": "^1.70.0",
     "typescript": "rc",
     "vite": "8.0.16",
     "vitest": "4.1.9"

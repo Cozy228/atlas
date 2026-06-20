@@ -7,7 +7,7 @@ export const sourceClasses = [
 ] as const;
 
 export const topicTypes = [
-  "capability",
+  "service",
   "landing-zone",
   "guardrail-area",
 ] as const;
@@ -407,7 +407,7 @@ export const GuidanceSchema = z
     last_reviewed: z.string().date(),
     applies_to: z
       .object({
-        capabilities: z.array(z.string().min(1)).optional(),
+        services: z.array(z.string().min(1)).optional(),
         landing_zones: z.array(z.string().min(1)).optional(),
         guardrails: z.array(z.string().min(1)).optional(),
       })
@@ -480,3 +480,14 @@ export {
   type GuidanceValidation,
   type ManifestIssue,
 } from "./guidanceManifest.js";
+
+export {
+  validateSourceDocument,
+  validateTopicDocument,
+  validateAnchorDocument,
+  validateMappingDocument,
+  validateRegistryManifest,
+  type DocumentValidation,
+  type RegistryManifestInput,
+  type RegistryManifestValidation,
+} from "./registryManifest.js";
