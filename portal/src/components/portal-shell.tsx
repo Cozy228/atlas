@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { Link, useLocation } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { IconMenu2, IconSearch } from "@tabler/icons-react";
 
 import { AskAtlasFab } from "@/components/ask-atlas-fab";
@@ -22,33 +22,13 @@ type NavItem = {
 
 const PRIMARY_NAV: ReadonlyArray<NavItem> = [
   { to: "/", label: "Home", exact: true },
-  { to: "/overview", label: "Overview" },
+  { to: "/overview", label: "Dashboard" },
   { to: "/availability", label: "Availability" },
   { to: "/catalog", label: "Catalog" },
   { to: "/guidance", label: "Guidance" },
   { to: "/skills", label: "Skills" },
+  { to: "/sources", label: "Sources" },
 ];
-
-/**
- * Prototype-suite nav: while browsing the redesign candidates (`/proto/*`,
- * `/regions`) the bar links within the suite so the flow stays coherent.
- * Remove together with the proto routes once they fold into the mainline.
- */
-const PROTO_NAV: ReadonlyArray<NavItem> = [
-  { to: "/proto/home", label: "Home" },
-  { to: "/proto/overview", label: "Dashboard" },
-  { to: "/regions", label: "Availability" },
-  { to: "/proto/catalog", label: "Catalog" },
-  { to: "/proto/guidance", label: "Guidance" },
-  { to: "/proto/skills", label: "Skills" },
-  { to: "/proto/sources", label: "Sources" },
-];
-
-function useActiveNav(): ReadonlyArray<NavItem> {
-  const pathname = useLocation({ select: (location) => location.pathname });
-  const inProtoSuite = pathname.startsWith("/proto") || pathname.startsWith("/regions");
-  return inProtoSuite ? PROTO_NAV : PRIMARY_NAV;
-}
 
 export function PortalShell({ children }: PortalShellProps) {
   return (
@@ -70,7 +50,7 @@ export function PortalShell({ children }: PortalShellProps) {
 
 function TopBar() {
   const [menuOpen, setMenuOpen] = useState(false);
-  const nav = useActiveNav();
+  const nav = PRIMARY_NAV;
 
   return (
     <header
@@ -96,11 +76,9 @@ function TopBar() {
 }
 
 function BrandLink() {
-  const pathname = useLocation({ select: (location) => location.pathname });
-  const inProtoSuite = pathname.startsWith("/proto") || pathname.startsWith("/regions");
   return (
     <Link
-      to={inProtoSuite ? "/proto/home" : "/"}
+      to="/"
       aria-label="Atlas Portal home"
       className={cn(
         "mr-5 flex shrink-0 items-center gap-2 rounded-md py-1 pr-1",
@@ -142,12 +120,12 @@ function TopNavLink({ item }: { item: NavItem }) {
 }
 
 function SearchButton() {
-  const { openSearch } = useAskAtlas();
+  const { openOverlay } = useAskAtlas();
   return (
     <button
       type="button"
       aria-label="Search Atlas catalog"
-      onClick={openSearch}
+      onClick={() => openOverlay("search")}
       className={cn(
         "flex size-8 items-center justify-center rounded-sm text-muted-foreground",
         "transition-colors hover:bg-secondary hover:text-foreground",
@@ -166,7 +144,7 @@ type NavMenuProps = {
 };
 
 function NavMenu({ open, onOpenChange }: NavMenuProps) {
-  const nav = useActiveNav();
+  const nav = PRIMARY_NAV;
   return (
     <>
       <button

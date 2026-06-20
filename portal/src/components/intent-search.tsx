@@ -12,12 +12,12 @@ export function IntentSearch({
   placeholder = "What are you looking for?",
   className,
 }: IntentSearchProps) {
-  const { openSearch } = useAskAtlas();
+  const { openOverlay } = useAskAtlas();
 
   return (
     <button
       type="button"
-      onClick={openSearch}
+      onClick={() => openOverlay("search")}
       aria-haspopup="dialog"
       aria-label="Search Atlas catalog"
       className={cn(
@@ -29,9 +29,7 @@ export function IntentSearch({
       )}
     >
       <IconSearch className="size-4 shrink-0 text-muted-foreground" />
-      <span className="flex-1 text-sm text-muted-foreground">
-        {placeholder}
-      </span>
+      <span className="flex-1 text-sm text-muted-foreground">{placeholder}</span>
       <kbd
         aria-hidden
         className={cn(

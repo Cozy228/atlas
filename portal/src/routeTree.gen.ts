@@ -9,8 +9,8 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as WhatsnewRouteImport } from './routes/whatsnew'
 import { Route as SourcesRouteImport } from './routes/sources'
-import { Route as RegionsRouteImport } from './routes/regions'
 import { Route as OverviewRouteImport } from './routes/overview'
 import { Route as GuidanceRouteImport } from './routes/guidance'
 import { Route as CatalogRouteImport } from './routes/catalog'
@@ -23,29 +23,18 @@ import { Route as GuidanceIndexRouteImport } from './routes/guidance.index'
 import { Route as CatalogIndexRouteImport } from './routes/catalog.index'
 import { Route as AvailabilityIndexRouteImport } from './routes/availability.index'
 import { Route as SourcesSourceIdRouteImport } from './routes/sources.$sourceId'
-import { Route as ProtoWhatsnewRouteImport } from './routes/proto.whatsnew'
-import { Route as ProtoSourcesRouteImport } from './routes/proto.sources'
-import { Route as ProtoSkillsRouteImport } from './routes/proto.skills'
-import { Route as ProtoOverviewRouteImport } from './routes/proto.overview'
-import { Route as ProtoHomeRouteImport } from './routes/proto.home'
-import { Route as ProtoGuidanceRouteImport } from './routes/proto.guidance'
-import { Route as ProtoCatalogRouteImport } from './routes/proto.catalog'
-import { Route as ProtoCapabilityRouteImport } from './routes/proto.capability'
-import { Route as ProtoAskRouteImport } from './routes/proto.ask'
 import { Route as GuidanceGuidanceIdRouteImport } from './routes/guidance.$guidanceId'
 import { Route as GuardrailsGuardrailIdRouteImport } from './routes/guardrails.$guardrailId'
 import { Route as CatalogTopicIdRouteImport } from './routes/catalog.$topicId'
-import { Route as ProtoSourcesSourceIdRouteImport } from './routes/proto.sources_.$sourceId'
-import { Route as ProtoGuidanceGuidanceIdRouteImport } from './routes/proto.guidance_.$guidanceId'
 
+const WhatsnewRoute = WhatsnewRouteImport.update({
+  id: '/whatsnew',
+  path: '/whatsnew',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SourcesRoute = SourcesRouteImport.update({
   id: '/sources',
   path: '/sources',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RegionsRoute = RegionsRouteImport.update({
-  id: '/regions',
-  path: '/regions',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OverviewRoute = OverviewRouteImport.update({
@@ -108,51 +97,6 @@ const SourcesSourceIdRoute = SourcesSourceIdRouteImport.update({
   path: '/$sourceId',
   getParentRoute: () => SourcesRoute,
 } as any)
-const ProtoWhatsnewRoute = ProtoWhatsnewRouteImport.update({
-  id: '/proto/whatsnew',
-  path: '/proto/whatsnew',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProtoSourcesRoute = ProtoSourcesRouteImport.update({
-  id: '/proto/sources',
-  path: '/proto/sources',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProtoSkillsRoute = ProtoSkillsRouteImport.update({
-  id: '/proto/skills',
-  path: '/proto/skills',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProtoOverviewRoute = ProtoOverviewRouteImport.update({
-  id: '/proto/overview',
-  path: '/proto/overview',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProtoHomeRoute = ProtoHomeRouteImport.update({
-  id: '/proto/home',
-  path: '/proto/home',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProtoGuidanceRoute = ProtoGuidanceRouteImport.update({
-  id: '/proto/guidance',
-  path: '/proto/guidance',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProtoCatalogRoute = ProtoCatalogRouteImport.update({
-  id: '/proto/catalog',
-  path: '/proto/catalog',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProtoCapabilityRoute = ProtoCapabilityRouteImport.update({
-  id: '/proto/capability',
-  path: '/proto/capability',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProtoAskRoute = ProtoAskRouteImport.update({
-  id: '/proto/ask',
-  path: '/proto/ask',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const GuidanceGuidanceIdRoute = GuidanceGuidanceIdRouteImport.update({
   id: '/$guidanceId',
   path: '/$guidanceId',
@@ -168,16 +112,6 @@ const CatalogTopicIdRoute = CatalogTopicIdRouteImport.update({
   path: '/$topicId',
   getParentRoute: () => CatalogRoute,
 } as any)
-const ProtoSourcesSourceIdRoute = ProtoSourcesSourceIdRouteImport.update({
-  id: '/proto/sources_/$sourceId',
-  path: '/proto/sources/$sourceId',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProtoGuidanceGuidanceIdRoute = ProtoGuidanceGuidanceIdRouteImport.update({
-  id: '/proto/guidance_/$guidanceId',
-  path: '/proto/guidance/$guidanceId',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -186,54 +120,32 @@ export interface FileRoutesByFullPath {
   '/catalog': typeof CatalogRouteWithChildren
   '/guidance': typeof GuidanceRouteWithChildren
   '/overview': typeof OverviewRoute
-  '/regions': typeof RegionsRoute
   '/sources': typeof SourcesRouteWithChildren
+  '/whatsnew': typeof WhatsnewRoute
   '/catalog/$topicId': typeof CatalogTopicIdRoute
   '/guardrails/$guardrailId': typeof GuardrailsGuardrailIdRoute
   '/guidance/$guidanceId': typeof GuidanceGuidanceIdRoute
-  '/proto/ask': typeof ProtoAskRoute
-  '/proto/capability': typeof ProtoCapabilityRoute
-  '/proto/catalog': typeof ProtoCatalogRoute
-  '/proto/guidance': typeof ProtoGuidanceRoute
-  '/proto/home': typeof ProtoHomeRoute
-  '/proto/overview': typeof ProtoOverviewRoute
-  '/proto/skills': typeof ProtoSkillsRoute
-  '/proto/sources': typeof ProtoSourcesRoute
-  '/proto/whatsnew': typeof ProtoWhatsnewRoute
   '/sources/$sourceId': typeof SourcesSourceIdRoute
   '/availability/': typeof AvailabilityIndexRoute
   '/catalog/': typeof CatalogIndexRoute
   '/guidance/': typeof GuidanceIndexRoute
   '/skills/': typeof SkillsIndexRoute
   '/sources/': typeof SourcesIndexRoute
-  '/proto/guidance/$guidanceId': typeof ProtoGuidanceGuidanceIdRoute
-  '/proto/sources/$sourceId': typeof ProtoSourcesSourceIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/ask': typeof AskRoute
   '/overview': typeof OverviewRoute
-  '/regions': typeof RegionsRoute
+  '/whatsnew': typeof WhatsnewRoute
   '/catalog/$topicId': typeof CatalogTopicIdRoute
   '/guardrails/$guardrailId': typeof GuardrailsGuardrailIdRoute
   '/guidance/$guidanceId': typeof GuidanceGuidanceIdRoute
-  '/proto/ask': typeof ProtoAskRoute
-  '/proto/capability': typeof ProtoCapabilityRoute
-  '/proto/catalog': typeof ProtoCatalogRoute
-  '/proto/guidance': typeof ProtoGuidanceRoute
-  '/proto/home': typeof ProtoHomeRoute
-  '/proto/overview': typeof ProtoOverviewRoute
-  '/proto/skills': typeof ProtoSkillsRoute
-  '/proto/sources': typeof ProtoSourcesRoute
-  '/proto/whatsnew': typeof ProtoWhatsnewRoute
   '/sources/$sourceId': typeof SourcesSourceIdRoute
   '/availability': typeof AvailabilityIndexRoute
   '/catalog': typeof CatalogIndexRoute
   '/guidance': typeof GuidanceIndexRoute
   '/skills': typeof SkillsIndexRoute
   '/sources': typeof SourcesIndexRoute
-  '/proto/guidance/$guidanceId': typeof ProtoGuidanceGuidanceIdRoute
-  '/proto/sources/$sourceId': typeof ProtoSourcesSourceIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -243,28 +155,17 @@ export interface FileRoutesById {
   '/catalog': typeof CatalogRouteWithChildren
   '/guidance': typeof GuidanceRouteWithChildren
   '/overview': typeof OverviewRoute
-  '/regions': typeof RegionsRoute
   '/sources': typeof SourcesRouteWithChildren
+  '/whatsnew': typeof WhatsnewRoute
   '/catalog/$topicId': typeof CatalogTopicIdRoute
   '/guardrails/$guardrailId': typeof GuardrailsGuardrailIdRoute
   '/guidance/$guidanceId': typeof GuidanceGuidanceIdRoute
-  '/proto/ask': typeof ProtoAskRoute
-  '/proto/capability': typeof ProtoCapabilityRoute
-  '/proto/catalog': typeof ProtoCatalogRoute
-  '/proto/guidance': typeof ProtoGuidanceRoute
-  '/proto/home': typeof ProtoHomeRoute
-  '/proto/overview': typeof ProtoOverviewRoute
-  '/proto/skills': typeof ProtoSkillsRoute
-  '/proto/sources': typeof ProtoSourcesRoute
-  '/proto/whatsnew': typeof ProtoWhatsnewRoute
   '/sources/$sourceId': typeof SourcesSourceIdRoute
   '/availability/': typeof AvailabilityIndexRoute
   '/catalog/': typeof CatalogIndexRoute
   '/guidance/': typeof GuidanceIndexRoute
   '/skills/': typeof SkillsIndexRoute
   '/sources/': typeof SourcesIndexRoute
-  '/proto/guidance_/$guidanceId': typeof ProtoGuidanceGuidanceIdRoute
-  '/proto/sources_/$sourceId': typeof ProtoSourcesSourceIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -275,54 +176,32 @@ export interface FileRouteTypes {
     | '/catalog'
     | '/guidance'
     | '/overview'
-    | '/regions'
     | '/sources'
+    | '/whatsnew'
     | '/catalog/$topicId'
     | '/guardrails/$guardrailId'
     | '/guidance/$guidanceId'
-    | '/proto/ask'
-    | '/proto/capability'
-    | '/proto/catalog'
-    | '/proto/guidance'
-    | '/proto/home'
-    | '/proto/overview'
-    | '/proto/skills'
-    | '/proto/sources'
-    | '/proto/whatsnew'
     | '/sources/$sourceId'
     | '/availability/'
     | '/catalog/'
     | '/guidance/'
     | '/skills/'
     | '/sources/'
-    | '/proto/guidance/$guidanceId'
-    | '/proto/sources/$sourceId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/ask'
     | '/overview'
-    | '/regions'
+    | '/whatsnew'
     | '/catalog/$topicId'
     | '/guardrails/$guardrailId'
     | '/guidance/$guidanceId'
-    | '/proto/ask'
-    | '/proto/capability'
-    | '/proto/catalog'
-    | '/proto/guidance'
-    | '/proto/home'
-    | '/proto/overview'
-    | '/proto/skills'
-    | '/proto/sources'
-    | '/proto/whatsnew'
     | '/sources/$sourceId'
     | '/availability'
     | '/catalog'
     | '/guidance'
     | '/skills'
     | '/sources'
-    | '/proto/guidance/$guidanceId'
-    | '/proto/sources/$sourceId'
   id:
     | '__root__'
     | '/'
@@ -331,28 +210,17 @@ export interface FileRouteTypes {
     | '/catalog'
     | '/guidance'
     | '/overview'
-    | '/regions'
     | '/sources'
+    | '/whatsnew'
     | '/catalog/$topicId'
     | '/guardrails/$guardrailId'
     | '/guidance/$guidanceId'
-    | '/proto/ask'
-    | '/proto/capability'
-    | '/proto/catalog'
-    | '/proto/guidance'
-    | '/proto/home'
-    | '/proto/overview'
-    | '/proto/skills'
-    | '/proto/sources'
-    | '/proto/whatsnew'
     | '/sources/$sourceId'
     | '/availability/'
     | '/catalog/'
     | '/guidance/'
     | '/skills/'
     | '/sources/'
-    | '/proto/guidance_/$guidanceId'
-    | '/proto/sources_/$sourceId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -362,37 +230,26 @@ export interface RootRouteChildren {
   CatalogRoute: typeof CatalogRouteWithChildren
   GuidanceRoute: typeof GuidanceRouteWithChildren
   OverviewRoute: typeof OverviewRoute
-  RegionsRoute: typeof RegionsRoute
   SourcesRoute: typeof SourcesRouteWithChildren
+  WhatsnewRoute: typeof WhatsnewRoute
   GuardrailsGuardrailIdRoute: typeof GuardrailsGuardrailIdRoute
-  ProtoAskRoute: typeof ProtoAskRoute
-  ProtoCapabilityRoute: typeof ProtoCapabilityRoute
-  ProtoCatalogRoute: typeof ProtoCatalogRoute
-  ProtoGuidanceRoute: typeof ProtoGuidanceRoute
-  ProtoHomeRoute: typeof ProtoHomeRoute
-  ProtoOverviewRoute: typeof ProtoOverviewRoute
-  ProtoSkillsRoute: typeof ProtoSkillsRoute
-  ProtoSourcesRoute: typeof ProtoSourcesRoute
-  ProtoWhatsnewRoute: typeof ProtoWhatsnewRoute
   SkillsIndexRoute: typeof SkillsIndexRoute
-  ProtoGuidanceGuidanceIdRoute: typeof ProtoGuidanceGuidanceIdRoute
-  ProtoSourcesSourceIdRoute: typeof ProtoSourcesSourceIdRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/whatsnew': {
+      id: '/whatsnew'
+      path: '/whatsnew'
+      fullPath: '/whatsnew'
+      preLoaderRoute: typeof WhatsnewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sources': {
       id: '/sources'
       path: '/sources'
       fullPath: '/sources'
       preLoaderRoute: typeof SourcesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/regions': {
-      id: '/regions'
-      path: '/regions'
-      fullPath: '/regions'
-      preLoaderRoute: typeof RegionsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/overview': {
@@ -479,69 +336,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SourcesSourceIdRouteImport
       parentRoute: typeof SourcesRoute
     }
-    '/proto/whatsnew': {
-      id: '/proto/whatsnew'
-      path: '/proto/whatsnew'
-      fullPath: '/proto/whatsnew'
-      preLoaderRoute: typeof ProtoWhatsnewRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/proto/sources': {
-      id: '/proto/sources'
-      path: '/proto/sources'
-      fullPath: '/proto/sources'
-      preLoaderRoute: typeof ProtoSourcesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/proto/skills': {
-      id: '/proto/skills'
-      path: '/proto/skills'
-      fullPath: '/proto/skills'
-      preLoaderRoute: typeof ProtoSkillsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/proto/overview': {
-      id: '/proto/overview'
-      path: '/proto/overview'
-      fullPath: '/proto/overview'
-      preLoaderRoute: typeof ProtoOverviewRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/proto/home': {
-      id: '/proto/home'
-      path: '/proto/home'
-      fullPath: '/proto/home'
-      preLoaderRoute: typeof ProtoHomeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/proto/guidance': {
-      id: '/proto/guidance'
-      path: '/proto/guidance'
-      fullPath: '/proto/guidance'
-      preLoaderRoute: typeof ProtoGuidanceRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/proto/catalog': {
-      id: '/proto/catalog'
-      path: '/proto/catalog'
-      fullPath: '/proto/catalog'
-      preLoaderRoute: typeof ProtoCatalogRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/proto/capability': {
-      id: '/proto/capability'
-      path: '/proto/capability'
-      fullPath: '/proto/capability'
-      preLoaderRoute: typeof ProtoCapabilityRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/proto/ask': {
-      id: '/proto/ask'
-      path: '/proto/ask'
-      fullPath: '/proto/ask'
-      preLoaderRoute: typeof ProtoAskRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/guidance/$guidanceId': {
       id: '/guidance/$guidanceId'
       path: '/$guidanceId'
@@ -562,20 +356,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/catalog/$topicId'
       preLoaderRoute: typeof CatalogTopicIdRouteImport
       parentRoute: typeof CatalogRoute
-    }
-    '/proto/sources_/$sourceId': {
-      id: '/proto/sources_/$sourceId'
-      path: '/proto/sources/$sourceId'
-      fullPath: '/proto/sources/$sourceId'
-      preLoaderRoute: typeof ProtoSourcesSourceIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/proto/guidance_/$guidanceId': {
-      id: '/proto/guidance_/$guidanceId'
-      path: '/proto/guidance/$guidanceId'
-      fullPath: '/proto/guidance/$guidanceId'
-      preLoaderRoute: typeof ProtoGuidanceGuidanceIdRouteImport
-      parentRoute: typeof rootRouteImport
     }
   }
 }
@@ -639,21 +419,10 @@ const rootRouteChildren: RootRouteChildren = {
   CatalogRoute: CatalogRouteWithChildren,
   GuidanceRoute: GuidanceRouteWithChildren,
   OverviewRoute: OverviewRoute,
-  RegionsRoute: RegionsRoute,
   SourcesRoute: SourcesRouteWithChildren,
+  WhatsnewRoute: WhatsnewRoute,
   GuardrailsGuardrailIdRoute: GuardrailsGuardrailIdRoute,
-  ProtoAskRoute: ProtoAskRoute,
-  ProtoCapabilityRoute: ProtoCapabilityRoute,
-  ProtoCatalogRoute: ProtoCatalogRoute,
-  ProtoGuidanceRoute: ProtoGuidanceRoute,
-  ProtoHomeRoute: ProtoHomeRoute,
-  ProtoOverviewRoute: ProtoOverviewRoute,
-  ProtoSkillsRoute: ProtoSkillsRoute,
-  ProtoSourcesRoute: ProtoSourcesRoute,
-  ProtoWhatsnewRoute: ProtoWhatsnewRoute,
   SkillsIndexRoute: SkillsIndexRoute,
-  ProtoGuidanceGuidanceIdRoute: ProtoGuidanceGuidanceIdRoute,
-  ProtoSourcesSourceIdRoute: ProtoSourcesSourceIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
