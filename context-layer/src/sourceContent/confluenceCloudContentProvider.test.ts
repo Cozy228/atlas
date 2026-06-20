@@ -69,12 +69,19 @@ describe("resolveConfluencePageLive", () => {
     });
 
     const result = await resolveConfluencePageLive(
-      { source, anchors: [anchor], anchorId: "environment-matrix", ctx: { token: config.token, fetch } },
+      {
+        source,
+        anchors: [anchor],
+        anchorId: "environment-matrix",
+        ctx: { token: config.token, fetch },
+      },
       config,
     );
 
     expect(result.warnings).toEqual([]);
-    expect(result.excerpts[0]?.text).toContain("Production and non-production accounts are separated.");
+    expect(result.excerpts[0]?.text).toContain(
+      "Production and non-production accounts are separated.",
+    );
     expect(result.excerpts[0]?.text).toContain("Each environment has its own guardrails.");
     // Section ends at the next heading.
     expect(result.excerpts[0]?.text).not.toContain("onboarding checklist");
@@ -89,7 +96,12 @@ describe("resolveConfluencePageLive", () => {
     const { fetch } = jsonFetch({}, 403);
 
     const result = await resolveConfluencePageLive(
-      { source, anchors: [anchor], anchorId: "environment-matrix", ctx: { token: config.token, fetch } },
+      {
+        source,
+        anchors: [anchor],
+        anchorId: "environment-matrix",
+        ctx: { token: config.token, fetch },
+      },
       config,
     );
 
@@ -101,7 +113,12 @@ describe("resolveConfluencePageLive", () => {
     const { fetch } = jsonFetch({}, 404);
 
     const result = await resolveConfluencePageLive(
-      { source, anchors: [anchor], anchorId: "environment-matrix", ctx: { token: config.token, fetch } },
+      {
+        source,
+        anchors: [anchor],
+        anchorId: "environment-matrix",
+        ctx: { token: config.token, fetch },
+      },
       config,
     );
 
@@ -116,7 +133,12 @@ describe("resolveConfluencePageLive", () => {
     });
 
     const result = await resolveConfluencePageLive(
-      { source, anchors: [anchor], anchorId: "environment-matrix", ctx: { token: config.token, fetch } },
+      {
+        source,
+        anchors: [anchor],
+        anchorId: "environment-matrix",
+        ctx: { token: config.token, fetch },
+      },
       config,
     );
 
@@ -132,7 +154,12 @@ describe("resolveConfluencePageLive", () => {
     });
 
     const result = await resolveConfluencePageLive(
-      { source, anchors: [anchor], anchorId: "environment-matrix", ctx: { token: config.token, fetch } },
+      {
+        source,
+        anchors: [anchor],
+        anchorId: "environment-matrix",
+        ctx: { token: config.token, fetch },
+      },
       config,
     );
 
@@ -170,7 +197,12 @@ describe("resolveConfluencePageLive", () => {
     });
 
     const result = await resolveConfluencePageLive(
-      { source, anchors: [anchor], anchorId: "environment-matrix", ctx: { token: config.token, fetch } },
+      {
+        source,
+        anchors: [anchor],
+        anchorId: "environment-matrix",
+        ctx: { token: config.token, fetch },
+      },
       config,
     );
 
@@ -184,12 +216,38 @@ describe("resolveConfluencePageLive", () => {
     });
 
     const result = await resolveConfluencePageLive(
-      { source, anchors: [anchor], anchorId: "environment-matrix", ctx: { token: config.token, fetch } },
+      {
+        source,
+        anchors: [anchor],
+        anchorId: "environment-matrix",
+        ctx: { token: config.token, fetch },
+      },
       config,
     );
 
     expect(result.excerpts[0]?.citation.location).toBe(
       "https://example.atlassian.net/wiki/pages/123456#environment-matrix",
     );
+  });
+
+  it("uses Basic auth (email:token) for a Confluence Cloud personal API token", async () => {
+    const { fetch, calls } = jsonFetch({
+      version: { number: 7 },
+      body: { storage: { value: pageHtml } },
+      _links: { webui: "/spaces/CLOUD/pages/123456/Central" },
+    });
+
+    await resolveConfluencePageLive(
+      {
+        source,
+        anchors: [anchor],
+        anchorId: "environment-matrix",
+        ctx: { token: "api-token", fetch },
+      },
+      { ...config, token: "api-token", email: "dev@example.com" },
+    );
+
+    const expected = `Basic ${Buffer.from("dev@example.com:api-token").toString("base64")}`;
+    expect(calls[0]).toBe(expected);
   });
 });

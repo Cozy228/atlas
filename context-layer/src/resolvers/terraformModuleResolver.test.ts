@@ -1,7 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { Anchor, Source } from "@atlas/schema";
 import { createInMemorySourceContentProvider } from "./sourceContentProvider.js";
-import { offlineResolutionContext } from "./resolverTypes.js";
+import { offlineResolutionContext, type FetchLike } from "./resolverTypes.js";
 import { terraformModuleResolver } from "./terraformModuleResolver.js";
 
 const source: Source = {
@@ -107,5 +107,47 @@ describe("terraformModuleResolver", () => {
 
     expect(result.excerpts).toEqual([]);
     expect(result.warnings[0]?.code).toBe("broken_anchor");
+  });
+
+  it("takes the live branch when a service token is configured", async () => {
+    const env = (
+      globalThis as typeof globalThis & {
+        process: { env: Record<string, string | undefined> };
+      }
+    ).process.env;
+    const previousToken = env.ATLAS_TERRAFORM_TOKEN;
+    env.ATLAS_TERRAFORM_TOKEN = "fictional-github-pat";
+
+    const fetch = vi.fn<FetchLike>(async () => ({
+      ok: true,
+      status: 200,
+      async json() {
+        return {
+          content: Buffer.from(
+            "## Private subnet usage\nUse the private endpoint configuration.\n",
+            "utf8",
+          ).toString("base64"),
+          encoding: "base64",
+          html_url: "https://github.com/acme/terraform-aws-textract/blob/main/README.md",
+        };
+      },
+    }));
+
+    const result = await terraformModuleResolver.resolve({
+      ctx: { token: undefined, fetch },
+      source,
+      anchors: [anchor],
+      anchorId: "private-subnet-usage",
+      contentProvider: createInMemorySourceContentProvider({}),
+    });
+
+    if (previousToken === undefined) {
+      delete env.ATLAS_TERRAFORM_TOKEN;
+    } else {
+      env.ATLAS_TERRAFORM_TOKEN = previousToken;
+    }
+
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(result.excerpts[0]?.text).toContain("Use the private endpoint configuration.");
   });
 });

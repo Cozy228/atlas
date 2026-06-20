@@ -20,10 +20,15 @@ import type {
  * TODO(confluence-server): add a Server/Data Center adapter behind this seam.
  */
 export type ConfluenceLiveConfig = {
-  /** Opaque Bearer token (caller's token, else narrow service-token fallback). */
+  /** Personal API token (Basic, paired with email) or an opaque Bearer (no email). */
   token: string;
   /** Confluence site base URL, e.g. https://example.atlassian.net/wiki -> base. */
   baseUrl: string;
+  /**
+   * Atlassian account email. When set, auth is Confluence Cloud Basic
+   * (email:token) — the scheme a personal API token requires; otherwise Bearer.
+   */
+  email?: string;
 };
 
 type ConfluenceLiveRequest = {
@@ -62,7 +67,7 @@ export async function resolveConfluencePageLive(
   const response = await request.ctx.fetch(url, {
     method: "GET",
     headers: {
-      Authorization: `Bearer ${config.token}`,
+      Authorization: confluenceAuthorization(config),
       Accept: "application/json",
     },
   });
@@ -125,6 +130,19 @@ export async function resolveConfluencePageLive(
     ],
     warnings,
   };
+}
+
+/**
+ * Confluence Cloud auth scheme. A personal API token authenticates with Basic
+ * (email:token); an OAuth/PAT-style credential uses Bearer. Email presence
+ * (ATLAS_CONFLUENCE_EMAIL) selects Basic.
+ */
+function confluenceAuthorization(config: ConfluenceLiveConfig): string {
+  if (config.email) {
+    const basic = Buffer.from(`${config.email}:${config.token}`).toString("base64");
+    return `Basic ${basic}`;
+  }
+  return `Bearer ${config.token}`;
 }
 
 function driftWarningFor(
