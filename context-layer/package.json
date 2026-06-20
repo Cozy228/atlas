@@ -19,14 +19,14 @@
   },
   "dependencies": {
     "@atlas/schema": "workspace:*",
-    "@aws-sdk/client-dynamodb": "3.1057.0",
-    "@aws-sdk/lib-dynamodb": "3.1057.0",
+    "@aws-sdk/client-dynamodb": "3.1072.0",
+    "@aws-sdk/lib-dynamodb": "3.1072.0",
     "node-html-parser": "^7.1.0"
   },
   "devDependencies": {
-    "tsdown": "0.22.1",
+    "tsdown": "0.22.3",
     "typescript": "6.0.3",
     "vite": "8.0.16",
-    "vitest": "4.1.8"
+    "vitest": "4.1.9"
   }
 }

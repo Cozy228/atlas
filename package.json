@@ -1,15 +1,16 @@
 {
   "name": "atlas",
   "private": true,
-  "packageManager": "pnpm@11.5.0",
+  "packageManager": "pnpm@11.8.0",
   "scripts": {
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck",
-    "test": "pnpm -r test"
+    "test": "pnpm -r test",
+    "validate:guidance": "pnpm --filter @atlas/schema validate:guidance"
   },
   "devDependencies": {
-    "typescript": "6.0.3",
+    "typescript": "rc",
     "vite": "8.0.16",
-    "vitest": "4.1.8"
+    "vitest": "4.1.9"
   }
 }
