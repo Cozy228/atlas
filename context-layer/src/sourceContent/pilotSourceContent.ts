@@ -35,5 +35,18 @@ export function createPilotSourceContentProvider() {
     "logging-standard-doc": {
       "clause-1.2": "Workloads must emit logs, metrics, and traces to platform telemetry.",
     },
+    "apigateway-module-readme": {
+      // The cited starter snippet — a registered Source excerpt, never synthesized.
+      "#terraform-starter":
+        'module "api" {\n  source     = "app.terraform.io/acme/apigateway/aws"\n  name       = "orders-api"\n  protocol   = "HTTP"\n  stage_name = "prod"\n  routes = {\n    "POST /orders"     = { lambda_arn = module.orders_fn.arn }\n    "GET /orders/{id}" = { lambda_arn = module.orders_fn.arn }\n  }\n}',
+      "#rest-api-setup":
+        "Declare the HTTP API, routes, and stage through the module inputs; it provisions the API Gateway v2 API, default stage, and access logging.",
+      "#lambda-integration":
+        "Set each route's lambda_arn to your application function; the module creates the AWS_PROXY integration and the invoke permission so API Gateway fronts your app.",
+    },
+    "apigateway-integration-guide": {
+      "apigateway-app-integration":
+        "Put API Gateway at your application's edge: it terminates TLS, validates and throttles requests, then forwards to your Lambda or a private VPC-link target. Keep backends private and let the gateway be the only public entry point.",
+    },
   });
 }

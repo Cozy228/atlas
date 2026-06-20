@@ -88,7 +88,11 @@ function displayName(bundle: ContextBundleResponse): string {
   const topicId = bundle.request.topic_id ?? bundle.sources[0]?.source.title ?? "Atlas";
   return topicId
     .split("-")
-    .map((word) => (word === "aws" ? "AWS" : word.charAt(0).toUpperCase() + word.slice(1)))
+    .map((word) =>
+      word === "aws" || word === "api"
+        ? word.toUpperCase()
+        : word.charAt(0).toUpperCase() + word.slice(1),
+    )
     .join(" ");
 }
 

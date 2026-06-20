@@ -19,8 +19,7 @@ import {
 const here = dirname(fileURLToPath(import.meta.url));
 // src -> atlas-schema -> packages -> repo root -> data
 const dataDir = join(here, "..", "..", "..", "data");
-const readYaml = (file: string) =>
-  parse(readFileSync(join(dataDir, file), "utf8"));
+const readYaml = (file: string) => parse(readFileSync(join(dataDir, file), "utf8"));
 
 describe("data/* registry manifests", () => {
   const result = validateRegistryManifest({
@@ -36,10 +35,10 @@ describe("data/* registry manifests", () => {
   });
 
   it("parses the expected number of records per kind", () => {
-    expect(result.sources).toHaveLength(12);
-    expect(result.topics).toHaveLength(10);
-    expect(result.anchors).toHaveLength(12);
-    expect(result.mappings).toHaveLength(16);
+    expect(result.sources).toHaveLength(14);
+    expect(result.topics).toHaveLength(11);
+    expect(result.anchors).toHaveLength(16);
+    expect(result.mappings).toHaveLength(18);
   });
 });
 
@@ -89,13 +88,10 @@ const cleanManifest = (): RegistryManifestInput => ({
 
 describe("validateRegistryManifest", () => {
   it("accepts a clean manifest with no errors", () => {
-    const { issues, sources, topics, anchors, mappings } = validateRegistryManifest(
-      cleanManifest(),
-    );
+    const { issues, sources, topics, anchors, mappings } =
+      validateRegistryManifest(cleanManifest());
     expect(issues).toEqual([]);
-    expect([sources.length, topics.length, anchors.length, mappings.length]).toEqual([
-      1, 1, 1, 1,
-    ]);
+    expect([sources.length, topics.length, anchors.length, mappings.length]).toEqual([1, 1, 1, 1]);
   });
 
   it("flags a duplicate id with an actionable message", () => {
@@ -104,9 +100,7 @@ describe("validateRegistryManifest", () => {
     const { issues, sources } = validateRegistryManifest(input);
     expect(sources).toHaveLength(1); // duplicate dropped
     expect(
-      issues.some(
-        (i) => i.level === "error" && i.message.includes('duplicate source id "s1"'),
-      ),
+      issues.some((i) => i.level === "error" && i.message.includes('duplicate source id "s1"')),
     ).toBe(true);
   });
 
@@ -123,15 +117,12 @@ describe("validateRegistryManifest", () => {
     const input = cleanManifest();
     (input.anchors as Array<{ source_id: string }>)[0].source_id = "ghost-source";
     const { issues } = validateRegistryManifest(input);
-    expect(
-      issues.some((i) => i.message.includes('dangling source_id "ghost-source"')),
-    ).toBe(true);
+    expect(issues.some((i) => i.message.includes('dangling source_id "ghost-source"'))).toBe(true);
   });
 
   it("flags a schema violation with the offending record id in the path", () => {
     const input = cleanManifest();
-    (input.sources as Array<{ authority_level: string }>)[0].authority_level =
-      "made-up-level";
+    (input.sources as Array<{ authority_level: string }>)[0].authority_level = "made-up-level";
     const { issues } = validateRegistryManifest(input);
     const issue = issues.find((i) => i.path.includes("sources.yaml:s1"));
     expect(issue?.level).toBe("error");
@@ -140,15 +131,12 @@ describe("validateRegistryManifest", () => {
   it("reports a non-array document kind", () => {
     const input = { ...cleanManifest(), topics: { not: "an array" } };
     const { issues } = validateRegistryManifest(input);
-    expect(
-      issues.some((i) => i.message.includes("expected an array of topic records")),
-    ).toBe(true);
+    expect(issues.some((i) => i.message.includes("expected an array of topic records"))).toBe(true);
   });
 });
 
 describe("validateSourceDocument", () => {
-  const firstSource = () =>
-    (cleanManifest().sources as Array<Record<string, unknown>>)[0];
+  const firstSource = () => (cleanManifest().sources as Array<Record<string, unknown>>)[0];
 
   it("accepts a valid source record", () => {
     const { value, issues } = validateSourceDocument(firstSource(), "s.yaml");

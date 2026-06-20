@@ -14,15 +14,16 @@ import {
   InMemoryFeedbackRepository,
   type FeedbackRepository,
 } from "../repositories/feedbackRepository.js";
-import { loadPilotRegistry, type PilotRegistry, type PilotRegistrySeed } from "../seeds/pilotRegistry.js";
+import {
+  loadPilotRegistry,
+  type PilotRegistry,
+  type PilotRegistrySeed,
+} from "../seeds/pilotRegistry.js";
 import { DATA_DIR, loadRegistryFromManifests } from "../seeds/loadRegistryFromManifests.js";
 import { confluencePageResolver } from "../resolvers/confluencePageResolver.js";
 import { policyDocumentResolver } from "../resolvers/policyDocumentResolver.js";
 import { createResolverRegistry, type ResolverRegistry } from "../resolvers/resolverRegistry.js";
-import {
-  offlineResolutionContext,
-  type ResolutionContext,
-} from "../resolvers/resolverTypes.js";
+import { offlineResolutionContext, type ResolutionContext } from "../resolvers/resolverTypes.js";
 import type { SourceContentProvider } from "../resolvers/sourceContentProvider.js";
 import { terraformModuleResolver } from "../resolvers/terraformModuleResolver.js";
 import { createPilotSourceContentProvider } from "../sourceContent/pilotSourceContent.js";
@@ -96,9 +97,7 @@ export async function buildContextBundle(
   const disclosureLevel = request.disclosure_level ?? 1;
   const selectedSources = selectSources(service, request);
   const sources =
-    disclosureLevel >= 3
-      ? expandRelatedSources(service, selectedSources)
-      : selectedSources;
+    disclosureLevel >= 3 ? expandRelatedSources(service, selectedSources) : selectedSources;
 
   if (sources.length === 0) {
     return {
@@ -145,11 +144,7 @@ export async function buildContextBundle(
 
     if (disclosureLevel > 0) {
       const resolver = service.resolvers.get(source.source_class);
-      for (const anchorId of anchorIdsForDisclosure(
-        anchors,
-        request.anchor_id,
-        disclosureLevel,
-      )) {
+      for (const anchorId of anchorIdsForDisclosure(anchors, request.anchor_id, disclosureLevel)) {
         const resolved = await resolver?.resolve({
           source,
           anchors,
@@ -227,10 +222,7 @@ export function discoverTopics(
   return { topics };
 }
 
-function selectSources(
-  service: ContextBundleService,
-  request: ContextRequest,
-): Source[] {
+function selectSources(service: ContextBundleService, request: ContextRequest): Source[] {
   if (request.source_id) {
     const source = service.registry.sources.getById(request.source_id);
     return source ? [source] : [];
@@ -248,41 +240,44 @@ function selectSources(
     return [];
   }
 
-  const topics = service.registry.topics
-    .list()
-    .filter((topic) => matchesTopic(topic, query));
-  const topicSources = topics.flatMap((topic) =>
-    service.registry.mappings
-      .findByTopicId(topic.id)
-      .map((mapping) => service.registry.sources.getById(mapping.source_id)),
+  // Topic-anchored relevance: a free-text query first resolves to matching topics
+  // and returns only their mapped Sources. The loose Source-text scan is a fallback
+  // used ONLY when no topic matches — otherwise generic tokens like "terraform"
+  // (present in every module's source_class and title) would pull unrelated Sources
+  // into the bundle, e.g. "api gateway terraform" returning the Textract module.
+  const topicSources = uniqueSources(
+    service.registry.topics
+      .list()
+      .filter((topic) => matchesTopic(topic, query))
+      .flatMap((topic) =>
+        service.registry.mappings
+          .findByTopicId(topic.id)
+          .map((mapping) => service.registry.sources.getById(mapping.source_id)),
+      )
+      .filter((source): source is Source => Boolean(source)),
   );
 
-  return uniqueSources([
-    ...topicSources.filter((source): source is Source => Boolean(source)),
-    ...service.registry.sources.list().filter((source) => matchesText(source, query)),
-  ]);
+  if (topicSources.length > 0) {
+    return topicSources;
+  }
+
+  return uniqueSources(
+    service.registry.sources.list().filter((source) => matchesText(source, query)),
+  );
 }
 
-function expandRelatedSources(
-  service: ContextBundleService,
-  sources: Source[],
-): Source[] {
+function expandRelatedSources(service: ContextBundleService, sources: Source[]): Source[] {
   const sourceIds = new Set(sources.map((source) => source.id));
   const topicIds = new Set(
     sources.flatMap((source) =>
-      service.registry.mappings
-        .findBySourceId(source.id)
-        .map((mapping) => mapping.topic_id),
+      service.registry.mappings.findBySourceId(source.id).map((mapping) => mapping.topic_id),
     ),
   );
   const relatedSources = Array.from(topicIds).flatMap((topicId) =>
     service.registry.mappings
       .findByTopicId(topicId)
       .map((mapping) => service.registry.sources.getById(mapping.source_id))
-      .filter(
-        (source): source is Source =>
-          source !== undefined && !sourceIds.has(source.id),
-      ),
+      .filter((source): source is Source => source !== undefined && !sourceIds.has(source.id)),
   );
 
   return uniqueSources([...sources, ...relatedSources]);
@@ -333,9 +328,7 @@ function buildSelectionRationale(source: Source, request: ContextRequest): strin
   return `Selected through deterministic registry match for ${source.authority_level} source metadata.`;
 }
 
-function buildAnchorReferences(
-  anchors: Anchor[],
-): ContextBundleResponse["anchor_references"] {
+function buildAnchorReferences(anchors: Anchor[]): ContextBundleResponse["anchor_references"] {
   return anchors.map((anchor) => ({
     source_id: anchor.source_id,
     anchor_id: anchor.id,
@@ -351,9 +344,7 @@ function anchorIdsForDisclosure(
 ): Array<string | undefined> {
   if (disclosureLevel >= 2) {
     const anchorIds = anchors.map((anchor) => anchor.id);
-    return uniqueAnchorIds(
-      requestedAnchorId ? [requestedAnchorId, ...anchorIds] : anchorIds,
-    );
+    return uniqueAnchorIds(requestedAnchorId ? [requestedAnchorId, ...anchorIds] : anchorIds);
   }
 
   return [requestedAnchorId ?? anchors[0]?.id];
@@ -380,9 +371,7 @@ function buildExpansionPaths(
   }));
 }
 
-function authorityConflictWarnings(
-  sources: Source[],
-): ContextBundleResponse["warnings"] {
+function authorityConflictWarnings(sources: Source[]): ContextBundleResponse["warnings"] {
   const warnings: ContextBundleResponse["warnings"] = [];
   const byScope = new Map<string, Set<string>>();
 

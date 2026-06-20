@@ -103,3 +103,16 @@
   owner_team: observability-platform
   support_channel: "#observability"
   entry_tools: []
+- id: api-gateway
+  name: API Gateway
+  topic_type: service
+  category: networking
+  status: active
+  description: Managed REST and WebSocket API front doors for application workloads.
+  owner_team: cloud-platform
+  support_channel: "#cloud-platform"
+  entry_tools:
+    - label: Terraform module
+      url: https://github.com/acme/terraform-aws-apigateway
+    - label: Integration guide
+      url: https://confluence.example.com/display/CLOUD/API+Gateway+Integration

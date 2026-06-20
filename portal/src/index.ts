@@ -17,3 +17,9 @@ export {
   renderSourceLookup,
 } from "./views/portalViews.js";
 export { createStaticContextApiClient, type ContextApiClient } from "./api/contextApiClient.js";
+export {
+  listGuidance,
+  getGuidance,
+  relatedGuidanceForTopic,
+  type Guidance,
+} from "./lib/guidance.js";
