@@ -1,5 +1,9 @@
 # Atlas MVP Next Steps
 
+> **Status:** Build-sequence detail. The *settled* MVP bar and Demo→MVP boundary now live in
+> [`../product/mvp-product-design.md`](../product/mvp-product-design.md) (full spine; public-safe proof
+> boundary). Read that first; this doc is the step-level reference beneath it.
+
 This document defines the next implementation sequence for turning the current Atlas prototype into a minimum operational product loop.
 
 It is not a future roadmap. It focuses on making the existing Atlas system complete enough to run end to end:

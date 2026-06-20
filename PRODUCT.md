@@ -17,9 +17,12 @@ question and a deadline.
 
 ## Product Purpose
 
-Atlas Portal is the authoritative self-service catalog for the company's cloud platform.
+Atlas is an information-centric DevEx Portal — the primary consumer surface of a governed
+Context Layer (its core engine). The canonical product identity lives in
+[`docs/product/mvp-product-design.md`](docs/product/mvp-product-design.md); the Portal does not own
+the data model or boundary.
 It maps platform capabilities to their owners, approved sources, and entry tools; surfaces
-regional availability projections; and provides AI-assisted answers grounded exclusively
+governed regional availability; and provides AI-assisted answers grounded exclusively
 in registered, authoritative context.
 
 Success looks like: an engineer opens Atlas, gets a confident answer in under two minutes,
