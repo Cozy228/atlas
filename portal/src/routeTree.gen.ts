@@ -36,7 +36,6 @@ import { Route as GuidanceGuidanceIdRouteImport } from './routes/guidance.$guida
 import { Route as GuardrailsGuardrailIdRouteImport } from './routes/guardrails.$guardrailId'
 import { Route as CatalogTopicIdRouteImport } from './routes/catalog.$topicId'
 import { Route as ProtoSourcesSourceIdRouteImport } from './routes/proto.sources_.$sourceId'
-import { Route as ProtoSkillsSkillIdRouteImport } from './routes/proto.skills_.$skillId'
 import { Route as ProtoGuidanceGuidanceIdRouteImport } from './routes/proto.guidance_.$guidanceId'
 
 const SourcesRoute = SourcesRouteImport.update({
@@ -174,11 +173,6 @@ const ProtoSourcesSourceIdRoute = ProtoSourcesSourceIdRouteImport.update({
   path: '/proto/sources/$sourceId',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ProtoSkillsSkillIdRoute = ProtoSkillsSkillIdRouteImport.update({
-  id: '/proto/skills_/$skillId',
-  path: '/proto/skills/$skillId',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ProtoGuidanceGuidanceIdRoute = ProtoGuidanceGuidanceIdRouteImport.update({
   id: '/proto/guidance_/$guidanceId',
   path: '/proto/guidance/$guidanceId',
@@ -213,7 +207,6 @@ export interface FileRoutesByFullPath {
   '/skills/': typeof SkillsIndexRoute
   '/sources/': typeof SourcesIndexRoute
   '/proto/guidance/$guidanceId': typeof ProtoGuidanceGuidanceIdRoute
-  '/proto/skills/$skillId': typeof ProtoSkillsSkillIdRoute
   '/proto/sources/$sourceId': typeof ProtoSourcesSourceIdRoute
 }
 export interface FileRoutesByTo {
@@ -240,7 +233,6 @@ export interface FileRoutesByTo {
   '/skills': typeof SkillsIndexRoute
   '/sources': typeof SourcesIndexRoute
   '/proto/guidance/$guidanceId': typeof ProtoGuidanceGuidanceIdRoute
-  '/proto/skills/$skillId': typeof ProtoSkillsSkillIdRoute
   '/proto/sources/$sourceId': typeof ProtoSourcesSourceIdRoute
 }
 export interface FileRoutesById {
@@ -272,7 +264,6 @@ export interface FileRoutesById {
   '/skills/': typeof SkillsIndexRoute
   '/sources/': typeof SourcesIndexRoute
   '/proto/guidance_/$guidanceId': typeof ProtoGuidanceGuidanceIdRoute
-  '/proto/skills_/$skillId': typeof ProtoSkillsSkillIdRoute
   '/proto/sources_/$sourceId': typeof ProtoSourcesSourceIdRoute
 }
 export interface FileRouteTypes {
@@ -305,7 +296,6 @@ export interface FileRouteTypes {
     | '/skills/'
     | '/sources/'
     | '/proto/guidance/$guidanceId'
-    | '/proto/skills/$skillId'
     | '/proto/sources/$sourceId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -332,7 +322,6 @@ export interface FileRouteTypes {
     | '/skills'
     | '/sources'
     | '/proto/guidance/$guidanceId'
-    | '/proto/skills/$skillId'
     | '/proto/sources/$sourceId'
   id:
     | '__root__'
@@ -363,7 +352,6 @@ export interface FileRouteTypes {
     | '/skills/'
     | '/sources/'
     | '/proto/guidance_/$guidanceId'
-    | '/proto/skills_/$skillId'
     | '/proto/sources_/$sourceId'
   fileRoutesById: FileRoutesById
 }
@@ -388,7 +376,6 @@ export interface RootRouteChildren {
   ProtoWhatsnewRoute: typeof ProtoWhatsnewRoute
   SkillsIndexRoute: typeof SkillsIndexRoute
   ProtoGuidanceGuidanceIdRoute: typeof ProtoGuidanceGuidanceIdRoute
-  ProtoSkillsSkillIdRoute: typeof ProtoSkillsSkillIdRoute
   ProtoSourcesSourceIdRoute: typeof ProtoSourcesSourceIdRoute
 }
 
@@ -583,13 +570,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtoSourcesSourceIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/proto/skills_/$skillId': {
-      id: '/proto/skills_/$skillId'
-      path: '/proto/skills/$skillId'
-      fullPath: '/proto/skills/$skillId'
-      preLoaderRoute: typeof ProtoSkillsSkillIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/proto/guidance_/$guidanceId': {
       id: '/proto/guidance_/$guidanceId'
       path: '/proto/guidance/$guidanceId'
@@ -673,7 +653,6 @@ const rootRouteChildren: RootRouteChildren = {
   ProtoWhatsnewRoute: ProtoWhatsnewRoute,
   SkillsIndexRoute: SkillsIndexRoute,
   ProtoGuidanceGuidanceIdRoute: ProtoGuidanceGuidanceIdRoute,
-  ProtoSkillsSkillIdRoute: ProtoSkillsSkillIdRoute,
   ProtoSourcesSourceIdRoute: ProtoSourcesSourceIdRoute,
 }
 export const routeTree = rootRouteImport

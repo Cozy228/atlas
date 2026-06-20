@@ -122,7 +122,7 @@ function MasterList({ selectedId }: { selectedId: string }) {
                     <li key={skill.id}>
                       <Link
                         to="/proto/skills"
-                        search={{ variant: "manpage", skill: skill.id }}
+                        search={{ skill: skill.id }}
                         replace
                         aria-current={isSelected ? "page" : undefined}
                         className={cn(

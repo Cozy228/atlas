@@ -215,62 +215,91 @@ export function getProtoGuidance(id: string): Guidance | undefined {
   return PROTO_BY_ID.get(id) ?? getGuidance(id);
 }
 
+/** Every catalog flow, flat: curated lib fixtures + proto extras + scale set. */
+export function allGuidance(): ReadonlyArray<Guidance> {
+  return [...listGuidance(), ...PROTO_EXTRA, ...SCALE_FLOWS];
+}
+
 /* -------------------------------------------------------------------------- *
- * Destination groups — the index axis. Each band is an outcome you can reach.
+ * Category — the index axis. Every guidance carries ONE flat category: its
+ * subject area, the way a process catalog is filed. Not an imposed lifecycle,
+ * just what the guidance is about. Each flow is classified into exactly one
+ * category by the first keyword rule it matches, so the axis scales with the
+ * catalog instead of hand-listing ids.
  * -------------------------------------------------------------------------- */
 
-export type DestinationGroup = {
+export type GuidanceCategory = {
   id: string;
-  /** The outcome reached by the flows below it. */
-  outcome: string;
-  /** One line describing the kind of journey these flows are. */
+  /** Short category name — shown as a tab / rail entry / section head. */
+  label: string;
+  /** One line on the kind of work this category holds. */
   blurb: string;
-  guidanceIds: ReadonlyArray<string>;
 };
 
-export const DESTINATION_GROUPS: ReadonlyArray<DestinationGroup> = [
-  {
-    id: "to-production",
-    outcome: "Get to production",
-    blurb: "Step-by-step routes that end with a workload live on the platform.",
-    guidanceIds: ["new-app-onboarding", "connect-deploy-pipeline"],
-  },
-  {
-    id: "platform-choice",
-    outcome: "Make a platform choice",
-    blurb: "Branch through the approved options and leave with a defensible decision.",
-    guidanceIds: ["landing-zone-selection", "choose-data-store"],
-  },
-  {
-    id: "pass-a-gate",
-    outcome: "Pass a gate",
-    blurb: "Work the checklist so a milestone clears the first time you submit it.",
-    guidanceIds: ["production-readiness", "security-review-gate"],
-  },
+export const GUIDANCE_CATEGORIES: ReadonlyArray<GuidanceCategory> = [
+  { id: "applications", label: "Applications", blurb: "Stand workloads up and get them serving on the platform." },
+  { id: "data", label: "Data", blurb: "Stores, streams, queues, and the data that moves between them." },
+  { id: "security", label: "Security", blurb: "Secrets, access, and the reviews that clear a security bar." },
+  { id: "operations", label: "Operations", blurb: "Run, observe, scale, and recover a service once it is live." },
+  { id: "platform", label: "Platform", blurb: "Foundational choices the rest of your service inherits." },
 ];
 
-/** Destination groups resolved to their guidance objects (skips unknown ids). */
-export function destinationGroups(): ReadonlyArray<{
-  group: DestinationGroup;
-  items: ReadonlyArray<Guidance>;
-}> {
-  return DESTINATION_GROUPS.map((group) => ({
-    group,
-    items: group.guidanceIds
-      .map((id) => PROTO_BY_ID.get(id))
-      .filter((g): g is Guidance => g !== undefined),
+const has = (g: Guidance, ...needles: string[]): boolean => {
+  // Title + id + destination only — the objective is prose and over-matches
+  // broad words like "access", miscategorising flows.
+  const hay = `${g.title} ${g.id} ${g.destination.title}`.toLowerCase();
+  return needles.some((n) => hay.includes(n));
+};
+
+/** Classify one flow into a single category id (first rule wins). */
+function categoryIdOf(g: Guidance): string {
+  if (has(g, "secret", "credential", "auth", "access", "network exposure", "compliance", "dependency", "iam", "security"))
+    return "security";
+  if (has(g, "data store", "data handling", "queue", "messaging", "cache", "caching", "schema", "export", "warehouse", "stream"))
+    return "data";
+  if (has(g, "logging", "tracing", "autoscal", "backup", "restore", "feature flag", "observability", "resilience", "retry", "rate-limit", "performance", "decommission", "registry", "disaster", "release notes", "blue-green"))
+    return "operations";
+  if (has(g, "landing zone", "region", "compute tier", "tenancy", "rollout", "cost", "environment", "guardrail"))
+    return "platform";
+  return "applications";
+}
+
+export function categoryOf(g: Guidance): GuidanceCategory {
+  const id = categoryIdOf(g);
+  return GUIDANCE_CATEGORIES.find((c) => c.id === id) ?? GUIDANCE_CATEGORIES[0]!;
+}
+
+export type CategoryGroup = { category: GuidanceCategory; items: ReadonlyArray<Guidance> };
+
+/** Categories resolved to their flows, in catalog order; empty ones dropped. */
+export function categoryGroups(): ReadonlyArray<CategoryGroup> {
+  const flows = allGuidance();
+  return GUIDANCE_CATEGORIES.map((category) => ({
+    category,
+    items: flows.filter((g) => categoryIdOf(g) === category.id),
   })).filter((entry) => entry.items.length > 0);
 }
 
-/** Every flow in feed order, each tagged with the outcome group it belongs to. */
-export function allFlows(): ReadonlyArray<{ guidance: Guidance; outcome: string }> {
-  return destinationGroups().flatMap(({ group, items }) =>
-    items.map((guidance) => ({ guidance, outcome: group.outcome })),
-  );
+/* -------------------------------------------------------------------------- *
+ * Journey length — a flow's size, surfaced quietly on each index row so a
+ * short route reads differently from a long one without exposing the internal
+ * shape vocabulary.
+ * -------------------------------------------------------------------------- */
+
+/** How many steps a flow runs (its `flowMetric` count, shape label dropped). */
+export function journeyWeight(g: Guidance): number {
+  return flowMetric(g).value;
+}
+
+/** The most recently reviewed flows — surfaced as a "what changed" entry point. */
+export function recentlyUpdated(n: number): ReadonlyArray<Guidance> {
+  return [...allGuidance()]
+    .sort((a, b) => b.lastReviewed.localeCompare(a.lastReviewed))
+    .slice(0, n);
 }
 
 /* -------------------------------------------------------------------------- *
- * Flow shape — the proto `type` vocabulary (replaces family as the type axis).
+ * Flow shape — the proto `type` vocabulary, still read by the detail view.
  * -------------------------------------------------------------------------- */
 
 export const FLOW_SHAPE: Record<GuidanceType, string> = {
@@ -278,48 +307,6 @@ export const FLOW_SHAPE: Record<GuidanceType, string> = {
   decision: "Decision",
   checklist: "Checklist",
 };
-
-/** One-line description of what each flow shape is, for the by-shape index. */
-export const FLOW_SHAPE_BLURB: Record<GuidanceType, string> = {
-  route: "Linear steps, done in order, ending at a destination.",
-  decision: "Branch through approved options to a defensible choice.",
-  checklist: "Verify a set of conditions before a milestone clears.",
-};
-
-const SHAPE_ORDER: ReadonlyArray<GuidanceType> = ["route", "decision", "checklist"];
-
-/** Flows grouped by their shape (Walkthrough / Decision / Checklist). */
-export function flowsByShape(): ReadonlyArray<{
-  type: GuidanceType;
-  items: ReadonlyArray<Guidance>;
-}> {
-  const flows = allFlows().map((f) => f.guidance);
-  return SHAPE_ORDER.map((type) => ({
-    type,
-    items: flows.filter((g) => g.type === type),
-  })).filter((entry) => entry.items.length > 0);
-}
-
-/**
- * Scale variant of {@link flowsByShape}: the curated flows plus the synthetic
- * SCALE_FLOWS, so the by-shape index can be reviewed with dozens of rows per
- * shape. Used only by the `byshape` direction.
- */
-export function scaledFlowsByShape(): ReadonlyArray<{
-  type: GuidanceType;
-  items: ReadonlyArray<Guidance>;
-}> {
-  const flows = [...allFlows().map((f) => f.guidance), ...SCALE_FLOWS];
-  return SHAPE_ORDER.map((type) => ({
-    type,
-    items: flows.filter((g) => g.type === type),
-  })).filter((entry) => entry.items.length > 0);
-}
-
-/** Total flow count behind the scaled by-shape index. */
-export function scaledFlowTotal(): number {
-  return flowTotal() + SCALE_FLOWS.length;
-}
 
 /** The metric that reads naturally for a flow's shape. */
 export function flowMetric(guidance: Guidance): { value: number; unit: string } {
@@ -339,5 +326,5 @@ export function flowMetric(guidance: Guidance): { value: number; unit: string } 
 }
 
 export function flowTotal(): number {
-  return DESTINATION_GROUPS.reduce((n, g) => n + g.guidanceIds.length, 0);
+  return allGuidance().length;
 }
