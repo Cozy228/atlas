@@ -109,3 +109,40 @@
   citation_label: Pilot limitations
   status: valid
   last_validated_at: 2026-05-05T00:00:00.000Z
+# API Gateway module — the starter snippet leads so disclosure level 1 surfaces it.
+- id: apigateway-terraform-starter
+  source_id: apigateway-module-readme
+  anchor_strategy: markdown-heading
+  title: Terraform starter
+  selector:
+    locator: "#terraform-starter"
+  citation_label: Terraform starter
+  status: valid
+  last_validated_at: 2026-05-05T00:00:00.000Z
+- id: apigateway-rest-api-setup
+  source_id: apigateway-module-readme
+  anchor_strategy: markdown-heading
+  title: REST API setup
+  selector:
+    locator: "#rest-api-setup"
+  citation_label: REST API setup
+  status: valid
+  last_validated_at: 2026-05-05T00:00:00.000Z
+- id: apigateway-lambda-integration
+  source_id: apigateway-module-readme
+  anchor_strategy: markdown-heading
+  title: Lambda integration
+  selector:
+    locator: "#lambda-integration"
+  citation_label: Lambda integration
+  status: valid
+  last_validated_at: 2026-05-05T00:00:00.000Z
+- id: apigateway-app-integration
+  source_id: apigateway-integration-guide
+  anchor_strategy: confluence-section
+  title: Fitting API Gateway into your app
+  selector:
+    locator: apigateway-app-integration
+  citation_label: Fitting API Gateway into your app
+  status: valid
+  last_validated_at: 2026-05-05T00:00:00.000Z

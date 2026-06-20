@@ -126,7 +126,8 @@ const GUIDANCES: ReadonlyArray<Guidance> = [
         id: "choose-landing-zone",
         title: "Choose landing zone",
         kind: "decision",
-        description: "Select the landing zone that matches this workload's data and compliance needs.",
+        description:
+          "Select the landing zone that matches this workload's data and compliance needs.",
         why: "The landing zone sets the guardrails, networking, and IAM boundary your app inherits.",
         tasks: [
           {
@@ -180,7 +181,7 @@ const GUIDANCES: ReadonlyArray<Guidance> = [
             action: {
               type: "copy_text",
               label: "Copy module ref",
-              text: "module \"app\" { source = \"app.terraform.io/example/standard/aws\" }",
+              text: 'module "app" { source = "app.terraform.io/example/standard/aws" }',
             },
           },
         ],
@@ -227,6 +228,123 @@ const GUIDANCES: ReadonlyArray<Guidance> = [
     ],
   },
   {
+    id: "api-gateway-adoption",
+    title: "Adopt API Gateway",
+    type: "route",
+    scenario: "service_enablement",
+    family: "enable",
+    objective:
+      "Help an application team put API Gateway in front of their workload using the approved module.",
+    destination: {
+      title: "API Gateway fronting the application",
+      description:
+        "The app routes through a module-provisioned API Gateway with a private backend.",
+    },
+    owner: { team: "Cloud Platform", support: "cloud-platform-support" },
+    status: "published",
+    version: "1.0.0",
+    lastReviewed: "2026-05-02",
+    appliesTo: {
+      services: ["api-gateway"],
+      landingZones: ["central-landing-zone"],
+    },
+    sources: ["apigateway-module-readme", "apigateway-integration-guide"],
+    steps: [
+      {
+        id: "understand-fit",
+        title: "Understand how it fits",
+        kind: "action",
+        description: "Review where API Gateway sits in your architecture before provisioning.",
+        why: "API Gateway is your public edge — it fronts Lambda or a private VPC-link backend.",
+        tasks: [
+          {
+            id: "open-datasheet",
+            title: "Open the API Gateway datasheet",
+            action: {
+              type: "atlas_page",
+              label: "Open API Gateway",
+              target: "/catalog/api-gateway",
+            },
+          },
+          {
+            id: "review-integration",
+            title: "Review the integration guide",
+            action: {
+              type: "external_link",
+              label: "View integration guide",
+              target: "https://confluence.example.com/display/CLOUD/API+Gateway+Integration",
+            },
+          },
+        ],
+        sources: ["apigateway-integration-guide"],
+      },
+      {
+        id: "get-terraform",
+        title: "Get the Terraform starter",
+        kind: "action",
+        description: "Use the approved module — copy the starter and pin it in your workspace.",
+        why: "Provisioning runs through the approved module, not the console.",
+        tasks: [
+          {
+            id: "open-module",
+            title: "Open the API Gateway module",
+            required: true,
+            action: {
+              type: "tool_link",
+              label: "Open module",
+              target: "https://github.com/acme/terraform-aws-apigateway",
+            },
+          },
+          {
+            id: "copy-starter",
+            title: "Copy the Terraform starter",
+            action: {
+              type: "copy_text",
+              label: "Copy starter",
+              text: 'module "api" {\n  source     = "app.terraform.io/acme/apigateway/aws"\n  name       = "orders-api"\n  protocol   = "HTTP"\n  stage_name = "prod"\n  routes = {\n    "POST /orders"     = { lambda_arn = module.orders_fn.arn }\n    "GET /orders/{id}" = { lambda_arn = module.orders_fn.arn }\n  }\n}',
+            },
+          },
+        ],
+        sources: ["apigateway-module-readme"],
+      },
+      {
+        id: "wire-backend",
+        title: "Wire your backend",
+        kind: "action",
+        description: "Point each route at your application function and keep the backend private.",
+        why: "The module creates the integration and invoke permission from the route's lambda_arn.",
+        tasks: [
+          { id: "set-routes", title: "Map routes to your Lambda ARNs", required: true },
+          {
+            id: "private-backend",
+            title: "Confirm the backend stays private (no public endpoint)",
+            required: true,
+          },
+        ],
+        sources: ["apigateway-module-readme"],
+      },
+      {
+        id: "validate",
+        title: "Validate before production",
+        kind: "checklist",
+        description: "Confirm edge controls before promoting the API.",
+        why: "The gateway is the public entry point — throttling and logging are required.",
+        tasks: [
+          { id: "throttling", title: "Request throttling configured", required: true },
+          { id: "access-logs", title: "Access logging enabled", required: true },
+          { id: "authz", title: "Authorizer attached to protected routes", required: true },
+        ],
+        sources: ["apigateway-integration-guide"],
+      },
+      {
+        id: "done",
+        title: "API Gateway adopted",
+        kind: "destination",
+        description: "The application is fronted by a module-provisioned API Gateway.",
+      },
+    ],
+  },
+  {
     id: "landing-zone-selection",
     title: "Landing Zone Selection",
     type: "decision",
@@ -253,8 +371,15 @@ const GUIDANCES: ReadonlyArray<Guidance> = [
         description: "Capture the workload's data classification, environment, and lifecycle.",
         why: "Zone fit is driven by data sensitivity and how long the workload lives.",
         tasks: [
-          { id: "classify-data", title: "Classify the workload's data sensitivity", required: true },
-          { id: "confirm-lifecycle", title: "Confirm expected lifecycle (temporary vs long-lived)" },
+          {
+            id: "classify-data",
+            title: "Classify the workload's data sensitivity",
+            required: true,
+          },
+          {
+            id: "confirm-lifecycle",
+            title: "Confirm expected lifecycle (temporary vs long-lived)",
+          },
         ],
       },
       {

@@ -43,9 +43,7 @@ export function loadPilotRegistry(
   const feedback = seed.feedback.map((item) => FeedbackSchema.parse(item));
   const sources = seed.sources.map((source) => SourceSchema.parse(source));
   const topics = seed.topics.map((topic) => TopicSchema.parse(topic));
-  const mappings = seed.mappings.map((mapping) =>
-    SourceTopicMappingSchema.parse(mapping),
-  );
+  const mappings = seed.mappings.map((mapping) => SourceTopicMappingSchema.parse(mapping));
 
   const sourceIds = new Set(sources.map((source) => source.id));
   const topicIds = new Set(topics.map((topic) => topic.id));
@@ -203,6 +201,26 @@ export const pilotRegistrySeed = {
       owner_team: "observability-platform",
       support_channel: "#observability",
       entry_tools: [],
+    },
+    {
+      id: "api-gateway",
+      name: "API Gateway",
+      topic_type: "service",
+      category: "networking",
+      status: "active",
+      description: "Managed REST and WebSocket API front doors for application workloads.",
+      owner_team: "cloud-platform",
+      support_channel: "#cloud-platform",
+      entry_tools: [
+        {
+          label: "Terraform module",
+          url: "https://github.com/acme/terraform-aws-apigateway",
+        },
+        {
+          label: "Integration guide",
+          url: "https://confluence.example.com/display/CLOUD/API+Gateway+Integration",
+        },
+      ],
     },
   ],
   sources: [
@@ -362,6 +380,32 @@ export const pilotRegistrySeed = {
       last_reviewed_at: "2026-04-30T00:00:00.000Z",
       review_frequency: "P30D",
     },
+    {
+      id: "apigateway-module-readme",
+      title: "API Gateway Terraform Module",
+      source_class: "terraform-module",
+      location: "github.com/acme/terraform-aws-apigateway",
+      steward: "cloud-platform",
+      visibility: "internal",
+      authority_scope: ["module-usage", "api-gateway"],
+      authority_level: "authoritative",
+      last_observed_at: "2026-05-05T00:00:00.000Z",
+      last_reviewed_at: "2026-05-02T00:00:00.000Z",
+      review_frequency: "P90D",
+    },
+    {
+      id: "apigateway-integration-guide",
+      title: "API Gateway Integration Guide",
+      source_class: "confluence-page",
+      location: "https://confluence.example.com/display/CLOUD/API+Gateway+Integration",
+      steward: "cloud-platform",
+      visibility: "internal",
+      authority_scope: ["integration-patterns", "api-gateway"],
+      authority_level: "authoritative",
+      last_observed_at: "2026-05-05T00:00:00.000Z",
+      last_reviewed_at: "2026-05-02T00:00:00.000Z",
+      review_frequency: "P120D",
+    },
   ],
   anchors: [
     {
@@ -484,24 +528,102 @@ export const pilotRegistrySeed = {
       status: "valid",
       last_validated_at: "2026-05-05T00:00:00.000Z",
     },
+    {
+      id: "apigateway-terraform-starter",
+      source_id: "apigateway-module-readme",
+      anchor_strategy: "markdown-heading",
+      title: "Terraform starter",
+      selector: { locator: "#terraform-starter" },
+      citation_label: "Terraform starter",
+      status: "valid",
+      last_validated_at: "2026-05-05T00:00:00.000Z",
+    },
+    {
+      id: "apigateway-rest-api-setup",
+      source_id: "apigateway-module-readme",
+      anchor_strategy: "markdown-heading",
+      title: "REST API setup",
+      selector: { locator: "#rest-api-setup" },
+      citation_label: "REST API setup",
+      status: "valid",
+      last_validated_at: "2026-05-05T00:00:00.000Z",
+    },
+    {
+      id: "apigateway-lambda-integration",
+      source_id: "apigateway-module-readme",
+      anchor_strategy: "markdown-heading",
+      title: "Lambda integration",
+      selector: { locator: "#lambda-integration" },
+      citation_label: "Lambda integration",
+      status: "valid",
+      last_validated_at: "2026-05-05T00:00:00.000Z",
+    },
+    {
+      id: "apigateway-app-integration",
+      source_id: "apigateway-integration-guide",
+      anchor_strategy: "confluence-section",
+      title: "Fitting API Gateway into your app",
+      selector: { locator: "apigateway-app-integration" },
+      citation_label: "Fitting API Gateway into your app",
+      status: "valid",
+      last_validated_at: "2026-05-05T00:00:00.000Z",
+    },
   ],
   feedback: pilotFeedbackSeed,
   mappings: [
     { id: "map-textract-module", source_id: "textract-module-readme", topic_id: "aws-textract" },
-    { id: "map-textract-networking", source_id: "textract-module-readme", topic_id: "private-networking" },
+    {
+      id: "map-textract-networking",
+      source_id: "textract-module-readme",
+      topic_id: "private-networking",
+    },
     { id: "map-bedrock-module", source_id: "bedrock-module-readme", topic_id: "aws-bedrock" },
     { id: "map-lambda-module", source_id: "lambda-module-readme", topic_id: "serverless-compute" },
     { id: "map-central-lz", source_id: "central-lz-confluence", topic_id: "central-landing-zone" },
-    { id: "map-regulated-lz", source_id: "regulated-lz-confluence", topic_id: "regulated-landing-zone" },
+    {
+      id: "map-regulated-lz",
+      source_id: "regulated-lz-confluence",
+      topic_id: "regulated-landing-zone",
+    },
     { id: "map-sandbox-lz", source_id: "sandbox-lz-confluence", topic_id: "sandbox-landing-zone" },
     { id: "map-s3-policy", source_id: "s3-policy-doc", topic_id: "s3-guardrails" },
     { id: "map-legacy-s3-policy", source_id: "legacy-s3-policy", topic_id: "s3-guardrails" },
-    { id: "map-networking-policy", source_id: "private-networking-policy", topic_id: "private-networking" },
-    { id: "map-networking-central", source_id: "private-networking-policy", topic_id: "central-landing-zone" },
+    {
+      id: "map-networking-policy",
+      source_id: "private-networking-policy",
+      topic_id: "private-networking",
+    },
+    {
+      id: "map-networking-central",
+      source_id: "private-networking-policy",
+      topic_id: "central-landing-zone",
+    },
     { id: "map-iam-boundary", source_id: "iam-boundary-policy", topic_id: "iam-boundary" },
-    { id: "map-iam-regulated", source_id: "iam-boundary-policy", topic_id: "regulated-landing-zone" },
-    { id: "map-logging-standard", source_id: "logging-standard-doc", topic_id: "logging-monitoring" },
-    { id: "map-reference-textract", source_id: "platform-reference-guide", topic_id: "aws-textract" },
-    { id: "map-reference-landing-zone", source_id: "platform-reference-guide", topic_id: "central-landing-zone" },
+    {
+      id: "map-iam-regulated",
+      source_id: "iam-boundary-policy",
+      topic_id: "regulated-landing-zone",
+    },
+    {
+      id: "map-logging-standard",
+      source_id: "logging-standard-doc",
+      topic_id: "logging-monitoring",
+    },
+    {
+      id: "map-reference-textract",
+      source_id: "platform-reference-guide",
+      topic_id: "aws-textract",
+    },
+    {
+      id: "map-reference-landing-zone",
+      source_id: "platform-reference-guide",
+      topic_id: "central-landing-zone",
+    },
+    { id: "map-apigateway-module", source_id: "apigateway-module-readme", topic_id: "api-gateway" },
+    {
+      id: "map-apigateway-integration",
+      source_id: "apigateway-integration-guide",
+      topic_id: "api-gateway",
+    },
   ],
 } satisfies PilotRegistrySeed;

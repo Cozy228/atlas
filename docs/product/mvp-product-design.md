@@ -289,6 +289,12 @@ covers the test-time equivalence criterion, not the live consumption protocol. O
   honestly labeled if fixture.
 - Context API deployable; Portal and Skill pass the bundle-equivalence suite.
 - One hero journey (`route`) live and registry-backed; one authority conflict surfaced.
+- **API Gateway adoption hard gate** ([`api-gateway-adoption-gate.md`](./api-gateway-adoption-gate.md)):
+  a consuming app (or its agent) can complete the full adoption journey against the local
+  product — discover the service, read how it fits, get the authoritative Terraform module
+  with a cited starter snippet, and open the governed adoption route — entirely from
+  registered, cited Sources (no synthesis). Proven by the `api-gateway` scenario in
+  `packages/atlas-acceptance`.
 - `pnpm lint` / `typecheck` / `test` clean.
 
 ## 15 · See also

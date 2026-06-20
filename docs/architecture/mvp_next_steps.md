@@ -320,3 +320,5 @@ MVP is complete when:
 - The Skill consumes the same Context API.
 - `/skills`, `/guidance`, and `/catalog` are real product surfaces, not placeholders.
 - Portal UI clearly presents governed context, authority, lifecycle warnings, and cited answers.
+- The API Gateway adoption journey passes end-to-end as a hard gate: discover -> fit ->
+  cited Terraform starter -> governed adoption route, all grounded (acceptance scenario).

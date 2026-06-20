@@ -4,6 +4,8 @@ import { handleContextRequest } from "@atlas/context-layer";
 import {
   askAtlas,
   createDailyRateLimiter,
+  getGuidance,
+  relatedGuidanceForTopic,
   renderServiceDetail,
   renderLandingZoneNavigator,
   renderSourceLookup,
@@ -83,5 +85,43 @@ describe("Atlas V1 acceptance", () => {
     expect(renderSourceLookup(restricted)).toContain("restricted_source");
     expect(renderSourceLookup(broken)).toContain("broken_anchor");
     expect(missing.warnings[0]?.code).toBe("no_registered_source");
+  });
+
+  it("HARD GATE: proves the API Gateway adoption journey is answerable end-to-end, grounded and cited", async () => {
+    // 1. The service is registered and its governed bundle resolves.
+    const response = await handleContextRequest({ topic_id: "api-gateway" });
+    expect(response.status).toBe(200);
+    const bundle = ContextBundleResponseSchema.parse(response.body);
+
+    // 2. The Portal renders the datasheet for a human adopter.
+    const html = renderServiceDetail(bundle);
+    expect(html).toContain("API Gateway");
+    expect(html).toContain("authoritative");
+
+    // 3. "Give me terraform": an authoritative terraform-module Source leads with a
+    //    cited starter snippet — grounded, never synthesized.
+    const moduleSource = bundle.sources.find(
+      (entry) => entry.source.source_class === "terraform-module",
+    );
+    expect(moduleSource?.source.authority_level).toBe("authoritative");
+    const starter = moduleSource?.excerpts[0];
+    expect(starter?.text).toContain('module "api"');
+    expect(starter?.citation.source_id).toBe("apigateway-module-readme");
+
+    // 4. Relevance: a free-text "api gateway terraform" query returns the API Gateway
+    //    module and NOT unrelated terraform modules (Textract/Bedrock/Lambda).
+    const queryBundle = ContextBundleResponseSchema.parse(
+      (await handleContextRequest({ query: "api gateway terraform" })).body,
+    );
+    const queriedIds = queryBundle.sources.map((entry) => entry.source.id);
+    expect(queriedIds).toContain("apigateway-module-readme");
+    expect(queriedIds).not.toContain("textract-module-readme");
+
+    // 5. A governed adoption guide exists, is a route, and is wired to the topic.
+    const guide = getGuidance("api-gateway-adoption");
+    expect(guide?.type).toBe("route");
+    expect(relatedGuidanceForTopic("api-gateway").map((g) => g.id)).toContain(
+      "api-gateway-adoption",
+    );
   });
 });

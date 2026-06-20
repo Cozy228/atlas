@@ -154,3 +154,29 @@
   last_observed_at: 2026-05-05T00:00:00.000Z
   last_reviewed_at: 2026-04-30T00:00:00.000Z
   review_frequency: P30D
+- id: apigateway-module-readme
+  title: API Gateway Terraform Module
+  source_class: terraform-module
+  location: github.com/acme/terraform-aws-apigateway
+  steward: cloud-platform
+  visibility: internal
+  authority_scope:
+    - module-usage
+    - api-gateway
+  authority_level: authoritative
+  last_observed_at: 2026-05-05T00:00:00.000Z
+  last_reviewed_at: 2026-05-02T00:00:00.000Z
+  review_frequency: P90D
+- id: apigateway-integration-guide
+  title: API Gateway Integration Guide
+  source_class: confluence-page
+  location: https://confluence.example.com/display/CLOUD/API+Gateway+Integration
+  steward: cloud-platform
+  visibility: internal
+  authority_scope:
+    - integration-patterns
+    - api-gateway
+  authority_level: authoritative
+  last_observed_at: 2026-05-05T00:00:00.000Z
+  last_reviewed_at: 2026-05-02T00:00:00.000Z
+  review_frequency: P120D
