@@ -283,6 +283,147 @@ export const ApiErrorResponseSchema = z
   })
   .strict();
 
+/* -------------------------------------------------------------------------- *
+ * Guidance manifest
+ *
+ * The authoring/import contract for route-guidance objects (see
+ * `docs/product/guidance_design.md`). Guidance -> steps -> tasks, rendered as a
+ * vertical stepper. AI may draft a manifest from a process document; an owner
+ * reviews it; the validate/import gate checks it against this schema before it
+ * enters the registry. snake_case matches the Source/Topic API convention so a
+ * `data/guidance/*.yaml` file validates directly.
+ *
+ * `type` is a renderer preset, not a separate schema (guidance_design §6). MVP
+ * ships only `route`; `decision`/`checklist` are modelled here for forward
+ * compatibility, not yet in MVP renderer scope.
+ * -------------------------------------------------------------------------- */
+
+export const guidanceTypes = ["route", "decision", "checklist"] as const;
+export const scenarioFamilies = ["onboard", "decide", "enable", "validate"] as const;
+export const stepKinds = [
+  "action",
+  "decision",
+  "checklist",
+  "support",
+  "destination",
+] as const;
+export const guidanceStatuses = [
+  "draft",
+  "published",
+  "needs_review",
+  "deprecated",
+] as const;
+export const guidanceActionTypes = [
+  "atlas_page",
+  "external_link",
+  "source_link",
+  "tool_link",
+  "support_link",
+  "copy_text",
+] as const;
+/** Intrinsic step markers independent of which step is selected. */
+export const stepMarkers = ["blocked", "needs_support"] as const;
+
+export const GuidanceTypeSchema = z.enum(guidanceTypes);
+export const ScenarioFamilySchema = z.enum(scenarioFamilies);
+export const StepKindSchema = z.enum(stepKinds);
+export const GuidanceStatusSchema = z.enum(guidanceStatuses);
+export const GuidanceActionTypeSchema = z.enum(guidanceActionTypes);
+export const StepMarkerSchema = z.enum(stepMarkers);
+
+export const GuidanceActionSchema = z
+  .object({
+    type: GuidanceActionTypeSchema,
+    // Wayfinding only: Atlas never executes work on the user's behalf
+    // (guidance_design §5.9). Labels should read Open/View/Copy/Contact —
+    // never Submit/Run/Apply/Create for external systems. The validate gate
+    // surfaces violations as a soft warning rather than a hard schema error.
+    label: z.string().min(1),
+    /** atlas_page path, external/tool/support url. */
+    target: z.string().min(1).optional(),
+    /** source registry id for source_link. */
+    ref: z.string().min(1).optional(),
+    /** payload for copy_text. */
+    text: z.string().min(1).optional(),
+  })
+  .strict();
+
+export const GuidanceTaskSchema = z
+  .object({
+    id: z.string().min(1),
+    title: z.string().min(1),
+    required: z.boolean().optional(),
+    action: GuidanceActionSchema.optional(),
+  })
+  .strict();
+
+export const DecisionOptionSchema = z
+  .object({
+    id: z.string().min(1),
+    title: z.string().min(1),
+    description: z.string().min(1).optional(),
+    /** atlas_page path the option routes to. */
+    to: z.string().min(1).optional(),
+  })
+  .strict();
+
+export const GuidanceStepSchema = z
+  .object({
+    id: z.string().min(1),
+    title: z.string().min(1),
+    kind: StepKindSchema,
+    description: z.string().min(1).optional(),
+    /** Why this step matters, shown above the task list. */
+    why: z.string().min(1).optional(),
+    tasks: z.array(GuidanceTaskSchema).optional(),
+    /** source registry ids cited by this step. */
+    sources: z.array(z.string().min(1)).optional(),
+    support: z
+      .object({ team: z.string().min(1), channel: z.string().min(1) })
+      .strict()
+      .optional(),
+    /** decision-step branch options. */
+    options: z.array(DecisionOptionSchema).optional(),
+    marker: StepMarkerSchema.optional(),
+  })
+  .strict();
+
+export const GuidanceSchema = z
+  .object({
+    id: z.string().min(1),
+    title: z.string().min(1),
+    type: GuidanceTypeSchema,
+    scenario: z.string().min(1),
+    family: ScenarioFamilySchema,
+    objective: z.string().min(1),
+    destination: z
+      .object({ title: z.string().min(1), description: z.string().min(1).optional() })
+      .strict(),
+    owner: z
+      .object({ team: z.string().min(1), support: z.string().min(1) })
+      .strict(),
+    status: GuidanceStatusSchema,
+    version: z.string().min(1),
+    last_reviewed: z.string().date(),
+    applies_to: z
+      .object({
+        capabilities: z.array(z.string().min(1)).optional(),
+        landing_zones: z.array(z.string().min(1)).optional(),
+        guardrails: z.array(z.string().min(1)).optional(),
+      })
+      .strict()
+      .optional(),
+    sources: z.array(z.string().min(1)).optional(),
+    steps: z.array(GuidanceStepSchema).min(1),
+  })
+  .strict()
+  .refine((g) => g.steps[g.steps.length - 1]?.kind === "destination", {
+    message: "guidance.steps must end with a destination step",
+    path: ["steps"],
+  });
+
+export const GuidanceResponseSchema = z.object({ guidance: GuidanceSchema }).strict();
+
 export type SourceClass = z.infer<typeof SourceClassSchema>;
 export type TopicType = z.infer<typeof TopicTypeSchema>;
 export type AuthorityLevel = z.infer<typeof AuthorityLevelSchema>;
@@ -320,3 +461,22 @@ export type Warning = z.infer<typeof WarningSchema>;
 export type ExpansionPath = z.infer<typeof ExpansionPathSchema>;
 export type ContextBundleResponse = z.infer<typeof ContextBundleResponseSchema>;
 export type ApiErrorResponse = z.infer<typeof ApiErrorResponseSchema>;
+export type GuidanceType = z.infer<typeof GuidanceTypeSchema>;
+export type ScenarioFamily = z.infer<typeof ScenarioFamilySchema>;
+export type StepKind = z.infer<typeof StepKindSchema>;
+export type GuidanceStatus = z.infer<typeof GuidanceStatusSchema>;
+export type GuidanceActionType = z.infer<typeof GuidanceActionTypeSchema>;
+export type StepMarker = z.infer<typeof StepMarkerSchema>;
+export type GuidanceAction = z.infer<typeof GuidanceActionSchema>;
+export type GuidanceTask = z.infer<typeof GuidanceTaskSchema>;
+export type DecisionOption = z.infer<typeof DecisionOptionSchema>;
+export type GuidanceStep = z.infer<typeof GuidanceStepSchema>;
+export type Guidance = z.infer<typeof GuidanceSchema>;
+export type GuidanceResponse = z.infer<typeof GuidanceResponseSchema>;
+
+export {
+  validateGuidanceDocument,
+  validateGuidanceManifest,
+  type GuidanceValidation,
+  type ManifestIssue,
+} from "./guidanceManifest.js";
