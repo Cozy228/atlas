@@ -39,7 +39,7 @@ describe("explore service icons", () => {
     expect(azureIconSource).toContain("AZURE_ICON_MAP");
   });
 
-  it("supports larger icon sizes for capability identity surfaces", async () => {
+  it("supports larger icon sizes for service identity surfaces", async () => {
     const source = await readFile(new URL("./service-icon-frame.tsx", import.meta.url), "utf8");
 
     expect(source).toContain('xl: "size-12"');

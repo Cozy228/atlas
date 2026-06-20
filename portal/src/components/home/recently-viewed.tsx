@@ -6,7 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
 export type RecentItem =
-  | { kind: "capability"; topicId: string; name: string }
+  | { kind: "service"; topicId: string; name: string }
   | { kind: "landing-zone"; topicId: string; name: string }
   | { kind: "source"; sourceId: string; name: string };
 
@@ -72,7 +72,7 @@ function isRecentItem(value: unknown): value is RecentItem {
   if (typeof candidate.name !== "string") return false;
   if (candidate.kind === "source") return typeof candidate.sourceId === "string";
   return (
-    (candidate.kind === "capability" || candidate.kind === "landing-zone") &&
+    (candidate.kind === "service" || candidate.kind === "landing-zone") &&
     typeof candidate.topicId === "string"
   );
 }
@@ -103,7 +103,7 @@ function RecentlyViewedClient() {
   if (items.length === 0) {
     return (
       <p className="type-detail leading-5 text-muted-foreground">
-        Open a capability or landing zone to populate this list.
+        Open a service or landing zone to populate this list.
       </p>
     );
   }

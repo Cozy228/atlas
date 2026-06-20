@@ -39,7 +39,7 @@ export function buildLlmsTxt(): string {
 
 ## Pages
 
-- [Capability catalog](${PORTAL_ORIGIN}/catalog): registered platform capabilities
+- [Service catalog](${PORTAL_ORIGIN}/catalog): registered platform services
 - [Sources](${PORTAL_ORIGIN}/sources): registered systems of record Atlas can cite
 - [Guidance](${PORTAL_ORIGIN}/guidance): evidence-backed platform guidance
 `;

@@ -23,7 +23,7 @@ import { cn } from "@/lib/utils";
 export type AskTab = "search" | "ask";
 
 const SUGGESTIONS = [
-  { category: "Capability", prompt: "Which storage service should a multi-region workload use?" },
+  { category: "Service", prompt: "Which storage service should a multi-region workload use?" },
   { category: "Availability", prompt: "Is Bedrock available in the DR outpost?" },
   { category: "Governance", prompt: "What approvals does a GDC deployment need?" },
   { category: "Onboarding", prompt: "How do I onboard a new application to the platform?" },

@@ -172,7 +172,7 @@ export function buildOpenApiDocument() {
       "/topics": {
         get: {
           operationId: "discoverTopics",
-          summary: "Discover topics (capabilities, landing zones, guardrail areas)",
+          summary: "Discover topics (services, landing zones, guardrail areas)",
           description:
             "Search the registered topics. Start here to resolve a free-text question to a `topic_id`.",
           parameters: [

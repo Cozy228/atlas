@@ -127,14 +127,14 @@ export const SKILLS: ReadonlyArray<Skill> = [
     id: "region-rollout",
     name: "Region Rollout",
     description:
-      "Generates a phased availability plan for promoting a capability across regions with sign-off gates.",
+      "Generates a phased availability plan for promoting a service across regions with sign-off gates.",
     version: "1.2.0",
     tags: ["availability", "rollout"],
     stage: "rollout",
     maintainer: "Platform Operations",
     updatedAt: "2026-04-18",
     whatItDoes: [
-      "Reads the capability's current availability projection per region.",
+      "Reads the service's current availability projection per region.",
       "Generates a phased promotion plan (wave order, ETAs, sign-off owners).",
       "Emits the plan as a reviewable file for the availability map to track.",
     ],

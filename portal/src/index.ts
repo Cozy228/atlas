@@ -11,7 +11,7 @@ export {
 } from "./ask/askAtlas.js";
 export {
   buildFeedbackPayload,
-  renderCapabilityDetail,
+  renderServiceDetail,
   renderLandingZoneNavigator,
   renderPortalHome,
   renderSourceLookup,

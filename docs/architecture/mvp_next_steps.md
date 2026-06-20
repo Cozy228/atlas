@@ -222,12 +222,12 @@ Acceptance criteria:
 
 ### 8. Complete The Unified Catalog
 
-`/catalog` should be the canonical browse surface for capabilities, landing zones, guardrail areas, related sources, and related guidance.
+`/catalog` should be the canonical browse surface for services, landing zones, guardrail areas, related sources, and related guidance.
 
 Expected outputs:
 
 - Unified Catalog index.
-- Shared detail shell for capability, landing zone, and guardrail topics.
+- Shared detail shell for service, landing zone, and guardrail topics.
 - Related sources, related guidance, warnings, owner, support channel, and entry tools.
 - `/sources` and `/guidance` should connect into Catalog without creating competing browse systems.
 

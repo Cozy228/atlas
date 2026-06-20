@@ -88,7 +88,7 @@ These are the concrete rules the implementation must follow. Sources at the end.
 
 - **Few, curated tools**, not one-per-endpoint. More tools ≠ better; tool defs are
   loaded upfront and cost tokens (58 tools ≈ 55K tokens before the first turn).
-- **Search, not list:** `atlas_search_capability`, not `list_capabilities`.
+- **Search, not list:** `atlas_search_service`, not `list_services`.
 - **Namespace every tool** with the `atlas_` prefix; **unambiguous params**
   (`source_id`, not `source`).
 - **Return high-signal fields only**; prefer Atlas's **semantic ids** over opaque
@@ -115,7 +115,7 @@ These are the concrete rules the implementation must follow. Sources at the end.
   the minimum instructions that pass them.
 - Reuse Atlas's **consistent terminology** verbatim from `CONTEXT.md`; no
   time-sensitive statements; concrete examples over abstract description.
-- If the skill references MCP tools, use fully-qualified names (`Atlas:atlas_search_capability`).
+- If the skill references MCP tools, use fully-qualified names (`Atlas:atlas_search_service`).
 
 ### Agent Skills Discovery — exact wire spec (Cloudflare RFC v0.2.0)
 
@@ -171,7 +171,7 @@ keep a trusted-domain allowlist.
     {
       "name": "atlas-context-consumer",
       "type": "skill-md",
-      "description": "Resolve governed, citation-backed platform context from Atlas (capabilities, sources, regional availability) through the Context API bundle. Use when an agent needs an authoritative, sourced answer about a cloud platform capability instead of guessing.",
+      "description": "Resolve governed, citation-backed platform context from Atlas (services, sources, regional availability) through the Context API bundle. Use when an agent needs an authoritative, sourced answer about a cloud platform service instead of guessing.",
       "url": "/.well-known/agent-skills/atlas-context-consumer/SKILL.md",
       "digest": "sha256:<recomputed-from-file-bytes-at-build>"
     }
@@ -182,7 +182,7 @@ keep a trusted-domain allowlist.
 ```markdown
 ---
 name: atlas-context-consumer
-description: Resolve governed, citation-backed platform context from Atlas (capabilities, sources, regional availability) through the Context API bundle. Use when an agent needs an authoritative, sourced answer about a cloud platform capability instead of guessing.
+description: Resolve governed, citation-backed platform context from Atlas (services, sources, regional availability) through the Context API bundle. Use when an agent needs an authoritative, sourced answer about a cloud platform service instead of guessing.
 ---
 
 # Consuming Atlas context
@@ -192,7 +192,7 @@ Excerpt without its Citation. See `CONTEXT.md` vocabulary (Source, Anchor,
 Excerpt, Citation, restricted_source, stale_source).
 
 ## Steps
-1. Discover the capability: `GET /api/topics?query=...`  (or MCP `atlas_search_capability`)
+1. Discover the service: `GET /api/topics?query=...`  (or MCP `atlas_search_service`)
 2. Fetch the context bundle for the chosen topic/source.
 3. Surface each claim with its Citation; honor `restricted_source` / `stale_source`
    warnings verbatim — do not hide or soften them.
@@ -292,9 +292,9 @@ already exists** before the web-crawler checklist.
 | Agent surface | Backed by | Notes |
 |---|---|---|
 | `llms.txt` links, `sitemap.xml` | Topic/Source discovery responses | Enumerate canonical detail URLs |
-| Markdown of a capability/source/guidance page | Context bundle for that record | Render the same data the route loader uses, as clean Markdown |
+| Markdown of a service/source/guidance page | Context bundle for that record | Render the same data the route loader uses, as clean Markdown |
 | `openapi.json` | `contextApiClient` interface + contract test | Describe discovery + bundle + feedback endpoints |
-| MCP `atlas_search_capability` / `atlas_get_source` / `atlas_get_availability` | Topic discovery / Source response / availability projection | Read-only, namespaced, search-first; semantic ids + Citation in responses |
+| MCP `atlas_search_service` / `atlas_get_source` / `atlas_get_availability` | Topic discovery / Source response / availability projection | Read-only, namespaced, search-first; semantic ids + Citation in responses |
 
 ## Phased implementation
 
@@ -328,7 +328,7 @@ curl -fsS  "$BASE/llms.txt" | head
    publication source of truth; a Context-API bundle parity test before claiming
    done (see the handoff constraints above). discovery v0.2 shape, `sha256:` digest.
 2. Read-only **MCP facade** over `handleHttpRequest` + `/.well-known/mcp/server-card.json`.
-   A small, curated, namespaced, search-first tool set: `atlas_search_capability`,
+   A small, curated, namespaced, search-first tool set: `atlas_search_service`,
    `atlas_get_source`, `atlas_get_availability`, `atlas_get_context_bundle` — not
    one-tool-per-endpoint. Responses carry semantic ids + the Citation; support
    `response_format` and pagination per the best-practices section. No write tools

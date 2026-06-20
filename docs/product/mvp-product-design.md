@@ -137,9 +137,9 @@ swap**.
 | Surface | MVP role |
 |---|---|
 | Home | Core — welcoming directed entry (kept as-is) |
-| Catalog + Capability detail | Core — what exists / who owns / where authoritative |
+| Catalog + Service detail | Core — what exists / who owns / where authoritative |
 | Sources | Core — registry ledger: locator + authority + freshness |
-| Availability | Core — region×capability, governed (Regions merges in) |
+| Availability | Core — region×service, governed (Regions merges in) |
 | Guardrails | Core — authority + severity |
 | Guidance | Core — `route` type, **one** journey (§11) |
 | What's New | Core — editorial change surface |
@@ -239,8 +239,11 @@ have a contract and are ready to build):
 
 Also contracted this session (cross-cutting vocabulary): **Service** = catalog AWS-service
 entry, a facet of `Topic`; Landing Zone/Guardrail/Availability are their own surfaces
-(CONTEXT). **Public-safe naming** = neutral, de-branded (Global Cloud Regions / Federated
-Landing Zone / primary·dr·future-dr); existing `acme` references to be de-branded too.
+(CONTEXT). The word **`capability` is purged from live code/schema/UI** — the `topic_type`
+value is `service` (was `capability`), `Topic` the type stays; goal
+`goal_prompt_capability_to_service_rename.md`. **Public-safe naming** = neutral, de-branded
+(Global Cloud Regions / Federated Landing Zone / primary·dr·future-dr); existing `acme`
+references to be de-branded too.
 
 **Still open:**
 7. Beyond-scope `Feedback(missing)` modeling — `target_id` for a non-existent topic; where

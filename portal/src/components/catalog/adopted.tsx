@@ -9,7 +9,7 @@
  * here because the mainline route keeps them private — the mainline file is
  * not modified.
  *
- * Capabilities, landing zones, and guardrail areas all link to their detail
+ * Services, landing zones, and guardrail areas all link to their detail
  * routes (`/catalog/$topicId`, `/guardrails/$guardrailId`). Sources are their
  * own surface at `/sources`, so the catalog carries no Sources tab.
  */
@@ -43,11 +43,11 @@ import {
   PopoverTitle,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { findAvailabilityServiceForTopic } from "@/lib/capability-service";
+import { findAvailabilityServiceForTopic } from "@/lib/availability-service";
 import { cn } from "@/lib/utils";
 
 type ViewMode = "cards" | "table";
-type AdoptedTab = "capabilities" | "landing-zones" | "guardrails";
+type AdoptedTab = "services" | "landing-zones" | "guardrails";
 
 export function CatalogAdopted({
   topics,
@@ -56,11 +56,11 @@ export function CatalogAdopted({
   topics: ReadonlyArray<Topic>;
   zone: LandingZoneData;
 }) {
-  const [tab, setTab] = useState<AdoptedTab>("capabilities");
+  const [tab, setTab] = useState<AdoptedTab>("services");
   const [query, setQuery] = useState("");
   const [view, setView] = useState<ViewMode>("cards");
 
-  const capabilities = topics.filter((topic) => topic.topic_type === "capability");
+  const serviceTopics = topics.filter((topic) => topic.topic_type === "service");
   const landingZones = topics.filter((topic) => topic.topic_type === "landing-zone");
   const guardrails = topics.filter((topic) => topic.topic_type === "guardrail-area");
 
@@ -72,14 +72,14 @@ export function CatalogAdopted({
             Catalog
           </h1>
           <p className="w-fit max-w-[60ch] bg-background text-[13.5px] leading-[1.55] text-muted-foreground">
-            Approved capabilities, landing zones, and guardrail areas, with where they run and the
+            Approved services, landing zones, and guardrail areas, with where they run and the
             authoritative sources behind them.
           </p>
         </header>
         <CatalogSearchField
           value={query}
           onChange={setQuery}
-          placeholder="Filter capabilities, zones, guardrails…"
+          placeholder="Filter services, zones, guardrails…"
           className="h-10 w-full rounded-md shadow-none sm:max-w-[420px]"
         />
       </div>
@@ -87,10 +87,10 @@ export function CatalogAdopted({
       <div className="flex items-center justify-between gap-4 border-b border-border">
         <div role="tablist" aria-label="Catalog type" className="flex gap-0.5">
           <TypeTab
-            label="Capabilities"
-            count={capabilities.length}
-            active={tab === "capabilities"}
-            onSelect={() => setTab("capabilities")}
+            label="Services"
+            count={serviceTopics.length}
+            active={tab === "services"}
+            onSelect={() => setTab("services")}
           />
           <TypeTab
             label="Landing zones"
@@ -127,10 +127,10 @@ export function CatalogAdopted({
       </div>
 
       <div key={tab}>
-        {tab === "capabilities" ? (
+        {tab === "services" ? (
           <TopicWorkspace
-            type="capability"
-            topics={capabilities}
+            type="service"
+            topics={serviceTopics}
             zone={zone}
             query={query}
             view={view}
@@ -229,13 +229,13 @@ function capAvailStatus(
 /* -------------------------------------------------------------------------- */
 
 const TYPE_NOUN: Record<Topic["topic_type"], string> = {
-  capability: "capabilities",
+  service: "services",
   "landing-zone": "landing zones",
   "guardrail-area": "guardrail areas",
 };
 
 const TYPE_COLUMN: Record<Topic["topic_type"], string> = {
-  capability: "Service",
+  service: "Service",
   "landing-zone": "Landing zone",
   "guardrail-area": "Guardrail area",
 };
@@ -259,7 +259,7 @@ function TopicWorkspace({
   query: string;
   view: ViewMode;
 }) {
-  const isCapability = type === "capability";
+  const isService = type === "service";
   const [domains, setDomains] = useState<ReadonlySet<string>>(new Set());
   const [status, setStatus] = useState("all");
   const [region, setRegion] = useState("all");
@@ -284,7 +284,7 @@ function TopicWorkspace({
         if (!haystack.includes(q)) return false;
       }
       if (domains.size && !domains.has(topic.category)) return false;
-      if (isCapability) {
+      if (isService) {
         const service = serviceFor(topic);
         if (region !== "all") {
           const cell = service?.availability[region]?.status;
@@ -296,18 +296,18 @@ function TopicWorkspace({
       }
       return true;
     });
-  }, [topics, query, domains, status, region, isCapability, serviceFor, zone.locations]);
+  }, [topics, query, domains, status, region, isService, serviceFor, zone.locations]);
 
   const domainOptions = useMemo(() => buildDomainOptions(topics), [topics]);
   const statusOptions = useMemo<ReadonlyArray<StatusOption>>(
     () =>
-      isCapability
+      isService
         ? [
             { value: "available", label: "Available" },
             { value: "planned", label: "Planned" },
           ]
         : buildTopicStatusOptions(topics),
-    [isCapability, topics],
+    [isService, topics],
   );
 
   const dirty = domains.size > 0 || status !== "all" || region !== "all";
@@ -333,7 +333,7 @@ function TopicWorkspace({
         statusOptions={statusOptions}
         status={status}
         onStatusChange={setStatus}
-        regions={isCapability ? zone.locations : null}
+        regions={isService ? zone.locations : null}
         region={region}
         onRegionChange={setRegion}
         dirty={dirty}
@@ -526,7 +526,7 @@ function CardsView({
   zone: LandingZoneData;
   serviceFor: ServiceLookup;
 }) {
-  if (type === "capability") {
+  if (type === "service") {
     const grouped = groupByCategory(topics);
     return (
       <div className="flex flex-col gap-8">
@@ -535,7 +535,7 @@ function CardsView({
             <CategoryHeader category={category} count={items.length} />
             <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
               {items.map((topic) => (
-                <CapabilityCard
+                <ServiceCard
                   key={topic.id}
                   topic={topic}
                   service={serviceFor(topic)}
@@ -618,7 +618,7 @@ function TableView({
               </Td>
               <Td className="text-muted-foreground">{topic.category}</Td>
               <Td>
-                {type === "capability" ? (
+                {type === "service" ? (
                   <AvailabilityStatusCell
                     topic={topic}
                     service={serviceFor(topic)}
@@ -726,7 +726,7 @@ function AvailabilityStatusCell({
         onClick={(event: React.MouseEvent) => event.stopPropagation()}
         aria-label={`Availability for ${topic.name}, by region`}
       >
-        <CapabilityStatusChip status={status} regionCount={active.length} />
+        <ServiceStatusChip status={status} regionCount={active.length} />
         <IconChevronDown className="size-3 text-muted-foreground" aria-hidden />
       </PopoverTrigger>
       <PopoverContent
@@ -775,7 +775,7 @@ function AvailabilityStatusCell({
   );
 }
 
-function CapabilityStatusChip({
+function ServiceStatusChip({
   status,
   regionCount,
 }: {
@@ -857,7 +857,7 @@ function CategoryHeader({ category, count }: { category: string; count: number }
   );
 }
 
-/* Surface card with faint brand corner ticks (Blueprint capability card). */
+/* Surface card with faint brand corner ticks (Blueprint service card). */
 const CARD_BASE = cn(
   "group relative flex h-full flex-col gap-2.5 rounded-sm border border-border bg-card p-4 transition-[border-color,box-shadow]",
   "hover:border-border-strong hover:shadow-sm",
@@ -881,7 +881,7 @@ function CardHead({ icon, title, slug }: { icon: React.ReactNode; title: string;
   );
 }
 
-function CapabilityCard({
+function ServiceCard({
   topic,
   service,
   locations,

@@ -2,7 +2,7 @@
  * fixtures for `/whatsnew`.
  *
  * A platform changelog rendered as a broadsheet: releases, policy changes,
- * capability additions, deprecations, and resolved incidents, newest first.
+ * service additions, deprecations, and resolved incidents, newest first.
  * Fictional and public-safe. Home's "What changed" section links here; the
  * three Home announcements are the most recent slice of this feed.
  */

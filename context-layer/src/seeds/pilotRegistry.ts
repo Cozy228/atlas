@@ -92,10 +92,10 @@ export const pilotRegistrySeed = {
     {
       id: "aws-textract",
       name: "AWS Textract",
-      topic_type: "capability",
+      topic_type: "service",
       category: "ai-ml",
       status: "active",
-      description: "Managed OCR capability for document workflows.",
+      description: "Managed OCR service for document workflows.",
       owner_team: "cloud-platform",
       support_channel: "#cloud-platform",
       entry_tools: [
@@ -108,7 +108,7 @@ export const pilotRegistrySeed = {
     {
       id: "aws-bedrock",
       name: "AWS Bedrock",
-      topic_type: "capability",
+      topic_type: "service",
       category: "ai-ml",
       status: "active",
       description: "Managed foundation model access for approved workloads.",
@@ -119,7 +119,7 @@ export const pilotRegistrySeed = {
     {
       id: "serverless-compute",
       name: "Serverless Compute",
-      topic_type: "capability",
+      topic_type: "service",
       category: "compute",
       status: "active",
       description: "Lambda-based compute patterns for event-driven workloads.",

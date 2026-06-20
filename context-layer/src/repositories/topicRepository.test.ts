@@ -5,10 +5,10 @@ import { InMemoryTopicRepository } from "./topicRepository.js";
 const topic: Topic = {
   id: "aws-textract",
   name: "AWS Textract",
-  topic_type: "capability",
+  topic_type: "service",
   category: "ai-ml",
   status: "active",
-  description: "Managed OCR capability for document workflows.",
+  description: "Managed OCR service for document workflows.",
   owner_team: "cloud-platform",
   support_channel: "#cloud-platform",
   entry_tools: [
@@ -32,7 +32,7 @@ describe("InMemoryTopicRepository", () => {
   it("queries topics by type and category without source embedding", () => {
     const repository = new InMemoryTopicRepository([topic]);
 
-    expect(repository.findByType("capability")).toEqual([topic]);
+    expect(repository.findByType("service")).toEqual([topic]);
     expect(repository.findByCategory("ai-ml")).toEqual([topic]);
     expect(repository.findByType("landing-zone")).toEqual([]);
     expect(repository.getById("aws-textract")).not.toHaveProperty("source_ids");
@@ -44,7 +44,7 @@ describe("InMemoryTopicRepository", () => {
     expect(() =>
       repository.put({
         ...topic,
-        topic_type: "service",
+        topic_type: "invalid-type",
       }),
     ).toThrow();
   });
