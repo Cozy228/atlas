@@ -16,18 +16,6 @@ type JourneyLink = {
   to: "/availability" | "/catalog" | "/guidance" | "/sources";
 };
 
-/**
- * Where each mainline target lands inside the prototype suite. Used by the
- * proto Home so the journey links stay within the redesign candidates;
- * mainline Home keeps the default targets.
- */
-const PROTO_TARGETS: Record<JourneyLink["to"], string> = {
-  "/availability": "/regions",
-  "/catalog": "/proto/catalog",
-  "/guidance": "/proto/guidance",
-  "/sources": "/proto/sources",
-};
-
 const STEPS: ReadonlyArray<JourneyStep> = [
   {
     phase: "Get started",
@@ -62,7 +50,7 @@ const STEPS: ReadonlyArray<JourneyStep> = [
   },
 ];
 
-export function JourneyGrid({ linkTargets = "mainline" }: { linkTargets?: "mainline" | "proto" }) {
+export function JourneyGrid() {
   return (
     <div className="flex flex-col sm:flex-row sm:items-stretch">
       {STEPS.map((step, index) => (
@@ -72,7 +60,6 @@ export function JourneyGrid({ linkTargets = "mainline" }: { linkTargets?: "mainl
           index={index}
           isFirst={index === 0}
           isLast={index === STEPS.length - 1}
-          linkTargets={linkTargets}
         />
       ))}
     </div>
@@ -84,13 +71,11 @@ function JourneyStep({
   index,
   isFirst,
   isLast,
-  linkTargets,
 }: {
   step: JourneyStep;
   index: number;
   isFirst: boolean;
   isLast: boolean;
-  linkTargets: "mainline" | "proto";
 }) {
   const ordinal = String(index + 1).padStart(2, "0");
 
@@ -126,10 +111,7 @@ function JourneyStep({
         <ul className="mt-auto flex flex-col gap-1.5">
           {step.links.map((link) => (
             <li key={link.to + link.label}>
-              <JourneyLinkItem
-                label={link.label}
-                to={linkTargets === "proto" ? PROTO_TARGETS[link.to] : link.to}
-              />
+              <JourneyLinkItem label={link.label} to={link.to} />
             </li>
           ))}
         </ul>

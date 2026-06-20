@@ -1,144 +1,89 @@
-import type { ReactNode } from "react";
+/**
+ * Home redesign · route `/`
+ * ======================================================================
+ * Round 2: the "Welcome desk" direction (the round-1 baseline the review
+ * liked) carried forward as the single home. The centered hero + "From idea to
+ * production" JourneyGrid stay; the formerly-samey sections each keep their own
+ * register (ledger band · featured intent doors · catalog book index · change
+ * timeline). The "front page" broadsheet moved to its own `/whatsnew`.
+ *
+ * Renders inside the real PortalShell (top bar + grid canvas stay). Real
+ * availability data feeds the domain index and stats; the rest is fictional
+ * and public-safe. Links target the portal so the flow stays
+ * coherent.
+ */
 import { createFileRoute } from "@tanstack/react-router";
-import type { Topic, TopicDiscoveryResponse } from "@atlas/schema";
 
-import { availabilityQueryOptions, topicDiscoveryQueryOptions } from "@/api/queries";
-import { cn } from "@/lib/utils";
-import { EntryCards } from "@/components/home/entry-cards";
-import { JourneyGrid } from "@/components/home/journey-grid";
-import { PlatformUpdates } from "@/components/home/platform-updates";
-import { RecentlyViewed } from "@/components/home/recently-viewed";
-import { ResourceLinkGrid } from "@/components/home/resource-link-grid";
-import { IntentSearch } from "@/components/intent-search";
-import { PageBody } from "@/components/page-section";
-import { Badge } from "@/components/ui/badge";
+import { availabilityQueryOptions } from "@/api/queries";
+import { DOMAIN_BLURBS } from "@/components/catalog/data";
+import { HomeWelcome } from "@/components/home/welcome";
+import type { DomainService, HomeLoaderData } from "@/components/home/data";
 
-type HomeLoaderData = {
-  capabilities: ReadonlyArray<Topic>;
-  landingZones: ReadonlyArray<Topic>;
-  /** Total regions + outposts across all landing zones (for the hero meta chip). */
-  regionCount: number;
-};
+function slugifyDomain(domain: string): string {
+  return domain
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+}
 
 export const Route = createFileRoute("/")({
   loader: async ({ context }): Promise<HomeLoaderData> => {
-    const [topicsResp, availability] = await Promise.all([
-      context.queryClient.ensureQueryData(topicDiscoveryQueryOptions) as Promise<TopicDiscoveryResponse>,
-      context.queryClient.ensureQueryData(availabilityQueryOptions),
-    ]);
-
+    const availability = await context.queryClient.ensureQueryData(availabilityQueryOptions);
+    // Same projection as /catalog so the numbers on both pages agree.
+    const zone = availability.zones.find((z) => z.id === "aws") ?? availability.zones[0]!;
+    const services = zone.services.filter((service) => service.id !== "landing-zones");
+    const byDomain = new Map<string, DomainService[]>();
+    for (const service of services) {
+      let live = 0;
+      let planned = 0;
+      for (const loc of zone.locations) {
+        const status = service.availability[loc.id]?.status;
+        if (status === "available" || status === "interim") live += 1;
+        else if (status === "planned") planned += 1;
+      }
+      const entry: DomainService = {
+        id: service.id,
+        name: service.name,
+        status: live > 0 ? "ga" : planned > 0 ? "planned" : "none",
+        liveRegions: live,
+        plannedRegions: planned,
+      };
+      (byDomain.get(service.domain) ?? byDomain.set(service.domain, []).get(service.domain)!).push(
+        entry,
+      );
+    }
+    const domains = [...byDomain.entries()]
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([domain, entries]) => {
+        const sorted = entries.toSorted((a, b) => a.name.localeCompare(b.name));
+        return {
+          domain,
+          anchor: `domain-${slugifyDomain(domain)}`,
+          count: sorted.length,
+          preview: sorted
+            .slice(0, 3)
+            .map((s) => s.name)
+            .join(" · "),
+          blurb: DOMAIN_BLURBS[domain] ?? "",
+          services: sorted,
+        };
+      });
     return {
-      capabilities: topicsResp.topics.filter((topic) => topic.topic_type === "capability"),
-      landingZones: topicsResp.topics.filter((topic) => topic.topic_type === "landing-zone"),
-      regionCount: availability.zones.reduce((sum, zone) => sum + zone.locations.length, 0),
+      serviceCount: services.length,
+      domainCount: domains.length,
+      regionCount: availability.zones.reduce((sum, z) => sum + z.locations.length, 0),
+      domains,
     };
   },
   component: HomeRoute,
 });
 
 function HomeRoute() {
-  const { capabilities, landingZones, regionCount } = Route.useLoaderData();
-  const domainCount = new Set(capabilities.map((topic) => topic.category)).size;
+  const data = Route.useLoaderData();
 
   return (
-    <PageBody width="comfortable">
-      <Hero
-        capabilityCount={capabilities.length}
-        domainCount={domainCount}
-        regionCount={regionCount}
-      />
-      <Section
-        title="Choose your starting point"
-        description="Pick the question that matches where you are in your platform journey."
-      >
-        <EntryCards capabilities={capabilities} landingZones={landingZones} />
-      </Section>
-
-      <Section
-        title="From idea to production"
-        description="Follow the lifecycle or jump to what you need right now."
-        className="gap-6"
-      >
-        <JourneyGrid />
-      </Section>
-
-      <Section title="Recently viewed">
-        <RecentlyViewed />
-      </Section>
-
-      <Section title="What's new">
-        <PlatformUpdates />
-      </Section>
-
-      <Section title="Keep exploring">
-        <ResourceLinkGrid />
-      </Section>
-    </PageBody>
-  );
-}
-
-function Hero({
-  capabilityCount,
-  domainCount,
-  regionCount,
-}: {
-  capabilityCount: number;
-  domainCount: number;
-  regionCount: number;
-}) {
-  return (
-    <div className="flex flex-col gap-6 pt-2">
-      <div className="flex flex-col gap-3.5">
-        {/* Same-colour plates (bg-background w-fit) keep the grid out from behind copy. */}
-        <span className="w-fit bg-background font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-          Platform catalog
-        </span>
-        <h1 className="w-fit max-w-[16ch] bg-background type-display font-bold leading-[1.03] tracking-[-0.035em] text-balance text-foreground sm:type-display-lg">
-          Find the right platform path
-        </h1>
-        <p className="w-fit max-w-[60ch] bg-background text-[1.125rem] leading-[1.55] text-pretty text-muted-foreground">
-          One place to find approved capabilities, see where they're available, and follow the path
-          from idea to production.
-        </p>
-      </div>
-      <IntentSearch className="h-12" />
-      <div className="flex flex-wrap gap-2">
-        <Badge variant="brand">{capabilityCount} capabilities</Badge>
-        <Badge variant="outline">{domainCount} domains</Badge>
-        <Badge variant="outline">{regionCount} regions &amp; outposts</Badge>
-        <Badge variant="outline">L3–L5 landing zones</Badge>
-      </div>
+    <div className="mx-auto flex w-full max-w-[1180px] flex-col gap-8 px-6 py-8 sm:px-8">
+      <HomeWelcome data={data} />
     </div>
-  );
-}
-
-function Section({
-  title,
-  description,
-  children,
-  className,
-}: {
-  title?: string;
-  description?: string;
-  children: ReactNode;
-  className?: string;
-}) {
-  return (
-    <section className={cn("flex flex-col gap-4", className)}>
-      {title ? (
-        <div className="flex flex-col gap-1">
-          {/* Prototype .sec-head: 21px/700/-0.02em title + 13.5px sub, on bg plates. */}
-          <h2 className="w-fit bg-background text-[1.3125rem] font-bold leading-tight tracking-[-0.02em] text-foreground">
-            {title}
-          </h2>
-          {description ? (
-            <p className="w-fit max-w-[60ch] bg-background type-detail leading-[1.5] text-muted-foreground">
-              {description}
-            </p>
-          ) : null}
-        </div>
-      ) : null}
-      {children}
-    </section>
   );
 }
