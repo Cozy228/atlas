@@ -287,7 +287,7 @@ covers the test-time equivalence criterion, not the live consumption protocol. O
   freshness/drift warnings.
 - TFE module docs resolve as a citable Source; TFE status read-only in the Dashboard,
   honestly labeled if fixture.
-- Context API deployable; Portal and Skill pass the bundle-equivalence suite.
+- Portal and Skill pass the bundle-equivalence suite ([ADR-0011](../adr/0011-bundle-equivalence-proof.md)).
 - One hero journey (`route`) live and registry-backed; one authority conflict surfaced.
 - **API Gateway adoption hard gate** ([`api-gateway-adoption-gate.md`](./api-gateway-adoption-gate.md)):
   a consuming app (or its agent) can complete the full adoption journey against the local
@@ -296,6 +296,11 @@ covers the test-time equivalence criterion, not the live consumption protocol. O
   registered, cited Sources (no synthesis). Proven by the `api-gateway` scenario in
   `packages/atlas-acceptance`.
 - `pnpm lint` / `typecheck` / `test` clean.
+
+**Deployment is descoped from the MVP bar** (public-safe repo; no live cloud deploy). Current
+status and the remaining open items — bundle-equivalence, real-source availability,
+live-resolution validation, and the TFE registry + Dashboard tail — are tracked for the next
+session in [`mvp-handoff.md`](./mvp-handoff.md).
 
 ## 15 · See also
 
