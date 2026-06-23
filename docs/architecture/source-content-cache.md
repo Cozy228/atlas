@@ -91,24 +91,27 @@ ElastiCache now offers **Valkey** (the open-source Redis fork); it is the
 default new-cluster engine and is cheaper than the Redis OSS option
 ([AWS](https://aws.amazon.com/elasticache/what-is-valkey/)).
 
-> **Status.** The shipped adapter (`valkeyContentCache.ts`, commit `f880b67`)
-> uses **`iovalkey`**. The decision below is to move it to **GLIDE**; the swap
-> and its integration test are pending — not yet implemented. This section
-> records the target, not the current code.
+> **Status.** Implemented. The shipped adapter (`valkeyContentCache.ts`) uses
+> **GLIDE** (`@valkey/valkey-glide`).
 
-**Client choice — decision: GLIDE.** Move to **`@valkey/valkey-glide`** (GLIDE),
-the AWS-recommended client for ElastiCache: a Rust-core, multi-language client
-with cluster topology auto-discovery, IAM auth, and best-practice defaults baked
-in
+**Client choice — GLIDE.** We use **`@valkey/valkey-glide`** (GLIDE), the
+AWS-recommended client for ElastiCache: a Rust-core, multi-language client with
+cluster topology auto-discovery, IAM auth, and best-practice defaults baked in
 ([AWS blog](https://aws.amazon.com/blogs/database/introducing-valkey-glide-an-open-source-client-library-for-valkey-and-redis-open-source/)).
 
-**Tradeoff to confirm before swapping:** GLIDE ships **platform-native binaries**
-(e.g. `@valkey/valkey-glide-linux-musl-x64`), whereas the current `iovalkey` is
-pure-JS. As an optional, lazily-imported dependency neither lands in the default
-install, so the native binary only matters in the runtime that actually turns
-the cache on — acceptable given ElastiCache itself is operator/live territory.
-`iovalkey` remains the fallback if those binaries are a problem in a given
-runtime; the seam is identical, so the adapter swaps without touching callers.
+**Tradeoff (accepted):** GLIDE ships **platform-native binaries** (e.g.
+`@valkey/valkey-glide-linux-musl-x64`), whereas the pure-JS `iovalkey` does not.
+As an optional, lazily-imported dependency neither lands in the default install,
+so the native binary only matters in the runtime that actually turns the cache
+on — acceptable given ElastiCache itself is operator/live territory.
+
+**Fallback: `iovalkey` (present, not enabled).** A full pure-JS adapter
+(`iovalkeyContentCache.ts`) is kept for runtimes where GLIDE's native binaries
+are a problem. It is **not** active by default — `createSourceContentCache`
+selects it only when `ATLAS_CACHE_VALKEY_CLIENT=iovalkey`. The seam is identical
+(both implement `SourceContentCache`), so the switch is config-only and touches
+no callers. `iovalkey` reads `rediss://` from the URL and enables TLS itself, so
+it needs no `parseValkeyUrl`.
 
 **Optional dependency.** `@valkey/valkey-glide` stays a non-hard dependency: the
 adapter `await import("@valkey/valkey-glide")` lazily, only when
@@ -129,6 +132,7 @@ Values are JSON-serialized `CachedResponse`s.
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `ATLAS_CACHE_VALKEY_URL` | _(unset)_ | `rediss://…`. When set, use the Valkey adapter; else in-memory. |
+| `ATLAS_CACHE_VALKEY_CLIENT` | `glide` | Valkey client when the URL is set: `glide` (default) or `iovalkey` (pure-JS fallback). |
 | `ATLAS_CACHE_TTL_SECONDS` | `300` | Entry TTL for both adapters. |
 | `ATLAS_CACHE_MAX_ENTRIES` | `500` | In-memory adapter bound (ignored by Valkey). |
 
