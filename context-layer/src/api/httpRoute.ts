@@ -5,10 +5,13 @@ import { handleSourceDiscoveryRequest } from "./sourceDiscoveryRoute.js";
 import { handleSourceRequest } from "./sourceRoute.js";
 import { handleTopicDiscoveryRequest } from "./topicDiscoveryRoute.js";
 import { handleTopicRequest } from "./topicRoute.js";
+import { offlineResolutionContext, type ResolutionContext } from "../resolvers/resolverTypes.js";
 import {
-  offlineResolutionContext,
-  type ResolutionContext,
-} from "../resolvers/resolverTypes.js";
+  cacheTtlSeconds,
+  createSourceContentCache,
+  withCache,
+  type SourceContentCache,
+} from "../sourceContent/sourceContentCache.js";
 
 export type HttpRequest = {
   method: string;
@@ -32,7 +35,7 @@ type RouteResult = {
 export async function handleHttpRequest(request: HttpRequest): Promise<HttpResponse> {
   const method = request.method.toUpperCase();
   const path = normalizePath(request.path);
-  const ctx = resolutionContextFromHeaders(request.headers);
+  const ctx = await resolutionContextFromHeaders(request.headers);
 
   if (method === "GET" && path === "/topics") {
     return jsonResponse(handleTopicDiscoveryRequest(compactQuery(request.query)));
@@ -101,17 +104,34 @@ export async function handleHttpRequest(request: HttpRequest): Promise<HttpRespo
   });
 }
 
+// The cache is shared across requests (it is useless if rebuilt per request),
+// so memoize it at module scope like the registry seed.
+let cachePromise: Promise<SourceContentCache> | undefined;
+
+function getSourceContentCache(): Promise<SourceContentCache> {
+  return (cachePromise ??= createSourceContentCache(readEnv()));
+}
+
 /**
  * Read the opaque caller Bearer from the `Authorization` header and build the
  * request-scoped resolution context. The token is threaded unparsed and
  * unpersisted; Confluence enforces ACL against whatever identity it represents.
  */
-function resolutionContextFromHeaders(
+async function resolutionContextFromHeaders(
   headers: HttpRequest["headers"],
-): ResolutionContext {
+): Promise<ResolutionContext> {
   const base = offlineResolutionContext();
+  const cache = await getSourceContentCache();
+  const fetch = withCache(base.fetch, cache, cacheTtlSeconds(readEnv()));
   const token = bearerToken(headers);
-  return token ? { ...base, token } : base;
+  return { ...base, fetch, ...(token ? { token } : {}) };
+}
+
+function readEnv(): Record<string, string | undefined> {
+  const processLike = globalThis as typeof globalThis & {
+    process?: { env?: Record<string, string | undefined> };
+  };
+  return processLike.process?.env ?? {};
 }
 
 function bearerToken(headers: HttpRequest["headers"]): string | undefined {
@@ -131,9 +151,8 @@ function bearerToken(headers: HttpRequest["headers"]): string | undefined {
 
 function normalizePath(path: string): string {
   const normalized = path.startsWith("/") ? path : `/${path}`;
-  const withoutTrailingSlash = normalized.length > 1 && normalized.endsWith("/")
-    ? normalized.slice(0, -1)
-    : normalized;
+  const withoutTrailingSlash =
+    normalized.length > 1 && normalized.endsWith("/") ? normalized.slice(0, -1) : normalized;
   return withoutTrailingSlash.startsWith("/api/")
     ? withoutTrailingSlash.slice(4)
     : withoutTrailingSlash;
@@ -150,9 +169,7 @@ function contextQuery(query: HttpRequest["query"] = {}): Partial<ContextRequest>
   return {
     anchor_id: compacted.anchor_id,
     query: compacted.query,
-    disclosure_level: compacted.disclosure_level
-      ? Number(compacted.disclosure_level)
-      : undefined,
+    disclosure_level: compacted.disclosure_level ? Number(compacted.disclosure_level) : undefined,
   };
 }
 
