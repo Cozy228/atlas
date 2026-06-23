@@ -29,6 +29,23 @@ So the cache is a **decorator over `FetchLike`**, injected where the
 `ctx.fetch`; the decorator transparently serves a cached response or fetches and
 stores one.
 
+Both entry points build that context through one shared
+`cachedResolutionContext()` (memoized so the cache is a single instance, not
+rebuilt per request): the HTTP router (`handleHttpRequest`, used by external
+Skill consumers and the Portal when `ATLAS_CONTEXT_API_BASE_URL` is set) and the
+in-process route (`handleContextRequest`, the Portal's default path). A repeat
+fetch is therefore served from cache regardless of entry point.
+`offlineResolutionContext()` stays cache-free for tests and callers that pass
+their own context.
+
+We cache the **response body**, not the parsed excerpt. One page serves many
+anchors (one per heading), so a URL-keyed response cache fetches a page once and
+serves every anchor from it; a parse-result cache keyed by anchor would re-fetch
+the page per anchor. The parse itself is CPU-only (single-digit ms) — cheap
+beside the network fetch — and a parsed `ResolveResult` carries citation /
+freshness signals we must not cache (ADR-0009). A parse memo could be layered on
+top later if profiling ever shows it matters; YAGNI until then.
+
 ```
 ResolutionContext.fetch = withCache(realFetch, cache, ttl)
                                        │
@@ -141,7 +158,8 @@ Values are JSON-serialized `CachedResponse`s.
 1. `SourceContentCache` interface + `CachedResponse` type.
 2. `InMemoryContentCache` (bounded Map + expiry) — the default.
 3. `withCache(fetch, cache, ttl)` `FetchLike` decorator (key, GET-only, OK-only).
-4. `createSourceContentCache(env)` selector; wire into context construction.
+4. `createSourceContentCache(env)` selector + a memoized `cachedResolutionContext()`
+   wired into both the HTTP router and the in-process `handleContextRequest`.
 5. `ValkeyContentCache` (lazy `@valkey/valkey-glide` import, gated by
    `ATLAS_CACHE_VALKEY_URL`).
 6. Tests: in-memory hit/miss/expiry/auth-isolation; decorator caches GET and

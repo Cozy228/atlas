@@ -8,16 +8,14 @@ import {
   buildContextBundle,
   createDefaultContextBundleService,
 } from "../services/contextBundleService.js";
-import {
-  offlineResolutionContext,
-  type ResolutionContext,
-} from "../resolvers/resolverTypes.js";
+import type { ResolutionContext } from "../resolvers/resolverTypes.js";
+import { cachedResolutionContext } from "../sourceContent/sourceContentCache.js";
 import type { ApiResponse } from "./routeTypes.js";
 import { errorResponse } from "./routeTypes.js";
 
 export async function handleContextRequest(
   input: unknown,
-  ctx: ResolutionContext = offlineResolutionContext(),
+  ctx?: ResolutionContext,
 ): Promise<ApiResponse<ApiErrorResponse | ContextBundleResponse>> {
   const parsed = ContextRequestSchema.safeParse(input);
   if (!parsed.success) {
@@ -30,7 +28,10 @@ export async function handleContextRequest(
     return explicitError;
   }
 
-  const bundle = await buildContextBundle(service, parsed.data, ctx);
+  // Default to the shared cached context, so the in-process entry point caches
+  // live fetches just like the HTTP router. Callers may still pass their own.
+  const resolveCtx = ctx ?? (await cachedResolutionContext());
+  const bundle = await buildContextBundle(service, parsed.data, resolveCtx);
 
   // A single Confluence call happens during the build above. For an explicit
   // source request we promote the resulting runtime warnings into HTTP errors
