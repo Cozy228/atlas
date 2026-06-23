@@ -7,6 +7,8 @@ export function createPilotSourceContentProvider() {
         "Use the Textract module with private endpoint configuration for private subnet workloads.",
       "#terraform-starter":
         'module "textract" {\n  source             = "app.terraform.io/acme/textract/aws"\n  name               = "doc-ocr"\n  endpoint_type      = "interface"\n  private_subnet_ids = var.private_subnet_ids\n}',
+      // Registry-metadata field (ADR-0010) — distinct from the README prose above.
+      "field:version": "1.4.0",
     },
     "bedrock-module-readme": {
       "#model-access": "Use approved Bedrock model access through the platform module.",
@@ -55,6 +57,16 @@ export function createPilotSourceContentProvider() {
         'module "bucket" {\n  source              = "app.terraform.io/acme/s3/aws"\n  name                = "orders-assets"\n  versioning          = true\n  block_public_access = true\n  encryption          = "aws:kms"\n}',
       "#bucket-setup":
         "Declare the bucket through the module: it enforces block-public-access, default KMS encryption, and versioning, and emits the bucket name and ARN as outputs.",
+    },
+    // The governed region × Service availability table the matrix resolver parses
+    // (ADR-0009). Region codes are public AWS identifiers; the grid is fictional.
+    "availability-matrix": {
+      "availability-matrix":
+        "| Service | us-east-1 | ca-central-1 |\n" +
+        "| --- | --- | --- |\n" +
+        "| S3 | available | available |\n" +
+        "| API Gateway | available | planned |\n" +
+        "| Textract | available | available |",
     },
   });
 }

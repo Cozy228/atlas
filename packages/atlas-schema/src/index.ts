@@ -4,13 +4,10 @@ export const sourceClasses = [
   "terraform-module",
   "confluence-page",
   "policy-document",
+  "availability-matrix",
 ] as const;
 
-export const topicTypes = [
-  "service",
-  "landing-zone",
-  "guardrail-area",
-] as const;
+export const topicTypes = ["service", "landing-zone", "guardrail-area"] as const;
 
 export const authorityLevels = [
   "authoritative",
@@ -26,6 +23,12 @@ export const anchorStrategies = [
   "markdown-heading",
   "confluence-section",
   "document-clause",
+  // Parametric matrix address (ADR-0009): the selector pins a Service, a region,
+  // or both, and the resolver answers at that grain (cell / row / column).
+  "availability-cell",
+  // Terraform registry metadata field (ADR-0010): the selector pins a module
+  // metadata field (version / input / output) alongside README prose anchors.
+  "module-field",
 ] as const;
 
 export const topicStatuses = ["active", "deprecated", "planned"] as const;
@@ -41,6 +44,9 @@ export const warningCodes = [
   "source_unavailable",
   "weak_anchoring",
   "no_registered_source",
+  // Honest dead-end for an availability matrix that cannot be fetched/parsed
+  // (ADR-0009 §4): no availability data is returned and never a stale matrix.
+  "availability_unavailable",
 ] as const;
 
 export const apiErrorCodes = [
@@ -300,19 +306,8 @@ export const ApiErrorResponseSchema = z
 
 export const guidanceTypes = ["route", "decision", "checklist"] as const;
 export const scenarioFamilies = ["onboard", "decide", "enable", "validate"] as const;
-export const stepKinds = [
-  "action",
-  "decision",
-  "checklist",
-  "support",
-  "destination",
-] as const;
-export const guidanceStatuses = [
-  "draft",
-  "published",
-  "needs_review",
-  "deprecated",
-] as const;
+export const stepKinds = ["action", "decision", "checklist", "support", "destination"] as const;
+export const guidanceStatuses = ["draft", "published", "needs_review", "deprecated"] as const;
 export const guidanceActionTypes = [
   "atlas_page",
   "external_link",
@@ -399,9 +394,7 @@ export const GuidanceSchema = z
     destination: z
       .object({ title: z.string().min(1), description: z.string().min(1).optional() })
       .strict(),
-    owner: z
-      .object({ team: z.string().min(1), support: z.string().min(1) })
-      .strict(),
+    owner: z.object({ team: z.string().min(1), support: z.string().min(1) }).strict(),
     status: GuidanceStatusSchema,
     version: z.string().min(1),
     last_reviewed: z.string().date(),
@@ -446,9 +439,7 @@ export type FeedbackResponse = z.infer<typeof FeedbackResponseSchema>;
 export type TopicResponse = z.infer<typeof TopicResponseSchema>;
 export type SourceResponse = z.infer<typeof SourceResponseSchema>;
 export type SourceDiscoveryRequest = z.infer<typeof SourceDiscoveryRequestSchema>;
-export type SourceDiscoveryResponse = z.infer<
-  typeof SourceDiscoveryResponseSchema
->;
+export type SourceDiscoveryResponse = z.infer<typeof SourceDiscoveryResponseSchema>;
 export type TopicDiscoveryRequest = z.infer<typeof TopicDiscoveryRequestSchema>;
 export type TopicDiscoveryResponse = z.infer<typeof TopicDiscoveryResponseSchema>;
 export type ContextRequest = z.infer<typeof ContextRequestSchema>;

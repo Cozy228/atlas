@@ -13,7 +13,7 @@
  * routes (`/catalog/$topicId`, `/guardrails/$guardrailId`). Sources are their
  * own surface at `/sources`, so the catalog carries no Sources tab.
  */
-import { useMemo, useState, type MouseEvent } from "react";
+import { useCallback, useMemo, useState, type MouseEvent } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
   IconArrowRight,
@@ -264,15 +264,18 @@ function TopicWorkspace({
   const [status, setStatus] = useState("all");
   const [region, setRegion] = useState("all");
 
-  const serviceFor = useMemo(() => {
-    const cache = new Map<string, AvailabilityRecord | null>();
-    return (topic: Topic): AvailabilityRecord | null => {
-      if (!cache.has(topic.id)) {
-        cache.set(topic.id, findAvailabilityServiceForTopic(topic, zone.services));
-      }
-      return cache.get(topic.id) ?? null;
-    };
-  }, [zone.services]);
+  const serviceById = useMemo(() => {
+    const map = new Map<string, AvailabilityRecord | null>();
+    for (const topic of topics) {
+      map.set(topic.id, findAvailabilityServiceForTopic(topic, zone.services));
+    }
+    return map;
+  }, [topics, zone.services]);
+
+  const serviceFor = useCallback(
+    (topic: Topic): AvailabilityRecord | null => serviceById.get(topic.id) ?? null,
+    [serviceById],
+  );
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -285,7 +288,7 @@ function TopicWorkspace({
       }
       if (domains.size && !domains.has(topic.category)) return false;
       if (isService) {
-        const service = serviceFor(topic);
+        const service = serviceById.get(topic.id) ?? null;
         if (region !== "all") {
           const cell = service?.availability[region]?.status;
           if (cell == null || cell === "not-planned") return false;
@@ -296,7 +299,7 @@ function TopicWorkspace({
       }
       return true;
     });
-  }, [topics, query, domains, status, region, isService, serviceFor, zone.locations]);
+  }, [topics, query, domains, status, region, isService, serviceById, zone.locations]);
 
   const domainOptions = useMemo(() => buildDomainOptions(topics), [topics]);
   const statusOptions = useMemo<ReadonlyArray<StatusOption>>(

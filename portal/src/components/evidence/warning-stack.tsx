@@ -51,6 +51,11 @@ const WARNING_META: Record<
     category: "info",
     icon: IconHelpHexagon,
   },
+  availability_unavailable: {
+    label: "Availability unavailable",
+    category: "critical",
+    icon: IconBan,
+  },
 };
 
 const CATEGORY_CLASS: Record<WarningCategory, string> = {

@@ -18,7 +18,8 @@ export type ResolverWarning = {
     | "source_unavailable"
     | "weak_anchoring"
     | "restricted_source"
-    | "stale_source";
+    | "stale_source"
+    | "availability_unavailable";
   message: string;
   source_id?: string;
   anchor_id?: string;

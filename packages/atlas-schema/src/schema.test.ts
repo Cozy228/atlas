@@ -68,15 +68,12 @@ describe("contract enums", () => {
       "terraform-module",
       "confluence-page",
       "policy-document",
+      "availability-matrix",
     ]);
   });
 
   it("matches the V1 topic types exactly", () => {
-    expect(topicTypes).toEqual([
-      "service",
-      "landing-zone",
-      "guardrail-area",
-    ]);
+    expect(topicTypes).toEqual(["service", "landing-zone", "guardrail-area"]);
   });
 
   it("matches the V1 authority levels exactly", () => {
@@ -133,15 +130,11 @@ describe("entity schemas", () => {
   });
 
   it("rejects malformed source enum values", () => {
-    expect(() =>
-      SourceSchema.parse({ ...source, source_class: "sharepoint-page" }),
-    ).toThrow();
+    expect(() => SourceSchema.parse({ ...source, source_class: "sharepoint-page" })).toThrow();
   });
 
   it("keeps governance fields off Topic", () => {
-    expect(() =>
-      TopicSchema.parse({ ...topic, authority_level: "authoritative" }),
-    ).toThrow();
+    expect(() => TopicSchema.parse({ ...topic, authority_level: "authoritative" })).toThrow();
   });
 
   it("keeps governance fields off SourceTopicMapping", () => {

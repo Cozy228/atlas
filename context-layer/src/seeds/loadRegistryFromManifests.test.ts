@@ -12,9 +12,9 @@ describe("loadRegistryFromManifests", () => {
 
   it("returns the expected collection sizes", () => {
     const seed = loadRegistryFromManifests(DATA_DIR);
-    expect(seed.sources).toHaveLength(15);
+    expect(seed.sources).toHaveLength(16);
     expect(seed.topics).toHaveLength(12);
-    expect(seed.anchors).toHaveLength(19);
+    expect(seed.anchors).toHaveLength(23);
     expect(seed.mappings).toHaveLength(20);
     expect(seed.feedback.length).toBeGreaterThan(0);
   });
