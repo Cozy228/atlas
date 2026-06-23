@@ -116,15 +116,20 @@ function cacheKey(
 
 /**
  * Select the cache implementation from the environment, mirroring
- * `createFeedbackRepository`: the Valkey adapter when `ATLAS_CACHE_VALKEY_URL`
- * is set, otherwise the in-memory default. The Valkey module is imported lazily
- * so the default install pulls no Redis client.
+ * `createFeedbackRepository`: a Valkey adapter when `ATLAS_CACHE_VALKEY_URL` is
+ * set, otherwise the in-memory default. The Valkey client defaults to GLIDE;
+ * set `ATLAS_CACHE_VALKEY_CLIENT=iovalkey` to use the pure-JS fallback instead.
+ * Both client modules are imported lazily so the default install pulls none.
  */
 export async function createSourceContentCache(
   env: Record<string, string | undefined>,
 ): Promise<SourceContentCache> {
   const valkeyUrl = env.ATLAS_CACHE_VALKEY_URL;
   if (valkeyUrl) {
+    if (env.ATLAS_CACHE_VALKEY_CLIENT === "iovalkey") {
+      const { IoValkeyContentCache } = await import("./iovalkeyContentCache.js");
+      return new IoValkeyContentCache({ url: valkeyUrl });
+    }
     const { ValkeyContentCache } = await import("./valkeyContentCache.js");
     return new ValkeyContentCache({ url: valkeyUrl });
   }
