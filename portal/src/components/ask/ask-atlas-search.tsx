@@ -1,8 +1,5 @@
 import { useMemo, useState } from "react";
-import {
-  keepPreviousData,
-  useQuery,
-} from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import {
   IconArrowRight,
@@ -17,10 +14,7 @@ import {
 } from "@tabler/icons-react";
 import Fuse from "fuse.js";
 
-import {
-  sourceDiscoveryQueryOptions,
-  topicDiscoveryQueryOptions,
-} from "@/api/queries";
+import { sourceDiscoveryQueryOptions, topicDiscoveryQueryOptions } from "@/api/queries";
 import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
 
@@ -76,31 +70,22 @@ function topicIcon(type: string) {
   return TOPIC_ICON_MAP[type] ?? IconLayoutGrid;
 }
 
-export function getNextSearchIndex(
-  current: number,
-  itemCount: number,
-  direction: SearchDirection,
-) {
+export function getNextSearchIndex(current: number, itemCount: number, direction: SearchDirection) {
   if (itemCount === 0) return 0;
-  return direction === "next"
-    ? (current + 1) % itemCount
-    : (current - 1 + itemCount) % itemCount;
+  return direction === "next" ? (current + 1) % itemCount : (current - 1 + itemCount) % itemCount;
 }
 
-export function AskAtlasSearch({
-  onOpenChange,
-  onSwitchToAsk,
-}: AskAtlasSearchProps) {
+export function AskAtlasSearch({ onOpenChange, onSwitchToAsk }: AskAtlasSearchProps) {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
 
-  const topicsQuery = useQuery({
+  const { data: topicsData, isLoading: topicsLoading } = useQuery({
     ...topicDiscoveryQueryOptions,
     placeholderData: keepPreviousData,
   });
 
-  const sourcesQuery = useQuery({
+  const { data: sourcesData, isLoading: sourcesLoading } = useQuery({
     ...sourceDiscoveryQueryOptions,
     placeholderData: keepPreviousData,
   });
@@ -108,8 +93,8 @@ export function AskAtlasSearch({
   const allResults = useMemo<ReadonlyArray<SearchResult>>(() => {
     const dynamic: SearchResult[] = [];
 
-    if (topicsQuery.data) {
-      for (const topic of topicsQuery.data.topics) {
+    if (topicsData) {
+      for (const topic of topicsData.topics) {
         dynamic.push({
           id: `topic:${topic.id}`,
           label: topic.name,
@@ -126,8 +111,8 @@ export function AskAtlasSearch({
       }
     }
 
-    if (sourcesQuery.data) {
-      for (const source of sourcesQuery.data.sources) {
+    if (sourcesData) {
+      for (const source of sourcesData.sources) {
         dynamic.push({
           id: `source:${source.id}`,
           label: source.title,
@@ -140,7 +125,7 @@ export function AskAtlasSearch({
     }
 
     return [...STATIC_NAV, ...dynamic];
-  }, [topicsQuery.data, sourcesQuery.data]);
+  }, [topicsData, sourcesData]);
 
   const fuse = useMemo(
     () =>
@@ -169,8 +154,7 @@ export function AskAtlasSearch({
   }, [filtered]);
 
   const flatItems = filtered;
-  const isLoading =
-    topicsQuery.isLoading || sourcesQuery.isLoading;
+  const isLoading = topicsLoading || sourcesLoading;
 
   function go(to: string) {
     onOpenChange(false);
@@ -207,9 +191,7 @@ export function AskAtlasSearch({
             aria-label="Search Atlas catalog"
             className="h-full flex-1 bg-transparent text-base text-foreground outline-none placeholder:text-muted-foreground"
           />
-          {isLoading ? (
-            <Spinner className="size-4 text-muted-foreground" />
-          ) : null}
+          {isLoading ? <Spinner className="size-4 text-muted-foreground" /> : null}
         </label>
       </div>
 
@@ -236,9 +218,7 @@ export function AskAtlasSearch({
       <div className="max-h-80 overflow-y-auto p-2">
         {flatItems.length === 0 ? (
           <div className="flex flex-col items-center gap-2 py-8 text-center">
-            <p className="text-sm font-medium text-foreground">
-              No matches found
-            </p>
+            <p className="text-sm font-medium text-foreground">No matches found</p>
             <p className="text-xs text-muted-foreground">
               Try a different search or start a conversation.
             </p>
@@ -294,13 +274,7 @@ export function AskAtlasSearch({
   );
 }
 
-function SearchGroup({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
+function SearchGroup({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
       <div className="px-3 py-1.5">
@@ -338,12 +312,8 @@ function SearchItem({
     >
       <Icon className="size-4 shrink-0 text-muted-foreground" />
       <span className="flex min-w-0 flex-1 flex-col">
-        <span className="truncate text-sm font-medium text-foreground">
-          {result.label}
-        </span>
-        <span className="truncate text-xs text-muted-foreground">
-          {result.description}
-        </span>
+        <span className="truncate text-sm font-medium text-foreground">{result.label}</span>
+        <span className="truncate text-xs text-muted-foreground">{result.description}</span>
       </span>
       <IconArrowRight
         className="size-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-data-selected:opacity-100"

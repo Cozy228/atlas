@@ -7,7 +7,7 @@
  * (the in-flight flow framed as the move to resume), and one `useResume` hook
  * that reads local progress and surfaces unfinished flows + their category.
  */
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import {
   IconActivity,
   IconArrowRight,
@@ -20,7 +20,7 @@ import type { Icon } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
 
 import type { Guidance } from "@/lib/guidance";
-import { readAllProgress } from "@/lib/guidance-progress";
+import { useAllProgress, useIsHydrated } from "@/lib/guidance-progress";
 import { cn } from "@/lib/utils";
 
 import { allGuidance, type CategoryGroup } from "./catalog";
@@ -81,13 +81,13 @@ export function useResume(groups: ReadonlyArray<CategoryGroup>): {
     return map;
   }, [groups]);
 
-  const [progress, setProgress] = useState<Record<string, ReadonlySet<string>> | null>(null);
-  useEffect(() => setProgress(readAllProgress()), []);
+  const progress = useAllProgress();
+  const hydrated = useIsHydrated();
 
   return useMemo(() => {
     const resumable: Resumable[] = [];
     for (const g of flows) {
-      const completed = progress?.[g.id];
+      const completed = progress[g.id];
       if (!completed || completed.size === 0) continue;
       const steps = completableSteps(g);
       const done = steps.filter((s) => completed.has(s.id)).length;
@@ -98,8 +98,8 @@ export function useResume(groups: ReadonlyArray<CategoryGroup>): {
     resumable.sort((a, b) => b.done / b.total - a.done / a.total);
     // The next stop IS what you have running; nothing in flight ⇒ no recommendation.
     const nextIndex = resumable[0]?.categoryIndex ?? -1;
-    return { resumable, nextIndex, started: resumable.length > 0, hydrated: progress !== null };
-  }, [flows, progress, indexOf]);
+    return { resumable, nextIndex, started: resumable.length > 0, hydrated };
+  }, [flows, progress, indexOf, hydrated]);
 }
 
 /* -------------------------------------------------------------------------- *

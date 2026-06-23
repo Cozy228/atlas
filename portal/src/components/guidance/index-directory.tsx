@@ -6,7 +6,7 @@
  * view while you read one category — good when you know the area you want and
  * want to stay oriented. Whatever you have running is surfaced as the next stop.
  */
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -20,10 +20,13 @@ export function GuidanceDirectory() {
 
   const [selected, setSelected] = useState(0);
   const [touched, setTouched] = useState(false);
-  useEffect(() => {
-    if (touched || !hydrated || nextIndex < 0) return;
-    setSelected(nextIndex);
-  }, [touched, hydrated, nextIndex]);
+  // Adjust the selected category during render when the resume target arrives
+  // (it changes once progress hydrates), unless the user already picked one.
+  const [prevNext, setPrevNext] = useState(nextIndex);
+  if (nextIndex !== prevNext) {
+    setPrevNext(nextIndex);
+    if (!touched && hydrated && nextIndex >= 0) setSelected(nextIndex);
+  }
 
   const inProgress = useMemo(() => new Set(resumable.map((r) => r.categoryIndex)), [resumable]);
   const active = groups[selected];

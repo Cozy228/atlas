@@ -1,9 +1,13 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useMemo, useSyncExternalStore } from "react";
 
 /**
  * Client-only guidance progress. Stored in localStorage, scoped per guidance.
  * This is a local convenience marker for the person at the keyboard — it is not a
  * system of record and is never sent anywhere. Task keys are `${stepId}:${taskId}`.
+ *
+ * Backed by a module-level external store read through `useSyncExternalStore`, so
+ * SSR renders the empty server snapshot and the client swaps in the stored value
+ * on hydration — no effect-driven setState, no hydration mismatch.
  */
 
 const STORAGE_KEY = "atlas:guidance-progress";
@@ -11,15 +15,17 @@ const STORAGE_KEY = "atlas:guidance-progress";
 type ProgressEntry = { tasks: string[]; steps: string[] };
 type ProgressMap = Record<string, ProgressEntry>;
 
+const EMPTY: ProgressMap = {};
+
 function readAll(): ProgressMap {
-  if (typeof window === "undefined") return {};
+  if (typeof window === "undefined") return EMPTY;
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return {};
+    if (!raw) return EMPTY;
     const parsed = JSON.parse(raw) as unknown;
-    return parsed && typeof parsed === "object" ? (parsed as ProgressMap) : {};
+    return parsed && typeof parsed === "object" ? (parsed as ProgressMap) : EMPTY;
   } catch {
-    return {};
+    return EMPTY;
   }
 }
 
@@ -30,6 +36,50 @@ function writeAll(map: ProgressMap) {
   } catch {
     // localStorage may be disabled (private mode); silently no-op.
   }
+}
+
+// ---- module-level store ----------------------------------------------------
+
+let cache: ProgressMap | null = null;
+const listeners = new Set<() => void>();
+
+function current(): ProgressMap {
+  if (cache === null) cache = readAll();
+  return cache;
+}
+
+function subscribe(onChange: () => void): () => void {
+  listeners.add(onChange);
+  const onStorage = (e: StorageEvent) => {
+    if (e.key === STORAGE_KEY) {
+      cache = readAll();
+      onChange();
+    }
+  };
+  window.addEventListener("storage", onStorage);
+  return () => {
+    listeners.delete(onChange);
+    window.removeEventListener("storage", onStorage);
+  };
+}
+
+function mutate(fn: (prev: ProgressMap) => ProgressMap) {
+  cache = fn(current());
+  writeAll(cache);
+  for (const listener of listeners) listener();
+}
+
+function useStore(): ProgressMap {
+  return useSyncExternalStore(subscribe, current, () => EMPTY);
+}
+
+/** False during SSR and the hydration render, true once mounted on the client. */
+export function useIsHydrated(): boolean {
+  return useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
 }
 
 export type GuidanceProgress = {
@@ -45,63 +95,58 @@ export function taskKey(stepId: string, taskId: string): string {
   return `${stepId}:${taskId}`;
 }
 
-/** Completed step ids per guidance, read once (client-only). For index surfaces
+/** Completed step ids per guidance, reactive (client-only). For index surfaces
  * that summarise "what you have already started" without mounting each flow. */
-export function readAllProgress(): Record<string, ReadonlySet<string>> {
-  const all = readAll();
-  const out: Record<string, ReadonlySet<string>> = {};
-  for (const [id, entry] of Object.entries(all)) {
-    out[id] = new Set(entry.steps ?? []);
-  }
-  return out;
+export function useAllProgress(): Record<string, ReadonlySet<string>> {
+  const map = useStore();
+  return useMemo(() => {
+    const out: Record<string, ReadonlySet<string>> = {};
+    for (const [id, entry] of Object.entries(map)) {
+      out[id] = new Set(entry.steps ?? []);
+    }
+    return out;
+  }, [map]);
+}
+
+function toggle(list: string[], value: string): string[] {
+  return list.includes(value) ? list.filter((v) => v !== value) : [...list, value];
 }
 
 export function useGuidanceProgress(guidanceId: string): GuidanceProgress {
-  const [state, setState] = useState<{ tasks: Set<string>; steps: Set<string> }>(() => ({
-    tasks: new Set(),
-    steps: new Set(),
-  }));
-  const [hydrated, setHydrated] = useState(false);
+  const map = useStore();
+  const hydrated = useIsHydrated();
+  const entry = map[guidanceId];
 
-  useEffect(() => {
-    const entry = readAll()[guidanceId];
-    setState({ tasks: new Set(entry?.tasks ?? []), steps: new Set(entry?.steps ?? []) });
-    setHydrated(true);
-  }, [guidanceId]);
+  const completedTasks = useMemo(() => new Set(entry?.tasks ?? []), [entry]);
+  const completedSteps = useMemo(() => new Set(entry?.steps ?? []), [entry]);
 
-  useEffect(() => {
-    if (!hydrated) return;
-    const all = readAll();
-    all[guidanceId] = { tasks: [...state.tasks], steps: [...state.steps] };
-    writeAll(all);
-  }, [hydrated, guidanceId, state]);
+  const toggleTask = useCallback(
+    (key: string) =>
+      mutate((prev) => {
+        const e = prev[guidanceId] ?? { tasks: [], steps: [] };
+        return { ...prev, [guidanceId]: { tasks: toggle(e.tasks, key), steps: e.steps } };
+      }),
+    [guidanceId],
+  );
 
-  const toggleTask = useCallback((key: string) => {
-    setState((prev) => {
-      const tasks = new Set(prev.tasks);
-      if (tasks.has(key)) tasks.delete(key);
-      else tasks.add(key);
-      return { tasks, steps: prev.steps };
-    });
-  }, []);
+  const toggleStep = useCallback(
+    (stepId: string) =>
+      mutate((prev) => {
+        const e = prev[guidanceId] ?? { tasks: [], steps: [] };
+        return { ...prev, [guidanceId]: { tasks: e.tasks, steps: toggle(e.steps, stepId) } };
+      }),
+    [guidanceId],
+  );
 
-  const toggleStep = useCallback((stepId: string) => {
-    setState((prev) => {
-      const steps = new Set(prev.steps);
-      if (steps.has(stepId)) steps.delete(stepId);
-      else steps.add(stepId);
-      return { tasks: prev.tasks, steps };
-    });
-  }, []);
-
-  const reset = useCallback(() => {
-    setState({ tasks: new Set(), steps: new Set() });
-  }, []);
+  const reset = useCallback(
+    () => mutate((prev) => ({ ...prev, [guidanceId]: { tasks: [], steps: [] } })),
+    [guidanceId],
+  );
 
   return {
     hydrated,
-    completedTasks: state.tasks,
-    completedSteps: state.steps,
+    completedTasks,
+    completedSteps,
     toggleTask,
     toggleStep,
     reset,
