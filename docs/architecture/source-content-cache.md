@@ -91,31 +91,38 @@ ElastiCache now offers **Valkey** (the open-source Redis fork); it is the
 default new-cluster engine and is cheaper than the Redis OSS option
 ([AWS](https://aws.amazon.com/elasticache/what-is-valkey/)).
 
-**Client choice.** Two mature Node clients exist:
+> **Status.** The shipped adapter (`valkeyContentCache.ts`, commit `f880b67`)
+> uses **`iovalkey`**. The decision below is to move it to **GLIDE**; the swap
+> and its integration test are pending — not yet implemented. This section
+> records the target, not the current code.
 
-- **`iovalkey`** — a pure-JS fork of `ioredis`; ioredis-compatible API, TLS,
-  cluster, and `reconnectOnError` (useful for ElastiCache auto-failover)
-  ([npm](https://www.npmjs.com/package/iovalkey)).
-- **`valkey-glide`** — AWS-recommended, Rust-core multi-language client with
-  cluster topology auto-discovery and IAM auth; ships native binaries
-  ([AWS blog](https://aws.amazon.com/blogs/database/introducing-valkey-glide-an-open-source-client-library-for-valkey-and-redis-open-source/)).
+**Client choice — decision: GLIDE.** Move to **`@valkey/valkey-glide`** (GLIDE),
+the AWS-recommended client for ElastiCache: a Rust-core, multi-language client
+with cluster topology auto-discovery, IAM auth, and best-practice defaults baked
+in
+([AWS blog](https://aws.amazon.com/blogs/database/introducing-valkey-glide-an-open-source-client-library-for-valkey-and-redis-open-source/)).
 
-We specify **`iovalkey`** for the reference adapter: pure-JS (no native binary in
-a public-safe repo that runs the in-memory default 99% of the time), and the
-GET/SETEX operations this cache needs are trivial on either. `valkey-glide` is
-the upgrade path if IAM auth, topology auto-discovery, or peak throughput is
-later required — same seam, swap the adapter.
+**Tradeoff to confirm before swapping:** GLIDE ships **platform-native binaries**
+(e.g. `@valkey/valkey-glide-linux-musl-x64`), whereas the current `iovalkey` is
+pure-JS. As an optional, lazily-imported dependency neither lands in the default
+install, so the native binary only matters in the runtime that actually turns
+the cache on — acceptable given ElastiCache itself is operator/live territory.
+`iovalkey` remains the fallback if those binaries are a problem in a given
+runtime; the seam is identical, so the adapter swaps without touching callers.
 
-**Optional dependency.** `iovalkey` is **not** a hard dependency. The adapter
-`await import("iovalkey")` lazily, only when `ATLAS_CACHE_VALKEY_URL` is set, and
-throws a clear "install iovalkey" error if it is configured-on but absent. So the
-default install pulls no Redis client and the public dependency tree stays clean
+**Optional dependency.** `@valkey/valkey-glide` stays a non-hard dependency: the
+adapter `await import("@valkey/valkey-glide")` lazily, only when
+`ATLAS_CACHE_VALKEY_URL` is set, and throws a clear "install @valkey/valkey-glide"
+error if configured-on but absent. The default install pulls no Valkey client
 ("leave it when config is on").
 
-**Connection.** `ATLAS_CACHE_VALKEY_URL` is a `rediss://host:6379` URL
-(`rediss://` = TLS, required for ElastiCache in-transit encryption,
+**Connection (GLIDE target).** `ATLAS_CACHE_VALKEY_URL` is a `rediss://host:6379`
+URL parsed into GLIDE's `{ addresses: [{host, port}], useTLS }` config
+(`rediss://` ⇒ `useTLS: true`, required for ElastiCache in-transit encryption,
 [AWS](https://docs.aws.amazon.com/AmazonElastiCache/latest/dg/connect-tls.html)).
-TTL uses `SET key value EX <ttl>`. Values are JSON-serialized `CachedResponse`s.
+TTL uses `client.set(key, value, { expiry: { type: TimeUnit.Seconds, count } })`
+([SetOptions](https://valkey.io/valkey-glide/node/Commands/type-aliases/SetOptions/)).
+Values are JSON-serialized `CachedResponse`s.
 
 ## Environment variables
 
@@ -131,7 +138,10 @@ TTL uses `SET key value EX <ttl>`. Values are JSON-serialized `CachedResponse`s.
 2. `InMemoryContentCache` (bounded Map + expiry) — the default.
 3. `withCache(fetch, cache, ttl)` `FetchLike` decorator (key, GET-only, OK-only).
 4. `createSourceContentCache(env)` selector; wire into context construction.
-5. `ValkeyContentCache` (lazy `iovalkey` import, gated by `ATLAS_CACHE_VALKEY_URL`).
+5. `ValkeyContentCache` (lazy `@valkey/valkey-glide` import, gated by
+   `ATLAS_CACHE_VALKEY_URL`).
 6. Tests: in-memory hit/miss/expiry/auth-isolation; decorator caches GET and
-   skips non-OK; selector returns in-memory without config. (Valkey adapter is
-   integration-tested behind config — not in the default unit run.)
+   skips non-OK; selector returns in-memory without config. Valkey adapter:
+   `parseValkeyUrl` + a roundtrip against an injected fake client (always run),
+   plus a real-server integration block gated by `ATLAS_CACHE_VALKEY_URL`
+   (skipped unless a live Valkey + the GLIDE package are present).
