@@ -52,12 +52,14 @@ export function GuidanceDetailLog({
 
   useEffect(() => {
     if (!progress.hydrated || didScroll.current) return;
-    didScroll.current = true;
     if (!resumeId) return;
     const idx = guidance.steps.findIndex((s) => s.id === resumeId);
     if (idx <= 0) return; // already at the top — nothing to glide past
     const el = stationRefs.current.get(resumeId);
     if (!el) return;
+    // Only commit once we know we will actually scroll, so an empty progress
+    // snapshot arriving before localStorage hydrates doesn't burn the one-shot.
+    didScroll.current = true;
     const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
     requestAnimationFrame(() => {
       el.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
