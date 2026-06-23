@@ -316,7 +316,10 @@ export const INCIDENTS: ReadonlyArray<Incident> = [
     resolvedAt: "Jun 09, 15:40",
     updates: [
       { at: "Jun 09, 15:40", text: "Cache warm-up complete; preview latency back under 800 ms." },
-      { at: "Jun 09, 13:10", text: "Edge cache eviction after 5.0.6 rollout; previews regenerating." },
+      {
+        at: "Jun 09, 13:10",
+        text: "Edge cache eviction after 5.0.6 rollout; previews regenerating.",
+      },
     ],
   },
   {
@@ -493,12 +496,116 @@ export type SecurityScan = {
 };
 
 export const SCANS: ReadonlyArray<SecurityScan> = [
-  { serviceId: "billing-api", service: "Billing API", critical: 1, high: 3, medium: 7, gate: "fail", scannedAt: "Jun 11, 07:10" },
-  { serviceId: "checkout-web", service: "Checkout Web", critical: 0, high: 2, medium: 5, gate: "warn", scannedAt: "Jun 11, 09:14" },
-  { serviceId: "identity-gateway", service: "Identity Gateway", critical: 0, high: 0, medium: 2, gate: "pass", scannedAt: "Jun 10, 16:01" },
-  { serviceId: "atlas-portal", service: "Atlas Portal", critical: 0, high: 1, medium: 4, gate: "warn", scannedAt: "Jun 11, 08:36" },
-  { serviceId: "ingest-worker", service: "Ingest Worker", critical: 0, high: 0, medium: 1, gate: "pass", scannedAt: "Jun 09, 11:20" },
-  { serviceId: "media-transcoder", service: "Media Transcoder", critical: 0, high: 1, medium: 3, gate: "pass", scannedAt: "Jun 06, 17:30" },
+  {
+    serviceId: "billing-api",
+    service: "Billing API",
+    critical: 1,
+    high: 3,
+    medium: 7,
+    gate: "fail",
+    scannedAt: "Jun 11, 07:10",
+  },
+  {
+    serviceId: "checkout-web",
+    service: "Checkout Web",
+    critical: 0,
+    high: 2,
+    medium: 5,
+    gate: "warn",
+    scannedAt: "Jun 11, 09:14",
+  },
+  {
+    serviceId: "identity-gateway",
+    service: "Identity Gateway",
+    critical: 0,
+    high: 0,
+    medium: 2,
+    gate: "pass",
+    scannedAt: "Jun 10, 16:01",
+  },
+  {
+    serviceId: "atlas-portal",
+    service: "Atlas Portal",
+    critical: 0,
+    high: 1,
+    medium: 4,
+    gate: "warn",
+    scannedAt: "Jun 11, 08:36",
+  },
+  {
+    serviceId: "ingest-worker",
+    service: "Ingest Worker",
+    critical: 0,
+    high: 0,
+    medium: 1,
+    gate: "pass",
+    scannedAt: "Jun 09, 11:20",
+  },
+  {
+    serviceId: "media-transcoder",
+    service: "Media Transcoder",
+    critical: 0,
+    high: 1,
+    medium: 3,
+    gate: "pass",
+    scannedAt: "Jun 06, 17:30",
+  },
+];
+
+/* -------------------------------------------------------------------------- */
+/*  Terraform (TFE/TFC) workspace runs — read-only mirror                     */
+/* -------------------------------------------------------------------------- */
+
+// Terraform run states, narrowed to what the Dashboard surfaces read-only.
+export type TfeRunStatus = "applied" | "planned" | "running" | "errored";
+
+export type TfeWorkspace = {
+  name: string;
+  module: string;
+  status: TfeRunStatus;
+  version: string;
+  ranAt: string;
+};
+
+// ponytail: fixture, not a live TFE read — the registry adapter is still a
+// TODO behind the resolver seam (terraformModuleContentProvider). The panel
+// labels this honestly; swap to the live source once that adapter lands.
+export const TFE_WORKSPACES: ReadonlyArray<TfeWorkspace> = [
+  {
+    name: "prod-network-hub",
+    module: "vpc-hub",
+    status: "applied",
+    version: "v3.4.1",
+    ranAt: "Jun 11, 06:42",
+  },
+  {
+    name: "prod-s3-data-lake",
+    module: "s3-bucket",
+    status: "applied",
+    version: "v2.1.0",
+    ranAt: "Jun 11, 05:18",
+  },
+  {
+    name: "prod-api-gateway",
+    module: "api-gateway",
+    status: "planned",
+    version: "v1.9.2",
+    ranAt: "Jun 11, 08:55",
+  },
+  {
+    name: "prod-textract-pipeline",
+    module: "textract",
+    status: "errored",
+    version: "v0.7.3",
+    ranAt: "Jun 11, 09:31",
+  },
+  {
+    name: "staging-api-gateway",
+    module: "api-gateway",
+    status: "running",
+    version: "v1.9.2",
+    ranAt: "Jun 11, 09:48",
+  },
 ];
 
 /* -------------------------------------------------------------------------- */
@@ -645,7 +752,9 @@ export function healthSummary(services: ReadonlyArray<AppService> = APP_SERVICES
   return { healthy, degraded, down, total: services.length };
 }
 
-export function openIncidents(incidents: ReadonlyArray<Incident> = INCIDENTS): ReadonlyArray<Incident> {
+export function openIncidents(
+  incidents: ReadonlyArray<Incident> = INCIDENTS,
+): ReadonlyArray<Incident> {
   return incidents.filter((incident) => incident.status !== "resolved");
 }
 
@@ -738,11 +847,15 @@ export function pipelineStatusCounts(
 /** Open tickets (anything not yet done), highest priority first. */
 export function openTickets(tickets: ReadonlyArray<Ticket> = TICKETS): ReadonlyArray<Ticket> {
   const rank: Record<TicketPriority, number> = { P1: 0, P2: 1, P3: 2, P4: 3 };
-  return tickets.filter((t) => t.status !== "done").toSorted((a, b) => rank[a.priority] - rank[b.priority]);
+  return tickets
+    .filter((t) => t.status !== "done")
+    .toSorted((a, b) => rank[a.priority] - rank[b.priority]);
 }
 
 /** Count of services whose scan gate is in each state. */
-export function scanGateCounts(scans: ReadonlyArray<SecurityScan> = SCANS): Record<ScanGate, number> {
+export function scanGateCounts(
+  scans: ReadonlyArray<SecurityScan> = SCANS,
+): Record<ScanGate, number> {
   const counts: Record<ScanGate, number> = { pass: 0, warn: 0, fail: 0 };
   for (const scan of scans) counts[scan.gate] += 1;
   return counts;

@@ -15,6 +15,7 @@ import {
   KPI_SPARKS,
   PIPELINES,
   SCANS,
+  TFE_WORKSPACES,
   deployStatusCounts,
   deploysToday,
   healthSummary,
@@ -26,6 +27,7 @@ import {
   scanGateCounts,
   scanTotals,
   type AppService,
+  type TfeRunStatus,
 } from "@/lib/ops";
 import { cn } from "@/lib/utils";
 
@@ -131,6 +133,8 @@ export function OverviewDashboard() {
         <PipelinesPanel />
         <ScanPanel />
       </section>
+
+      <TfeStatusPanel />
 
       <section
         aria-label="Promotions and tickets"
@@ -255,6 +259,59 @@ function ScanFigure({
         {label}
       </dt>
     </div>
+  );
+}
+
+const TFE_STATUS_META: Record<TfeRunStatus, { label: string; dot: string; text: string }> = {
+  applied: { label: "Applied", dot: "bg-success", text: "text-success" },
+  planned: { label: "Planned", dot: "bg-info", text: "text-info-ink" },
+  running: { label: "Running", dot: "bg-info", text: "text-info-ink" },
+  errored: { label: "Errored", dot: "bg-critical", text: "text-critical" },
+};
+
+function TfeStatusPanel() {
+  return (
+    <section aria-label="Terraform workspaces" className="flex flex-col gap-2.5">
+      <h2 className="flex items-baseline justify-between gap-2">
+        <span className="bg-background font-mono text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+          Terraform workspaces · TFE
+        </span>
+        <span
+          title="Read-only mirror of TFE run state. Fixture data — the live registry adapter is not yet wired."
+          className="rounded-[2px] border border-border px-1.5 py-px font-mono text-[9.5px] uppercase tracking-[0.06em] text-muted-foreground"
+        >
+          fixture
+        </span>
+      </h2>
+      <ul className="overflow-hidden rounded-[4px] border border-border bg-card">
+        {TFE_WORKSPACES.map((ws, i) => {
+          const meta = TFE_STATUS_META[ws.status];
+          return (
+            <li
+              key={ws.name}
+              className={cn(
+                "flex items-center justify-between gap-3 px-3.5 py-2.5",
+                i > 0 && "border-t border-border",
+                ws.status === "errored" && "bg-critical/[0.05]",
+              )}
+            >
+              <span className="flex min-w-0 flex-col">
+                <span className="truncate font-mono text-[12px] font-semibold text-foreground">
+                  {ws.name}
+                </span>
+                <span className="font-mono text-[10px] text-muted-foreground">
+                  {ws.module} · {ws.version} · {ws.ranAt}
+                </span>
+              </span>
+              <span className="inline-flex shrink-0 items-center gap-1.5 font-mono text-[10.5px] font-semibold uppercase tracking-[0.04em]">
+                <span aria-hidden className={cn("size-2 rounded-full", meta.dot)} />
+                <span className={meta.text}>{meta.label}</span>
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
   );
 }
 

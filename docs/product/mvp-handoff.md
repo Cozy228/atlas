@@ -63,6 +63,9 @@ items the next session should add.
 - **Build:** a TFC/TFE registry adapter (module metadata via a `module-field` anchor + README)
   behind the resolver seam; a Dashboard surface showing TFE status read-only (label as fixture if
   not live).
+- **Status:** `module-field` resolution is built; the Dashboard TFE-status panel is built
+  (`portal/src/components/overview/dashboard.tsx`, fixture-labeled). The live TFC/TFE registry
+  adapter is still a TODO behind the resolver seam — operator/live work, same class as item 3.
 - **Done =** a module resolves from the registry; Dashboard shows TFE status honestly.
 
 ## Descoped
