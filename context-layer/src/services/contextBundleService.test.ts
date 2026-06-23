@@ -131,10 +131,11 @@ describe("context bundle service", () => {
       disclosure_level: 2,
     });
 
-    // textract-module-readme now carries two seed anchors (private-subnet-usage +
-    // terraform-starter); the test adds one more, so disclosure 2 resolves three.
+    // textract-module-readme now carries three seed anchors (private-subnet-usage,
+    // terraform-starter, module-version); the test adds one more, so disclosure 2
+    // resolves four.
     expect(levelOne.sources[0]?.excerpts).toHaveLength(1);
-    expect(levelTwo.sources[0]?.excerpts).toHaveLength(3);
+    expect(levelTwo.sources[0]?.excerpts).toHaveLength(4);
   });
 
   it("uses disclosure level 3 to include related sources from shared topics", async () => {

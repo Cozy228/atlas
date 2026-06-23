@@ -193,3 +193,17 @@
   last_observed_at: 2026-05-05T00:00:00.000Z
   last_reviewed_at: 2026-05-02T00:00:00.000Z
   review_frequency: P90D
+# Governed region × Service availability table (ADR-0009). Resolved through the
+# Context API as Evidence + Citation, replacing the Portal-native fixture.
+- id: availability-matrix
+  title: Regional Availability Matrix
+  source_class: availability-matrix
+  location: https://confluence.example.com/display/CLOUD/Regional+Availability+Matrix
+  steward: cloud-platform
+  visibility: internal
+  authority_scope:
+    - regional-availability
+  authority_level: authoritative
+  last_observed_at: 2026-05-05T00:00:00.000Z
+  last_reviewed_at: 2026-05-01T00:00:00.000Z
+  review_frequency: P90D

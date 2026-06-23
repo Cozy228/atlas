@@ -20,6 +20,7 @@ import {
   type PilotRegistrySeed,
 } from "../seeds/pilotRegistry.js";
 import { DATA_DIR, loadRegistryFromManifests } from "../seeds/loadRegistryFromManifests.js";
+import { availabilityMatrixResolver } from "../resolvers/availabilityMatrixResolver.js";
 import { confluencePageResolver } from "../resolvers/confluencePageResolver.js";
 import { policyDocumentResolver } from "../resolvers/policyDocumentResolver.js";
 import { createResolverRegistry, type ResolverRegistry } from "../resolvers/resolverRegistry.js";
@@ -65,6 +66,7 @@ export function createDefaultContextBundleService(
       terraformModuleResolver,
       confluencePageResolver,
       policyDocumentResolver,
+      availabilityMatrixResolver,
     ]),
     contentProvider: createPilotSourceContentProvider(),
     now: new Date(),

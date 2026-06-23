@@ -7,7 +7,7 @@ describe("pilot registry seed", () => {
     const registry = loadPilotRegistry(pilotRegistrySeed);
 
     expect(registry.topics.list()).toHaveLength(12);
-    expect(registry.sources.list()).toHaveLength(15);
+    expect(registry.sources.list()).toHaveLength(16);
     expect(registry.anchors.list().length).toBeGreaterThan(10);
     expect((await registry.feedback.list()).length).toBeGreaterThan(0);
     expect(registry.mappings.list().length).toBeGreaterThan(12);

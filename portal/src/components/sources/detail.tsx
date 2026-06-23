@@ -78,6 +78,12 @@ const KEY_SECTIONS: Record<
       text: "Cites the upstream standard each control maps to, for audit traceability.",
     },
   ],
+  "availability-matrix": [
+    {
+      anchor: "→ cell",
+      text: "Answers a Service × region availability query at the grain it pins — cell, row, or column — each with a matrix citation.",
+    },
+  ],
 };
 
 /* -------------------------------------------------------------------------- */

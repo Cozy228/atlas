@@ -29,6 +29,17 @@ const anchor: Anchor = {
   last_validated_at: "2026-05-05T00:00:00.000Z",
 };
 
+const moduleFieldAnchor: Anchor = {
+  id: "textract-module-version",
+  source_id: "textract-module-readme",
+  anchor_strategy: "module-field",
+  title: "Module version",
+  selector: { field: "version" },
+  citation_label: "Module version",
+  status: "valid",
+  last_validated_at: "2026-05-05T00:00:00.000Z",
+};
+
 describe("terraformModuleResolver", () => {
   it("resolves a registered markdown heading anchor", async () => {
     const result = await terraformModuleResolver.resolve({

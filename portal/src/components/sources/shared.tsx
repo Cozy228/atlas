@@ -11,6 +11,7 @@ export const CLASS_LABEL: Record<Source["source_class"], string> = {
   "terraform-module": "Terraform module",
   "confluence-page": "Confluence page",
   "policy-document": "Policy document",
+  "availability-matrix": "Availability matrix",
 };
 
 export const FRESHNESS_META: Record<FreshnessState, { label: string; dot: string }> = {
