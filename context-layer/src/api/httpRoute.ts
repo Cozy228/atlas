@@ -5,13 +5,8 @@ import { handleSourceDiscoveryRequest } from "./sourceDiscoveryRoute.js";
 import { handleSourceRequest } from "./sourceRoute.js";
 import { handleTopicDiscoveryRequest } from "./topicDiscoveryRoute.js";
 import { handleTopicRequest } from "./topicRoute.js";
-import { offlineResolutionContext, type ResolutionContext } from "../resolvers/resolverTypes.js";
-import {
-  cacheTtlSeconds,
-  createSourceContentCache,
-  withCache,
-  type SourceContentCache,
-} from "../sourceContent/sourceContentCache.js";
+import type { ResolutionContext } from "../resolvers/resolverTypes.js";
+import { cachedResolutionContext } from "../sourceContent/sourceContentCache.js";
 
 export type HttpRequest = {
   method: string;
@@ -104,34 +99,18 @@ export async function handleHttpRequest(request: HttpRequest): Promise<HttpRespo
   });
 }
 
-// The cache is shared across requests (it is useless if rebuilt per request),
-// so memoize it at module scope like the registry seed.
-let cachePromise: Promise<SourceContentCache> | undefined;
-
-function getSourceContentCache(): Promise<SourceContentCache> {
-  return (cachePromise ??= createSourceContentCache(readEnv()));
-}
-
 /**
  * Read the opaque caller Bearer from the `Authorization` header and build the
- * request-scoped resolution context. The token is threaded unparsed and
- * unpersisted; Confluence enforces ACL against whatever identity it represents.
+ * request-scoped resolution context over the shared cached fetch. The token is
+ * threaded unparsed and unpersisted; Confluence enforces ACL against whatever
+ * identity it represents.
  */
 async function resolutionContextFromHeaders(
   headers: HttpRequest["headers"],
 ): Promise<ResolutionContext> {
-  const base = offlineResolutionContext();
-  const cache = await getSourceContentCache();
-  const fetch = withCache(base.fetch, cache, cacheTtlSeconds(readEnv()));
+  const base = await cachedResolutionContext();
   const token = bearerToken(headers);
-  return { ...base, fetch, ...(token ? { token } : {}) };
-}
-
-function readEnv(): Record<string, string | undefined> {
-  const processLike = globalThis as typeof globalThis & {
-    process?: { env?: Record<string, string | undefined> };
-  };
-  return processLike.process?.env ?? {};
+  return token ? { ...base, token } : base;
 }
 
 function bearerToken(headers: HttpRequest["headers"]): string | undefined {

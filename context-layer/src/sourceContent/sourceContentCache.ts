@@ -1,6 +1,10 @@
 import { createHash } from "node:crypto";
 
-import type { FetchLike } from "../resolvers/resolverTypes.js";
+import {
+  offlineResolutionContext,
+  type FetchLike,
+  type ResolutionContext,
+} from "../resolvers/resolverTypes.js";
 
 /**
  * Source-content cache (docs/architecture/source-content-cache.md). Removes the
@@ -139,6 +143,36 @@ export async function createSourceContentCache(
 
 export function cacheTtlSeconds(env: Record<string, string | undefined>): number {
   return numberFromEnv(env.ATLAS_CACHE_TTL_SECONDS, DEFAULT_TTL_SECONDS);
+}
+
+// One shared cache across every entry point — it is useless if rebuilt per
+// request, so memoize it at module scope like the registry seed.
+let sharedCachePromise: Promise<SourceContentCache> | undefined;
+
+function sharedCache(env: Record<string, string | undefined>): Promise<SourceContentCache> {
+  return (sharedCachePromise ??= createSourceContentCache(env));
+}
+
+/**
+ * The default resolution context for live source resolution, with `fetch`
+ * wrapped by the shared cache. Used by both the HTTP router and the in-process
+ * route, so a repeat Confluence/Terraform fetch is served from cache regardless
+ * of entry point. `offlineResolutionContext()` stays cache-free for tests and
+ * callers that pass their own context.
+ */
+export async function cachedResolutionContext(
+  env: Record<string, string | undefined> = readProcessEnv(),
+): Promise<ResolutionContext> {
+  const base = offlineResolutionContext();
+  const cache = await sharedCache(env);
+  return { ...base, fetch: withCache(base.fetch, cache, cacheTtlSeconds(env)) };
+}
+
+function readProcessEnv(): Record<string, string | undefined> {
+  const processLike = globalThis as typeof globalThis & {
+    process?: { env?: Record<string, string | undefined> };
+  };
+  return processLike.process?.env ?? {};
 }
 
 function numberFromEnv(raw: string | undefined, fallback: number): number {
