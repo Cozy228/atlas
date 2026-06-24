@@ -1,5 +1,5 @@
 import type { Anchor, Source, SourceClass } from "@atlas/schema";
-import type { SourceContentProvider } from "./sourceContentProvider.js";
+import type { SourceContentProvider } from "./sourceContentProvider";
 
 export type ResolvedExcerpt = {
   anchor_id?: string;

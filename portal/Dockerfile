@@ -46,6 +46,10 @@ WORKDIR /var/task
 
 COPY --from=lambda-web-adapter /lambda-adapter /opt/extensions/lambda-adapter
 COPY --from=builder /app/portal/.output ./.output
+# The registry data plane (ADR-0007) ships beside the bundle; point at a mounted
+# volume via ATLAS_DATA_DIR to update data without rebuilding the image.
+COPY --from=builder /app/data ./data
+ENV ATLAS_DATA_DIR=/var/task/data
 
 EXPOSE 8080
 

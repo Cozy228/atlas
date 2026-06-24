@@ -5,15 +5,15 @@ import {
   SourceTopicMappingSchema,
   TopicSchema,
 } from "@atlas/schema";
-import { InMemoryAnchorRepository } from "../repositories/anchorRepository.js";
+import { InMemoryAnchorRepository } from "../repositories/anchorRepository";
 import {
   InMemoryFeedbackRepository,
   type FeedbackRepository,
-} from "../repositories/feedbackRepository.js";
-import { InMemorySourceRepository } from "../repositories/sourceRepository.js";
-import { InMemorySourceTopicMappingRepository } from "../repositories/sourceTopicMappingRepository.js";
-import { InMemoryTopicRepository } from "../repositories/topicRepository.js";
-import { pilotFeedbackSeed } from "./pilotFeedbackSeed.js";
+} from "../repositories/feedbackRepository";
+import { InMemorySourceRepository } from "../repositories/sourceRepository";
+import { InMemorySourceTopicMappingRepository } from "../repositories/sourceTopicMappingRepository";
+import { InMemoryTopicRepository } from "../repositories/topicRepository";
+import { pilotFeedbackSeed } from "./pilotFeedbackSeed";
 
 export type PilotRegistrySeed = {
   anchors: unknown[];
@@ -99,7 +99,7 @@ export const pilotRegistrySeed = {
       entry_tools: [
         {
           label: "Terraform module",
-          url: "https://github.com/acme/terraform-aws-textract",
+          url: "https://github.com/example/terraform-aws-textract",
         },
         {
           label: "User guide",
@@ -116,7 +116,7 @@ export const pilotRegistrySeed = {
       description: "Managed foundation model access for approved workloads.",
       owner_team: "cloud-platform",
       support_channel: "#cloud-platform",
-      entry_tools: [{ label: "Module", url: "https://github.com/acme/bedrock" }],
+      entry_tools: [{ label: "Module", url: "https://github.com/example/bedrock" }],
     },
     {
       id: "serverless-compute",
@@ -127,7 +127,7 @@ export const pilotRegistrySeed = {
       description: "Lambda-based compute patterns for event-driven workloads.",
       owner_team: "cloud-platform",
       support_channel: "#serverless-support",
-      entry_tools: [{ label: "Module", url: "https://github.com/acme/lambda" }],
+      entry_tools: [{ label: "Module", url: "https://github.com/example/lambda" }],
     },
     {
       id: "central-landing-zone",
@@ -218,7 +218,7 @@ export const pilotRegistrySeed = {
       entry_tools: [
         {
           label: "Terraform module",
-          url: "https://github.com/acme/terraform-aws-apigateway",
+          url: "https://github.com/example/terraform-aws-apigateway",
         },
         {
           label: "Integration guide",
@@ -242,7 +242,7 @@ export const pilotRegistrySeed = {
       entry_tools: [
         {
           label: "Terraform module",
-          url: "https://github.com/acme/terraform-aws-s3",
+          url: "https://github.com/example/terraform-aws-s3",
         },
         {
           label: "User guide",
@@ -256,7 +256,7 @@ export const pilotRegistrySeed = {
       id: "textract-module-readme",
       title: "Textract Terraform Module",
       source_class: "terraform-module",
-      location: "github.com/acme/terraform-aws-textract",
+      location: "github.com/example/terraform-aws-textract",
       steward: "cloud-platform",
       visibility: "internal",
       authority_scope: ["module-usage", "private-networking"],
@@ -269,7 +269,7 @@ export const pilotRegistrySeed = {
       id: "bedrock-module-readme",
       title: "Bedrock Terraform Module",
       source_class: "terraform-module",
-      location: "github.com/acme/terraform-aws-bedrock",
+      location: "github.com/example/terraform-aws-bedrock",
       steward: "cloud-platform",
       visibility: "internal",
       authority_scope: ["module-usage", "ai-ml"],
@@ -282,7 +282,7 @@ export const pilotRegistrySeed = {
       id: "lambda-module-readme",
       title: "Lambda Terraform Module",
       source_class: "terraform-module",
-      location: "github.com/acme/terraform-aws-lambda",
+      location: "github.com/example/terraform-aws-lambda",
       steward: "serverless-platform",
       visibility: "internal",
       authority_scope: ["module-usage", "compute"],
@@ -412,7 +412,7 @@ export const pilotRegistrySeed = {
       id: "apigateway-module-readme",
       title: "API Gateway Terraform Module",
       source_class: "terraform-module",
-      location: "github.com/acme/terraform-aws-apigateway",
+      location: "github.com/example/terraform-aws-apigateway",
       steward: "cloud-platform",
       visibility: "internal",
       authority_scope: ["module-usage", "api-gateway"],
@@ -438,7 +438,7 @@ export const pilotRegistrySeed = {
       id: "s3-module-readme",
       title: "S3 Terraform Module",
       source_class: "terraform-module",
-      location: "github.com/acme/terraform-aws-s3",
+      location: "github.com/example/terraform-aws-s3",
       steward: "cloud-platform",
       visibility: "internal",
       authority_scope: ["module-usage", "storage"],

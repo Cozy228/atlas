@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { Anchor, Source } from "@atlas/schema";
-import { createInMemorySourceContentProvider } from "./sourceContentProvider.js";
-import { offlineResolutionContext } from "./resolverTypes.js";
-import { availabilityMatrixResolver } from "./availabilityMatrixResolver.js";
+import { createInMemorySourceContentProvider } from "./sourceContentProvider";
+import { offlineResolutionContext } from "./resolverTypes";
+import { availabilityMatrixResolver } from "./availabilityMatrixResolver";
 
 const source: Source = {
   id: "availability-matrix",

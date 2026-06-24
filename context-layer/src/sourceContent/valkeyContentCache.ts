@@ -1,4 +1,4 @@
-import type { CachedResponse, SourceContentCache } from "./sourceContentCache.js";
+import type { CachedResponse, SourceContentCache } from "./sourceContentCache";
 
 /**
  * ElastiCache (Valkey) adapter for {@link SourceContentCache}

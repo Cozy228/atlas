@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildApiCatalog, buildHomeLinkHeader, buildLlmsTxt } from "./agentDiscovery.js";
+import { buildApiCatalog, buildHomeLinkHeader, buildLlmsTxt } from "./agentDiscovery";
 
 /** Routes the Portal origin actually serves (static files or server routes). */
 const REAL_ROUTES = new Set([
@@ -19,9 +19,7 @@ const REAL_ROUTES = new Set([
 function assertRealRoute(href: string) {
   const url = new URL(href);
   expect(url.origin).toBe("https://portal.example.com");
-  expect(REAL_ROUTES.has(url.pathname), `${url.pathname} is advertised but not served`).toBe(
-    true,
-  );
+  expect(REAL_ROUTES.has(url.pathname), `${url.pathname} is advertised but not served`).toBe(true);
 }
 
 describe("api-catalog linkset", () => {

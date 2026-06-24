@@ -1,25 +1,20 @@
 // Public package barrel: only non-JSX exports for cross-package consumers
 // (e.g. @atlas/acceptance). React/TanStack Start surface is consumed inside
 // the portal app via the Vite entry, not as a library export.
-export { portalFramework } from "./framework.js";
+export { portalFramework } from "./framework";
 export {
   askAtlas,
   buildAskAtlasPrompt,
   createDailyRateLimiter,
   validateCitations,
   type LlmAdapter,
-} from "./ask/askAtlas.js";
+} from "./ask/askAtlas";
 export {
   buildFeedbackPayload,
   renderServiceDetail,
   renderLandingZoneNavigator,
   renderPortalHome,
   renderSourceLookup,
-} from "./views/portalViews.js";
-export { createStaticContextApiClient, type ContextApiClient } from "./api/contextApiClient.js";
-export {
-  listGuidance,
-  getGuidance,
-  relatedGuidanceForTopic,
-  type Guidance,
-} from "./lib/guidance.js";
+} from "./views/portalViews";
+export { createStaticContextApiClient, type ContextApiClient } from "./api/contextApiClient";
+export { listGuidance, getGuidance, relatedGuidanceForTopic, type Guidance } from "./lib/guidance";

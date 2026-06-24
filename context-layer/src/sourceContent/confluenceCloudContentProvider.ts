@@ -1,10 +1,6 @@
 import type { Anchor, Source } from "@atlas/schema";
 import { parse, type HTMLElement } from "node-html-parser";
-import type {
-  ResolutionContext,
-  ResolveResult,
-  ResolverWarning,
-} from "../resolvers/resolverTypes.js";
+import type { ResolutionContext, ResolveResult, ResolverWarning } from "../resolvers/resolverTypes";
 
 /**
  * Live, ACL-aware Confluence Cloud excerpt resolution.

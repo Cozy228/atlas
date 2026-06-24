@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { serverContextApiClient } from "./inProcessContextApi.js";
+import { serverContextApiClient } from "./inProcessContextApi";
 
 describe("serverContextApiClient", () => {
   it("returns a parsed context bundle for a known topic", async () => {

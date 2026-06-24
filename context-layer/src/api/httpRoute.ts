@@ -1,12 +1,12 @@
 import type { ApiErrorResponse, ContextRequest } from "@atlas/schema";
-import { handleContextRequest } from "./contextRoute.js";
-import { handleFeedbackRequest } from "./feedbackRoute.js";
-import { handleSourceDiscoveryRequest } from "./sourceDiscoveryRoute.js";
-import { handleSourceRequest } from "./sourceRoute.js";
-import { handleTopicDiscoveryRequest } from "./topicDiscoveryRoute.js";
-import { handleTopicRequest } from "./topicRoute.js";
-import type { ResolutionContext } from "../resolvers/resolverTypes.js";
-import { cachedResolutionContext } from "../sourceContent/sourceContentCache.js";
+import { handleContextRequest } from "./contextRoute";
+import { handleFeedbackRequest } from "./feedbackRoute";
+import { handleSourceDiscoveryRequest } from "./sourceDiscoveryRoute";
+import { handleSourceRequest } from "./sourceRoute";
+import { handleTopicDiscoveryRequest } from "./topicDiscoveryRoute";
+import { handleTopicRequest } from "./topicRoute";
+import type { ResolutionContext } from "../resolvers/resolverTypes";
+import { cachedResolutionContext } from "../sourceContent/sourceContentCache";
 
 export type HttpRequest = {
   method: string;

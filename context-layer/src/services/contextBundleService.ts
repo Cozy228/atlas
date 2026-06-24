@@ -9,25 +9,25 @@ import type {
   TopicDiscoveryRequest,
   TopicDiscoveryResponse,
 } from "@atlas/schema";
-import { DynamoFeedbackRepository } from "../repositories/dynamoFeedbackRepository.js";
+import { DynamoFeedbackRepository } from "../repositories/dynamoFeedbackRepository";
 import {
   InMemoryFeedbackRepository,
   type FeedbackRepository,
-} from "../repositories/feedbackRepository.js";
+} from "../repositories/feedbackRepository";
 import {
   loadPilotRegistry,
   type PilotRegistry,
   type PilotRegistrySeed,
-} from "../seeds/pilotRegistry.js";
-import { DATA_DIR, loadRegistryFromManifests } from "../seeds/loadRegistryFromManifests.js";
-import { availabilityMatrixResolver } from "../resolvers/availabilityMatrixResolver.js";
-import { confluencePageResolver } from "../resolvers/confluencePageResolver.js";
-import { policyDocumentResolver } from "../resolvers/policyDocumentResolver.js";
-import { createResolverRegistry, type ResolverRegistry } from "../resolvers/resolverRegistry.js";
-import { offlineResolutionContext, type ResolutionContext } from "../resolvers/resolverTypes.js";
-import type { SourceContentProvider } from "../resolvers/sourceContentProvider.js";
-import { terraformModuleResolver } from "../resolvers/terraformModuleResolver.js";
-import { createPilotSourceContentProvider } from "../sourceContent/pilotSourceContent.js";
+} from "../seeds/pilotRegistry";
+import { DATA_DIR, loadRegistryFromManifests } from "../seeds/loadRegistryFromManifests";
+import { availabilityMatrixResolver } from "../resolvers/availabilityMatrixResolver";
+import { confluencePageResolver } from "../resolvers/confluencePageResolver";
+import { policyDocumentResolver } from "../resolvers/policyDocumentResolver";
+import { createResolverRegistry, type ResolverRegistry } from "../resolvers/resolverRegistry";
+import { offlineResolutionContext, type ResolutionContext } from "../resolvers/resolverTypes";
+import type { SourceContentProvider } from "../resolvers/sourceContentProvider";
+import { terraformModuleResolver } from "../resolvers/terraformModuleResolver";
+import { createPilotSourceContentProvider } from "../sourceContent/pilotSourceContent";
 
 export type ContextBundleService = {
   registry: PilotRegistry;

@@ -13,16 +13,16 @@
  * `pilotRegistry.ts` seed out of the runtime path entirely.
  */
 import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 import { parse } from "yaml";
 import { validateRegistryManifest } from "@atlas/schema";
-import { pilotFeedbackSeed } from "./pilotFeedbackSeed.js";
-import type { PilotRegistrySeed } from "./pilotRegistry.js";
+import { resolveDataDir } from "../dataDir";
+import { pilotFeedbackSeed } from "./pilotFeedbackSeed";
+import type { PilotRegistrySeed } from "./pilotRegistry";
 
-const here = dirname(fileURLToPath(import.meta.url));
-// src/seeds -> src -> context-layer -> repo root -> data
-export const DATA_DIR = join(here, "..", "..", "..", "data");
+// The Git-managed registry dir, resolved across dev / bundled server / Docker
+// with no required env — see resolveDataDir.
+export const DATA_DIR = resolveDataDir();
 
 function readYaml(dir: string, file: string): unknown {
   return parse(readFileSync(join(dir, file), "utf8"));

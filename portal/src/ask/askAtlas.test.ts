@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { serviceBundle } from "../fixtures/contextBundles.js";
+import { serviceBundle } from "../fixtures/contextBundles";
 import {
   askAtlas,
   buildAskAtlasPrompt,
   createDailyRateLimiter,
   validateCitations,
   type LlmAdapter,
-} from "./askAtlas.js";
+} from "./askAtlas";
 
 describe("Ask Atlas", () => {
   it("builds prompts only from the context bundle and user question", () => {

@@ -75,11 +75,7 @@ function errorResponse(description: string) {
   return { description, content: jsonContent("ApiErrorResponse") };
 }
 
-function queryParam(
-  name: string,
-  description: string,
-  schema: JsonSchema = { type: "string" },
-) {
+function queryParam(name: string, description: string, schema: JsonSchema = { type: "string" }) {
   return { name, in: "query", required: false, description, schema };
 }
 
@@ -103,7 +99,7 @@ const BUNDLE_EXAMPLE = {
         id: "textract-module-readme",
         title: "Textract Terraform Module",
         source_class: "terraform-module",
-        location: "github.com/acme/terraform-aws-textract",
+        location: "github.com/example/terraform-aws-textract",
         steward: "cloud-platform",
         visibility: "internal",
         authority_scope: ["module-usage", "private-networking"],
@@ -133,7 +129,7 @@ const BUNDLE_EXAMPLE = {
             source_id: "textract-module-readme",
             anchor_id: "private-subnet-usage",
             label: "Private subnet usage",
-            location: "github.com/acme/terraform-aws-textract",
+            location: "github.com/example/terraform-aws-textract",
           },
         },
       ],
@@ -270,7 +266,9 @@ export function buildOpenApiDocument() {
             ),
             "404": errorResponse("`source_not_found` — no such Source is registered."),
             "422": errorResponse("`anchor_broken` — the requested Anchor could not be resolved."),
-            "503": errorResponse("`source_unavailable` — the system of record could not be reached."),
+            "503": errorResponse(
+              "`source_unavailable` — the system of record could not be reached.",
+            ),
           },
         },
       },
@@ -310,10 +308,14 @@ export function buildOpenApiDocument() {
               content: jsonContent("ContextBundleResponse", BUNDLE_EXAMPLE),
             },
             "400": errorResponse("`invalid_request` — malformed context request."),
-            "403": errorResponse("`access_denied` — explicit `source_id` request for a restricted Source."),
+            "403": errorResponse(
+              "`access_denied` — explicit `source_id` request for a restricted Source.",
+            ),
             "404": errorResponse("`topic_not_found` / `source_not_found` — unknown explicit id."),
             "422": errorResponse("`anchor_broken` — the requested Anchor could not be resolved."),
-            "503": errorResponse("`source_unavailable` — the system of record could not be reached."),
+            "503": errorResponse(
+              "`source_unavailable` — the system of record could not be reached.",
+            ),
           },
         },
       },
@@ -343,7 +345,9 @@ export function buildOpenApiDocument() {
               content: jsonContent("FeedbackResponse"),
             },
             "400": errorResponse("`invalid_request` — malformed feedback submission."),
-            "404": errorResponse("`topic_not_found` / `source_not_found` — unknown feedback target."),
+            "404": errorResponse(
+              "`topic_not_found` / `source_not_found` — unknown feedback target.",
+            ),
             "422": errorResponse("`anchor_broken` — unknown anchor feedback target."),
           },
         },

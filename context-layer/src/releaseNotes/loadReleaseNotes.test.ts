@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { loadReleaseNotes } from "./loadReleaseNotes.js";
+import { loadReleaseNotes } from "./loadReleaseNotes";
 
 describe("loadReleaseNotes", () => {
   it("loads the authored manifest newest-first with parsed items", () => {

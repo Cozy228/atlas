@@ -3,9 +3,9 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { ContextBundleResponseSchema } from "@atlas/schema";
 
-import { serverContextApiClient } from "../serverContextApiClient.js";
-import { handleMcpRequest } from "./handler.js";
-import { mcpTools } from "./tools.js";
+import { serverContextApiClient } from "../serverContextApiClient";
+import { handleMcpRequest } from "./handler";
+import { mcpTools } from "./tools";
 
 function rpc(method: string, params?: Record<string, unknown>, id: number = 1): Request {
   return new Request("https://portal.example.com/mcp", {
@@ -38,9 +38,9 @@ describe("mcp protocol surface", () => {
       body: JSON.stringify({ jsonrpc: "2.0", method: "notifications/initialized" }),
     });
     expect((await handleMcpRequest(notification)).status).toBe(202);
-    expect(
-      (await handleMcpRequest(new Request("https://portal.example.com/mcp"))).status,
-    ).toBe(405);
+    expect((await handleMcpRequest(new Request("https://portal.example.com/mcp"))).status).toBe(
+      405,
+    );
   });
 
   it("lists exactly the four read-only atlas_* tools", async () => {
@@ -150,10 +150,15 @@ describe("mcp server card", () => {
   it("lists exactly the implemented tools — no phantom tools", () => {
     const card = JSON.parse(
       readFileSync(
-        fileURLToPath(new URL("../../../../public/.well-known/mcp/server-card.json", import.meta.url)),
+        fileURLToPath(
+          new URL("../../../../public/.well-known/mcp/server-card.json", import.meta.url),
+        ),
         "utf8",
       ),
-    ) as { transport: { type: string; url: string }; tools: { name: string; description: string }[] };
+    ) as {
+      transport: { type: string; url: string };
+      tools: { name: string; description: string }[];
+    };
 
     expect(card.transport).toEqual({
       type: "streamable-http",

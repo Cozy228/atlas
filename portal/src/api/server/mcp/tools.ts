@@ -9,9 +9,9 @@
 import { z } from "zod";
 import { topicTypes, type ContextBundleResponse } from "@atlas/schema";
 
-import type { ContextApiClient } from "../../contextApiClient.js";
-import { ContextApiError } from "../../contextApiError.js";
-import { availabilityProjection } from "../availability.js";
+import type { ContextApiClient } from "../../contextApiClient";
+import { ContextApiError } from "../../contextApiError";
+import { availabilityProjection } from "../availability";
 
 const ResponseFormatSchema = z
   .enum(["CONCISE", "DETAILED"])
@@ -37,10 +37,7 @@ const SearchServiceInput = z.object({
 });
 
 const GetSourceInput = z.object({
-  source_id: z
-    .string()
-    .min(1)
-    .describe("Registered Source id, e.g. 'textract-module-readme'."),
+  source_id: z.string().min(1).describe("Registered Source id, e.g. 'textract-module-readme'."),
   response_format: ResponseFormatSchema,
 });
 
@@ -174,8 +171,9 @@ export const mcpTools: McpToolDefinition[] = [
             name: service.name,
             availability: input.location_id
               ? {
-                  [input.location_id]:
-                    service.availability[input.location_id] ?? { status: "not-planned" },
+                  [input.location_id]: service.availability[input.location_id] ?? {
+                    status: "not-planned",
+                  },
                 }
               : service.availability,
           })),

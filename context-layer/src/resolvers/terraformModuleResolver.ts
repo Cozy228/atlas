@@ -1,7 +1,7 @@
 import type { Anchor } from "@atlas/schema";
-import type { AnchorResolver, ResolveRequest, ResolveResult } from "./resolverTypes.js";
-import { resolveAnchor } from "./resolveAnchor.js";
-import { resolveTerraformModuleLive } from "../sourceContent/terraformModuleContentProvider.js";
+import type { AnchorResolver, ResolveRequest, ResolveResult } from "./resolverTypes";
+import { resolveAnchor } from "./resolveAnchor";
+import { resolveTerraformModuleLive } from "../sourceContent/terraformModuleContentProvider";
 
 export const terraformModuleResolver: AnchorResolver = {
   sourceClass: "terraform-module",

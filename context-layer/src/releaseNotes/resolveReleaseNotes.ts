@@ -3,11 +3,11 @@ import { parse, type HTMLElement } from "node-html-parser";
 import {
   fetchConfluenceStorageHtml,
   type ConfluenceLiveConfig,
-} from "../sourceContent/confluenceCloudContentProvider.js";
-import type { ResolutionContext } from "../resolvers/resolverTypes.js";
-import { parseReleaseNotes, type Release } from "./parseReleaseNotes.js";
+} from "../sourceContent/confluenceCloudContentProvider";
+import type { ResolutionContext } from "../resolvers/resolverTypes";
+import { parseReleaseNotes, type Release } from "./parseReleaseNotes";
 
-export type { Release } from "./parseReleaseNotes.js";
+export type { Release } from "./parseReleaseNotes";
 
 /**
  * Runtime resolution of the federated-platform **release-notes Confluence page**.

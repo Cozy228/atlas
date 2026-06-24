@@ -1,4 +1,4 @@
-import { handleHttpRequest } from "../api/httpRoute.js";
+import { handleHttpRequest } from "../api/httpRoute";
 
 type ApiGatewayHttpEvent = {
   version?: string;

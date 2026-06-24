@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { SourceTopicMapping } from "@atlas/schema";
-import { InMemorySourceTopicMappingRepository } from "./sourceTopicMappingRepository.js";
+import { InMemorySourceTopicMappingRepository } from "./sourceTopicMappingRepository";
 
 const mapping: SourceTopicMapping = {
   id: "textract-module-to-topic",

@@ -18,7 +18,7 @@ import {
 } from "@atlas/schema";
 import { z } from "zod";
 
-import { createServerContextApiClient } from "./httpContextApiClient.js";
+import { createServerContextApiClient } from "./httpContextApiClient";
 
 /**
  * Build a Context API client for the current request, forwarding whatever

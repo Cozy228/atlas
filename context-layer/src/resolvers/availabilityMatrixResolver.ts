@@ -1,5 +1,5 @@
 import type { Anchor, Source } from "@atlas/schema";
-import type { AnchorResolver, ResolveRequest, ResolveResult } from "./resolverTypes.js";
+import type { AnchorResolver, ResolveRequest, ResolveResult } from "./resolverTypes";
 
 /**
  * Availability matrix resolver (ADR-0009).

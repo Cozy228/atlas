@@ -243,7 +243,7 @@ entry, a facet of `Topic`; Landing Zone/Guardrail/Availability are their own sur
 value is `service` (was `capability`), `Topic` the type stays; goal
 `goal_prompt_capability_to_service_rename.md`. **Public-safe naming** = neutral, de-branded
 (Global Cloud Regions / Federated Landing Zone / primary·dr·future-dr); existing `acme`
-references to be de-branded too.
+references de-branded to `example`.
 
 **Still open:**
 7. Beyond-scope `Feedback(missing)` modeling — `target_id` for a non-existent topic; where

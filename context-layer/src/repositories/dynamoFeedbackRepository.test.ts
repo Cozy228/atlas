@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Feedback } from "@atlas/schema";
-import { DynamoFeedbackRepository } from "./dynamoFeedbackRepository.js";
+import { DynamoFeedbackRepository } from "./dynamoFeedbackRepository";
 
 const feedback: Feedback = {
   id: "feedback-1",

@@ -5,7 +5,7 @@ import { Validator } from "@seriousme/openapi-schema-validator";
 import { apiErrorCodes, warningCodes } from "@atlas/schema";
 import { handleHttpRequest } from "@atlas/context-layer";
 
-import { buildOpenApiDocument } from "./openapiDocument.js";
+import { buildOpenApiDocument } from "./openapiDocument";
 
 const document = buildOpenApiDocument();
 
@@ -94,9 +94,7 @@ describe("openapi route parity", () => {
 
   it("every dispatched route is documented", () => {
     const source = readFileSync(
-      fileURLToPath(
-        new URL("../../../../context-layer/src/api/httpRoute.ts", import.meta.url),
-      ),
+      fileURLToPath(new URL("../../../../context-layer/src/api/httpRoute.ts", import.meta.url)),
       "utf8",
     );
 

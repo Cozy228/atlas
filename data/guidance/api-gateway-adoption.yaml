@@ -65,7 +65,7 @@ steps:
         action:
           type: tool_link
           label: Open module
-          target: https://github.com/acme/terraform-aws-apigateway
+          target: https://github.com/example/terraform-aws-apigateway
       - id: copy-starter
         title: Copy the Terraform starter
         action:
@@ -73,7 +73,7 @@ steps:
           label: Copy starter
           text: |-
             module "api" {
-              source     = "app.terraform.io/acme/apigateway/aws"
+              source     = "app.terraform.io/example/apigateway/aws"
               name       = "orders-api"
               protocol   = "HTTP"
               stage_name = "prod"

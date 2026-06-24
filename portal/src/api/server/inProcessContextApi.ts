@@ -34,8 +34,8 @@ import {
   type TopicResponse,
 } from "@atlas/schema";
 
-import type { ContextApiClient } from "../contextApiClient.js";
-import { ContextApiError } from "../contextApiError.js";
+import type { ContextApiClient } from "../contextApiClient";
+import { ContextApiError } from "../contextApiError";
 
 type HandlerResult = { status: number; body: unknown };
 

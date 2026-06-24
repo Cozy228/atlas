@@ -1,9 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  buildAtlasInfraPlan,
-  buildEnvironmentConfig,
-  forbiddenV1Services,
-} from "./atlasInfraPlan.js";
+import { buildAtlasInfraPlan, buildEnvironmentConfig, forbiddenV1Services } from "./atlasInfraPlan";
 
 describe("Atlas infrastructure plan", () => {
   it("generates the V1 deployable resource plan from code", () => {
@@ -41,9 +37,7 @@ describe("Atlas infrastructure plan", () => {
   it("uses secret references for production-like deployment", () => {
     const config = buildEnvironmentConfig("production-like");
 
-    expect(config.source_system_secret_ref).toBe(
-      "/atlas/production-like/source-system",
-    );
+    expect(config.source_system_secret_ref).toBe("/atlas/production-like/source-system");
     expect(config.llm_secret_ref).toBe("/atlas/production-like/llm-provider");
   });
 
@@ -60,9 +54,7 @@ describe("Atlas infrastructure plan", () => {
 
   it("expresses the V1 resource plan as Terraform IaC", () => {
     const plan = buildAtlasInfraPlan(buildEnvironmentConfig("test"));
-    const mainTerraform = plan.terraform_files.find(
-      (file) => file.path === "main.tf",
-    )?.content;
+    const mainTerraform = plan.terraform_files.find((file) => file.path === "main.tf")?.content;
 
     expect(mainTerraform).toContain('resource "aws_dynamodb_table"');
     expect(mainTerraform).toContain('resource "aws_lambda_function"');

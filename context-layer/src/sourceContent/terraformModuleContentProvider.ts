@@ -1,9 +1,5 @@
 import type { Anchor, Source } from "@atlas/schema";
-import type {
-  ResolutionContext,
-  ResolveResult,
-  ResolverWarning,
-} from "../resolvers/resolverTypes.js";
+import type { ResolutionContext, ResolveResult, ResolverWarning } from "../resolvers/resolverTypes";
 
 /**
  * Live Terraform module excerpt resolution.
@@ -11,7 +7,7 @@ import type {
  * Resolves a registered Anchor into an Excerpt by fetching the module's README
  * from its source of record at request time and extracting the section whose
  * heading matches the anchor locator. A module `location` is a GitHub repo
- * (e.g. `github.com/acme/terraform-aws-s3`), so this adapter targets GitHub's
+ * (e.g. `github.com/example/terraform-aws-s3`), so this adapter targets GitHub's
  * "Get a repository README" API and decodes the base64 Markdown. Nothing is
  * persisted; the excerpt is ephemeral.
  *

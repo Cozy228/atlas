@@ -1,6 +1,6 @@
-import type { AnchorResolver } from "./resolverTypes.js";
-import { resolveAnchor } from "./resolveAnchor.js";
-import { resolveConfluencePageLive } from "../sourceContent/confluenceCloudContentProvider.js";
+import type { AnchorResolver } from "./resolverTypes";
+import { resolveAnchor } from "./resolveAnchor";
+import { resolveConfluencePageLive } from "../sourceContent/confluenceCloudContentProvider";
 
 export const confluencePageResolver: AnchorResolver = {
   sourceClass: "confluence-page",

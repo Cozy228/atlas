@@ -6,8 +6,8 @@
  * GET to deliver). The caller's Bearer token passes through unparsed to the
  * Context API client (Bearer pipe, ADR 0001).
  */
-import { createServerContextApiClient } from "../httpContextApiClient.js";
-import { mcpTools, toolErrorMessage } from "./tools.js";
+import { createServerContextApiClient } from "../httpContextApiClient";
+import { mcpTools, toolErrorMessage } from "./tools";
 
 export const MCP_PROTOCOL_VERSION = "2025-06-18";
 export const MCP_SERVER_INFO = {
