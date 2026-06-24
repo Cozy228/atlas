@@ -1,7 +1,7 @@
 # Federated-platform release notes, mirrored from the Confluence release-notes
 # page. Authored sample (public-safe, fictional). At runtime the same shape is
 # produced by `resolveReleaseNotes` (live Confluence) or `parseReleaseNotes`
-# (pasted page text). Releases are roughly twice a month, so a month can hold
+# (pasted page text). Releases land roughly twice a month, so a month can hold
 # several.
 releases:
   - id: rel-2026-05-09
@@ -28,12 +28,27 @@ releases:
       - category: Non-Compute
         title: Enhance security group module to not always force replacement
         ticket: AFCN-11472
+      - category: Non-Compute
+        title: Update OPA policy for the ENV_CLASS tag
+        ticket: AFCN-11619
+      - category: Non-Compute
+        title: "Config: Autoscaling capacity rebalancing"
+        ticket: AFCN-11686
+      - category: Non-Compute
+        title: "Config: Tag support for Autoscaling resources"
+        ticket: AFCN-11703
+      - category: Non-Compute
+        title: Release 1.0.2 of MWAA Airflow service
+        ticket: AFCN-11758
       - category: Compute
         title: EC2 patch-compliance report Lambda production deployment
         ticket: AFCN-11725
       - category: Compute
         title: CMDB failures reported through pipeline execution to the PE team
         ticket: AFCN-11457
+      - category: Compute
+        title: EC2 script-repo production deployment
+        ticket: AFCN-11765
   - id: rel-2026-05-23
     month: May 2026
     posted_at: "2026-05-23"
@@ -41,11 +56,14 @@ releases:
     link: https://confluence.example.com/display/CLOUD/Release+Notes+2026-05-23
     items:
       - category: Non-Compute
-        title: "Config: Autoscaling capacity rebalancing"
-        ticket: AFCN-11686
+        title: "Config: S3 access-log retention baseline"
+        ticket: AFCN-11820
+      - category: Non-Compute
+        title: "SCP: Enable Step Functions in Fed LZ"
+        ticket: AFCN-11833
       - category: Compute
-        title: EC2 script-repo production deployment
-        ticket: AFCN-11765
+        title: EC2 AMI hardening pipeline rollout
+        ticket: AFCN-11805
   - id: rel-2026-04-25
     month: April 2026
     posted_at: "2026-04-25"
@@ -53,8 +71,11 @@ releases:
     link: https://confluence.example.com/display/CLOUD/Release+Notes+2026-04-25
     items:
       - category: Non-Compute
-        title: Update OPA policy for the ENV_CLASS tag
-        ticket: AFCN-11619
+        title: "Config: KMS key rotation policy update"
+        ticket: AFCN-11402
+      - category: Non-Compute
+        title: Release 2.1.0 of the Transit Gateway module
+        ticket: AFCN-11455
       - category: Compute
-        title: Release 1.0.2 of MWAA Airflow service
-        ticket: AFCN-11758
+        title: EC2 inspector findings export to the PE team
+        ticket: AFCN-11390

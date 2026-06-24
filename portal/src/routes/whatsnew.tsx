@@ -97,7 +97,7 @@ function Masthead() {
       <div className="flex items-center justify-between gap-4 border-b border-border pb-2 font-mono text-[10.5px] uppercase tracking-[0.14em] text-muted-foreground">
         <span className="tabular-nums">{DATELINE}</span>
         <span className="hidden tracking-[0.2em] sm:inline">The Atlas Dispatch</span>
-        <span>Demo · fictional</span>
+        <span>Internal</span>
       </div>
       {/* Same column grid as the body below, so the edition plate's divider lines
           up exactly with the rail's hairline. */}
