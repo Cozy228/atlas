@@ -1,15 +1,30 @@
 /**
  * Release detail · route `/releases/$releaseId`
  * ==============================================
- * The full scope of one release as a dossier (matching the source record
- * layout): scope items by category in the main column — each with its
- * description and Jira ticket — and a record rail with the change request,
- * dates, and a link to the source of record on Confluence.
+ * The full scope of one release, in the same broadsheet idiom as What's New: a
+ * masthead, the scope by category in the main column (each item with its
+ * description and Jira ticket), and a rail of references — Jira release, change
+ * request, DOP, Go/No-Go, Viva Engage — plus who to contact.
  */
 import { Link, createFileRoute, notFound } from "@tanstack/react-router";
 
 import { releaseNotesQueryOptions } from "@/api/queries";
 import { categoryCounts } from "@/components/whatsnew/releases";
+
+const MONTHS = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
 
 export const Route = createFileRoute("/releases/$releaseId")({
   loader: async ({ context, params }) => {
@@ -28,7 +43,7 @@ function ReleaseDetailRoute() {
   const categories = categoryCounts(release.items);
 
   return (
-    <div className="mx-auto flex w-full max-w-[960px] flex-col gap-7 px-6 py-8 sm:px-8">
+    <div className="mx-auto flex w-full max-w-[1180px] flex-col gap-8 px-6 py-8 sm:px-8">
       <Link
         to="/whatsnew"
         className="w-fit bg-background font-mono text-[11px] uppercase tracking-[0.08em] text-muted-foreground hover:text-brand-ink"
@@ -36,59 +51,58 @@ function ReleaseDetailRoute() {
         ← What&rsquo;s New
       </Link>
 
-      <header className="flex flex-col gap-3">
-        <span className="flex flex-wrap items-center gap-x-2.5 gap-y-1 bg-background font-mono text-[11px] uppercase tracking-[0.08em] text-muted-foreground">
-          <span className="font-semibold">From Confluence release notes</span>
-          {release.changeRequest ? (
-            <>
-              <span aria-hidden className="text-border-strong">
-                ·
-              </span>
-              <span>{release.changeRequest}</span>
-            </>
-          ) : null}
-        </span>
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <h1 className="w-fit bg-background text-[1.875rem] font-bold leading-[1.1] tracking-[-0.03em] text-foreground">
-            {release.month ?? "Release"}
-            {release.postedAt ? (
-              <span className="text-muted-foreground"> · {release.postedAt}</span>
-            ) : null}
+      <header className="flex flex-col gap-4 border-b-[3px] border-double border-border-strong pb-5">
+        <div className="flex items-center justify-between gap-4 border-b border-border pb-2 font-mono text-[10.5px] uppercase tracking-[0.14em] text-muted-foreground">
+          <span className="tabular-nums">{release.postedAt ?? release.month}</span>
+          <span className="hidden tracking-[0.2em] sm:inline">Platform release</span>
+          <span>{release.changeRequest ?? "Release"}</span>
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <h1 className="w-fit bg-background text-[2.75rem] font-bold leading-[0.95] tracking-[-0.04em] text-foreground">
+            {friendlyDate(release.postedAt) ?? release.month ?? "Release"}
           </h1>
-          {release.link ? (
-            <a
-              href={release.link}
-              target="_blank"
-              rel="noreferrer"
-              className="flex w-fit items-center gap-1 bg-background text-[12.5px] font-semibold text-brand-ink hover:underline"
-            >
-              Open release notes
-              <span aria-hidden>↗</span>
-            </a>
-          ) : null}
+          <p className="w-fit max-w-[60ch] bg-background text-[13px] italic leading-[1.5] text-muted-foreground">
+            {release.items.length} {release.items.length === 1 ? "change" : "changes"} across{" "}
+            {categories.map((c) => c.category.toLowerCase()).join(" and ")}
+            {release.changeRequest ? `, change ${release.changeRequest}` : ""}.
+          </p>
         </div>
       </header>
 
-      <div className="grid gap-x-10 gap-y-7 lg:grid-cols-[minmax(0,1fr)_260px]">
+      <div className="grid gap-x-12 gap-y-10 lg:grid-cols-[minmax(0,1fr)_240px]">
         <main className="flex min-w-0 flex-col gap-7">
           {categories.map((c) => (
-            <section key={c.category} className="flex flex-col gap-2.5">
-              <SectionLabel>
-                {c.category} · {c.count}
-              </SectionLabel>
-              <ul className="flex flex-col rounded-[4px] border border-border bg-card px-4">
+            <section key={c.category}>
+              <h2 className="mb-3 flex items-baseline gap-3 border-t border-border pt-3">
+                <span className="font-mono text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                  {c.category}
+                </span>
+                <span className="font-mono text-[10px] tabular-nums text-muted-foreground/70">
+                  {c.count}
+                </span>
+              </h2>
+              <ul className="flex flex-col">
                 {release.items
                   .filter((item) => item.category === c.category)
                   .map((item, i) => (
                     <li
                       key={`${item.ticket ?? item.title}-${i}`}
-                      className="flex items-baseline justify-between gap-3 border-b border-border py-2.5 last:border-b-0"
+                      className="flex items-baseline justify-between gap-4 border-t border-border py-2.5 first:border-t-0"
                     >
-                      <span className="text-[12.5px] leading-[1.5] text-foreground/90">
+                      <span className="bg-background text-[13px] leading-[1.5] text-foreground">
                         {item.title}
                       </span>
-                      {item.ticket ? (
-                        <span className="shrink-0 rounded-[2px] border border-border px-1.5 py-px font-mono text-[10px] tabular-nums text-muted-foreground">
+                      {item.ticket && release.jiraBase ? (
+                        <a
+                          href={`${release.jiraBase}/browse/${item.ticket}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="shrink-0 bg-background font-mono text-[10.5px] tabular-nums text-brand-ink hover:underline"
+                        >
+                          {item.ticket}
+                        </a>
+                      ) : item.ticket ? (
+                        <span className="shrink-0 bg-background font-mono text-[10.5px] tabular-nums text-muted-foreground">
                           {item.ticket}
                         </span>
                       ) : null}
@@ -99,46 +113,80 @@ function ReleaseDetailRoute() {
           ))}
         </main>
 
-        <aside className="flex min-w-0 flex-col gap-2.5">
-          <SectionLabel>Record</SectionLabel>
-          <dl className="flex flex-col rounded-[4px] border border-border bg-card px-4 py-1.5">
-            {release.changeRequest ? (
-              <MetaRow label="Change" value={release.changeRequest} mono />
-            ) : null}
-            {release.postedAt ? <MetaRow label="Posted" value={release.postedAt} /> : null}
-            <MetaRow label="Scope" value={`${release.items.length} changes`} />
-            {categories.map((c) => (
-              <MetaRow key={c.category} label={c.category} value={String(c.count)} />
-            ))}
-          </dl>
+        <aside className="flex min-w-0 flex-col gap-8 lg:border-l lg:border-border lg:pl-7">
+          {release.resources && release.resources.length > 0 ? (
+            <RailModule label="References">
+              <ul className="flex flex-col">
+                {release.resources.map((resource, i) => (
+                  <li key={resource.label} className={i > 0 ? "border-t border-border" : undefined}>
+                    {resource.url ? (
+                      <a
+                        href={resource.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="group flex items-baseline justify-between gap-3 py-2"
+                      >
+                        <span className="bg-background text-[12.5px] text-foreground group-hover:text-brand-ink">
+                          {resource.label}
+                        </span>
+                        <span
+                          aria-hidden
+                          className="shrink-0 text-muted-foreground group-hover:text-brand-ink"
+                        >
+                          ↗
+                        </span>
+                      </a>
+                    ) : (
+                      <span className="block py-2 text-[12.5px] text-muted-foreground">
+                        {resource.label}
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </RailModule>
+          ) : null}
+
+          {release.support ? (
+            <RailModule label="Questions">
+              <p className="bg-background text-[12px] leading-[1.6] text-muted-foreground">
+                For questions or follow-up, reach the {release.support}.
+              </p>
+            </RailModule>
+          ) : null}
+
+          {release.link ? (
+            <a
+              href={release.link}
+              target="_blank"
+              rel="noreferrer"
+              className="w-fit bg-background text-[12.5px] font-semibold text-brand-ink hover:underline"
+            >
+              Open release notes ↗
+            </a>
+          ) : null}
         </aside>
       </div>
     </div>
   );
 }
 
-function SectionLabel({ children }: { children: React.ReactNode }) {
+function RailModule({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <h2 className="w-fit bg-background font-mono text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+    <section className="flex flex-col gap-2.5">
+      <h2 className="w-fit border-b-2 border-border-strong bg-background pb-1.5 font-mono text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+        {label}
+      </h2>
       {children}
-    </h2>
+    </section>
   );
 }
 
-function MetaRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
-  return (
-    <div className="flex items-baseline justify-between gap-3 border-b border-border py-2 last:border-b-0">
-      <dt className="font-mono text-[10px] uppercase tracking-[0.06em] text-muted-foreground">
-        {label}
-      </dt>
-      <dd
-        className={
-          "text-right text-[12.5px] font-semibold text-foreground" +
-          (mono ? " font-mono text-[11.5px] font-normal" : "")
-        }
-      >
-        {value}
-      </dd>
-    </div>
-  );
+function friendlyDate(iso: string | undefined): string | undefined {
+  const match = iso?.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) {
+    return undefined;
+  }
+  const month = MONTHS[Number(match[2]) - 1];
+  return month ? `${Number(match[3])} ${month} ${match[1]}` : undefined;
 }

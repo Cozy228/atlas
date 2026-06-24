@@ -21,7 +21,7 @@ kind: New            # one of: New | Updated | Policy | Deprecated | Incident
 title: ""            # <= 80 chars, the change itself, no "Announcement:" prefix
 date: ""             # ISO YYYY-MM-DD; the effective/release date stated in the email
 summary: ""          # 1-2 sentences, official and neutral; what changed and who it affects
-ticket: ""           # omit if none. The tracking id if present, e.g. AFCN-12345 or CHG1052711
+ticket: ""           # omit if none. The tracking id if present, e.g. PLAT-1234 or CHG0010001
 link: ""             # omit if none. The primary URL referenced (release notes, change request)
 ```
 
@@ -50,7 +50,7 @@ kind: Policy
 title: API Gateway enabled across PE Org and Federated LZ
 date: 2026-05-09
 summary: A service control policy now enables Amazon API Gateway in all OUs of the PE Org and the Federated Landing Zone. Workloads in those accounts can adopt API Gateway without a separate exception.
-ticket: AFCN-11589
+ticket: PLAT-102
 ```
 
 Now convert the following email:

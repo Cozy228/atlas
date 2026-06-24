@@ -6,7 +6,7 @@ import { createHash } from "node:crypto";
  *
  * The page lists releases (bi-monthly) with a "Release Scope" broken into
  * categories (Non-Compute / Compute / …), each a numbered list of items that
- * end in a Jira ticket (`[AFCN-1234]`, or a bare `AFCN-1234`), plus trailing
+ * end in a Jira-style ticket (`[ABC-1234]`, or a bare `ABC-1234`), plus trailing
  * metadata (the change request `CHG…`, the Viva Engage post date, etc.).
  *
  * Body-only today: the caller passes the page's text (the live Confluence
@@ -17,8 +17,15 @@ export type ReleaseItem = {
   category: string;
   index: number;
   title: string;
-  /** Jira id, e.g. "AFCN-11574", when present. */
+  /** Jira-style id, e.g. "PLAT-1574", when present. */
   ticket?: string;
+};
+
+/** A related link on the release (Jira release, DOP, Go/No-Go, Viva Engage…). */
+export type ReleaseResource = {
+  label: string;
+  /** Omitted for a reference that has no link (e.g. "attached in ServiceNow"). */
+  url?: string;
 };
 
 export type Release = {
@@ -32,7 +39,13 @@ export type Release = {
   postedAt?: string;
   /** Link to the source of record (Confluence release-notes page). */
   link?: string;
+  /** Jira base URL; an item ticket links to `<jiraBase>/browse/<ticket>`. */
+  jiraBase?: string;
   items: ReleaseItem[];
+  /** Related links: Jira release, change request, DOP, Go/No-Go, Viva Engage… */
+  resources?: ReleaseResource[];
+  /** Who to contact with questions, e.g. "AWSF Operations Team — ops@…". */
+  support?: string;
 };
 
 const MONTH_NAMES = [
@@ -50,7 +63,8 @@ const MONTH_NAMES = [
   "December",
 ];
 
-const TICKET = /\b(AFCN-\d+)\b/;
+// Generic Jira-style key (PROJECT-1234), not any specific project.
+const TICKET = /\b([A-Z][A-Z0-9]+-\d+)\b/;
 const MONTHS: Record<string, string> = {
   january: "01",
   february: "02",
@@ -171,7 +185,7 @@ function monthLabel(iso: string | undefined): string | undefined {
 
 function splitTicket(raw: string): { title: string; ticket?: string } {
   const ticket = raw.match(TICKET)?.[1];
-  const title = (ticket ? raw.replace(/\[?\s*AFCN-\d+\s*\]?/, " ") : raw)
+  const title = (ticket ? raw.replace(/\[?\s*[A-Z][A-Z0-9]+-\d+\s*\]?/, " ") : raw)
     .replace(/\s+/g, " ")
     .replace(/[.\s]+$/, "")
     .trim();

@@ -6,14 +6,14 @@ const STORAGE_HTML = `
   <p>Release Scope:</p>
   <p>Non-Compute:</p>
   <ol>
-    <li>SCP: Enable DMS in all Ous [AFCN-11574]</li>
-    <li>Config: Data Sync Hardening Guidelines [AFCN-11603]</li>
+    <li>SCP: Enable DMS in all OUs [PLAT-101]</li>
+    <li>Config: Data Sync hardening guidelines [PLAT-103]</li>
   </ol>
   <p>Compute:</p>
   <ol>
-    <li>EC2-Patch Compliance Report Lambda [AFCN-11725]</li>
+    <li>EC2-Patch Compliance Report Lambda [PLAT-111]</li>
   </ol>
-  <p>For this release change CHG1052711 | Change Request</p>
+  <p>For this release change CHG0010001 | Change Request</p>
   <p>posted in AWS Federated Platform on 09th May, 2026.</p>
 `;
 
@@ -21,8 +21,8 @@ describe("renderStorageHtml", () => {
   it("numbers ordered-list items and keeps headings/paragraphs as lines", () => {
     const text = renderStorageHtml(STORAGE_HTML);
     expect(text).toContain("Non-Compute:");
-    expect(text).toContain("1. SCP: Enable DMS in all Ous [AFCN-11574]");
-    expect(text).toContain("1. EC2-Patch Compliance Report Lambda [AFCN-11725]");
+    expect(text).toContain("1. SCP: Enable DMS in all OUs [PLAT-101]");
+    expect(text).toContain("1. EC2-Patch Compliance Report Lambda [PLAT-111]");
   });
 });
 
@@ -46,7 +46,7 @@ describe("resolveReleaseNotes", () => {
     expect(result).toMatchObject({ ok: true });
     if (result.ok) {
       expect(result.releases).toHaveLength(1);
-      expect(result.releases[0].changeRequest).toBe("CHG1052711");
+      expect(result.releases[0].changeRequest).toBe("CHG0010001");
       expect(result.releases[0].postedAt).toBe("2026-05-09");
       expect(result.releases[0].month).toBe("May 2026");
       expect(result.releases[0].items).toHaveLength(3);
