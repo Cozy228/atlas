@@ -23,7 +23,7 @@ import {
 import { classifyFreshness, parseDurationToMs, type FreshnessState } from "@/lib/evidence";
 import { cn } from "@/lib/utils";
 
-import { CLASS_LABEL, FRESHNESS_META } from "./shared";
+import { CLASS_LABEL, FRESHNESS_META, SOURCE_PROVENANCE } from "./shared";
 
 const DAY_MS = 86_400_000;
 
@@ -318,7 +318,7 @@ export function SourceDossier({
             <div className="flex items-baseline gap-2.5">
               <SectionLabel>Key sections</SectionLabel>
               <span className="rounded-[2px] bg-muted px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.06em] text-muted-foreground">
-                demo excerpt
+                {SOURCE_PROVENANCE[source.source_class]}
               </span>
             </div>
             <ul className="flex flex-col gap-2.5">
@@ -390,7 +390,7 @@ export function SourceDossier({
             <div className="flex items-baseline gap-2.5">
               <SectionLabel>Revision history</SectionLabel>
               <span className="rounded-[2px] bg-muted px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.06em] text-muted-foreground">
-                demo log
+                {SOURCE_PROVENANCE[source.source_class]}
               </span>
             </div>
             <ol className="flex flex-col">

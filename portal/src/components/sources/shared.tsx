@@ -14,6 +14,20 @@ export const CLASS_LABEL: Record<Source["source_class"], string> = {
   "availability-matrix": "Availability matrix",
 };
 
+/**
+ * Where the content comes from — the source of record per `source_class`. Shown
+ * instead of a "demo" tag so a reader (human or agent) sees the provenance of
+ * the context. Phrased "From <system>", not "Live from", because live
+ * resolution is off by default; the live prefix is reserved for content that
+ * was actually fetched at request time.
+ */
+export const SOURCE_PROVENANCE: Record<Source["source_class"], string> = {
+  "terraform-module": "From Terraform README",
+  "confluence-page": "From Confluence",
+  "policy-document": "From policy doc",
+  "availability-matrix": "From availability matrix",
+};
+
 export const FRESHNESS_META: Record<FreshnessState, { label: string; dot: string }> = {
   current: { label: "Current", dot: "bg-success" },
   "needs-review": { label: "Review due", dot: "bg-warning" },
