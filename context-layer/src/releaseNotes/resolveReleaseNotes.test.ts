@@ -45,9 +45,11 @@ describe("resolveReleaseNotes", () => {
     expect(fetch.mock.calls[0]?.[0]).toContain("/wiki/api/v2/pages/123456?body-format=storage");
     expect(result).toMatchObject({ ok: true });
     if (result.ok) {
-      expect(result.release.changeRequest).toBe("CHG1052711");
-      expect(result.release.postedAt).toBe("2026-05-09");
-      expect(result.release.items).toHaveLength(3);
+      expect(result.releases).toHaveLength(1);
+      expect(result.releases[0].changeRequest).toBe("CHG1052711");
+      expect(result.releases[0].postedAt).toBe("2026-05-09");
+      expect(result.releases[0].month).toBe("May 2026");
+      expect(result.releases[0].items).toHaveLength(3);
     }
   });
 

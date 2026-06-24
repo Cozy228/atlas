@@ -23,15 +23,21 @@ import {
   type Change,
   type ChangeKind,
 } from "@/components/whatsnew/data";
+import { releaseNotesQueryOptions } from "@/api/queries";
+import { ReleasesSection } from "@/components/whatsnew/releases";
 import { cn } from "@/lib/utils";
 
 const DATELINE = "Thursday · June 11, 2026";
 
 export const Route = createFileRoute("/whatsnew")({
+  loader: async ({ context }) => ({
+    releases: await context.queryClient.ensureQueryData(releaseNotesQueryOptions),
+  }),
   component: WhatsNewRoute,
 });
 
 function WhatsNewRoute() {
+  const { releases } = Route.useLoaderData();
   const lead = CHANGES[0];
   const secondary = CHANGES.slice(1, 3);
   const rest = CHANGES.slice(3);
@@ -57,6 +63,8 @@ function WhatsNewRoute() {
           ) : null}
 
           {today.length > 0 ? <TodayDispatch items={today} /> : null}
+
+          <ReleasesSection releases={releases} />
 
           {earlierMonths.map(({ month, items }) => (
             <section key={month} id={monthAnchor(month)} className="mt-8 scroll-mt-20">
