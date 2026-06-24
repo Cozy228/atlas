@@ -11,6 +11,7 @@ import {
 
 import type { Location } from "@/api/server/availability";
 import { cn } from "@/lib/utils";
+import { SeedBadge } from "@/components/seed-badge";
 import { regionLabel, type RegionHealth } from "./region-map";
 
 export type RegionStats = {
@@ -52,15 +53,15 @@ export function RegionDetail({
 
   return (
     <aside
-      className={cn(
-        "flex flex-col gap-5 rounded-xl border border-border bg-card p-5",
-        className,
-      )}
+      className={cn("flex flex-col gap-5 rounded-xl border border-border bg-card p-5", className)}
     >
       <header className="flex flex-col gap-3">
-        <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-          Selected region
-        </span>
+        <div className="flex items-center justify-between gap-2">
+          <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            Selected region
+          </span>
+          <SeedBadge />
+        </div>
         <div className="flex items-start gap-3">
           <span
             aria-hidden
@@ -91,7 +92,10 @@ export function RegionDetail({
         <dl className="mt-3 flex flex-col gap-2">
           <InfoRow label="Region code" value={region.id} mono />
           <InfoRow label="Location" value={region.sub} />
-          <InfoRow label="Type" value={region.kind === "outpost" ? "Outpost" : "Commercial region"} />
+          <InfoRow
+            label="Type"
+            value={region.kind === "outpost" ? "Outpost" : "Commercial region"}
+          />
           <InfoRow label="Availability zones" value={String(profile.zones)} />
           <InfoRow label="Launched" value={profile.launched} />
         </dl>
@@ -99,7 +103,9 @@ export function RegionDetail({
 
       <section className="border-t border-border pt-4">
         <div className="flex items-baseline justify-between">
-          <h4 className="text-[13px] font-bold tracking-[-0.01em] text-foreground">Available services</h4>
+          <h4 className="text-[13px] font-bold tracking-[-0.01em] text-foreground">
+            Available services
+          </h4>
           <span className="font-mono text-xs tabular-nums text-muted-foreground">
             {stats.available} of {stats.total}
           </span>
@@ -117,18 +123,32 @@ export function RegionDetail({
       </section>
 
       <section className="border-t border-border pt-4">
-        <h4 className="text-[13px] font-bold tracking-[-0.01em] text-foreground">Scheduled maintenance</h4>
+        <h4 className="text-[13px] font-bold tracking-[-0.01em] text-foreground">
+          Scheduled maintenance
+        </h4>
         {maintenance ? (
           <div className="mt-3 flex gap-3 rounded-lg border border-warning/30 bg-warning/8 p-3">
-            <IconCalendarClock className="size-4 shrink-0 text-warning-ink" stroke={1.75} aria-hidden />
+            <IconCalendarClock
+              className="size-4 shrink-0 text-warning-ink"
+              stroke={1.75}
+              aria-hidden
+            />
             <div className="flex flex-col gap-0.5">
-              <span className="text-[13px] font-semibold text-foreground">{maintenance.window}</span>
-              <span className="text-xs leading-[1.45] text-muted-foreground">{maintenance.detail}</span>
+              <span className="text-[13px] font-semibold text-foreground">
+                {maintenance.window}
+              </span>
+              <span className="text-xs leading-[1.45] text-muted-foreground">
+                {maintenance.detail}
+              </span>
             </div>
           </div>
         ) : (
           <div className="mt-3 flex items-center gap-2.5 rounded-lg border border-border bg-muted/40 p-3">
-            <IconCircleCheck className="size-4 shrink-0 text-success-ink" stroke={1.75} aria-hidden />
+            <IconCircleCheck
+              className="size-4 shrink-0 text-success-ink"
+              stroke={1.75}
+              aria-hidden
+            />
             <span className="text-[13px] text-muted-foreground">No scheduled maintenance</span>
           </div>
         )}
