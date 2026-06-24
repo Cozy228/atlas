@@ -4,6 +4,9 @@ packages:
   - "portal"
   - "infra"
 
+minimumReleaseAgeExclude:
+  - vite@8.1.0
+
 overrides:
   "@types/react": "19.2.15"
   "@types/react-dom": "19.2.3"
