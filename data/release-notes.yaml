@@ -1,81 +1,133 @@
 # Federated-platform release notes, mirrored from the Confluence release-notes
-# page. Authored sample (public-safe, fictional). At runtime the same shape is
-# produced by `resolveReleaseNotes` (live Confluence) or `parseReleaseNotes`
-# (pasted page text). Releases land roughly twice a month, so a month can hold
-# several.
+# page. Authored sample — public-safe and fictional: ticket keys (PLAT-###) and
+# change-request numbers are invented, not real identifiers. At runtime the same
+# shape is produced by `resolveReleaseNotes` (live Confluence) or
+# `parseReleaseNotes` (pasted page text). Releases land roughly twice a month,
+# so a month can hold several.
 releases:
   - id: rel-2026-05-09
     month: May 2026
     posted_at: "2026-05-09"
-    change_request: CHG1052711
+    change_request: CHG0010001
     link: https://confluence.example.com/display/CLOUD/Release+Notes+2026-05-09
+    jira_base: https://jira.example.com
+    support: AWSF Operations Team — awsf-ops@example.com
+    resources:
+      - label: Jira release
+        url: https://jira.example.com/projects/PLAT/versions/2026-05-09
+      - label: Change request (CHG0010001)
+        url: https://servicenow.example.com/nav_to.do?uri=change_request/CHG0010001
+      - label: Overall change DOP
+        url: https://confluence.example.com/display/CLOUD/DOP+2026-05-09
+      - label: Go / No-Go sheet
+        url: https://confluence.example.com/display/CLOUD/Go-No-Go+2026-05-09
+      - label: Viva Engage announcement
+        url: https://engage.example.com/main/feed/eyJ0eXBlIjoiY29udmVyc2F0aW9uIn0
+      - label: Release notes & details
+        url: https://confluence.example.com/display/CLOUD/Release+Notes+2026-05-09
+      - label: AWS Federated service availability
+        url: https://confluence.example.com/display/CLOUD/Service+Availability
     items:
       - category: Non-Compute
         title: "SCP: Enable DMS in all OUs in PE Org and Fed LZ"
-        ticket: AFCN-11574
+        ticket: PLAT-101
       - category: Non-Compute
         title: "SCP: Enable API Gateway in all OUs in PE Org and Fed LZ"
-        ticket: AFCN-11589
+        ticket: PLAT-102
       - category: Non-Compute
         title: "Config: Data Sync hardening guidelines"
-        ticket: AFCN-11603
+        ticket: PLAT-103
       - category: Non-Compute
         title: Release 1.0.2 of Transfer Family service
-        ticket: AFCN-11745
+        ticket: PLAT-104
       - category: Non-Compute
         title: Resolve ElastiCache access issue in cluster-node mode
-        ticket: AFCN-11187
+        ticket: PLAT-105
       - category: Non-Compute
         title: Enhance security group module to not always force replacement
-        ticket: AFCN-11472
+        ticket: PLAT-106
       - category: Non-Compute
         title: Update OPA policy for the ENV_CLASS tag
-        ticket: AFCN-11619
+        ticket: PLAT-107
       - category: Non-Compute
         title: "Config: Autoscaling capacity rebalancing"
-        ticket: AFCN-11686
+        ticket: PLAT-108
       - category: Non-Compute
         title: "Config: Tag support for Autoscaling resources"
-        ticket: AFCN-11703
+        ticket: PLAT-109
       - category: Non-Compute
         title: Release 1.0.2 of MWAA Airflow service
-        ticket: AFCN-11758
+        ticket: PLAT-110
       - category: Compute
         title: EC2 patch-compliance report Lambda production deployment
-        ticket: AFCN-11725
+        ticket: PLAT-111
       - category: Compute
         title: CMDB failures reported through pipeline execution to the PE team
-        ticket: AFCN-11457
+        ticket: PLAT-112
       - category: Compute
         title: EC2 script-repo production deployment
-        ticket: AFCN-11765
+        ticket: PLAT-113
   - id: rel-2026-05-23
     month: May 2026
     posted_at: "2026-05-23"
-    change_request: CHG1052999
+    change_request: CHG0010002
     link: https://confluence.example.com/display/CLOUD/Release+Notes+2026-05-23
+    jira_base: https://jira.example.com
+    support: AWSF Operations Team — awsf-ops@example.com
+    resources:
+      - label: Jira release
+        url: https://jira.example.com/projects/PLAT/versions/2026-05-23
+      - label: Change request (CHG0010002)
+        url: https://servicenow.example.com/nav_to.do?uri=change_request/CHG0010002
+      - label: Overall change DOP
+        url: https://confluence.example.com/display/CLOUD/DOP+2026-05-23
+      - label: Go / No-Go sheet
+        url: https://confluence.example.com/display/CLOUD/Go-No-Go+2026-05-23
+      - label: Viva Engage announcement
+        url: https://engage.example.com/main/feed/eyJ0eXBlIjoiY29udmVyc2F0aW9uMiJ9
+      - label: Release notes & details
+        url: https://confluence.example.com/display/CLOUD/Release+Notes+2026-05-23
+      - label: AWS Federated service availability
+        url: https://confluence.example.com/display/CLOUD/Service+Availability
     items:
       - category: Non-Compute
         title: "Config: S3 access-log retention baseline"
-        ticket: AFCN-11820
+        ticket: PLAT-120
       - category: Non-Compute
         title: "SCP: Enable Step Functions in Fed LZ"
-        ticket: AFCN-11833
+        ticket: PLAT-121
       - category: Compute
         title: EC2 AMI hardening pipeline rollout
-        ticket: AFCN-11805
+        ticket: PLAT-122
   - id: rel-2026-04-25
     month: April 2026
     posted_at: "2026-04-25"
-    change_request: CHG1049820
+    change_request: CHG0009500
     link: https://confluence.example.com/display/CLOUD/Release+Notes+2026-04-25
+    jira_base: https://jira.example.com
+    support: AWSF Operations Team — awsf-ops@example.com
+    resources:
+      - label: Jira release
+        url: https://jira.example.com/projects/PLAT/versions/2026-04-25
+      - label: Change request (CHG0009500)
+        url: https://servicenow.example.com/nav_to.do?uri=change_request/CHG0009500
+      - label: Overall change DOP
+        url: https://confluence.example.com/display/CLOUD/DOP+2026-04-25
+      - label: Go / No-Go sheet
+        url: https://confluence.example.com/display/CLOUD/Go-No-Go+2026-04-25
+      - label: Viva Engage announcement
+        url: https://engage.example.com/main/feed/eyJ0eXBlIjoiY29udmVyc2F0aW9uMyJ9
+      - label: Release notes & details
+        url: https://confluence.example.com/display/CLOUD/Release+Notes+2026-04-25
+      - label: AWS Federated service availability
+        url: https://confluence.example.com/display/CLOUD/Service+Availability
     items:
       - category: Non-Compute
         title: "Config: KMS key rotation policy update"
-        ticket: AFCN-11402
+        ticket: PLAT-090
       - category: Non-Compute
         title: Release 2.1.0 of the Transit Gateway module
-        ticket: AFCN-11455
+        ticket: PLAT-091
       - category: Compute
         title: EC2 inspector findings export to the PE team
-        ticket: AFCN-11390
+        ticket: PLAT-092

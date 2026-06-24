@@ -12,8 +12,8 @@ describe("loadReleaseNotes", () => {
 
     const may23 = releases.find((r) => r.id === "rel-2026-05-23");
     expect(may23?.month).toBe("May 2026");
-    expect(may23?.changeRequest).toBe("CHG1052999");
-    expect(may23?.items.some((i) => i.ticket === "AFCN-11765")).toBe(true);
+    expect(may23?.changeRequest).toBe("CHG0010002");
+    expect(may23?.items.some((i) => i.ticket === "PLAT-120")).toBe(true);
   });
 
   it("supports several releases in one month (bi-monthly)", () => {
