@@ -65,7 +65,7 @@ steps:
         action:
           type: tool_link
           label: Open module
-          target: https://github.com/example/terraform-aws-apigateway
+          target: https://tfe.example.com/app/example/registry/modules/private/example/apigateway/aws
       - id: copy-starter
         title: Copy the Terraform starter
         action:

@@ -1,29 +1,36 @@
 import type { Anchor } from "@atlas/schema";
 import type { AnchorResolver, ResolveRequest, ResolveResult } from "./resolverTypes";
 import { resolveAnchor } from "./resolveAnchor";
-import { resolveTerraformModuleLive } from "../sourceContent/terraformModuleContentProvider";
+import {
+  resolveTerraformModuleLive,
+  resolveTerraformModuleFieldLive,
+} from "../sourceContent/terraformModuleContentProvider";
 
 export const terraformModuleResolver: AnchorResolver = {
   sourceClass: "terraform-module",
   async resolve(request) {
     const anchor = pickAnchor(request.anchors, request.anchorId);
 
+    // Token order mirrors Confluence: the caller's Bearer first (so the request
+    // resolves under the caller's own TFC/TFE identity), else the service token,
+    // else defer to the offline pilot provider. baseUrl is the registry host
+    // (deployment config); the public registry is only the default placeholder.
+    const env = readProcessEnv();
+    const token = request.ctx.token ?? env.ATLAS_TERRAFORM_TOKEN;
+    const baseUrl = env.ATLAS_TERRAFORM_BASE_URL ?? "https://registry.terraform.io";
+
     // Registry-metadata path (ADR-0010): a `module-field` anchor cites a module
     // metadata field (version / input / output), a different kind of content from
-    // the README prose. The live TFC/TFE private-registry adapter plugs in behind
-    // this same seam; offline it reads the governed metadata map.
+    // the README prose. Live registry when a token is configured; else the
+    // governed offline metadata map.
     if (anchor?.anchor_strategy === "module-field") {
+      if (token) {
+        return resolveTerraformModuleFieldLive(request, { token, baseUrl }, stringSelector(anchor, "field"));
+      }
       return resolveModuleField(request, anchor);
     }
 
-    // README-prose path. Token order mirrors Confluence: the caller's Bearer
-    // first (so the request resolves under the caller's own TFE/Terraform
-    // identity), else the service token, else defer to the offline pilot
-    // provider. The default base URL targets github.com's API.
-    const env = readProcessEnv();
-    const token = request.ctx.token ?? env.ATLAS_TERRAFORM_TOKEN;
-    const baseUrl = env.ATLAS_TERRAFORM_BASE_URL ?? "https://api.github.com";
-
+    // README-prose path.
     if (token) {
       return resolveTerraformModuleLive(request, { token, baseUrl });
     }

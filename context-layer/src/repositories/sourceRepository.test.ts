@@ -6,7 +6,7 @@ const source: Source = {
   id: "textract-module-readme",
   title: "Textract Terraform Module",
   source_class: "terraform-module",
-  location: "github.com/example/terraform-aws-textract",
+  location: "example/textract/aws",
   steward: "cloud-platform",
   visibility: "internal",
   authority_scope: ["module-usage", "private-networking"],

@@ -14,7 +14,7 @@ const topic: Topic = {
   entry_tools: [
     {
       label: "Terraform module",
-      url: "https://github.com/example/terraform-aws-textract",
+      url: "https://tfe.example.com/app/example/registry/modules/private/example/textract/aws",
     },
   ],
 };
