@@ -161,4 +161,46 @@ describe("terraformModuleResolver", () => {
     expect(fetch).toHaveBeenCalledTimes(1);
     expect(result.excerpts[0]?.text).toContain("Use the private endpoint configuration.");
   });
+
+  it("uses the caller's Bearer for the live fetch even without a service token", async () => {
+    const env = (
+      globalThis as typeof globalThis & {
+        process: { env: Record<string, string | undefined> };
+      }
+    ).process.env;
+    const previousToken = env.ATLAS_TERRAFORM_TOKEN;
+    delete env.ATLAS_TERRAFORM_TOKEN;
+
+    const fetch = vi.fn<FetchLike>(async () => ({
+      ok: true,
+      status: 200,
+      async json() {
+        return {
+          content: Buffer.from(
+            "## Private subnet usage\nUse the private endpoint configuration.\n",
+            "utf8",
+          ).toString("base64"),
+          encoding: "base64",
+          html_url: "https://github.com/acme/terraform-aws-textract/blob/main/README.md",
+        };
+      },
+    }));
+
+    const result = await terraformModuleResolver.resolve({
+      ctx: { token: "caller-bearer-xyz", fetch },
+      source,
+      anchors: [anchor],
+      anchorId: "private-subnet-usage",
+      contentProvider: createInMemorySourceContentProvider({}),
+    });
+
+    if (previousToken !== undefined) {
+      env.ATLAS_TERRAFORM_TOKEN = previousToken;
+    }
+
+    expect(fetch).toHaveBeenCalledTimes(1);
+    const authHeader = fetch.mock.calls[0]?.[1]?.headers?.Authorization;
+    expect(authHeader).toContain("caller-bearer-xyz");
+    expect(result.excerpts[0]?.text).toContain("Use the private endpoint configuration.");
+  });
 });
