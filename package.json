@@ -8,7 +8,7 @@
     "test": "pnpm -r test",
     "validate:guidance": "pnpm --filter @atlas/schema validate:guidance",
     "validate:registry": "pnpm --filter @atlas/schema validate:registry",
-    "parse:newsletter": "node --experimental-strip-types context-layer/scripts/parse-newsletter.ts",
+    "parse:release-notes": "node --experimental-strip-types context-layer/scripts/parse-release-notes.ts",
     "prepare": "husky"
   },
   "lint-staged": {
