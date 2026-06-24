@@ -62,43 +62,18 @@ export async function resolveConfluencePageLive(
 
   const pageId = request.source.location;
   const baseUrl = config.baseUrl.replace(/\/+$/, "");
-  const url = `${baseUrl}/wiki/api/v2/pages/${encodeURIComponent(pageId)}?body-format=storage`;
 
-  const response = await request.ctx.fetch(url, {
-    method: "GET",
-    headers: {
-      Authorization: confluenceAuthorization(config),
-      Accept: "application/json",
-    },
-  });
-
-  if (response.status === 401 || response.status === 403) {
+  const fetched = await fetchConfluenceStorageHtml(request.ctx, config, pageId);
+  if (!fetched.ok) {
     return warningResult({
-      code: "restricted_source",
-      message: "Confluence denied access to this source for the supplied identity.",
-      source_id: request.source.id,
-      anchor_id: anchor.id,
-    });
-  }
-  if (response.status === 404) {
-    return warningResult({
-      code: "source_unavailable",
-      message: "Confluence page was not found at request time.",
-      source_id: request.source.id,
-      anchor_id: anchor.id,
-    });
-  }
-  if (!response.ok) {
-    return warningResult({
-      code: "source_unavailable",
-      message: "Confluence page could not be resolved at request time.",
+      code: fetched.code,
+      message: fetched.message,
       source_id: request.source.id,
       anchor_id: anchor.id,
     });
   }
 
-  const page = (await response.json()) as ConfluencePageResponse;
-  const html = page.body?.storage?.value ?? "";
+  const html = fetched.html;
   const sectionText = extractSectionText(html, locator);
 
   if (!sectionText) {
@@ -110,7 +85,7 @@ export async function resolveConfluencePageLive(
   }
 
   const warnings: ResolverWarning[] = [];
-  const driftWarning = driftWarningFor(request.source, page.version?.number, anchor.id);
+  const driftWarning = driftWarningFor(request.source, fetched.version, anchor.id);
   if (driftWarning) {
     warnings.push(driftWarning);
   }
@@ -124,11 +99,68 @@ export async function resolveConfluencePageLive(
           source_id: request.source.id,
           anchor_id: anchor.id,
           label: anchor.citation_label,
-          location: buildCitationLocation(baseUrl, pageId, page._links?.webui, locator),
+          location: buildCitationLocation(baseUrl, pageId, fetched.webui, locator),
         },
       },
     ],
     warnings,
+  };
+}
+
+/**
+ * Fetch a Confluence page's storage-format body through the shared channel
+ * (same v2 endpoint, auth, and `ctx.fetch` — so caching and the caller's ACL
+ * apply identically). Reused by both the anchor resolver and the release-notes
+ * runtime. Maps HTTP status to the warning code/message the callers surface.
+ */
+export type ConfluenceFetchResult =
+  | { ok: true; html: string; version: number | undefined; webui: string | undefined }
+  | { ok: false; code: "restricted_source" | "source_unavailable"; message: string };
+
+export async function fetchConfluenceStorageHtml(
+  ctx: ResolutionContext,
+  config: ConfluenceLiveConfig,
+  pageId: string,
+): Promise<ConfluenceFetchResult> {
+  const baseUrl = config.baseUrl.replace(/\/+$/, "");
+  const url = `${baseUrl}/wiki/api/v2/pages/${encodeURIComponent(pageId)}?body-format=storage`;
+
+  const response = await ctx.fetch(url, {
+    method: "GET",
+    headers: {
+      Authorization: confluenceAuthorization(config),
+      Accept: "application/json",
+    },
+  });
+
+  if (response.status === 401 || response.status === 403) {
+    return {
+      ok: false,
+      code: "restricted_source",
+      message: "Confluence denied access to this source for the supplied identity.",
+    };
+  }
+  if (response.status === 404) {
+    return {
+      ok: false,
+      code: "source_unavailable",
+      message: "Confluence page was not found at request time.",
+    };
+  }
+  if (!response.ok) {
+    return {
+      ok: false,
+      code: "source_unavailable",
+      message: "Confluence page could not be resolved at request time.",
+    };
+  }
+
+  const page = (await response.json()) as ConfluencePageResponse;
+  return {
+    ok: true,
+    html: page.body?.storage?.value ?? "",
+    version: page.version?.number,
+    webui: page._links?.webui,
   };
 }
 
