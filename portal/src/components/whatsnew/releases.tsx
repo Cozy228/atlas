@@ -1,12 +1,14 @@
 /**
- * Release-notes section for What's New. Each release is summarised as a card
- * (a month can hold several — releases land roughly twice a month), grouped
- * under its month. The full scope lives on the release detail page; the card is
- * the browse-once summary that links into it.
+ * Release-notes section for What's New, in the page's broadsheet idiom — month
+ * run-ins and hairline-separated briefs (Kicker + story link), not boxed cards.
+ * A month can hold several releases (they land ~twice a month). The full scope
+ * lives on the release detail page; the brief is the browse-once summary.
  */
 import { Link } from "@tanstack/react-router";
 
 import type { Release } from "@/api/server/releaseNotes";
+import { TONE_DOT } from "@/components/whatsnew/data";
+import { cn } from "@/lib/utils";
 
 export function ReleasesSection({ releases }: { releases: ReadonlyArray<Release> }) {
   if (releases.length === 0) {
@@ -15,59 +17,60 @@ export function ReleasesSection({ releases }: { releases: ReadonlyArray<Release>
   const months = groupByMonth(releases);
 
   return (
-    <section className="mt-8 flex flex-col gap-4 border-t-2 border-border-strong pt-6">
+    <section className="mt-8 flex flex-col gap-5 border-t-2 border-border-strong pt-6">
       <h2 className="flex items-baseline gap-3">
-        <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-foreground">
+        <span className="bg-background font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-foreground">
           Platform releases
         </span>
-        <span className="font-mono text-[10px] uppercase tracking-[0.06em] text-muted-foreground">
+        <span className="bg-background font-mono text-[10px] uppercase tracking-[0.06em] text-muted-foreground">
           From Confluence release notes
         </span>
       </h2>
 
       {months.map(({ month, items }) => (
-        <div key={month} className="flex flex-col gap-2.5">
-          <h3 className="font-mono text-[10.5px] uppercase tracking-[0.1em] text-muted-foreground">
-            {month}
+        <section key={month}>
+          <h3 className="mb-3 flex items-baseline gap-3 border-t border-border pt-3">
+            <span className="font-mono text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+              {month}
+            </span>
+            <span className="font-mono text-[10px] tabular-nums text-muted-foreground/70">
+              {items.length} {items.length === 1 ? "release" : "releases"}
+            </span>
           </h3>
-          <ul className="grid gap-2.5 sm:grid-cols-2">
+          <ul className="grid gap-x-10 sm:grid-cols-2">
             {items.map((release) => (
-              <ReleaseCard key={release.id} release={release} />
+              <ReleaseBrief key={release.id} release={release} />
             ))}
           </ul>
-        </div>
+        </section>
       ))}
     </section>
   );
 }
 
-function ReleaseCard({ release }: { release: Release }) {
+function ReleaseBrief({ release }: { release: Release }) {
   const counts = categoryCounts(release.items);
   return (
-    <li className="flex flex-col gap-2 rounded-[4px] border border-border bg-card p-3.5">
-      <div className="flex items-baseline justify-between gap-3">
-        <span className="font-mono text-[10px] uppercase tracking-[0.06em] text-muted-foreground">
-          {release.postedAt ?? release.month}
+    <li className="flex flex-col gap-1 border-t border-border py-3 first:border-t-0 sm:first:border-t">
+      <span className="flex items-center gap-2">
+        <span aria-hidden className={cn("size-1.5 rounded-full", TONE_DOT.info)} />
+        <span className="bg-background font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
+          Release · {release.postedAt ?? release.month}
         </span>
-        {release.changeRequest ? (
-          <span className="font-mono text-[10px] tabular-nums text-muted-foreground">
-            {release.changeRequest}
-          </span>
-        ) : null}
-      </div>
-
-      <p className="text-[13px] font-semibold text-foreground">
+      </span>
+      <h4 className="w-fit bg-background text-[13.5px] font-bold tracking-[-0.01em] text-foreground">
+        {release.changeRequest ?? release.month ?? "Release"}
+      </h4>
+      <p className="w-fit max-w-[44ch] bg-background text-[12px] leading-[1.5] text-muted-foreground">
         {release.items.length} {release.items.length === 1 ? "change" : "changes"}
-        <span className="font-normal text-muted-foreground">
-          {" · "}
-          {counts.map((c) => `${c.count} ${c.category.toLowerCase()}`).join(" · ")}
-        </span>
+        {counts.length > 0
+          ? ` · ${counts.map((c) => `${c.count} ${c.category.toLowerCase()}`).join(" · ")}`
+          : ""}
       </p>
-
       <Link
         to="/releases/$releaseId"
         params={{ releaseId: release.id }}
-        className="flex w-fit items-center gap-1 text-[12.5px] font-semibold text-brand-ink hover:underline"
+        className="flex w-fit items-center gap-1 bg-background text-[12.5px] font-semibold text-brand-ink hover:underline"
       >
         View release
         <span aria-hidden>→</span>
