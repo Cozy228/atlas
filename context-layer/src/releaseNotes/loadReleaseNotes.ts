@@ -1,20 +1,19 @@
 import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 import { parse } from "yaml";
 
-import type { Release, ReleaseItem, ReleaseResource } from "./parseReleaseNotes.js";
+import { resolveDataDir } from "../dataDir";
+import type { Release, ReleaseItem, ReleaseResource } from "./parseReleaseNotes";
 
 /**
- * Load the authored release-notes manifest (`data/release-notes.yaml`) into
+ * Load the releases from the newsletter manifest (`data/newsletter.yaml`) into
  * {@link Release}s — the offline source the What's New surface renders. The live
  * `resolveReleaseNotes` path produces the same shape; this is the manifest the
  * parse outputs are written into.
  */
 
-const here = dirname(fileURLToPath(import.meta.url));
-// src/releaseNotes -> src -> context-layer -> repo root -> data
-export const RELEASE_NOTES_DATA_DIR = join(here, "..", "..", "..", "data");
+// Same Git-managed data dir as the registry — see resolveDataDir.
+export const RELEASE_NOTES_DATA_DIR = resolveDataDir();
 
 type RawItem = {
   category?: unknown;
@@ -37,7 +36,7 @@ type RawRelease = {
 };
 
 export function loadReleaseNotes(dir: string = RELEASE_NOTES_DATA_DIR): Release[] {
-  const parsed = parse(readFileSync(join(dir, "release-notes.yaml"), "utf8")) as {
+  const parsed = parse(readFileSync(join(dir, "newsletter.yaml"), "utf8")) as {
     releases?: RawRelease[];
   };
   const releases = (parsed.releases ?? []).map(toRelease);

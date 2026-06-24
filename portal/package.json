@@ -13,8 +13,9 @@
   },
   "scripts": {
     "dev": "vite dev",
-    "build": "node scripts/gen-agent-skills-index.mjs && vite build",
+    "build": "node scripts/gen-guidance.mjs && node scripts/gen-agent-skills-index.mjs && vite build",
     "gen:agent-skills": "node scripts/gen-agent-skills-index.mjs",
+    "gen:guidance": "node scripts/gen-guidance.mjs",
     "start": "node .output/server/index.mjs",
     "lint": "oxlint && tsc --noEmit --pretty false",
     "lint:fix": "oxlint --fix",
@@ -80,6 +81,7 @@
     "tailwindcss": "4.3.1",
     "typescript": "rc",
     "vite": "8.0.16",
-    "vitest": "4.1.9"
+    "vitest": "4.1.9",
+    "yaml": "2.9.0"
   }
 }

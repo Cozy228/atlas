@@ -12,10 +12,10 @@
  * Data: fictional, public-safe fixtures in `proto/whatsnew/data.ts`. Home's
  * "What changed" section links here; the freshest slice are Home's announcements.
  */
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 
 import {
-  CHANGES,
+  changesFromAnnouncements,
   KIND_TONE,
   TONE_DOT,
   kindCounts,
@@ -23,24 +23,29 @@ import {
   type Change,
   type ChangeKind,
 } from "@/components/whatsnew/data";
-import { releaseNotesQueryOptions } from "@/api/queries";
+import { announcementsQueryOptions, releaseNotesQueryOptions } from "@/api/queries";
 import { ReleasesSection } from "@/components/whatsnew/releases";
 import { cn } from "@/lib/utils";
 
 const DATELINE = "Thursday · June 11, 2026";
 
 export const Route = createFileRoute("/whatsnew")({
-  loader: async ({ context }) => ({
-    releases: await context.queryClient.ensureQueryData(releaseNotesQueryOptions),
-  }),
+  loader: async ({ context }) => {
+    const [releases, announcements] = await Promise.all([
+      context.queryClient.ensureQueryData(releaseNotesQueryOptions),
+      context.queryClient.ensureQueryData(announcementsQueryOptions),
+    ]);
+    return { releases, announcements };
+  },
   component: WhatsNewRoute,
 });
 
 function WhatsNewRoute() {
-  const { releases } = Route.useLoaderData();
-  const lead = CHANGES[0];
-  const secondary = CHANGES.slice(1, 3);
-  const rest = CHANGES.slice(3);
+  const { releases, announcements } = Route.useLoaderData();
+  const changes = changesFromAnnouncements(announcements);
+  const lead = changes[0];
+  const secondary = changes.slice(1, 3);
+  const rest = changes.slice(3);
   // The snapshot day's remaining updates cluster into a "Today" roundup; the
   // older entries flow as briefs. This is what gives a heavy day real weight.
   const today = lead ? rest.filter((c) => c.date === lead.date) : [];
@@ -85,7 +90,7 @@ function WhatsNewRoute() {
             </section>
           ))}
         </main>
-        <Rail />
+        <Rail changes={changes} />
       </div>
     </div>
   );
@@ -153,13 +158,13 @@ function Kicker({ change, size = "sm" }: { change: Change; size?: "sm" | "lg" })
 function StoryLink({ change }: { change: Change }) {
   if (!change.link) return null;
   return (
-    <Link
-      to={change.link.to}
+    <a
+      href={change.link.href}
       className="flex w-fit items-center gap-1 bg-background text-[12.5px] font-semibold text-brand-ink hover:underline"
     >
       {change.link.label}
       <span aria-hidden>→</span>
-    </Link>
+    </a>
   );
 }
 
@@ -244,14 +249,14 @@ function BriefRow({
 /*  Rail                                                                      */
 /* -------------------------------------------------------------------------- */
 
-function Rail() {
-  const kinds = kindCounts();
-  const months = groupByMonth(CHANGES);
+function Rail({ changes }: { changes: ReadonlyArray<Change> }) {
+  const kinds = kindCounts(changes);
+  const months = groupByMonth(changes);
   return (
     <aside className="flex min-w-0 flex-col gap-8 lg:border-l lg:border-border lg:pl-7">
       <RailModule label="At a glance">
         <dl className="grid grid-cols-2 gap-y-3 gap-x-4">
-          <GlanceStat value={CHANGES.length} label="updates" />
+          <GlanceStat value={changes.length} label="updates" />
           {kinds.slice(0, 3).map((k) => (
             <GlanceStat key={k.kind} value={k.count} label={k.kind.toLowerCase()} tone={k.kind} />
           ))}

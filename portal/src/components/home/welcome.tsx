@@ -28,13 +28,13 @@ import { IntentSearch } from "@/components/intent-search";
 import { cn } from "@/lib/utils";
 
 import { ENTRY_DOT } from "@/components/catalog/data";
-import { CHANGES, TONE_DOT } from "@/components/whatsnew/data";
 
+import { RecentlyViewed } from "@/components/home/recently-viewed";
 import {
   INTENTS,
   POPULAR,
-  RECENTS,
   type DomainService,
+  type HomeAnnouncement,
   type HomeLoaderData,
   type MainlineRoute,
 } from "./data";
@@ -47,6 +47,7 @@ export function HomeWelcome({ data }: { data: HomeLoaderData }) {
           serviceCount={data.serviceCount}
           domainCount={data.domainCount}
           regionCount={data.regionCount}
+          announcements={data.announcements}
         />
         <ResumeBand />
       </div>
@@ -70,9 +71,8 @@ export function HomeWelcome({ data }: { data: HomeLoaderData }) {
  * full broadsheet; hover pauses the scroll; reduced-motion renders it static.
  * ========================================================================== */
 
-const TICKER_CHANGES = CHANGES.slice(0, 8);
-
-function WhatsNewTicker() {
+function WhatsNewTicker({ announcements }: { announcements: ReadonlyArray<HomeAnnouncement> }) {
+  if (announcements.length === 0) return null;
   return (
     <Link
       to="/whatsnew"
@@ -88,27 +88,30 @@ function WhatsNewTicker() {
       </span>
       <div className="relative min-w-0 flex-1 overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_4%,black_96%,transparent)]">
         <div className="flex w-max animate-[proto-marquee_50s_linear_infinite] group-hover:[animation-play-state:paused] motion-reduce:animate-none">
-          <TickerTrack />
-          <TickerTrack ariaHidden />
+          <TickerTrack announcements={announcements} />
+          <TickerTrack announcements={announcements} ariaHidden />
         </div>
       </div>
     </Link>
   );
 }
 
-function TickerTrack({ ariaHidden = false }: { ariaHidden?: boolean }) {
+function TickerTrack({
+  announcements,
+  ariaHidden = false,
+}: {
+  announcements: ReadonlyArray<HomeAnnouncement>;
+  ariaHidden?: boolean;
+}) {
   return (
     <div aria-hidden={ariaHidden || undefined} className="flex shrink-0 items-center">
-      {TICKER_CHANGES.map((change) => (
-        <span key={change.id} className="flex items-center gap-2 whitespace-nowrap px-6">
-          <span
-            aria-hidden
-            className={cn("size-1.5 shrink-0 rounded-full", TONE_DOT[change.tone])}
-          />
+      {announcements.map((item, i) => (
+        <span key={`${item.title}-${i}`} className="flex items-center gap-2 whitespace-nowrap px-6">
+          <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-muted-foreground/50" />
           <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
-            {change.kind}
+            {item.kind}
           </span>
-          <span className="text-[12.5px] text-foreground/80">{change.title}</span>
+          <span className="text-[12.5px] text-foreground/80">{item.title}</span>
         </span>
       ))}
     </div>
@@ -155,16 +158,18 @@ function Hero({
   serviceCount,
   domainCount,
   regionCount,
+  announcements,
 }: {
   serviceCount: number;
   domainCount: number;
   regionCount: number;
+  announcements: ReadonlyArray<HomeAnnouncement>;
 }) {
   return (
     <section className="flex flex-col items-center gap-5 text-center">
       {/* The What's-new ticker stands in for the eyebrow: the platform's pulse
           above the welcome, not a static label. */}
-      <WhatsNewTicker />
+      <WhatsNewTicker announcements={announcements} />
       <h1 className="w-fit max-w-[18ch] bg-background text-[2.5rem] font-bold leading-[1.05] tracking-[-0.035em] text-balance text-foreground">
         Welcome to Atlas Portal
       </h1>
@@ -215,37 +220,9 @@ function Stat({ value, label }: { value: number; label: string }) {
  * ========================================================================== */
 
 function ResumeBand() {
-  return (
-    <section
-      aria-label="Jump back in"
-      className="flex flex-wrap items-baseline justify-center gap-x-2 gap-y-1.5"
-    >
-      <span className="bg-background text-[12.5px] text-muted-foreground">
-        Pick up where you left off
-      </span>
-      <span aria-hidden className="bg-background text-muted-foreground/40">
-        ·
-      </span>
-      {RECENTS.map((recent, i) => (
-        <span key={recent.name} className="flex items-baseline gap-2">
-          {i > 0 ? (
-            <span aria-hidden className="bg-background text-muted-foreground/30">
-              /
-            </span>
-          ) : null}
-          <Link
-            to={recent.to}
-            className="group inline-flex items-baseline gap-1 bg-background text-[12.5px] font-semibold text-foreground underline decoration-border underline-offset-[3px] transition-colors hover:text-brand-ink hover:decoration-current focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            {recent.name}
-            <span className="font-mono text-[9.5px] font-normal uppercase tracking-[0.04em] text-muted-foreground">
-              {recent.type}
-            </span>
-          </Link>
-        </span>
-      ))}
-    </section>
-  );
+  // Real recently-viewed (localStorage). Renders nothing when there's no
+  // click history yet — no lead, no empty-state copy.
+  return <RecentlyViewed lead="Pick up where you left off" />;
 }
 
 /* ========================================================================== *
