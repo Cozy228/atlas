@@ -1,17 +1,27 @@
 /**
  * Release-notes projection for What's New.
  *
- * Server-only: reads the `data/release-notes.yaml` manifest through the Context
- * Layer loader. The same shape is produced at runtime by `resolveReleaseNotes`
- * (live Confluence) — swap the implementation here to serve live releases once
- * a page id is configured.
+ * Server-only. Live Confluence drives releases when configured
+ * (`ATLAS_RELEASE_NOTES_PAGE_ID` + the Confluence env); otherwise it falls back
+ * to the offline newsletter fixture (`data/newsletter.yaml`). Both produce the
+ * same `Release[]` shape. (Standalone announcements stay git-authored — see
+ * `announcements.ts`.)
  */
 import { createServerFn } from "@tanstack/react-start";
-import { loadReleaseNotes, type Release } from "@atlas/context-layer";
+import {
+  cachedResolutionContext,
+  loadReleaseNotes,
+  resolveReleaseNotes,
+  type Release,
+} from "@atlas/context-layer";
 
 export type { Release } from "@atlas/context-layer";
 
 export const fetchReleaseNotes = createServerFn({
   method: "GET",
   strict: { output: false },
-}).handler(async (): Promise<Release[]> => loadReleaseNotes());
+}).handler(async (): Promise<Release[]> => {
+  const result = await resolveReleaseNotes(await cachedResolutionContext());
+  // not_configured / restricted_source / source_unavailable → offline fixture.
+  return result.ok ? result.releases : loadReleaseNotes();
+});

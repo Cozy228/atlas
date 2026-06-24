@@ -37,11 +37,16 @@ export type DomainSummary = {
   services: ReadonlyArray<DomainService>;
 };
 
+/** A recent newsletter entry surfaced on the home "What's new" ticker. */
+export type HomeAnnouncement = { kind: string; title: string };
+
 export type HomeLoaderData = {
   serviceCount: number;
   domainCount: number;
   regionCount: number;
   domains: ReadonlyArray<DomainSummary>;
+  /** Most-recent release-notes items, newest first (the newsletter feed). */
+  announcements: ReadonlyArray<HomeAnnouncement>;
 };
 
 export type Intent = {
@@ -99,54 +104,6 @@ export const POPULAR: ReadonlyArray<string> = [
   "Authentication flows",
   "Network setup",
 ];
-
-export type RecentItem = { name: string; type: string; to: MainlineRoute };
-
-export const RECENTS: ReadonlyArray<RecentItem> = [
-  { name: "Object Storage", type: "Service", to: "/catalog" },
-  { name: "GDC Foundation", type: "Landing zone", to: "/catalog" },
-  { name: "Service authentication flow", type: "Guide", to: "/guidance" },
-  { name: "RBAC policy templates", type: "Policy", to: "/sources" },
-];
-
-export type Announcement = {
-  kind: string;
-  tone: "success" | "info" | "warning";
-  title: string;
-  description: string;
-  date: string;
-};
-
-export const ANNOUNCEMENTS: ReadonlyArray<Announcement> = [
-  {
-    kind: "New",
-    tone: "success",
-    title: "Object Storage (S3-Compatible)",
-    description:
-      "Added to the catalog. Available in US-East-1 and DC16 with versioning and lifecycle rules.",
-    date: "Jun 4, 2026",
-  },
-  {
-    kind: "Policy",
-    tone: "warning",
-    title: "GDC Deployment Approval",
-    description: "Two-step approval now required for all GDC landing zone deployments.",
-    date: "Jun 2, 2026",
-  },
-  {
-    kind: "Updated",
-    tone: "info",
-    title: "Kubernetes Platform",
-    description: "Authority source refreshed from platform CMDB; level raised to L1.",
-    date: "May 28, 2026",
-  },
-];
-
-export const ANNOUNCE_TONE: Record<Announcement["tone"], string> = {
-  success: "bg-success",
-  info: "bg-info",
-  warning: "bg-warning",
-};
 
 /** Compact lifecycle used where the full JourneyGrid would be too heavy. */
 export type LifecyclePhase = {

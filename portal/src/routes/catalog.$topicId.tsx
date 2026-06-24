@@ -63,8 +63,10 @@ export const Route = createFileRoute("/catalog/$topicId")({
 
     let bundle: ContextBundleResponse | null = null;
     try {
+      // disclosure_level 2 resolves every anchor on each source (the default of
+      // 1 returns only the first), so References can show all cited sections.
       bundle = await context.queryClient.ensureQueryData(
-        contextBundleQueryOptions({ topic_id: topic.id }),
+        contextBundleQueryOptions({ topic_id: topic.id, disclosure_level: 2 }),
       );
     } catch (error) {
       if (
@@ -124,9 +126,7 @@ function CatalogDetailRoute() {
 
   const isService = topic.topic_type === "service";
   const locations = defaultZone.locations;
-  const service = isService
-    ? findAvailabilityServiceForTopic(topic, defaultZone.services)
-    : null;
+  const service = isService ? findAvailabilityServiceForTopic(topic, defaultZone.services) : null;
 
   const guidance = relatedGuidanceForTopic(topic.id);
   const sources = bundle?.sources ?? [];
@@ -407,8 +407,8 @@ function WhereItRuns({
         </div>
       ) : (
         <p className="rounded-[4px] border border-dashed border-border bg-card px-4 py-5 text-[13px] text-muted-foreground">
-          No availability record is registered for this service yet. Region rollout will appear
-          here once the projection includes it.
+          No availability record is registered for this service yet. Region rollout will appear here
+          once the projection includes it.
         </p>
       )}
       <Link
@@ -505,10 +505,17 @@ function References({ sources }: { sources: ContextBundleResponse["sources"] }) 
             <p className="text-[12.5px] leading-[1.5] text-muted-foreground">
               {entry.selection_rationale}
             </p>
-            {entry.excerpts[0] ? (
-              <p className="border-l border-border pl-3 text-[12.5px] italic leading-[1.5] text-muted-foreground">
-                “{entry.excerpts[0].text}”
-              </p>
+            {entry.excerpts.length > 0 ? (
+              <div className="flex flex-col gap-1.5">
+                {entry.excerpts.map((excerpt, ei) => (
+                  <p
+                    key={excerpt.citation.anchor_id ?? excerpt.anchor_id ?? ei}
+                    className="border-l border-border pl-3 text-[12.5px] italic leading-[1.5] text-muted-foreground"
+                  >
+                    “{excerpt.text}”
+                  </p>
+                ))}
+              </div>
             ) : null}
             <div className="mt-0.5 flex flex-wrap items-center gap-2">
               <AuthorityBadge level={entry.source.authority_level} />

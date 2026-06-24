@@ -14,10 +14,10 @@
  */
 import { createFileRoute } from "@tanstack/react-router";
 
-import { availabilityQueryOptions } from "@/api/queries";
+import { availabilityQueryOptions, announcementsQueryOptions } from "@/api/queries";
 import { DOMAIN_BLURBS } from "@/components/catalog/data";
 import { HomeWelcome } from "@/components/home/welcome";
-import type { DomainService, HomeLoaderData } from "@/components/home/data";
+import type { DomainService, HomeAnnouncement, HomeLoaderData } from "@/components/home/data";
 
 function slugifyDomain(domain: string): string {
   return domain
@@ -28,7 +28,15 @@ function slugifyDomain(domain: string): string {
 
 export const Route = createFileRoute("/")({
   loader: async ({ context }): Promise<HomeLoaderData> => {
-    const availability = await context.queryClient.ensureQueryData(availabilityQueryOptions);
+    const [availability, feed] = await Promise.all([
+      context.queryClient.ensureQueryData(availabilityQueryOptions),
+      context.queryClient.ensureQueryData(announcementsQueryOptions),
+    ]);
+    // The "What's new" ticker = the newsletter's standalone announcements, the
+    // most recent few (the feed is authored newest-first).
+    const announcements: HomeAnnouncement[] = feed
+      .slice(0, 8)
+      .map((a) => ({ kind: a.kind ?? "Update", title: a.title }));
     // Same projection as /catalog so the numbers on both pages agree.
     const zone = availability.zones.find((z) => z.id === "aws") ?? availability.zones[0]!;
     const services = zone.services.filter((service) => service.id !== "landing-zones");
@@ -73,6 +81,7 @@ export const Route = createFileRoute("/")({
       domainCount: domains.length,
       regionCount: availability.zones.reduce((sum, z) => sum + z.locations.length, 0),
       domains,
+      announcements,
     };
   },
   component: HomeRoute,

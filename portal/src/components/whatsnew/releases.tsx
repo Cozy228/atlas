@@ -55,11 +55,11 @@ function ReleaseBrief({ release }: { release: Release }) {
       <span className="flex items-center gap-2">
         <span aria-hidden className={cn("size-1.5 rounded-full", TONE_DOT.info)} />
         <span className="bg-background font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
-          Release · {release.postedAt ?? release.month}
+          Release
         </span>
       </span>
       <h4 className="w-fit bg-background text-[13.5px] font-bold tracking-[-0.01em] text-foreground">
-        {release.changeRequest ?? release.month ?? "Release"}
+        {friendlyDate(release.postedAt) ?? release.month ?? "Release"}
       </h4>
       <p className="w-fit max-w-[44ch] bg-background text-[12px] leading-[1.5] text-muted-foreground">
         {release.items.length} {release.items.length === 1 ? "change" : "changes"}
@@ -77,6 +77,16 @@ function ReleaseBrief({ release }: { release: Release }) {
       </Link>
     </li>
   );
+}
+
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+/** "2026-06-11" -> "11 Jun 2026"; undefined for anything unparseable. */
+function friendlyDate(iso: string | undefined): string | undefined {
+  const match = iso?.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return undefined;
+  const month = MONTHS[Number(match[2]) - 1];
+  return month ? `${Number(match[3])} ${month} ${match[1]}` : undefined;
 }
 
 export function categoryCounts(

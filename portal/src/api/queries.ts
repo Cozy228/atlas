@@ -15,10 +15,17 @@ import {
   fetchTopicDiscovery,
 } from "@/api/server/contextApi";
 import { fetchReleaseNotes, type Release } from "@/api/server/releaseNotes";
+import { fetchAnnouncements, type Announcement } from "@/api/server/announcements";
 
 export const releaseNotesQueryOptions = queryOptions<Release[]>({
   queryKey: ["release-notes"] as const,
   queryFn: () => fetchReleaseNotes(),
+  staleTime: 60_000,
+});
+
+export const announcementsQueryOptions = queryOptions<Announcement[]>({
+  queryKey: ["announcements"] as const,
+  queryFn: () => fetchAnnouncements(),
   staleTime: 60_000,
 });
 

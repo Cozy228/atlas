@@ -192,14 +192,11 @@ export function EvidenceRows({
 }) {
   if (sourceIds.length === 0) return null;
   return (
-    <ul className="flex flex-col divide-y divide-border rounded-[4px] border border-border bg-card">
+    <ul className="flex flex-col divide-y divide-border border-t border-border">
       {sourceIds.map((sourceId) => {
         const source = sourceMap.get(sourceId);
         return (
-          <li
-            key={sourceId}
-            className="flex flex-wrap items-center justify-between gap-2 px-3.5 py-2"
-          >
+          <li key={sourceId} className="flex flex-wrap items-center justify-between gap-2 py-2">
             {source ? (
               <>
                 <Link

@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 
 import { ClientOnly } from "@/components/client-only";
-import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
 export type RecentItem =
@@ -77,45 +76,45 @@ function isRecentItem(value: unknown): value is RecentItem {
   );
 }
 
-export function RecentlyViewed() {
+/**
+ * Real recently-viewed, from this browser's click history (localStorage).
+ * Renders nothing at all when there is no history — no empty-state copy, no
+ * lead. The optional `lead` is shown only alongside actual items.
+ */
+export function RecentlyViewed({ lead }: { lead?: string }) {
   return (
-    <ClientOnly fallback={<RecentlyViewedSkeleton />}>
-      <RecentlyViewedClient />
+    <ClientOnly fallback={null}>
+      <RecentlyViewedClient lead={lead} />
     </ClientOnly>
   );
 }
 
-function RecentlyViewedSkeleton() {
-  return (
-    <ul className="flex flex-wrap gap-1.5" aria-hidden>
-      {Array.from({ length: 4 }).map((_, idx) => (
-        <li key={idx}>
-          <Skeleton className="h-7 w-32 rounded-full" />
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-function RecentlyViewedClient() {
+function RecentlyViewedClient({ lead }: { lead?: string }) {
   const [items] = useState<ReadonlyArray<RecentItem>>(() => loadRecent());
 
-  if (items.length === 0) {
-    return (
-      <p className="type-detail leading-5 text-muted-foreground">
-        Open a service or landing zone to populate this list.
-      </p>
-    );
-  }
+  if (items.length === 0) return null;
 
   return (
-    <ul className="flex flex-wrap gap-1.5">
-      {items.map((item) => (
-        <li key={recentKey(item)}>
-          <RecentChip item={item} />
-        </li>
-      ))}
-    </ul>
+    <section
+      aria-label="Jump back in"
+      className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1.5"
+    >
+      {lead ? (
+        <>
+          <span className="bg-background text-[12.5px] text-muted-foreground">{lead}</span>
+          <span aria-hidden className="bg-background text-muted-foreground/40">
+            ·
+          </span>
+        </>
+      ) : null}
+      <ul className="flex flex-wrap gap-1.5">
+        {items.map((item) => (
+          <li key={recentKey(item)}>
+            <RecentChip item={item} />
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 

@@ -25,67 +25,6 @@ import { cn } from "@/lib/utils";
 
 import { CLASS_LABEL, FRESHNESS_META, SOURCE_PROVENANCE } from "./shared";
 
-const DAY_MS = 86_400_000;
-
-/**
- * Mock "key sections" per source class — fictional, public-safe excerpts that
- * give the dossier's main column substance (the registry stores metadata, not
- * full text). Labelled as a demo excerpt where shown.
- */
-const KEY_SECTIONS: Record<
-  Source["source_class"],
-  ReadonlyArray<{ anchor: string; text: string }>
-> = {
-  "terraform-module": [
-    {
-      anchor: "§ inputs",
-      text: "Variables gate the blast radius: scope, tags, and a required owner are mandatory inputs.",
-    },
-    {
-      anchor: "§ iam",
-      text: "Provisions least-privilege roles; wildcard policies are rejected at plan time.",
-    },
-    {
-      anchor: "§ outputs",
-      text: "Exports the network and identifier outputs downstream modules depend on.",
-    },
-  ],
-  "confluence-page": [
-    {
-      anchor: "# overview",
-      text: "Describes the approved request-and-approval flow, with the required reviewers per environment.",
-    },
-    {
-      anchor: "# steps",
-      text: "Walks the change from intake to promotion, linking the runbook for the rollback path.",
-    },
-    {
-      anchor: "# owners",
-      text: "Names the accountable team and the escalation channel for exceptions.",
-    },
-  ],
-  "policy-document": [
-    {
-      anchor: "§ controls",
-      text: "States the mandatory controls and the enforcement point each one is checked at.",
-    },
-    {
-      anchor: "§ exceptions",
-      text: "Defines the exception process, its approvers, and the maximum waiver window.",
-    },
-    {
-      anchor: "§ mapping",
-      text: "Cites the upstream standard each control maps to, for audit traceability.",
-    },
-  ],
-  "availability-matrix": [
-    {
-      anchor: "→ cell",
-      text: "Answers a Service × region availability query at the grain it pins — cell, row, or column — each with a matrix citation.",
-    },
-  ],
-};
-
 /* -------------------------------------------------------------------------- */
 /*  Shared helpers                                                            */
 /* -------------------------------------------------------------------------- */
@@ -130,31 +69,11 @@ function anchorsFor(
   return bundle.anchor_references.filter((a) => a.source_id === source.id);
 }
 
-/**
- * A demo revision log for the dossier's main column: the two real events
- * (reviewed, observed) plus earlier entries projected from the cadence. Marked
- * as a demo log where shown; gives the record a history without inventing facts.
- */
-function revisionLog(source: Source): ReadonlyArray<{ date: string; label: string }> {
-  const windowMs = parseDurationToMs(source.review_frequency) ?? 90 * DAY_MS;
-  const reviewedMs = new Date(source.last_reviewed_at).getTime();
-  const back = (cycles: number) => fmtDate(new Date(reviewedMs - windowMs * cycles).toISOString());
-  return [
-    {
-      date: fmtDate(source.last_reviewed_at),
-      label: `Reviewed by ${source.steward}; authority reaffirmed.`,
-    },
-    {
-      date: fmtDate(source.last_observed_at),
-      label:
-        source.observed_version !== undefined
-          ? `Observed at the source; version recorded as v${source.observed_version}.`
-          : "Observed at the source; fingerprint unchanged.",
-    },
-    { date: back(1), label: "Scope reviewed on schedule; no drift detected." },
-    { date: back(2), label: `Authority level set to ${source.authority_level}.` },
-    { date: back(3), label: `Registered in the source registry under ${source.steward}.` },
-  ];
+type Excerpt = ContextBundleResponse["sources"][number]["excerpts"][number];
+
+/** The live-resolved excerpts for this source from the context bundle. */
+function excerptsFor(source: Source, bundle: ContextBundleResponse | null): ReadonlyArray<Excerpt> {
+  return bundle?.sources.find((s) => s.source.id === source.id)?.excerpts ?? [];
 }
 
 function BackLink() {
@@ -291,6 +210,7 @@ export function SourceDossier({
   related: ReadonlyArray<Source>;
 }) {
   const anchors = anchorsFor(source, bundle);
+  const excerpts = excerptsFor(source, bundle);
   const fresh = classifyFreshness(source);
   const next = nextReviewDate(source);
 
@@ -321,21 +241,40 @@ export function SourceDossier({
                 {SOURCE_PROVENANCE[source.source_class]}
               </span>
             </div>
-            <ul className="flex flex-col gap-2.5">
-              {KEY_SECTIONS[source.source_class].map((section) => (
-                <li
-                  key={section.anchor}
-                  className="flex flex-col gap-0.5 border-l-2 border-border pl-3"
-                >
-                  <code className="font-mono text-[10.5px] text-muted-foreground">
-                    {section.anchor}
-                  </code>
-                  <p className="max-w-[60ch] text-[12.5px] leading-[1.5] text-foreground/90">
-                    {section.text}
-                  </p>
-                </li>
-              ))}
-            </ul>
+            {excerpts.length > 0 ? (
+              <ul className="flex flex-col gap-2.5">
+                {excerpts.map((excerpt, i) => (
+                  <li
+                    key={excerpt.citation.anchor_id ?? excerpt.anchor_id ?? i}
+                    className="flex flex-col gap-1 border-l-2 border-border pl-3"
+                  >
+                    <div className="flex flex-wrap items-center gap-2">
+                      <code className="font-mono text-[10.5px] text-muted-foreground">
+                        {excerpt.citation.label}
+                      </code>
+                      <a
+                        href={excerpt.citation.location}
+                        target="_blank"
+                        rel="noreferrer noopener"
+                        className="inline-flex items-center gap-1 text-[10.5px] text-primary underline-offset-2 hover:underline"
+                      >
+                        open source
+                        <IconExternalLink aria-hidden className="size-3" />
+                      </a>
+                    </div>
+                    <p className="max-w-[60ch] text-[12.5px] leading-[1.5] text-foreground/90">
+                      {excerpt.text}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="rounded-[4px] border border-dashed border-border bg-card px-3.5 py-5 text-[12.5px] text-muted-foreground">
+                {source.visibility === "restricted"
+                  ? "Restricted source — Atlas surfaces metadata only; no excerpts are resolved."
+                  : "No excerpts resolved from this source in the current context bundle."}
+              </p>
+            )}
           </section>
 
           <section className="flex flex-col gap-2.5">
@@ -385,33 +324,6 @@ export function SourceDossier({
               </ul>
             </section>
           ) : null}
-
-          <section className="flex flex-col gap-2.5">
-            <div className="flex items-baseline gap-2.5">
-              <SectionLabel>Revision history</SectionLabel>
-              <span className="rounded-[2px] bg-muted px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.06em] text-muted-foreground">
-                {SOURCE_PROVENANCE[source.source_class]}
-              </span>
-            </div>
-            <ol className="flex flex-col">
-              {revisionLog(source).map((rev, i) => (
-                <li
-                  key={`${rev.date}-${i}`}
-                  className={cn(
-                    "grid grid-cols-[88px_minmax(0,1fr)] gap-x-4 py-2.5",
-                    i > 0 && "border-t border-border",
-                  )}
-                >
-                  <span className="font-mono text-[11px] tabular-nums leading-[1.5] text-muted-foreground">
-                    {rev.date}
-                  </span>
-                  <span className="text-[12.5px] leading-[1.5] text-foreground/90">
-                    {rev.label}
-                  </span>
-                </li>
-              ))}
-            </ol>
-          </section>
         </main>
 
         <aside className="flex min-w-0 flex-col gap-2.5">

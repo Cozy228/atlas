@@ -49,8 +49,11 @@ export const Route = createFileRoute("/sources/$sourceId")({
 
     let bundle: ContextBundleResponse | null = null;
     try {
+      // disclosure_level 2 resolves every registered anchor on the source (the
+      // default of 1 returns only the first), so "Key sections" shows the real
+      // sections of this page, not just one.
       bundle = await context.queryClient.ensureQueryData(
-        contextBundleQueryOptions({ source_id: source.id }),
+        contextBundleQueryOptions({ source_id: source.id, disclosure_level: 2 }),
       );
     } catch (error) {
       if (error instanceof ContextApiError) bundle = null;

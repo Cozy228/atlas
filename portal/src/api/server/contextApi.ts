@@ -54,25 +54,25 @@ const SERVER_FN_OPTIONS = { method: "GET", strict: { output: false } } as const;
 const idSchema = z.string().min(1);
 
 export const fetchTopic = createServerFn(SERVER_FN_OPTIONS)
-  .inputValidator((input: unknown): string => idSchema.parse(input))
+  .validator((input: unknown): string => idSchema.parse(input))
   .handler(async ({ data }) => contextApiForRequest().getTopic(data));
 
 export const fetchSource = createServerFn(SERVER_FN_OPTIONS)
-  .inputValidator((input: unknown): string => idSchema.parse(input))
+  .validator((input: unknown): string => idSchema.parse(input))
   .handler(async ({ data }) => contextApiForRequest().getSource(data));
 
 export const fetchContextBundle = createServerFn(SERVER_FN_OPTIONS)
-  .inputValidator((input: unknown): ContextRequest => ContextRequestSchema.parse(input))
+  .validator((input: unknown): ContextRequest => ContextRequestSchema.parse(input))
   .handler(async ({ data }) => contextApiForRequest().getContextBundle(data));
 
 export const fetchTopicDiscovery = createServerFn(SERVER_FN_OPTIONS)
-  .inputValidator(
+  .validator(
     (input: unknown): TopicDiscoveryRequest => TopicDiscoveryRequestSchema.parse(input ?? {}),
   )
   .handler(async ({ data }) => contextApiForRequest().discoverTopics(data));
 
 export const fetchSourceDiscovery = createServerFn(SERVER_FN_OPTIONS)
-  .inputValidator(
+  .validator(
     (input: unknown): SourceDiscoveryRequest => SourceDiscoveryRequestSchema.parse(input ?? {}),
   )
   .handler(async ({ data }) => contextApiForRequest().discoverSources(data));
