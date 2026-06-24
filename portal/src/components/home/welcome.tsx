@@ -300,8 +300,8 @@ function IntentFocus() {
                   className={cn(
                     "w-fit bg-background font-bold tracking-[-0.02em] transition-all duration-200 group-hover:text-brand-ink",
                     open
-                      ? "text-[1.5rem] leading-[1.1] text-foreground"
-                      : "text-[1.0625rem] text-foreground/55",
+                      ? "text-[1.125rem] leading-[1.2] text-foreground"
+                      : "text-[0.9375rem] text-foreground/55",
                   )}
                 >
                   {intent.title}
