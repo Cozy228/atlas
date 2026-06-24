@@ -16,11 +16,12 @@ export const terraformModuleResolver: AnchorResolver = {
       return resolveModuleField(request, anchor);
     }
 
-    // README-prose path. A configured service token (e.g. a GitHub PAT) fetches
-    // the module README from its source of record at request time; otherwise defer
-    // to the offline pilot provider. The default base URL targets github.com's API.
+    // README-prose path. Token order mirrors Confluence: the caller's Bearer
+    // first (so the request resolves under the caller's own TFE/Terraform
+    // identity), else the service token, else defer to the offline pilot
+    // provider. The default base URL targets github.com's API.
     const env = readProcessEnv();
-    const token = env.ATLAS_TERRAFORM_TOKEN;
+    const token = request.ctx.token ?? env.ATLAS_TERRAFORM_TOKEN;
     const baseUrl = env.ATLAS_TERRAFORM_BASE_URL ?? "https://api.github.com";
 
     if (token) {

@@ -35,6 +35,10 @@ heading text). Server / Data Center is not covered yet (TODO behind the same sea
 | `ATLAS_TERRAFORM_TOKEN` | Service token (e.g. a GitHub PAT). Its presence enables live resolution. |
 | `ATLAS_TERRAFORM_BASE_URL` | API base; defaults to `https://api.github.com` (override for GitHub Enterprise). |
 
+As with Confluence, a per-request `Authorization: Bearer <token>` takes
+precedence over `ATLAS_TERRAFORM_TOKEN`, so the module README is fetched under
+the caller's own TFE/Terraform identity when one is supplied.
+
 A Terraform Source's `location` must be the module repo, e.g.
 `github.com/acme/terraform-aws-s3`; the anchor `selector.locator` is the README
 heading slug prefixed with `#`, e.g. `#terraform-starter`. Private Terraform
