@@ -22,7 +22,6 @@ type NavItem = {
 
 const PRIMARY_NAV: ReadonlyArray<NavItem> = [
   { to: "/", label: "Home", exact: true },
-  { to: "/overview", label: "Dashboard" },
   { to: "/availability", label: "Availability" },
   { to: "/catalog", label: "Catalog" },
   { to: "/guidance", label: "Guidance" },
