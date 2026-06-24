@@ -28,6 +28,7 @@ import type { SourceDiscoveryResponse, TopicDiscoveryResponse } from "@atlas/sch
 
 import { sourceDiscoveryQueryOptions, topicDiscoveryQueryOptions } from "@/api/queries";
 import { cn } from "@/lib/utils";
+import { SeedBadge } from "@/components/seed-badge";
 
 type Domain = { domain: string; team: string; channel: string; areas: number };
 
@@ -131,6 +132,11 @@ function AskTeamsRoute() {
             {domains.length}
           </span>
         </label>
+
+        <p className="flex flex-wrap items-center gap-2 text-[12px] text-muted-foreground">
+          <SeedBadge label="demo contacts" />
+          <span>Team ownership is real; the contact channels are illustrative.</span>
+        </p>
 
         {domains.length === 0 ? (
           <p className="border-t border-border py-6 text-center text-[13px] text-muted-foreground">

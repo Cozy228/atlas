@@ -5,7 +5,7 @@
  */
 import { IconCheck, IconMinus, IconPlayerPlay, IconX } from "@tabler/icons-react";
 
-import { Badge } from "@/components/ui/badge";
+import { SeedBadge } from "@/components/seed-badge";
 import {
   ENV_LABEL,
   SNAPSHOT_AT,
@@ -262,9 +262,7 @@ export function PriorityChip({ priority }: { priority: TicketPriority }) {
 export function SnapshotLine() {
   return (
     <span className="flex flex-wrap items-center gap-2">
-      <Badge variant="brand" className="font-mono type-caption">
-        demo snapshot
-      </Badge>
+      <SeedBadge label="demo snapshot" />
       <span className="bg-background font-mono text-[11px] tabular-nums text-muted-foreground">
         {SNAPSHOT_AT}
       </span>
