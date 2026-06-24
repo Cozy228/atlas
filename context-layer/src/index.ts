@@ -5,3 +5,6 @@ export { handleSourceDiscoveryRequest } from "./api/sourceDiscoveryRoute.js";
 export { handleSourceRequest } from "./api/sourceRoute.js";
 export { handleTopicDiscoveryRequest } from "./api/topicDiscoveryRoute.js";
 export { handleTopicRequest } from "./api/topicRoute.js";
+export { loadReleaseNotes } from "./releaseNotes/loadReleaseNotes.js";
+export { resolveReleaseNotes } from "./releaseNotes/resolveReleaseNotes.js";
+export type { Release, ReleaseItem } from "./releaseNotes/parseReleaseNotes.js";

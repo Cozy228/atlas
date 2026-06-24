@@ -23,6 +23,7 @@ import { Route as GuidanceIndexRouteImport } from './routes/guidance.index'
 import { Route as CatalogIndexRouteImport } from './routes/catalog.index'
 import { Route as AvailabilityIndexRouteImport } from './routes/availability.index'
 import { Route as SourcesSourceIdRouteImport } from './routes/sources.$sourceId'
+import { Route as ReleasesReleaseIdRouteImport } from './routes/releases.$releaseId'
 import { Route as GuidanceGuidanceIdRouteImport } from './routes/guidance.$guidanceId'
 import { Route as GuardrailsGuardrailIdRouteImport } from './routes/guardrails.$guardrailId'
 import { Route as CatalogTopicIdRouteImport } from './routes/catalog.$topicId'
@@ -97,6 +98,11 @@ const SourcesSourceIdRoute = SourcesSourceIdRouteImport.update({
   path: '/$sourceId',
   getParentRoute: () => SourcesRoute,
 } as any)
+const ReleasesReleaseIdRoute = ReleasesReleaseIdRouteImport.update({
+  id: '/releases/$releaseId',
+  path: '/releases/$releaseId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const GuidanceGuidanceIdRoute = GuidanceGuidanceIdRouteImport.update({
   id: '/$guidanceId',
   path: '/$guidanceId',
@@ -125,6 +131,7 @@ export interface FileRoutesByFullPath {
   '/catalog/$topicId': typeof CatalogTopicIdRoute
   '/guardrails/$guardrailId': typeof GuardrailsGuardrailIdRoute
   '/guidance/$guidanceId': typeof GuidanceGuidanceIdRoute
+  '/releases/$releaseId': typeof ReleasesReleaseIdRoute
   '/sources/$sourceId': typeof SourcesSourceIdRoute
   '/availability/': typeof AvailabilityIndexRoute
   '/catalog/': typeof CatalogIndexRoute
@@ -140,6 +147,7 @@ export interface FileRoutesByTo {
   '/catalog/$topicId': typeof CatalogTopicIdRoute
   '/guardrails/$guardrailId': typeof GuardrailsGuardrailIdRoute
   '/guidance/$guidanceId': typeof GuidanceGuidanceIdRoute
+  '/releases/$releaseId': typeof ReleasesReleaseIdRoute
   '/sources/$sourceId': typeof SourcesSourceIdRoute
   '/availability': typeof AvailabilityIndexRoute
   '/catalog': typeof CatalogIndexRoute
@@ -160,6 +168,7 @@ export interface FileRoutesById {
   '/catalog/$topicId': typeof CatalogTopicIdRoute
   '/guardrails/$guardrailId': typeof GuardrailsGuardrailIdRoute
   '/guidance/$guidanceId': typeof GuidanceGuidanceIdRoute
+  '/releases/$releaseId': typeof ReleasesReleaseIdRoute
   '/sources/$sourceId': typeof SourcesSourceIdRoute
   '/availability/': typeof AvailabilityIndexRoute
   '/catalog/': typeof CatalogIndexRoute
@@ -181,6 +190,7 @@ export interface FileRouteTypes {
     | '/catalog/$topicId'
     | '/guardrails/$guardrailId'
     | '/guidance/$guidanceId'
+    | '/releases/$releaseId'
     | '/sources/$sourceId'
     | '/availability/'
     | '/catalog/'
@@ -196,6 +206,7 @@ export interface FileRouteTypes {
     | '/catalog/$topicId'
     | '/guardrails/$guardrailId'
     | '/guidance/$guidanceId'
+    | '/releases/$releaseId'
     | '/sources/$sourceId'
     | '/availability'
     | '/catalog'
@@ -215,6 +226,7 @@ export interface FileRouteTypes {
     | '/catalog/$topicId'
     | '/guardrails/$guardrailId'
     | '/guidance/$guidanceId'
+    | '/releases/$releaseId'
     | '/sources/$sourceId'
     | '/availability/'
     | '/catalog/'
@@ -233,6 +245,7 @@ export interface RootRouteChildren {
   SourcesRoute: typeof SourcesRouteWithChildren
   WhatsnewRoute: typeof WhatsnewRoute
   GuardrailsGuardrailIdRoute: typeof GuardrailsGuardrailIdRoute
+  ReleasesReleaseIdRoute: typeof ReleasesReleaseIdRoute
   SkillsIndexRoute: typeof SkillsIndexRoute
 }
 
@@ -336,6 +349,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SourcesSourceIdRouteImport
       parentRoute: typeof SourcesRoute
     }
+    '/releases/$releaseId': {
+      id: '/releases/$releaseId'
+      path: '/releases/$releaseId'
+      fullPath: '/releases/$releaseId'
+      preLoaderRoute: typeof ReleasesReleaseIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/guidance/$guidanceId': {
       id: '/guidance/$guidanceId'
       path: '/$guidanceId'
@@ -422,6 +442,7 @@ const rootRouteChildren: RootRouteChildren = {
   SourcesRoute: SourcesRouteWithChildren,
   WhatsnewRoute: WhatsnewRoute,
   GuardrailsGuardrailIdRoute: GuardrailsGuardrailIdRoute,
+  ReleasesReleaseIdRoute: ReleasesReleaseIdRoute,
   SkillsIndexRoute: SkillsIndexRoute,
 }
 export const routeTree = rootRouteImport

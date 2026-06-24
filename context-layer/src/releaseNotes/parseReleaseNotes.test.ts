@@ -26,14 +26,14 @@ Additional details:
 
 describe("parseReleaseNotes", () => {
   it("captures every scope item under its category", () => {
-    const release = parseReleaseNotes(SAMPLE);
+    const [release] = parseReleaseNotes(SAMPLE);
     expect(release.items).toHaveLength(13);
     expect(release.items.filter((i) => i.category === "Non-Compute")).toHaveLength(10);
     expect(release.items.filter((i) => i.category === "Compute")).toHaveLength(3);
   });
 
   it("splits the Jira ticket from the title, brackets optional", () => {
-    const release = parseReleaseNotes(SAMPLE);
+    const [release] = parseReleaseNotes(SAMPLE);
     expect(release.items[0]).toEqual({
       category: "Non-Compute",
       index: 1,
@@ -48,9 +48,28 @@ describe("parseReleaseNotes", () => {
     expect(glued?.title).toBe("Release 1.0.2 of MWAA Airflow Service");
   });
 
-  it("reads the change request and the posted date as ISO", () => {
-    const release = parseReleaseNotes(SAMPLE);
+  it("derives month, change request, and ISO posted date, with a self-owned stable id", () => {
+    const [release] = parseReleaseNotes(SAMPLE);
     expect(release.changeRequest).toBe("CHG1052711");
     expect(release.postedAt).toBe("2026-05-09");
+    expect(release.month).toBe("May 2026");
+    // Our own key, not the CHG; deterministic across reparses.
+    expect(release.id).toMatch(/^rel-[0-9a-f]{8}$/);
+    expect(parseReleaseNotes(SAMPLE)[0].id).toBe(release.id);
+  });
+
+  it("splits a multi-release month into separate releases with distinct ids", () => {
+    const twice = `${SAMPLE}
+Release Notes : second drop.
+• Release Scope:
+Compute:
+1. EC2 hardening follow-up [AFCN-11800]
+•For this release change CHG1052999
+• posted in AWS Federated Platform on 23th May, 2026.
+`;
+    const releases = parseReleaseNotes(twice);
+    expect(releases).toHaveLength(2);
+    expect(new Set(releases.map((r) => r.id)).size).toBe(2);
+    expect(releases.every((r) => r.month === "May 2026")).toBe(true);
   });
 });

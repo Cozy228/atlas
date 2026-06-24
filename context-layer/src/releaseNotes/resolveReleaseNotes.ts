@@ -7,6 +7,8 @@ import {
 import type { ResolutionContext } from "../resolvers/resolverTypes.js";
 import { parseReleaseNotes, type Release } from "./parseReleaseNotes.js";
 
+export type { Release } from "./parseReleaseNotes.js";
+
 /**
  * Runtime resolution of the federated-platform **release-notes Confluence page**.
  *
@@ -21,7 +23,7 @@ export const RELEASE_NOTES_PAGE_ID =
   readEnv().ATLAS_RELEASE_NOTES_PAGE_ID ?? "CONFIGURE_RELEASE_NOTES_PAGE_ID";
 
 export type ReleaseNotesResult =
-  | { ok: true; release: Release }
+  | { ok: true; releases: Release[] }
   | {
       ok: false;
       code: "not_configured" | "restricted_source" | "source_unavailable";
@@ -51,7 +53,7 @@ export async function resolveReleaseNotes(
     return fetched;
   }
 
-  return { ok: true, release: parseReleaseNotes(renderStorageHtml(fetched.html)) };
+  return { ok: true, releases: parseReleaseNotes(renderStorageHtml(fetched.html)) };
 }
 
 /**

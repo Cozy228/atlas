@@ -14,6 +14,13 @@ import {
   fetchSourceDiscovery,
   fetchTopicDiscovery,
 } from "@/api/server/contextApi";
+import { fetchReleaseNotes, type Release } from "@/api/server/releaseNotes";
+
+export const releaseNotesQueryOptions = queryOptions<Release[]>({
+  queryKey: ["release-notes"] as const,
+  queryFn: () => fetchReleaseNotes(),
+  staleTime: 60_000,
+});
 
 export const availabilityQueryKey = ["availability"] as const;
 
