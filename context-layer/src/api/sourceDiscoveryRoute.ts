@@ -6,9 +6,9 @@ import {
 import {
   createDefaultContextBundleService,
   discoverSources,
-} from "../services/contextBundleService.js";
-import type { ApiResponse } from "./routeTypes.js";
-import { errorResponse } from "./routeTypes.js";
+} from "../services/contextBundleService";
+import type { ApiResponse } from "./routeTypes";
+import { errorResponse } from "./routeTypes";
 
 export function handleSourceDiscoveryRequest(
   input: unknown,

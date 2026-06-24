@@ -4,7 +4,7 @@
  * them only point at routes this codebase actually serves — never advertise
  * what does not exist.
  */
-import { PORTAL_ORIGIN } from "./openapiDocument.js";
+import { PORTAL_ORIGIN } from "./openapiDocument";
 
 export function buildApiCatalog() {
   return {
@@ -65,9 +65,7 @@ export function buildSitemapXml({ topicIds, sourceIds, guidanceIds }: SitemapInp
     ...sourceIds.map((id) => `/sources/${encodeURIComponent(id)}`),
     ...guidanceIds.map((id) => `/guidance/${encodeURIComponent(id)}`),
   ];
-  const urls = paths
-    .map((path) => `  <url><loc>${PORTAL_ORIGIN}${path}</loc></url>`)
-    .join("\n");
+  const urls = paths.map((path) => `  <url><loc>${PORTAL_ORIGIN}${path}</loc></url>`).join("\n");
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`;
 }
 

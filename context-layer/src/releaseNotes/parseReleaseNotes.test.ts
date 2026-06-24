@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseReleaseNotes } from "./parseReleaseNotes.js";
+import { parseReleaseNotes } from "./parseReleaseNotes";
 
 // Fictional, public-safe — mirrors the real page's messy formatting (bracketed,
 // bare, and glued tickets) so the parser is exercised, with invented keys.

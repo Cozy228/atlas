@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { InMemoryFeedbackRepository } from "../repositories/feedbackRepository.js";
-import { loadPilotRegistry, pilotRegistrySeed } from "./pilotRegistry.js";
+import { InMemoryFeedbackRepository } from "../repositories/feedbackRepository";
+import { loadPilotRegistry, pilotRegistrySeed } from "./pilotRegistry";
 
 describe("pilot registry seed", () => {
   it("loads validated repositories for V1 pilot topics and governed sources", async () => {

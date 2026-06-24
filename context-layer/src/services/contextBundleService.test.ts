@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { ContextBundleResponseSchema } from "@atlas/schema";
-import { DynamoFeedbackRepository } from "../repositories/dynamoFeedbackRepository.js";
-import { InMemoryFeedbackRepository } from "../repositories/feedbackRepository.js";
+import { DynamoFeedbackRepository } from "../repositories/dynamoFeedbackRepository";
+import { InMemoryFeedbackRepository } from "../repositories/feedbackRepository";
 import {
   buildContextBundle,
   createDefaultContextBundleService,
   createFeedbackRepository,
-} from "./contextBundleService.js";
+} from "./contextBundleService";
 
 describe("context bundle service", () => {
   it("builds a schema-compatible context bundle for a known topic", async () => {

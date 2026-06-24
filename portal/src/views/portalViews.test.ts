@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { serviceBundle, landingZoneBundle } from "../fixtures/contextBundles.js";
+import { serviceBundle, landingZoneBundle } from "../fixtures/contextBundles";
 import {
   buildFeedbackPayload,
   renderServiceDetail,
   renderLandingZoneNavigator,
   renderPortalHome,
   renderSourceLookup,
-} from "./portalViews.js";
+} from "./portalViews";
 
 describe("Portal core views", () => {
   it("organizes the home screen around user intent", () => {

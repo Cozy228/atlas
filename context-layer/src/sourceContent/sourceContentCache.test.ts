@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { FetchLike } from "../resolvers/resolverTypes.js";
-import { InMemoryContentCache, createSourceContentCache, withCache } from "./sourceContentCache.js";
+import type { FetchLike } from "../resolvers/resolverTypes";
+import { InMemoryContentCache, createSourceContentCache, withCache } from "./sourceContentCache";
 
 function jsonResponse(body: unknown, status = 200): Awaited<ReturnType<FetchLike>> {
   return { ok: status >= 200 && status < 300, status, json: async () => body };

@@ -8,7 +8,7 @@ import {
   type DynamoDBDocumentClient as DynamoDBDocumentClientType,
 } from "@aws-sdk/lib-dynamodb";
 import { FeedbackSchema, type Feedback, type FeedbackTargetType } from "@atlas/schema";
-import type { FeedbackRepository } from "./feedbackRepository.js";
+import type { FeedbackRepository } from "./feedbackRepository";
 
 const TARGET_INDEX_NAME = "gsi1";
 
@@ -25,10 +25,9 @@ export class DynamoFeedbackRepository implements FeedbackRepository {
     this.tableName = input.tableName;
     this.client =
       input.client ??
-      DynamoDBDocumentClient.from(
-        new DynamoDBClient({}),
-        { marshallOptions: { removeUndefinedValues: true } },
-      );
+      DynamoDBDocumentClient.from(new DynamoDBClient({}), {
+        marshallOptions: { removeUndefinedValues: true },
+      });
   }
 
   async put(feedback: unknown): Promise<Feedback> {
@@ -65,10 +64,7 @@ export class DynamoFeedbackRepository implements FeedbackRepository {
     return (response.Items ?? []).map((item) => parseFeedbackItem(item)).filter(isFeedback);
   }
 
-  async findByTarget(
-    targetType: FeedbackTargetType,
-    targetId: string,
-  ): Promise<Feedback[]> {
+  async findByTarget(targetType: FeedbackTargetType, targetId: string): Promise<Feedback[]> {
     const response = await this.client.send(
       new QueryCommand({
         TableName: this.tableName,

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { ContextApiError, mapErrorCodeToUiState } from "./contextApiError.js";
+import { ContextApiError, mapErrorCodeToUiState } from "./contextApiError";
 
 describe("ContextApiError", () => {
   it("constructs from a structured ApiErrorResponse body", () => {

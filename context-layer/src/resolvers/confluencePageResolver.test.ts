@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import type { Anchor, Source } from "@atlas/schema";
-import { confluencePageResolver } from "./confluencePageResolver.js";
-import { offlineResolutionContext, type FetchLike } from "./resolverTypes.js";
-import { createInMemorySourceContentProvider } from "./sourceContentProvider.js";
+import { confluencePageResolver } from "./confluencePageResolver";
+import { offlineResolutionContext, type FetchLike } from "./resolverTypes";
+import { createInMemorySourceContentProvider } from "./sourceContentProvider";
 
 const source: Source = {
   id: "central-lz-confluence",

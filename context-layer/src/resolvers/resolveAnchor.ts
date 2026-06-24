@@ -1,5 +1,5 @@
 import type { Anchor } from "@atlas/schema";
-import type { ResolveRequest, ResolveResult } from "./resolverTypes.js";
+import type { ResolveRequest, ResolveResult } from "./resolverTypes";
 
 type ResolveAnchorOptions = ResolveRequest & {
   isValidLocator(locator: string): boolean;

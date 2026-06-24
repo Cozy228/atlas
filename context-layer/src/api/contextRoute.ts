@@ -7,11 +7,11 @@ import {
 import {
   buildContextBundle,
   createDefaultContextBundleService,
-} from "../services/contextBundleService.js";
-import type { ResolutionContext } from "../resolvers/resolverTypes.js";
-import { cachedResolutionContext } from "../sourceContent/sourceContentCache.js";
-import type { ApiResponse } from "./routeTypes.js";
-import { errorResponse } from "./routeTypes.js";
+} from "../services/contextBundleService";
+import type { ResolutionContext } from "../resolvers/resolverTypes";
+import { cachedResolutionContext } from "../sourceContent/sourceContentCache";
+import type { ApiResponse } from "./routeTypes";
+import { errorResponse } from "./routeTypes";
 
 export async function handleContextRequest(
   input: unknown,

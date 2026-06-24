@@ -12,9 +12,9 @@ import {
   type TopicDiscoveryRequest,
 } from "@atlas/schema";
 
-import type { ContextApiClient } from "../contextApiClient.js";
-import { ContextApiError } from "../contextApiError.js";
-import { serverContextApiClient as inProcessContextApiClient } from "./inProcessContextApi.js";
+import type { ContextApiClient } from "../contextApiClient";
+import { ContextApiError } from "../contextApiError";
+import { serverContextApiClient as inProcessContextApiClient } from "./inProcessContextApi";
 
 type FetchLike = (input: string, init?: RequestInit) => Promise<Response>;
 
@@ -22,11 +22,13 @@ export type ServerContextApiClient = ContextApiClient & {
   kind: "http" | "in-process";
 };
 
-export function createServerContextApiClient(input: {
-  env?: Record<string, string | undefined>;
-  fetch?: FetchLike;
-  token?: string;
-} = {}): ServerContextApiClient {
+export function createServerContextApiClient(
+  input: {
+    env?: Record<string, string | undefined>;
+    fetch?: FetchLike;
+    token?: string;
+  } = {},
+): ServerContextApiClient {
   const baseUrl = input.env?.ATLAS_CONTEXT_API_BASE_URL ?? process.env.ATLAS_CONTEXT_API_BASE_URL;
   if (baseUrl) {
     return {

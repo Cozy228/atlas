@@ -21,8 +21,8 @@ import {
   type Source,
   type SourceTopicMapping,
   type Topic,
-} from "./index.js";
-import type { ManifestIssue } from "./guidanceManifest.js";
+} from "./index";
+import type { ManifestIssue } from "./guidanceManifest";
 import type { z } from "zod";
 
 export type DocumentValidation<T> = {
@@ -124,9 +124,7 @@ export type RegistryManifestValidation = {
  * invariants: duplicate ids per kind, and dangling references (anchor → source,
  * mapping → source / topic). Returns the validated entities plus all issues.
  */
-export function validateRegistryManifest(
-  input: RegistryManifestInput,
-): RegistryManifestValidation {
+export function validateRegistryManifest(input: RegistryManifestInput): RegistryManifestValidation {
   const issues: ManifestIssue[] = [];
 
   const sources = collect(SourceSchema, input.sources, "sources.yaml", "source", issues);

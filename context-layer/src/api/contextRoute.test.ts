@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { ApiErrorResponseSchema, ContextBundleResponseSchema } from "@atlas/schema";
-import { handleContextRequest } from "./contextRoute.js";
+import { handleContextRequest } from "./contextRoute";
 
 describe("context route", () => {
   it("returns a context bundle response for valid input", async () => {
@@ -26,9 +26,7 @@ describe("context route", () => {
     const response = await handleContextRequest({ source_id: "missing-source" });
 
     expect(response.status).toBe(404);
-    expect(ApiErrorResponseSchema.parse(response.body).error.code).toBe(
-      "source_not_found",
-    );
+    expect(ApiErrorResponseSchema.parse(response.body).error.code).toBe("source_not_found");
   });
 
   it("returns structured anchor_broken errors for explicit bad anchor expansion", async () => {
@@ -38,35 +36,27 @@ describe("context route", () => {
     });
 
     expect(response.status).toBe(422);
-    expect(ApiErrorResponseSchema.parse(response.body).error.code).toBe(
-      "anchor_broken",
-    );
+    expect(ApiErrorResponseSchema.parse(response.body).error.code).toBe("anchor_broken");
   });
 
   it("returns structured access_denied errors for restricted source expansion", async () => {
     const response = await handleContextRequest({ source_id: "iam-boundary-policy" });
 
     expect(response.status).toBe(403);
-    expect(ApiErrorResponseSchema.parse(response.body).error.code).toBe(
-      "access_denied",
-    );
+    expect(ApiErrorResponseSchema.parse(response.body).error.code).toBe("access_denied");
   });
 
   it("returns structured source_unavailable errors for unavailable explicit expansion", async () => {
     const response = await handleContextRequest({ source_id: "platform-reference-guide" });
 
     expect(response.status).toBe(503);
-    expect(ApiErrorResponseSchema.parse(response.body).error.code).toBe(
-      "source_unavailable",
-    );
+    expect(ApiErrorResponseSchema.parse(response.body).error.code).toBe("source_unavailable");
   });
 
   it("returns structured invalid_request errors", async () => {
     const response = await handleContextRequest({ disclosure_level: 9 });
 
     expect(response.status).toBe(400);
-    expect(ApiErrorResponseSchema.parse(response.body).error.code).toBe(
-      "invalid_request",
-    );
+    expect(ApiErrorResponseSchema.parse(response.body).error.code).toBe("invalid_request");
   });
 });

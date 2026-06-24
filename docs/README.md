@@ -13,6 +13,7 @@ This folder separates product narrative, architecture, review history, and raw n
 ## Architecture
 
 - `architecture/current_design.md` - Current system design for Atlas Portal and Atlas Context Layer.
+- `architecture/source-lifecycle-design.md` - **Post-MVP.** Minimal-toil source lifecycle as continuous reconciliation: observation/judgment plane split, layered fingerprints, three-dimension content-relative freshness, watch-container discovery, `removed`≠`deprecated` tombstoning, Phase+Conditions, native-ID identity. Adopts reconcile semantics on Git + scheduled workflow; the mutable control plane (B) is a designed-but-deferred destination. Refines ADR-0008 and MVP-design §13.
 - `architecture/mvp_next_steps.md` - Near-term MVP closure sequence for manifest-driven registry, metadata fetchers, lifecycle, deployment, Skill, Skills Hub, Guidance, Catalog, and Portal UI/UX work.
 - `architecture/catalog.md` - Current source projection for regional availability data used by the Portal availability surface.
 - `architecture/dynamodb_feedback_table.md` - DynamoDB key design for V1 feedback persistence.
@@ -29,7 +30,7 @@ This folder separates product narrative, architecture, review history, and raw n
 
 1. `product/mvp-product-design.md` (start here — the consolidated MVP design + contracts index)
 2. `product/guideline.md` (the immutable north star)
-3. `../CONTEXT.md` (domain glossary) and `adr/` (decisions, 0001–0008)
+3. `../CONTEXT.md` (domain glossary) and `adr/` (decisions, 0001–0011)
 4. `architecture/current_design.md` (thesis & data model — background)
 5. `architecture/mvp_next_steps.md` (build sequence — background)
 6. `product/governance-design.md`, `product/guidance_design.md`, `product/guidance-authoring.md`

@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { createResolverRegistry } from "./resolverRegistry.js";
-import { confluencePageResolver } from "./confluencePageResolver.js";
-import { policyDocumentResolver } from "./policyDocumentResolver.js";
-import { terraformModuleResolver } from "./terraformModuleResolver.js";
+import { createResolverRegistry } from "./resolverRegistry";
+import { confluencePageResolver } from "./confluencePageResolver";
+import { policyDocumentResolver } from "./policyDocumentResolver";
+import { terraformModuleResolver } from "./terraformModuleResolver";
 
 describe("resolver registry", () => {
   it("registers V1 resolvers by source class", () => {

@@ -16,7 +16,7 @@ import {
   authorityLevels,
   sourceClasses,
   topicTypes,
-} from "./index.js";
+} from "./index";
 
 const anchor = {
   id: "textract-private-subnet",
@@ -35,7 +35,7 @@ const source = {
   id: "textract-module-readme",
   title: "Textract Terraform Module",
   source_class: "terraform-module",
-  location: "github.com/acme/terraform-aws-textract",
+  location: "github.com/example/terraform-aws-textract",
   steward: "cloud-platform",
   visibility: "internal",
   authority_scope: ["module-usage"],
@@ -57,7 +57,7 @@ const topic = {
   entry_tools: [
     {
       label: "Terraform module",
-      url: "https://github.com/acme/terraform-aws-textract",
+      url: "https://github.com/example/terraform-aws-textract",
     },
   ],
 };
@@ -213,7 +213,7 @@ describe("request and response schemas", () => {
                 source_id: "textract-module-readme",
                 anchor_id: "textract-private-subnet",
                 label: "Private subnet usage",
-                location: "github.com/acme/terraform-aws-textract#private-subnet-usage",
+                location: "github.com/example/terraform-aws-textract#private-subnet-usage",
               },
             },
           ],

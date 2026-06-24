@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { ContextApiError } from "../contextApiError.js";
-import { createFetchContextApiClient, createServerContextApiClient } from "./httpContextApiClient.js";
+import { ContextApiError } from "../contextApiError";
+import { createFetchContextApiClient, createServerContextApiClient } from "./httpContextApiClient";
 
 describe("fetch Context API client", () => {
   it("fetches topic discovery through the deployed HTTP API", async () => {

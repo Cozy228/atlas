@@ -98,7 +98,7 @@ GET / (response headers)
 | 13 | Conduct | warnings (`stale_source`, `source_unavailable`, `broken_anchor`) relayed verbatim in the final answer | PASS |
 
 The agent's final answer cited *"Private subnet usage"*
-(`github.com/acme/terraform-aws-textract#private-subnet-usage`) for the
+(`github.com/example/terraform-aws-textract#private-subnet-usage`) for the
 private-subnet claim, reported Textract available in `us-east-1` and
 `ca-central-1` from `atlas_get_availability`, and relayed all three pilot-data
 warnings unchanged — the exact behavior the skill teaches.

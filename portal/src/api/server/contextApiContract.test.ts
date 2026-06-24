@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { ContextBundleResponseSchema, type ContextRequest } from "@atlas/schema";
 import { handleHttpRequest } from "@atlas/context-layer";
 
-import { createFetchContextApiClient } from "./httpContextApiClient.js";
+import { createFetchContextApiClient } from "./httpContextApiClient";
 
 /**
  * Bundle-equivalence proof (ADR-0011): the Portal and an external Skill are two

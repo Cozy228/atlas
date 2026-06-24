@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { SourceDiscoveryResponseSchema, TopicDiscoveryResponseSchema } from "@atlas/schema";
-import { handleSourceDiscoveryRequest } from "./sourceDiscoveryRoute.js";
-import { handleTopicDiscoveryRequest } from "./topicDiscoveryRoute.js";
+import { handleSourceDiscoveryRequest } from "./sourceDiscoveryRoute";
+import { handleTopicDiscoveryRequest } from "./topicDiscoveryRoute";
 
 describe("discovery routes", () => {
   it("discovers sources by class through the shared response schema", () => {

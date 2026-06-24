@@ -1,4 +1,4 @@
-import { createInMemorySourceContentProvider } from "../resolvers/sourceContentProvider.js";
+import { createInMemorySourceContentProvider } from "../resolvers/sourceContentProvider";
 
 export function createPilotSourceContentProvider() {
   return createInMemorySourceContentProvider({
@@ -6,7 +6,7 @@ export function createPilotSourceContentProvider() {
       "#private-subnet-usage":
         "Use the Textract module with private endpoint configuration for private subnet workloads.",
       "#terraform-starter":
-        'module "textract" {\n  source             = "app.terraform.io/acme/textract/aws"\n  name               = "doc-ocr"\n  endpoint_type      = "interface"\n  private_subnet_ids = var.private_subnet_ids\n}',
+        'module "textract" {\n  source             = "app.terraform.io/example/textract/aws"\n  name               = "doc-ocr"\n  endpoint_type      = "interface"\n  private_subnet_ids = var.private_subnet_ids\n}',
       // Registry-metadata field (ADR-0010) — distinct from the README prose above.
       "field:version": "1.4.0",
     },
@@ -42,7 +42,7 @@ export function createPilotSourceContentProvider() {
     "apigateway-module-readme": {
       // The cited starter snippet — a registered Source excerpt, never synthesized.
       "#terraform-starter":
-        'module "api" {\n  source     = "app.terraform.io/acme/apigateway/aws"\n  name       = "orders-api"\n  protocol   = "HTTP"\n  stage_name = "prod"\n  routes = {\n    "POST /orders"     = { lambda_arn = module.orders_fn.arn }\n    "GET /orders/{id}" = { lambda_arn = module.orders_fn.arn }\n  }\n}',
+        'module "api" {\n  source     = "app.terraform.io/example/apigateway/aws"\n  name       = "orders-api"\n  protocol   = "HTTP"\n  stage_name = "prod"\n  routes = {\n    "POST /orders"     = { lambda_arn = module.orders_fn.arn }\n    "GET /orders/{id}" = { lambda_arn = module.orders_fn.arn }\n  }\n}',
       "#rest-api-setup":
         "Declare the HTTP API, routes, and stage through the module inputs; it provisions the API Gateway v2 API, default stage, and access logging.",
       "#lambda-integration":
@@ -54,7 +54,7 @@ export function createPilotSourceContentProvider() {
     },
     "s3-module-readme": {
       "#terraform-starter":
-        'module "bucket" {\n  source              = "app.terraform.io/acme/s3/aws"\n  name                = "orders-assets"\n  versioning          = true\n  block_public_access = true\n  encryption          = "aws:kms"\n}',
+        'module "bucket" {\n  source              = "app.terraform.io/example/s3/aws"\n  name                = "orders-assets"\n  versioning          = true\n  block_public_access = true\n  encryption          = "aws:kms"\n}',
       "#bucket-setup":
         "Declare the bucket through the module: it enforces block-public-access, default KMS encryption, and versioning, and emits the bucket name and ARN as outputs.",
     },

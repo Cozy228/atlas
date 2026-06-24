@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Anchor } from "@atlas/schema";
-import { InMemoryAnchorRepository } from "./anchorRepository.js";
+import { InMemoryAnchorRepository } from "./anchorRepository";
 
 const anchor: Anchor = {
   id: "textract-private-subnet",

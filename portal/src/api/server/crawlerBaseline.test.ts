@@ -2,9 +2,9 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
-import { listGuidance } from "../../lib/guidance.js";
-import { buildSitemapXml } from "./agentDiscovery.js";
-import { serverContextApiClient } from "./serverContextApiClient.js";
+import { listGuidance } from "../../lib/guidance";
+import { buildSitemapXml } from "./agentDiscovery";
+import { serverContextApiClient } from "./serverContextApiClient";
 
 const PUBLIC_DIR = fileURLToPath(new URL("../../../public/", import.meta.url));
 
@@ -36,7 +36,9 @@ describe("sitemap.xml", () => {
       guidanceIds: listGuidance().map((guidance) => guidance.id),
     });
 
-    expect(xml).toMatch(/^<\?xml version="1\.0" encoding="UTF-8"\?>\n<urlset xmlns="http:\/\/www\.sitemaps\.org\/schemas\/sitemap\/0\.9">/);
+    expect(xml).toMatch(
+      /^<\?xml version="1\.0" encoding="UTF-8"\?>\n<urlset xmlns="http:\/\/www\.sitemaps\.org\/schemas\/sitemap\/0\.9">/,
+    );
     expect(xml.trimEnd().endsWith("</urlset>")).toBe(true);
 
     const locs = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => match[1]!);

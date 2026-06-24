@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import type { FetchLike } from "../resolvers/resolverTypes.js";
-import { renderStorageHtml, resolveReleaseNotes } from "./resolveReleaseNotes.js";
+import type { FetchLike } from "../resolvers/resolverTypes";
+import { renderStorageHtml, resolveReleaseNotes } from "./resolveReleaseNotes";
 
 const STORAGE_HTML = `
   <p>Release Scope:</p>

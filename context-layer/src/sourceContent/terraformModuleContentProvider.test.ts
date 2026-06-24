@@ -1,14 +1,14 @@
 import { describe, expect, it, vi } from "vitest";
 import type { Anchor, Source } from "@atlas/schema";
-import { resolveTerraformModuleLive } from "./terraformModuleContentProvider.js";
-import type { FetchLike } from "../resolvers/resolverTypes.js";
+import { resolveTerraformModuleLive } from "./terraformModuleContentProvider";
+import type { FetchLike } from "../resolvers/resolverTypes";
 
 const source: Source = {
   id: "s3-module-readme",
   title: "S3 Terraform Module",
   source_class: "terraform-module",
   // For the live path, location is the module's GitHub repo.
-  location: "github.com/acme/terraform-aws-s3",
+  location: "github.com/example/terraform-aws-s3",
   steward: "cloud-platform",
   visibility: "internal",
   authority_scope: ["module-usage", "storage"],
@@ -40,7 +40,7 @@ const readmeMarkdown = [
   "## Terraform starter",
   "```hcl",
   'module "bucket" {',
-  '  source = "app.terraform.io/acme/s3/aws"',
+  '  source = "app.terraform.io/example/s3/aws"',
   "}",
   "```",
   "",
@@ -75,7 +75,7 @@ describe("resolveTerraformModuleLive", () => {
     const { fetch, calls } = readmeFetch({
       content: base64(readmeMarkdown),
       encoding: "base64",
-      html_url: "https://github.com/acme/terraform-aws-s3/blob/main/README.md",
+      html_url: "https://github.com/example/terraform-aws-s3/blob/main/README.md",
     });
 
     const result = await resolveTerraformModuleLive(
@@ -93,10 +93,10 @@ describe("resolveTerraformModuleLive", () => {
     // Section stops at the next heading.
     expect(result.excerpts[0]?.text).not.toContain("See variables.tf.");
     expect(result.excerpts[0]?.citation.location).toBe(
-      "https://github.com/acme/terraform-aws-s3/blob/main/README.md#terraform-starter",
+      "https://github.com/example/terraform-aws-s3/blob/main/README.md#terraform-starter",
     );
     // The repo was addressed through the GitHub README API with the service token.
-    expect(calls[0]?.url).toBe("https://api.github.com/repos/acme/terraform-aws-s3/readme");
+    expect(calls[0]?.url).toBe("https://api.github.com/repos/example/terraform-aws-s3/readme");
     expect(calls[0]?.auth).toBe("Bearer fictional-github-pat");
   });
 
@@ -137,7 +137,7 @@ describe("resolveTerraformModuleLive", () => {
     const { fetch } = readmeFetch({
       content: base64("# terraform-aws-s3\n\n## Inputs\nSee variables.tf."),
       encoding: "base64",
-      html_url: "https://github.com/acme/terraform-aws-s3/blob/main/README.md",
+      html_url: "https://github.com/example/terraform-aws-s3/blob/main/README.md",
     });
 
     const result = await resolveTerraformModuleLive(

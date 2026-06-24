@@ -9,7 +9,7 @@
  *     (e.g. an action label that implies Atlas executed work). Surfaced, not
  *     fatal, so authors and reviewers see them in the PR.
  */
-import { GuidanceSchema, type Guidance } from "./index.js";
+import { GuidanceSchema, type Guidance } from "./index";
 
 export type ManifestIssue = {
   level: "error" | "warning";
@@ -29,18 +29,9 @@ export type GuidanceValidation = {
  * call, and false positives (e.g. "Run the first promoted deploy" describing a
  * user action) shouldn't block import.
  */
-const EXECUTION_VERBS = [
-  "submit",
-  "apply",
-  "provision",
-  "terraform apply",
-  "deploy to",
-];
+const EXECUTION_VERBS = ["submit", "apply", "provision", "terraform apply", "deploy to"];
 
-export function validateGuidanceDocument(
-  raw: unknown,
-  file = "<guidance>",
-): GuidanceValidation {
+export function validateGuidanceDocument(raw: unknown, file = "<guidance>"): GuidanceValidation {
   const parsed = GuidanceSchema.safeParse(raw);
   if (!parsed.success) {
     const issues = parsed.error.issues.map((issue) => ({
@@ -98,9 +89,10 @@ export function validateGuidanceDocument(
  * Validate a set of already-parsed guidance documents and check cross-file
  * invariants (unique guidance ids). `docs` is keyed by file path for messages.
  */
-export function validateGuidanceManifest(
-  docs: ReadonlyArray<{ file: string; raw: unknown }>,
-): { guidances: Guidance[]; issues: ManifestIssue[] } {
+export function validateGuidanceManifest(docs: ReadonlyArray<{ file: string; raw: unknown }>): {
+  guidances: Guidance[];
+  issues: ManifestIssue[];
+} {
   const issues: ManifestIssue[] = [];
   const guidances: Guidance[] = [];
   const seenIds = new Map<string, string>();

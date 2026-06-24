@@ -40,7 +40,7 @@ precedence over `ATLAS_TERRAFORM_TOKEN`, so the module README is fetched under
 the caller's own TFE/Terraform identity when one is supplied.
 
 A Terraform Source's `location` must be the module repo, e.g.
-`github.com/acme/terraform-aws-s3`; the anchor `selector.locator` is the README
+`github.com/example/terraform-aws-s3`; the anchor `selector.locator` is the README
 heading slug prefixed with `#`, e.g. `#terraform-starter`. Private Terraform
 Cloud / Enterprise registries are a future adapter behind the same seam (TODO).
 

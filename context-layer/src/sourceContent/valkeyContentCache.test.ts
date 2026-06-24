@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { CachedResponse } from "./sourceContentCache.js";
-import { ValkeyContentCache, parseValkeyUrl } from "./valkeyContentCache.js";
+import type { CachedResponse } from "./sourceContentCache";
+import { ValkeyContentCache, parseValkeyUrl } from "./valkeyContentCache";
 
 describe("parseValkeyUrl", () => {
   it("enables TLS for rediss:// and defaults the port", () => {

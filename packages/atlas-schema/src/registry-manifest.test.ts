@@ -14,7 +14,7 @@ import {
   validateRegistryManifest,
   validateSourceDocument,
   type RegistryManifestInput,
-} from "./index.js";
+} from "./index";
 
 const here = dirname(fileURLToPath(import.meta.url));
 // src -> atlas-schema -> packages -> repo root -> data

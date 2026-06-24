@@ -4,7 +4,7 @@ import {
   offlineResolutionContext,
   type FetchLike,
   type ResolutionContext,
-} from "../resolvers/resolverTypes.js";
+} from "../resolvers/resolverTypes";
 
 /**
  * Source-content cache (docs/architecture/source-content-cache.md). Removes the
@@ -131,10 +131,10 @@ export async function createSourceContentCache(
   const valkeyUrl = env.ATLAS_CACHE_VALKEY_URL;
   if (valkeyUrl) {
     if (env.ATLAS_CACHE_VALKEY_CLIENT === "iovalkey") {
-      const { IoValkeyContentCache } = await import("./iovalkeyContentCache.js");
+      const { IoValkeyContentCache } = await import("./iovalkeyContentCache");
       return new IoValkeyContentCache({ url: valkeyUrl });
     }
-    const { ValkeyContentCache } = await import("./valkeyContentCache.js");
+    const { ValkeyContentCache } = await import("./valkeyContentCache");
     return new ValkeyContentCache({ url: valkeyUrl });
   }
   const maxEntries = numberFromEnv(env.ATLAS_CACHE_MAX_ENTRIES, DEFAULT_MAX_ENTRIES);

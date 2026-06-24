@@ -4,7 +4,7 @@ import {
   FeedbackResponseSchema,
   TopicDiscoveryResponseSchema,
 } from "@atlas/schema";
-import { handleHttpRequest } from "./httpRoute.js";
+import { handleHttpRequest } from "./httpRoute";
 
 describe("context API HTTP route adapter", () => {
   it("maps GET /topics query parameters to topic discovery", async () => {

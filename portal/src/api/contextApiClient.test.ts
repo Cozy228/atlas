@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { createStaticContextApiClient } from "./contextApiClient.js";
-import { serviceBundle, landingZoneBundle } from "../fixtures/contextBundles.js";
+import { createStaticContextApiClient } from "./contextApiClient";
+import { serviceBundle, landingZoneBundle } from "../fixtures/contextBundles";
 
 describe("Context API client", () => {
   it("parses context bundles through the shared schema", async () => {

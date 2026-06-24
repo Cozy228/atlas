@@ -4,8 +4,8 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { ContextBundleResponseSchema, TopicDiscoveryResponseSchema } from "@atlas/schema";
 
-import { bridgeContextApiRequest } from "./contextApiBridge.js";
-import { serverContextApiClient } from "./serverContextApiClient.js";
+import { bridgeContextApiRequest } from "./contextApiBridge";
+import { serverContextApiClient } from "./serverContextApiClient";
 
 /**
  * Agent Skills Discovery (Cloudflare RFC v0.2.0) publication tests.

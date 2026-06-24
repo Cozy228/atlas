@@ -1,5 +1,5 @@
 import type { SourceClass } from "@atlas/schema";
-import type { AnchorResolver } from "./resolverTypes.js";
+import type { AnchorResolver } from "./resolverTypes";
 
 export type ResolverRegistry = {
   get(sourceClass: SourceClass): AnchorResolver | undefined;

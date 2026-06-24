@@ -9,11 +9,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { parse } from "yaml";
 import { describe, expect, it } from "vitest";
-import {
-  validateGuidanceManifest,
-  validateGuidanceDocument,
-  GuidanceSchema,
-} from "./index.js";
+import { validateGuidanceManifest, validateGuidanceDocument, GuidanceSchema } from "./index";
 
 const minimalRoute = {
   id: "demo",

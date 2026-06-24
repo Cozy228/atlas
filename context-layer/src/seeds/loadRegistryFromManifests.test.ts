@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { DATA_DIR, loadRegistryFromManifests } from "./loadRegistryFromManifests.js";
-import { pilotRegistrySeed } from "./pilotRegistry.js";
+import { DATA_DIR, loadRegistryFromManifests } from "./loadRegistryFromManifests";
+import { pilotRegistrySeed } from "./pilotRegistry";
 
 describe("loadRegistryFromManifests", () => {
   // The equivalence oracle: the authored data/*.yaml must reproduce the seed

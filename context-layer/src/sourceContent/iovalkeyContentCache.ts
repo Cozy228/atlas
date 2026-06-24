@@ -1,4 +1,4 @@
-import type { CachedResponse, SourceContentCache } from "./sourceContentCache.js";
+import type { CachedResponse, SourceContentCache } from "./sourceContentCache";
 
 /**
  * Fallback ElastiCache (Valkey) adapter using the pure-JS `iovalkey`

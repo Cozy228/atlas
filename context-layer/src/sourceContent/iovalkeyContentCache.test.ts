@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { CachedResponse } from "./sourceContentCache.js";
-import { IoValkeyContentCache } from "./iovalkeyContentCache.js";
+import type { CachedResponse } from "./sourceContentCache";
+import { IoValkeyContentCache } from "./iovalkeyContentCache";
 
 /**
  * A Map-backed stand-in for the `iovalkey` client. Records the EX TTL so we can

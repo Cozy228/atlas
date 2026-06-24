@@ -470,7 +470,7 @@ export {
   validateGuidanceManifest,
   type GuidanceValidation,
   type ManifestIssue,
-} from "./guidanceManifest.js";
+} from "./guidanceManifest";
 
 export {
   validateSourceDocument,
@@ -481,4 +481,4 @@ export {
   type DocumentValidation,
   type RegistryManifestInput,
   type RegistryManifestValidation,
-} from "./registryManifest.js";
+} from "./registryManifest";

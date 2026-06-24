@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { Anchor, Source } from "@atlas/schema";
-import { policyDocumentResolver } from "./policyDocumentResolver.js";
-import { offlineResolutionContext } from "./resolverTypes.js";
-import { createInMemorySourceContentProvider } from "./sourceContentProvider.js";
+import { policyDocumentResolver } from "./policyDocumentResolver";
+import { offlineResolutionContext } from "./resolverTypes";
+import { createInMemorySourceContentProvider } from "./sourceContentProvider";
 
 const source: Source = {
   id: "s3-policy-doc",

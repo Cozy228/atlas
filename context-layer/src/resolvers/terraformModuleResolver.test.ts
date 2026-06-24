@@ -1,14 +1,14 @@
 import { describe, expect, it, vi } from "vitest";
 import type { Anchor, Source } from "@atlas/schema";
-import { createInMemorySourceContentProvider } from "./sourceContentProvider.js";
-import { offlineResolutionContext, type FetchLike } from "./resolverTypes.js";
-import { terraformModuleResolver } from "./terraformModuleResolver.js";
+import { createInMemorySourceContentProvider } from "./sourceContentProvider";
+import { offlineResolutionContext, type FetchLike } from "./resolverTypes";
+import { terraformModuleResolver } from "./terraformModuleResolver";
 
 const source: Source = {
   id: "textract-module-readme",
   title: "Textract Terraform Module",
   source_class: "terraform-module",
-  location: "github.com/acme/terraform-aws-textract",
+  location: "github.com/example/terraform-aws-textract",
   steward: "cloud-platform",
   visibility: "internal",
   authority_scope: ["module-usage"],
@@ -58,7 +58,7 @@ describe("terraformModuleResolver", () => {
       source_id: "textract-module-readme",
       anchor_id: "private-subnet-usage",
       label: "Private subnet usage",
-      location: "github.com/acme/terraform-aws-textract#private-subnet-usage",
+      location: "github.com/example/terraform-aws-textract#private-subnet-usage",
     });
     expect(result.warnings).toEqual([]);
   });
@@ -139,7 +139,7 @@ describe("terraformModuleResolver", () => {
             "utf8",
           ).toString("base64"),
           encoding: "base64",
-          html_url: "https://github.com/acme/terraform-aws-textract/blob/main/README.md",
+          html_url: "https://github.com/example/terraform-aws-textract/blob/main/README.md",
         };
       },
     }));
@@ -181,7 +181,7 @@ describe("terraformModuleResolver", () => {
             "utf8",
           ).toString("base64"),
           encoding: "base64",
-          html_url: "https://github.com/acme/terraform-aws-textract/blob/main/README.md",
+          html_url: "https://github.com/example/terraform-aws-textract/blob/main/README.md",
         };
       },
     }));

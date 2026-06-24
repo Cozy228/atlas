@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Topic } from "@atlas/schema";
-import { InMemoryTopicRepository } from "./topicRepository.js";
+import { InMemoryTopicRepository } from "./topicRepository";
 
 const topic: Topic = {
   id: "aws-textract",
@@ -14,7 +14,7 @@ const topic: Topic = {
   entry_tools: [
     {
       label: "Terraform module",
-      url: "https://github.com/acme/terraform-aws-textract",
+      url: "https://github.com/example/terraform-aws-textract",
     },
   ],
 };

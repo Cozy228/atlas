@@ -176,7 +176,7 @@ function createComponentSource(componentName, svg) {
   const viewBox = attrs.viewBox ?? "0 0 18 18";
   const innerSvg = JSON.stringify(root[2]);
 
-  return `import type { AzureIconProps } from "../types.js";
+  return `import type { AzureIconProps } from "../types";
 
 export default function ${componentName}({ size = 24, ...props }: AzureIconProps) {
   return (
@@ -194,7 +194,7 @@ export default function ${componentName}({ size = 24, ...props }: AzureIconProps
 }
 
 function createMetadataSource(metadata) {
-  return `import type { AzureIconMetadata } from "./types.js";
+  return `import type { AzureIconMetadata } from "./types";
 
 export const azureIconMetadata = ${JSON.stringify(metadata, null, 2)} as const satisfies readonly AzureIconMetadata[];
 `;
@@ -202,11 +202,11 @@ export const azureIconMetadata = ${JSON.stringify(metadata, null, 2)} as const s
 
 function createIndexSource(metadata) {
   const exports = metadata
-    .map((entry) => `export { default as ${entry.componentName} } from "./icons/${entry.componentName}.js";`)
+    .map((entry) => `export { default as ${entry.componentName} } from "./icons/${entry.componentName}";`)
     .join("\n");
 
   return `${exports}
-export { azureIconMetadata } from "./metadata.js";
-export type { AzureIconMetadata, AzureIconProps } from "./types.js";
+export { azureIconMetadata } from "./metadata";
+export type { AzureIconMetadata, AzureIconProps } from "./types";
 `;
 }

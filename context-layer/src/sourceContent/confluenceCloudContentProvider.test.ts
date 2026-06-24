@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { Anchor, Source } from "@atlas/schema";
-import { resolveConfluencePageLive } from "./confluenceCloudContentProvider.js";
-import type { FetchLike } from "../resolvers/resolverTypes.js";
+import { resolveConfluencePageLive } from "./confluenceCloudContentProvider";
+import type { FetchLike } from "../resolvers/resolverTypes";
 
 const source: Source = {
   id: "central-lz-confluence",
