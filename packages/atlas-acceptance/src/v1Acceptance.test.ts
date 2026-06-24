@@ -5,6 +5,7 @@ import {
   askAtlas,
   createDailyRateLimiter,
   getGuidance,
+  loadGuidance,
   relatedGuidanceForTopic,
   renderServiceDetail,
   renderLandingZoneNavigator,
@@ -88,6 +89,7 @@ describe("Atlas V1 acceptance", () => {
   });
 
   it("HARD GATE: proves the S3 / API Gateway / Textract adoption journeys are answerable end-to-end, grounded and cited", async () => {
+    const guidances = loadGuidance();
     const HERO_SERVICES = [
       {
         topicId: "api-gateway",
@@ -157,8 +159,10 @@ describe("Atlas V1 acceptance", () => {
       ).toContain("User guide");
 
       // 6. A governed adoption guide exists, is a route, and is wired to the topic.
-      expect(getGuidance(hero.guidanceId)?.type, hero.guidanceId).toBe("route");
-      expect(relatedGuidanceForTopic(hero.topicId).map((g) => g.id)).toContain(hero.guidanceId);
+      expect(getGuidance(guidances, hero.guidanceId)?.type, hero.guidanceId).toBe("route");
+      expect(relatedGuidanceForTopic(guidances, hero.topicId).map((g) => g.id)).toContain(
+        hero.guidanceId,
+      );
     }
   });
 });

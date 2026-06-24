@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
-import { listGuidance } from "../../lib/guidance";
+import { loadGuidance } from "./loadGuidance";
 import { buildSitemapXml } from "./agentDiscovery";
 import { serverContextApiClient } from "./serverContextApiClient";
 
@@ -33,7 +33,7 @@ describe("sitemap.xml", () => {
     const xml = buildSitemapXml({
       topicIds: topics.topics.map((topic) => topic.id),
       sourceIds: sources.sources.map((source) => source.id),
-      guidanceIds: listGuidance().map((guidance) => guidance.id),
+      guidanceIds: loadGuidance().map((guidance) => guidance.id),
     });
 
     expect(xml).toMatch(

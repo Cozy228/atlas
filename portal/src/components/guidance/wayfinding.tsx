@@ -23,7 +23,7 @@ import type { Guidance } from "@/lib/guidance";
 import { useAllProgress, useIsHydrated } from "@/lib/guidance-progress";
 import { cn } from "@/lib/utils";
 
-import { allGuidance, type CategoryGroup } from "./catalog";
+import type { CategoryGroup } from "./catalog";
 import { CORNER_TICKS } from "./parts";
 import { completableSteps } from "./shared";
 
@@ -74,7 +74,8 @@ export function useResume(groups: ReadonlyArray<CategoryGroup>): {
   started: boolean;
   hydrated: boolean;
 } {
-  const flows = useMemo(() => allGuidance(), []);
+  // Every guidance, flat — `groups` already partitions all of them by category.
+  const flows = useMemo(() => groups.flatMap((group) => group.items), [groups]);
   const indexOf = useMemo(() => {
     const map = new Map<string, number>();
     groups.forEach((group, i) => group.items.forEach((g) => map.set(g.id, i)));

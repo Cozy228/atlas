@@ -4,12 +4,11 @@
  * Mirrors the V1 design in `docs/product/guidance_design.md`: Guidance -> steps -> tasks,
  * rendered as a vertical stepper. The guidance definitions live in
  * `data/guidance/*.yaml` (the single source of truth, validated by
- * `pnpm validate:guidance`) and are codegen'd into `./guidance.data` by
- * `pnpm gen:guidance`. No user progress is tracked; step status is computed
+ * `pnpm validate:guidance`) and are loaded at runtime via `loadGuidance`
+ * (server) -> `guidanceQueryOptions` -> route loaders, which pass the resolved
+ * array into these helpers. No user progress is tracked; step status is computed
  * from the definition and the currently selected step only.
  */
-import { GUIDANCES } from "./guidance.data";
-
 export type GuidanceType = "route" | "decision" | "checklist";
 
 export type ScenarioFamily = "onboard" | "decide" | "enable" | "validate";
@@ -103,27 +102,30 @@ export const SCENARIO_FAMILIES: ReadonlyArray<{
   { id: "validate", label: "Validate", description: "Confirm readiness before production." },
 ];
 
-export function listGuidance(): ReadonlyArray<Guidance> {
-  return GUIDANCES;
+export function listGuidance(guidances: ReadonlyArray<Guidance>): ReadonlyArray<Guidance> {
+  return guidances;
 }
 
-export function getGuidance(id: string): Guidance | undefined {
-  return GUIDANCES.find((guidance) => guidance.id === id);
+export function getGuidance(guidances: ReadonlyArray<Guidance>, id: string): Guidance | undefined {
+  return guidances.find((guidance) => guidance.id === id);
 }
 
-export function guidanceByFamily(): ReadonlyArray<{
+export function guidanceByFamily(guidances: ReadonlyArray<Guidance>): ReadonlyArray<{
   family: (typeof SCENARIO_FAMILIES)[number];
   items: ReadonlyArray<Guidance>;
 }> {
   return SCENARIO_FAMILIES.map((family) => ({
     family,
-    items: GUIDANCES.filter((guidance) => guidance.family === family.id),
+    items: guidances.filter((guidance) => guidance.family === family.id),
   })).filter((group) => group.items.length > 0);
 }
 
 /** Guidance whose `appliesTo` references the given topic. */
-export function relatedGuidanceForTopic(topicId: string): ReadonlyArray<Guidance> {
-  return GUIDANCES.filter((guidance) => {
+export function relatedGuidanceForTopic(
+  guidances: ReadonlyArray<Guidance>,
+  topicId: string,
+): ReadonlyArray<Guidance> {
+  return guidances.filter((guidance) => {
     const applies = guidance.appliesTo;
     if (!applies) return false;
     return (

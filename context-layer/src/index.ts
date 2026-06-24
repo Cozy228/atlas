@@ -10,4 +10,5 @@ export { loadAnnouncements } from "./releaseNotes/loadAnnouncements";
 export type { Announcement } from "./releaseNotes/loadAnnouncements";
 export { resolveReleaseNotes } from "./releaseNotes/resolveReleaseNotes";
 export { cachedResolutionContext } from "./sourceContent/sourceContentCache";
+export { resolveDataDir } from "./dataDir";
 export type { Release, ReleaseItem } from "./releaseNotes/parseReleaseNotes";

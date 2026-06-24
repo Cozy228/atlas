@@ -13,13 +13,14 @@
  */
 import { createFileRoute, notFound } from "@tanstack/react-router";
 
-import { sourceDiscoveryQueryOptions } from "@/api/queries";
+import { guidanceQueryOptions, sourceDiscoveryQueryOptions } from "@/api/queries";
 import { resolveGuidanceFlow } from "@/components/guidance/catalog";
 import { GuidanceDetailLog } from "@/components/guidance/detail-log";
 
 export const Route = createFileRoute("/guidance/$guidanceId")({
   loader: async ({ context, params }) => {
-    const guidance = resolveGuidanceFlow(params.guidanceId);
+    const guidances = await context.queryClient.ensureQueryData(guidanceQueryOptions);
+    const guidance = resolveGuidanceFlow(guidances, params.guidanceId);
     if (!guidance) throw notFound();
     const sourcesResp = await context.queryClient.ensureQueryData(sourceDiscoveryQueryOptions);
     return { guidance, sources: sourcesResp.sources };

@@ -22,6 +22,7 @@ import type { ContextBundleResponse, Topic, TopicDiscoveryResponse } from "@atla
 import {
   availabilityQueryOptions,
   contextBundleQueryOptions,
+  guidanceQueryOptions,
   topicDiscoveryQueryOptions,
 } from "@/api/queries";
 import type { AvailabilityResponse, LandingZoneData } from "@/api/server/availability";
@@ -39,6 +40,7 @@ import { cn } from "@/lib/utils";
 type LoaderData = {
   topic: Topic;
   related: ReadonlyArray<Topic>;
+  guidance: ReadonlyArray<Guidance>;
   bundle: ContextBundleResponse | null;
   defaultZone: LandingZoneData;
   totalZones: number;
@@ -52,11 +54,15 @@ const TYPE_LABEL: Record<Topic["topic_type"], string> = {
 
 export const Route = createFileRoute("/catalog/$topicId")({
   loader: async ({ context, params }): Promise<LoaderData> => {
-    const [topicsResp, availability]: [TopicDiscoveryResponse, AvailabilityResponse] =
-      await Promise.all([
-        context.queryClient.ensureQueryData(topicDiscoveryQueryOptions),
-        context.queryClient.ensureQueryData(availabilityQueryOptions),
-      ]);
+    const [topicsResp, availability, guidances]: [
+      TopicDiscoveryResponse,
+      AvailabilityResponse,
+      ReadonlyArray<Guidance>,
+    ] = await Promise.all([
+      context.queryClient.ensureQueryData(topicDiscoveryQueryOptions),
+      context.queryClient.ensureQueryData(availabilityQueryOptions),
+      context.queryClient.ensureQueryData(guidanceQueryOptions),
+    ]);
 
     const topic = topicsResp.topics.find((entry) => entry.id === params.topicId);
     if (!topic) throw notFound();
@@ -84,6 +90,7 @@ export const Route = createFileRoute("/catalog/$topicId")({
       related: topicsResp.topics.filter(
         (entry) => entry.id !== topic.id && entry.category === topic.category,
       ),
+      guidance: relatedGuidanceForTopic(guidances, topic.id),
       bundle,
       defaultZone: availability.zones[0]!,
       totalZones: availability.zones.length,
@@ -114,7 +121,7 @@ function formatDate(iso: string): string {
  * ========================================================================== */
 
 function CatalogDetailRoute() {
-  const { topic, related, bundle, defaultZone, totalZones } = Route.useLoaderData();
+  const { topic, related, guidance, bundle, defaultZone, totalZones } = Route.useLoaderData();
 
   const recent: RecentItem | null =
     topic.topic_type === "service"
@@ -128,7 +135,6 @@ function CatalogDetailRoute() {
   const locations = defaultZone.locations;
   const service = isService ? findAvailabilityServiceForTopic(topic, defaultZone.services) : null;
 
-  const guidance = relatedGuidanceForTopic(topic.id);
   const sources = bundle?.sources ?? [];
   const warnings = bundle?.warnings ?? [];
 

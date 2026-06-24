@@ -8,14 +8,15 @@
  */
 import { useMemo, useState } from "react";
 
+import type { Guidance } from "@/lib/guidance";
 import { cn } from "@/lib/utils";
 
 import { categoryGroups, type CategoryGroup } from "./catalog";
 import { RouteLine } from "./parts";
 import { NextStops, categoryIcon, useResume } from "./wayfinding";
 
-export function GuidanceDirectory() {
-  const groups = useMemo(() => categoryGroups(), []);
+export function GuidanceDirectory({ guidances }: { guidances: ReadonlyArray<Guidance> }) {
+  const groups = useMemo(() => categoryGroups(guidances), [guidances]);
   const { resumable, nextIndex, hydrated } = useResume(groups);
 
   const [selected, setSelected] = useState(0);

@@ -10,13 +10,16 @@
 import { getGuidance, listGuidance, type Guidance, type GuidanceType } from "@/lib/guidance";
 
 /** Resolve a guidance flow by id (the registry-backed guidances). */
-export function resolveGuidanceFlow(id: string): Guidance | undefined {
-  return getGuidance(id);
+export function resolveGuidanceFlow(
+  guidances: ReadonlyArray<Guidance>,
+  id: string,
+): Guidance | undefined {
+  return getGuidance(guidances, id);
 }
 
 /** Every catalog flow, flat. */
-export function allGuidance(): ReadonlyArray<Guidance> {
-  return listGuidance();
+export function allGuidance(guidances: ReadonlyArray<Guidance>): ReadonlyArray<Guidance> {
+  return listGuidance(guidances);
 }
 
 /* -------------------------------------------------------------------------- *
@@ -150,8 +153,8 @@ export function categoryOf(g: Guidance): GuidanceCategory {
 export type CategoryGroup = { category: GuidanceCategory; items: ReadonlyArray<Guidance> };
 
 /** Categories resolved to their flows, in catalog order; empty ones dropped. */
-export function categoryGroups(): ReadonlyArray<CategoryGroup> {
-  const flows = allGuidance();
+export function categoryGroups(guidances: ReadonlyArray<Guidance>): ReadonlyArray<CategoryGroup> {
+  const flows = allGuidance(guidances);
   return GUIDANCE_CATEGORIES.map((category) => ({
     category,
     items: flows.filter((g) => categoryIdOf(g) === category.id),
@@ -170,8 +173,11 @@ export function journeyWeight(g: Guidance): number {
 }
 
 /** The most recently reviewed flows — surfaced as a "what changed" entry point. */
-export function recentlyUpdated(n: number): ReadonlyArray<Guidance> {
-  return [...allGuidance()]
+export function recentlyUpdated(
+  guidances: ReadonlyArray<Guidance>,
+  n: number,
+): ReadonlyArray<Guidance> {
+  return [...allGuidance(guidances)]
     .sort((a, b) => b.lastReviewed.localeCompare(a.lastReviewed))
     .slice(0, n);
 }
@@ -203,6 +209,6 @@ export function flowMetric(guidance: Guidance): { value: number; unit: string } 
   }
 }
 
-export function flowTotal(): number {
-  return allGuidance().length;
+export function flowTotal(guidances: ReadonlyArray<Guidance>): number {
+  return allGuidance(guidances).length;
 }

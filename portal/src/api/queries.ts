@@ -16,6 +16,8 @@ import {
 } from "@/api/server/contextApi";
 import { fetchReleaseNotes, type Release } from "@/api/server/releaseNotes";
 import { fetchAnnouncements, type Announcement } from "@/api/server/announcements";
+import { fetchGuidance } from "@/api/server/guidance";
+import type { Guidance } from "@/lib/guidance";
 
 export const releaseNotesQueryOptions = queryOptions<Release[]>({
   queryKey: ["release-notes"] as const,
@@ -27,6 +29,12 @@ export const announcementsQueryOptions = queryOptions<Announcement[]>({
   queryKey: ["announcements"] as const,
   queryFn: () => fetchAnnouncements(),
   staleTime: 60_000,
+});
+
+export const guidanceQueryOptions = queryOptions<Guidance[]>({
+  queryKey: ["guidance"] as const,
+  queryFn: () => fetchGuidance(),
+  staleTime: Infinity,
 });
 
 export const availabilityQueryKey = ["availability"] as const;
