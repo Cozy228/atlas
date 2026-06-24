@@ -99,7 +99,7 @@ export const pilotRegistrySeed = {
       entry_tools: [
         {
           label: "Terraform module",
-          url: "https://github.com/example/terraform-aws-textract",
+          url: "https://tfe.example.com/app/example/registry/modules/private/example/textract/aws",
         },
         {
           label: "User guide",
@@ -116,7 +116,7 @@ export const pilotRegistrySeed = {
       description: "Managed foundation model access for approved workloads.",
       owner_team: "cloud-platform",
       support_channel: "#cloud-platform",
-      entry_tools: [{ label: "Module", url: "https://github.com/example/bedrock" }],
+      entry_tools: [{ label: "Module", url: "https://tfe.example.com/app/example/registry/modules/private/example/bedrock/aws" }],
     },
     {
       id: "serverless-compute",
@@ -127,7 +127,7 @@ export const pilotRegistrySeed = {
       description: "Lambda-based compute patterns for event-driven workloads.",
       owner_team: "cloud-platform",
       support_channel: "#serverless-support",
-      entry_tools: [{ label: "Module", url: "https://github.com/example/lambda" }],
+      entry_tools: [{ label: "Module", url: "https://tfe.example.com/app/example/registry/modules/private/example/lambda/aws" }],
     },
     {
       id: "central-landing-zone",
@@ -218,7 +218,7 @@ export const pilotRegistrySeed = {
       entry_tools: [
         {
           label: "Terraform module",
-          url: "https://github.com/example/terraform-aws-apigateway",
+          url: "https://tfe.example.com/app/example/registry/modules/private/example/apigateway/aws",
         },
         {
           label: "Integration guide",
@@ -242,7 +242,7 @@ export const pilotRegistrySeed = {
       entry_tools: [
         {
           label: "Terraform module",
-          url: "https://github.com/example/terraform-aws-s3",
+          url: "https://tfe.example.com/app/example/registry/modules/private/example/s3/aws",
         },
         {
           label: "User guide",
@@ -256,7 +256,7 @@ export const pilotRegistrySeed = {
       id: "textract-module-readme",
       title: "Textract Terraform Module",
       source_class: "terraform-module",
-      location: "github.com/example/terraform-aws-textract",
+      location: "example/textract/aws",
       steward: "cloud-platform",
       visibility: "internal",
       authority_scope: ["module-usage", "private-networking"],
@@ -269,7 +269,7 @@ export const pilotRegistrySeed = {
       id: "bedrock-module-readme",
       title: "Bedrock Terraform Module",
       source_class: "terraform-module",
-      location: "github.com/example/terraform-aws-bedrock",
+      location: "example/bedrock/aws",
       steward: "cloud-platform",
       visibility: "internal",
       authority_scope: ["module-usage", "ai-ml"],
@@ -282,7 +282,7 @@ export const pilotRegistrySeed = {
       id: "lambda-module-readme",
       title: "Lambda Terraform Module",
       source_class: "terraform-module",
-      location: "github.com/example/terraform-aws-lambda",
+      location: "example/lambda/aws",
       steward: "serverless-platform",
       visibility: "internal",
       authority_scope: ["module-usage", "compute"],
@@ -412,7 +412,7 @@ export const pilotRegistrySeed = {
       id: "apigateway-module-readme",
       title: "API Gateway Terraform Module",
       source_class: "terraform-module",
-      location: "github.com/example/terraform-aws-apigateway",
+      location: "example/apigateway/aws",
       steward: "cloud-platform",
       visibility: "internal",
       authority_scope: ["module-usage", "api-gateway"],
@@ -438,7 +438,7 @@ export const pilotRegistrySeed = {
       id: "s3-module-readme",
       title: "S3 Terraform Module",
       source_class: "terraform-module",
-      location: "github.com/example/terraform-aws-s3",
+      location: "example/s3/aws",
       steward: "cloud-platform",
       visibility: "internal",
       authority_scope: ["module-usage", "storage"],

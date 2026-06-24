@@ -8,7 +8,7 @@ const source: Source = {
   id: "textract-module-readme",
   title: "Textract Terraform Module",
   source_class: "terraform-module",
-  location: "github.com/example/terraform-aws-textract",
+  location: "example/textract/aws",
   steward: "cloud-platform",
   visibility: "internal",
   authority_scope: ["module-usage"],
@@ -40,6 +40,17 @@ const moduleFieldAnchor: Anchor = {
   last_validated_at: "2026-05-05T00:00:00.000Z",
 };
 
+/** A live registry module response (root.readme + version), as the v1 module API returns. */
+function registryFetch(body: unknown) {
+  return vi.fn<FetchLike>(async () => ({
+    ok: true,
+    status: 200,
+    async json() {
+      return body;
+    },
+  }));
+}
+
 describe("terraformModuleResolver", () => {
   it("resolves a registered markdown heading anchor", async () => {
     const result = await terraformModuleResolver.resolve({
@@ -58,7 +69,7 @@ describe("terraformModuleResolver", () => {
       source_id: "textract-module-readme",
       anchor_id: "private-subnet-usage",
       label: "Private subnet usage",
-      location: "github.com/example/terraform-aws-textract#private-subnet-usage",
+      location: "example/textract/aws#private-subnet-usage",
     });
     expect(result.warnings).toEqual([]);
   });
@@ -120,6 +131,22 @@ describe("terraformModuleResolver", () => {
     expect(result.warnings[0]?.code).toBe("broken_anchor");
   });
 
+  it("resolves a module-field anchor from the offline metadata map", async () => {
+    const result = await terraformModuleResolver.resolve({
+      ctx: offlineResolutionContext(),
+      source,
+      anchors: [moduleFieldAnchor],
+      anchorId: "textract-module-version",
+      contentProvider: createInMemorySourceContentProvider({
+        "textract-module-readme": { "field:version": "2.1.0" },
+      }),
+    });
+
+    expect(result.excerpts[0]?.text).toBe("2.1.0");
+    expect(result.excerpts[0]?.citation.location).toBe("example/textract/aws#version");
+    expect(result.warnings).toEqual([]);
+  });
+
   it("takes the live branch when a service token is configured", async () => {
     const env = (
       globalThis as typeof globalThis & {
@@ -127,22 +154,12 @@ describe("terraformModuleResolver", () => {
       }
     ).process.env;
     const previousToken = env.ATLAS_TERRAFORM_TOKEN;
-    env.ATLAS_TERRAFORM_TOKEN = "fictional-github-pat";
+    env.ATLAS_TERRAFORM_TOKEN = "fictional-registry-token";
 
-    const fetch = vi.fn<FetchLike>(async () => ({
-      ok: true,
-      status: 200,
-      async json() {
-        return {
-          content: Buffer.from(
-            "## Private subnet usage\nUse the private endpoint configuration.\n",
-            "utf8",
-          ).toString("base64"),
-          encoding: "base64",
-          html_url: "https://github.com/example/terraform-aws-textract/blob/main/README.md",
-        };
-      },
-    }));
+    const fetch = registryFetch({
+      version: "2.1.0",
+      root: { readme: "## Private subnet usage\nUse the private endpoint configuration.\n" },
+    });
 
     const result = await terraformModuleResolver.resolve({
       ctx: { token: undefined, fetch },
@@ -171,20 +188,10 @@ describe("terraformModuleResolver", () => {
     const previousToken = env.ATLAS_TERRAFORM_TOKEN;
     delete env.ATLAS_TERRAFORM_TOKEN;
 
-    const fetch = vi.fn<FetchLike>(async () => ({
-      ok: true,
-      status: 200,
-      async json() {
-        return {
-          content: Buffer.from(
-            "## Private subnet usage\nUse the private endpoint configuration.\n",
-            "utf8",
-          ).toString("base64"),
-          encoding: "base64",
-          html_url: "https://github.com/example/terraform-aws-textract/blob/main/README.md",
-        };
-      },
-    }));
+    const fetch = registryFetch({
+      version: "2.1.0",
+      root: { readme: "## Private subnet usage\nUse the private endpoint configuration.\n" },
+    });
 
     const result = await terraformModuleResolver.resolve({
       ctx: { token: "caller-bearer-xyz", fetch },
@@ -202,5 +209,24 @@ describe("terraformModuleResolver", () => {
     const authHeader = fetch.mock.calls[0]?.[1]?.headers?.Authorization;
     expect(authHeader).toContain("caller-bearer-xyz");
     expect(result.excerpts[0]?.text).toContain("Use the private endpoint configuration.");
+  });
+
+  it("resolves a module-field anchor live from the registry when a token is configured", async () => {
+    const fetch = registryFetch({
+      version: "2.1.0",
+      root: { readme: "## X\n", inputs: [], outputs: [] },
+    });
+
+    const result = await terraformModuleResolver.resolve({
+      ctx: { token: "caller-bearer-xyz", fetch },
+      source,
+      anchors: [moduleFieldAnchor],
+      anchorId: "textract-module-version",
+      contentProvider: createInMemorySourceContentProvider({}),
+    });
+
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(result.excerpts[0]?.text).toBe("2.1.0");
+    expect(result.excerpts[0]?.citation.location).toBe("example/textract/aws#version");
   });
 });

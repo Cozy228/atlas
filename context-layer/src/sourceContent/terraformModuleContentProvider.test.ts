@@ -7,8 +7,8 @@ const source: Source = {
   id: "s3-module-readme",
   title: "S3 Terraform Module",
   source_class: "terraform-module",
-  // For the live path, location is the module's GitHub repo.
-  location: "github.com/example/terraform-aws-s3",
+  // For the live path, location is the host-less registry address.
+  location: "example/s3/aws",
   steward: "cloud-platform",
   visibility: "internal",
   authority_scope: ["module-usage", "storage"],
@@ -29,7 +29,8 @@ const anchor: Anchor = {
   last_validated_at: "2026-05-05T00:00:00.000Z",
 };
 
-const config = { token: "fictional-github-pat", baseUrl: "https://api.github.com" };
+// Public registry => /v1/modules; a private TFC/TFE host => /api/registry/v1/modules.
+const config = { token: "fictional-registry-token", baseUrl: "https://registry.terraform.io" };
 
 const readmeMarkdown = [
   "# terraform-aws-s3",
@@ -40,7 +41,7 @@ const readmeMarkdown = [
   "## Terraform starter",
   "```hcl",
   'module "bucket" {',
-  '  source = "app.terraform.io/example/s3/aws"',
+  '  source = "example/s3/aws"',
   "}",
   "```",
   "",
@@ -48,11 +49,7 @@ const readmeMarkdown = [
   "See variables.tf.",
 ].join("\n");
 
-function base64(value: string): string {
-  return Buffer.from(value, "utf8").toString("base64");
-}
-
-function readmeFetch(
+function registryFetch(
   body: unknown,
   status = 200,
 ): { fetch: FetchLike; calls: Array<{ url: string; auth: string }> } {
@@ -71,11 +68,10 @@ function readmeFetch(
 }
 
 describe("resolveTerraformModuleLive", () => {
-  it("fetches the module README and extracts the anchored section", async () => {
-    const { fetch, calls } = readmeFetch({
-      content: base64(readmeMarkdown),
-      encoding: "base64",
-      html_url: "https://github.com/example/terraform-aws-s3/blob/main/README.md",
+  it("fetches the registry module README and extracts the anchored section", async () => {
+    const { fetch, calls } = registryFetch({
+      version: "1.4.0",
+      root: { readme: readmeMarkdown },
     });
 
     const result = await resolveTerraformModuleLive(
@@ -92,16 +88,32 @@ describe("resolveTerraformModuleLive", () => {
     expect(result.excerpts[0]?.text).toContain('module "bucket"');
     // Section stops at the next heading.
     expect(result.excerpts[0]?.text).not.toContain("See variables.tf.");
-    expect(result.excerpts[0]?.citation.location).toBe(
-      "https://github.com/example/terraform-aws-s3/blob/main/README.md#terraform-starter",
+    expect(result.excerpts[0]?.citation.location).toBe("example/s3/aws#terraform-starter");
+    // The module was addressed through the public registry's module API with the token.
+    expect(calls[0]?.url).toBe("https://registry.terraform.io/v1/modules/example/s3/aws");
+    expect(calls[0]?.auth).toBe("Bearer fictional-registry-token");
+  });
+
+  it("targets the /api/registry/v1 path for a private TFC/TFE host", async () => {
+    const { fetch, calls } = registryFetch({ version: "1.4.0", root: { readme: readmeMarkdown } });
+
+    await resolveTerraformModuleLive(
+      {
+        source,
+        anchors: [anchor],
+        anchorId: "s3-terraform-starter",
+        ctx: { token: config.token, fetch },
+      },
+      { token: config.token, baseUrl: "https://tfe.example.internal" },
     );
-    // The repo was addressed through the GitHub README API with the service token.
-    expect(calls[0]?.url).toBe("https://api.github.com/repos/example/terraform-aws-s3/readme");
-    expect(calls[0]?.auth).toBe("Bearer fictional-github-pat");
+
+    expect(calls[0]?.url).toBe(
+      "https://tfe.example.internal/api/registry/v1/modules/example/s3/aws",
+    );
   });
 
   it("maps 401/403 to a restricted_source warning, not content", async () => {
-    const { fetch } = readmeFetch({}, 403);
+    const { fetch } = registryFetch({}, 403);
 
     const result = await resolveTerraformModuleLive(
       {
@@ -118,7 +130,7 @@ describe("resolveTerraformModuleLive", () => {
   });
 
   it("maps 404 to source_unavailable", async () => {
-    const { fetch } = readmeFetch({}, 404);
+    const { fetch } = registryFetch({}, 404);
 
     const result = await resolveTerraformModuleLive(
       {
@@ -134,10 +146,9 @@ describe("resolveTerraformModuleLive", () => {
   });
 
   it("maps a missing anchor heading to broken_anchor", async () => {
-    const { fetch } = readmeFetch({
-      content: base64("# terraform-aws-s3\n\n## Inputs\nSee variables.tf."),
-      encoding: "base64",
-      html_url: "https://github.com/example/terraform-aws-s3/blob/main/README.md",
+    const { fetch } = registryFetch({
+      version: "1.4.0",
+      root: { readme: "# terraform-aws-s3\n\n## Inputs\nSee variables.tf." },
     });
 
     const result = await resolveTerraformModuleLive(
