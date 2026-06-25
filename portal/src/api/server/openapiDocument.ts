@@ -159,7 +159,7 @@ export function buildOpenApiDocument(origin: string = DEFAULT_PORTAL_ORIGIN) {
     info: {
       title: "Atlas Context API",
       version: "1.0.0",
-      description: `${VOCABULARY}\n\n${WARNING_GLOSSARY}\n\n${BEARER_PIPE}\n\nEvery route is read-only except \`POST /feedback\`, the single mutation endpoint.`,
+      description: `${VOCABULARY}\n\n${WARNING_GLOSSARY}\n\n${BEARER_PIPE}\n\nRegional/service availability is governed like any other content: read the \`availability-matrix\` Source via \`GET /sources/{source_id}/content\` (it carries the per-region cells with their Citations), or use the \`atlas_get_availability\` MCP tool at \`/mcp\` for the same data structured. There is no bespoke availability route — it is one more cited Source.\n\nEvery route is read-only except \`POST /feedback\`, the single mutation endpoint.`,
     },
     servers: [{ url: `${origin}/api`, description: "Atlas Portal origin" }],
     security: [{ bearerPipe: [] }, {}],

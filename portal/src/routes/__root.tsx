@@ -32,7 +32,21 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       },
       { title: "Atlas Portal" },
     ],
-    links: [{ rel: "stylesheet", href: globalsCss }],
+    links: [
+      { rel: "stylesheet", href: globalsCss },
+      // Agent-discovery hints mirrored into <head> so a body-only reader (not
+      // just a client that inspects response `Link` headers) finds the surface.
+      { rel: "llms-txt", type: "text/plain", href: "/llms.txt" },
+      { rel: "service-desc", type: "application/openapi+json", href: "/openapi.json" },
+      { rel: "api-catalog", type: "application/linkset+json", href: "/.well-known/api-catalog" },
+      {
+        rel: "agent-skills",
+        type: "application/json",
+        href: "/.well-known/agent-skills/index.json",
+      },
+      { rel: "mcp-server", href: "/mcp" },
+      { rel: "sitemap", type: "application/xml", href: "/sitemap.xml" },
+    ],
   }),
   component: RootComponent,
   notFoundComponent: NotFoundComponent,
@@ -48,9 +62,9 @@ function NotFoundComponent() {
         Atlas could not resolve that record.
       </h1>
       <p className="text-sm leading-[1.6] text-muted-foreground">
-        The topic, source, or path you followed is not registered in the Context API. Browse
-        the catalog, guidance, or sources to find what you need, or report the gap from the
-        feedback form on any detail page.
+        The topic, source, or path you followed is not registered in the Context API. Browse the
+        catalog, guidance, or sources to find what you need, or report the gap from the feedback
+        form on any detail page.
       </p>
       <div className="flex flex-wrap gap-2">
         <Link

@@ -207,43 +207,65 @@ curl -s -X POST localhost:3201/mcp -H 'content-type: application/json' \
 ```
 
 ### Blind-agent replay (the climax)
-Give any capable agent CLI exactly two facts — the origin + a question
-(`"Can AWS Textract run in a private subnet, and which regions is it available in?"`) —
-and forbid local-file access and path-guessing. Require the discovery-chain log in the
-report. See §5 for a captured run. Tear down: `pkill -f ".output/server/index.mjs"`.
+Hand any agent CLI a **realistic** prompt — exactly what a real user would type, the
+origin + the question — and only two honest constraints: **answer from this service**
+and **don't use your own AWS knowledge or local files**:
+
+> Using only the service at `http://localhost:3201`, answer: Can AWS Textract run in a
+> private subnet, and which regions is it available in? Use only this service's data —
+> don't use your own AWS knowledge and don't read any local files. Cite your sources.
+
+**Do not enumerate the entry points** (`/llms.txt`, `/.well-known/…`, the `Link`
+header) in the prompt — those are web conventions a capable agent probes on its own;
+listing them feeds the agent the discovery step and hollows out the test. If the agent
+does **not** reach `/llms.txt` from a realistic prompt, that is a real finding about
+discoverability, not a weak prompt. Require the discovery-chain log in the report.
+Tear down: `pkill -f ".output/server/index.mjs"`. See §5 for a captured run.
 
 ---
 
 ## 5. Blind-agent E2E (verification)
 
-Reproduced 2026-06-24 with a deliberately low-capability model (claude-haiku) — *if a
-weak model can self-navigate, the discoverability is in the protocol, not the model.*
-Given only the origin + the question, it walked the whole chain and produced a cited
-answer.
+Reproduced 2026-06-25 with the **realistic prompt above** (no entry-point enumeration)
+and a deliberately low-capability model (claude-haiku) — *if a weak model can
+self-navigate from a prompt a real user would type, the discoverability is in the
+protocol, not the model.*
 
 ```
-GET /  (Link header → 6 surfaces; published host portal.example.com → substituted localhost)
- ├─ /llms.txt                  → API "start here" + skill + pages
- ├─ /.well-known/api-catalog   → /openapi.json (service-desc), /health
- ├─ /.well-known/agent-skills/index.json → skill + sha256 digest
- │    └─ GET SKILL.md → shasum -a 256 → 9bfeca68… == advertised digest  ✓ MATCH
- │         → learned workflow: /api/topics?query= → /api/topics/{id}/context ; MCP tools
- ├─ /openapi.json              → REST contract + /mcp
- └─ POST /mcp initialize → tools/list → 4 read tools incl. atlas_get_availability
+GET /                          → React HTML (homepage); <head> now carries the
+                                 agent-discovery <link rel> set as a body-visible hint
+ ├─ /llms.txt                  → reached by web CONVENTION (the agent probed the
+ │                               standard path itself; it was NOT named in the prompt)
+ │    → "What you can ask" + Typical flow + the availability breadcrumb
+ ├─ /openapi.json              → REST contract (base path /api)
+ ├─ /.well-known/api-catalog   → linkset → openapi, llms.txt, mcp, agent-skills, health
    --- applying the discovered workflow ---
- GET /api/topics?query=textract                        → topic "aws-textract"
- GET /api/topics/aws-textract/context?disclosure_level=2 → cited excerpts + warnings[]
- POST /mcp tools/call atlas_get_availability {zone:aws,service_query:textract} → regions
+ GET /api/topics?query=textract                          → topic "aws-textract"
+ GET /api/topics/aws-textract/context                    → cited excerpts + warnings[]
+ GET /api/sources → "Regional Availability Matrix" → /api/sources/availability-matrix/content
+   (followed the new llms.txt availability breadcrumb to the regions, governed-source path)
 ```
 
 **Final answer it produced** — private subnet: **Yes**, cited
 `example/terraform-aws-textract#private-subnet-usage` + the Terraform starter
-(`endpoint_type="interface"`, `private_subnet_ids`); regions: **us-east-1**,
-**ca-central-1** (both available); and it relayed `stale_source` +
+(`endpoint_type="interface"`, `private_subnet_ids`); region: **us-east-1** available
+(cited the Regional Availability Matrix); it relayed `stale_source` +
 `source_unavailable` **verbatim**, adding nothing from its own AWS knowledge.
 
-**What it proves:** discoverability + governed-honesty conduct are carried by the
-protocol and the contract, not by model intelligence.
+**Honest gaps from this run** (these drove the 2026-06-25 discoverability fixes):
+- Before the fix, `region`/`availability` appeared **zero** times in `llms.txt` and
+  `openapi.json` — the regions half had no breadcrumb. Added: keyword breadcrumbs +
+  the availability line in `llms.txt`, the governed-source note in the OpenAPI
+  `description`, and `/mcp` + `/.well-known/agent-skills` in the api-catalog linkset.
+- `/llms.txt` is found by **convention**, not because the homepage advertises it in the
+  body — so the discovery `<link rel>` set is now mirrored into `<head>`.
+- The weak model surfaced only **us-east-1** from the availability matrix, not the full
+  region set (`ca-central-1` was in the data but not parsed out). Content-rendering
+  depth of the availability matrix is a separate follow-up, not a discoverability gap.
+
+**What it proves:** discovery + governed-honesty conduct are carried by the protocol and
+the contract — but only as far as the **signposts** reach; a capability with no
+breadcrumb (regions, pre-fix) is effectively invisible to a realistic prompt.
 
 ---
 
