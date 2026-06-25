@@ -1,9 +1,7 @@
-import type { H3Event } from "nitro";
-
 import { buildApiCatalog } from "@/api/server/agentDiscovery";
-import { resolvePortalOrigin } from "@/api/server/portalOrigin";
+import { handlerRequest, resolvePortalOrigin } from "@/api/server/portalOrigin";
 
-export default (event: H3Event): Response =>
-  Response.json(buildApiCatalog(resolvePortalOrigin(event)), {
+export default (event: unknown): Response =>
+  Response.json(buildApiCatalog(resolvePortalOrigin(handlerRequest(event))), {
     headers: { "content-type": "application/linkset+json" },
   });

@@ -1,7 +1,7 @@
-import type { H3Event } from "nitro";
-
 import { buildOauthProtectedResource } from "@/api/server/agentDiscovery";
-import { resolvePortalOrigin } from "@/api/server/portalOrigin";
+import { handlerRequest, resolvePortalOrigin } from "@/api/server/portalOrigin";
 
-export default (event: H3Event): Response =>
-  Response.json(buildOauthProtectedResource(resolvePortalOrigin(event, { preferEnv: true })));
+export default (event: unknown): Response =>
+  Response.json(
+    buildOauthProtectedResource(resolvePortalOrigin(handlerRequest(event), { preferEnv: true })),
+  );

@@ -1,9 +1,7 @@
-import type { H3Event } from "nitro";
-
 import { buildRobotsTxt } from "@/api/server/agentDiscovery";
-import { resolvePortalOrigin } from "@/api/server/portalOrigin";
+import { handlerRequest, resolvePortalOrigin } from "@/api/server/portalOrigin";
 
-export default (event: H3Event): Response =>
-  new Response(buildRobotsTxt(resolvePortalOrigin(event, { preferEnv: true })), {
+export default (event: unknown): Response =>
+  new Response(buildRobotsTxt(resolvePortalOrigin(handlerRequest(event), { preferEnv: true })), {
     headers: { "content-type": "text/plain; charset=utf-8" },
   });

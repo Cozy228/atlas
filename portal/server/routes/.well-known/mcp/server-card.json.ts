@@ -1,7 +1,7 @@
-import type { H3Event } from "nitro";
-
 import { buildMcpServerCard } from "@/api/server/mcp/handler";
-import { resolvePortalOrigin } from "@/api/server/portalOrigin";
+import { handlerRequest, resolvePortalOrigin } from "@/api/server/portalOrigin";
 
-export default (event: H3Event): Response =>
-  Response.json(buildMcpServerCard(resolvePortalOrigin(event, { preferEnv: true })));
+export default (event: unknown): Response =>
+  Response.json(
+    buildMcpServerCard(resolvePortalOrigin(handlerRequest(event), { preferEnv: true })),
+  );
