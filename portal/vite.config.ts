@@ -57,10 +57,6 @@ export default defineConfig({
     babel({ presets: [reactCompilerPreset()] }),
     tailwindcss(),
   ],
-  // Vite 8.1 experimental: serve bundled files in dev for faster cold start / reloads.
-  experimental: {
-    bundledDev: true,
-  },
   build: {
     // ponytail: chunkImportMap (Vite 8.1) left off — it breaks the Nitro server
     // re-bundle pass (UNRESOLVED_IMPORT on importmap-driven SSR chunks).
