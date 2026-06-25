@@ -1,17 +1,28 @@
-import { useEffect, useState } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
 import { useRouterState } from "@tanstack/react-router";
 import { IconMessageCircle } from "@tabler/icons-react";
 
 import { useAskAtlas } from "@/components/ask-atlas/context";
-import { AskOverlay } from "@/components/ask/ask-overlay";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+
+// Defer the overlay (and its chat/search + markdown/highlight deps) out of the
+// first-screen bundle — it loads on first open, not on every page view.
+const AskOverlay = lazy(() =>
+  import("@/components/ask/ask-overlay").then((m) => ({ default: m.AskOverlay })),
+);
 
 export function AskAtlasFab() {
   const { overlayOpen, overlayTab, openOverlay, setOverlayOpen, setOverlayTab } = useAskAtlas();
   // Asking is an in-place overlay (Search ⇄ Ask toggle) over the current
   // surface — never a separate page.
   const pathname = useRouterState({ select: (state) => state.location.pathname });
+
+  // Only mount (and thus fetch the chunk for) the overlay once it has been opened.
+  const [hasOpened, setHasOpened] = useState(false);
+  useEffect(() => {
+    if (overlayOpen) setHasOpened(true);
+  }, [overlayOpen]);
 
   // Hand off to dedicated ask surfaces: when a footer or a page's "just ask"
   // band scrolls into view (any [data-fab-dismiss]), the FAB fades out so it
@@ -62,12 +73,16 @@ export function AskAtlasFab() {
         Ask Atlas
       </Button>
 
-      <AskOverlay
-        open={overlayOpen}
-        onOpenChange={setOverlayOpen}
-        tab={overlayTab}
-        onTabChange={setOverlayTab}
-      />
+      {hasOpened ? (
+        <Suspense fallback={null}>
+          <AskOverlay
+            open={overlayOpen}
+            onOpenChange={setOverlayOpen}
+            tab={overlayTab}
+            onTabChange={setOverlayTab}
+          />
+        </Suspense>
+      ) : null}
     </>
   );
 }

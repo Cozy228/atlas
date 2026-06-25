@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useDeferredValue, useMemo, useState } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import {
@@ -78,6 +78,9 @@ export function getNextSearchIndex(current: number, itemCount: number, direction
 export function AskAtlasSearch({ onOpenChange, onSwitchToAsk }: AskAtlasSearchProps) {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
+  // Keep typing responsive on slow machines: the input updates instantly while
+  // the fuzzy search over the full result set runs against the deferred value.
+  const deferredQuery = useDeferredValue(query);
   const [selectedIndex, setSelectedIndex] = useState(0);
 
   const { data: topicsData, isLoading: topicsLoading } = useQuery({
@@ -138,10 +141,10 @@ export function AskAtlasSearch({ onOpenChange, onSwitchToAsk }: AskAtlasSearchPr
   );
 
   const filtered = useMemo(() => {
-    const q = query.trim();
+    const q = deferredQuery.trim();
     if (q.length === 0) return STATIC_NAV;
     return fuse.search(q).map((r) => r.item);
-  }, [query, fuse]);
+  }, [deferredQuery, fuse]);
 
   const grouped = useMemo(() => {
     const map = new Map<string, SearchResult[]>();

@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { Suspense, lazy, useEffect, useState, type ReactNode } from "react";
 import { QueryClientProvider, type QueryClient } from "@tanstack/react-query";
 import {
   HeadContent,
@@ -9,9 +9,12 @@ import {
 } from "@tanstack/react-router";
 
 import { PortalShell } from "@/components/portal-shell";
-import { Toaster } from "@/components/ui/sonner";
 import { themeInitScript } from "@/lib/theme-script";
 import globalsCss from "@/styles/globals.css?url";
+
+// Toasts only matter once one fires; keep sonner out of the entry chunk and
+// mount the Toaster after hydration so it never blocks first paint.
+const Toaster = lazy(() => import("@/components/ui/sonner").then((m) => ({ default: m.Toaster })));
 
 export interface RouterContext {
   queryClient: QueryClient;
@@ -86,13 +89,21 @@ function NotFoundComponent() {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  // Defer mounting the Toaster (and fetching the sonner chunk) until after the
+  // initial client render.
+  const [showToaster, setShowToaster] = useState(false);
+  useEffect(() => setShowToaster(true), []);
   return (
     <RootDocument>
       <QueryClientProvider client={queryClient}>
         <PortalShell>
           <Outlet />
         </PortalShell>
-        <Toaster />
+        {showToaster ? (
+          <Suspense fallback={null}>
+            <Toaster />
+          </Suspense>
+        ) : null}
       </QueryClientProvider>
     </RootDocument>
   );

@@ -13,7 +13,7 @@
  * routes (`/catalog/$topicId`, `/guardrails/$guardrailId`). Sources are their
  * own surface at `/sources`, so the catalog carries no Sources tab.
  */
-import { useCallback, useMemo, useState, type MouseEvent } from "react";
+import { useCallback, useDeferredValue, useMemo, useState, type MouseEvent } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
   IconArrowRight,
@@ -260,6 +260,8 @@ function TopicWorkspace({
   view: ViewMode;
 }) {
   const isService = type === "service";
+  // Defer the text filter so typing stays responsive over large topic lists.
+  const deferredQuery = useDeferredValue(query);
   const [domains, setDomains] = useState<ReadonlySet<string>>(new Set());
   const [status, setStatus] = useState("all");
   const [region, setRegion] = useState("all");
@@ -278,7 +280,7 @@ function TopicWorkspace({
   );
 
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = deferredQuery.trim().toLowerCase();
     return topics.filter((topic) => {
       if (q) {
         const haystack = [topic.name, topic.description, topic.category, topic.owner_team]
@@ -299,7 +301,7 @@ function TopicWorkspace({
       }
       return true;
     });
-  }, [topics, query, domains, status, region, isService, serviceById, zone.locations]);
+  }, [topics, deferredQuery, domains, status, region, isService, serviceById, zone.locations]);
 
   const domainOptions = useMemo(() => buildDomainOptions(topics), [topics]);
   const statusOptions = useMemo<ReadonlyArray<StatusOption>>(

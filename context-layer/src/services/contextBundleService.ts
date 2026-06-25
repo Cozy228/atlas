@@ -123,51 +123,81 @@ export async function buildContextBundle(
     service.registry.anchors.findBySourceId(source.id),
   );
 
-  for (const source of sources) {
-    const anchors = service.registry.anchors.findBySourceId(source.id);
+  // One fresh request-scoped fetch+parse memo per bundle, threaded into the ctx
+  // passed to resolvers so same-page/same-module anchors share one fetch + parse
+  // (plan 011). Lives only inside this call under the single caller identity in
+  // `ctx`, so it never leaks content across requests. Idempotent if a caller
+  // already threaded one.
+  const bundleCtx: ResolutionContext = ctx.pageCache ? ctx : { ...ctx, pageCache: new Map() };
 
-    if (source.visibility === "restricted") {
-      warnings.push({
-        code: "restricted_source",
-        message: "Source exists but has restricted visibility.",
-        source_id: source.id,
-      });
-    }
+  // Resolve sources concurrently (bounded) and anchors within a source concurrently.
+  // Output stays byte-identical to the sequential version: each unit collects its
+  // warnings/excerpts into its own ordered array, and we flatten in `sources` /
+  // `anchorIds` order after all promises settle — never pushing from a racing
+  // callback. `Promise.all` preserves array order, so this is deterministic.
+  const perSource = await mapWithConcurrency(
+    sources,
+    SOURCE_RESOLUTION_CONCURRENCY,
+    async (source) => {
+      const sourceWarnings: ContextBundleResponse["warnings"] = [];
+      const anchors = service.registry.anchors.findBySourceId(source.id);
 
-    if (isStale(source, service.now)) {
-      warnings.push({
-        code: "stale_source",
-        message: "Source is past its review frequency.",
-        source_id: source.id,
-      });
-    }
-
-    const excerpts = [];
-
-    if (disclosureLevel > 0) {
-      const resolver = service.resolvers.get(source.source_class);
-      for (const anchorId of anchorIdsForDisclosure(anchors, request.anchor_id, disclosureLevel)) {
-        const resolved = await resolver?.resolve({
-          source,
-          anchors,
-          anchorId,
-          contentProvider: service.contentProvider,
-          ctx,
+      if (source.visibility === "restricted") {
+        sourceWarnings.push({
+          code: "restricted_source",
+          message: "Source exists but has restricted visibility.",
+          source_id: source.id,
         });
+      }
 
-        if (resolved) {
-          warnings.push(...resolved.warnings);
-          excerpts.push(...resolved.excerpts);
+      if (isStale(source, service.now)) {
+        sourceWarnings.push({
+          code: "stale_source",
+          message: "Source is past its review frequency.",
+          source_id: source.id,
+        });
+      }
+
+      const excerpts = [];
+
+      if (disclosureLevel > 0) {
+        const resolver = service.resolvers.get(source.source_class);
+        const anchorIds = anchorIdsForDisclosure(anchors, request.anchor_id, disclosureLevel);
+        const resolutions = await Promise.all(
+          anchorIds.map((anchorId) =>
+            resolver?.resolve({
+              source,
+              anchors,
+              anchorId,
+              contentProvider: service.contentProvider,
+              ctx: bundleCtx,
+            }),
+          ),
+        );
+
+        for (const resolved of resolutions) {
+          if (resolved) {
+            sourceWarnings.push(...resolved.warnings);
+            excerpts.push(...resolved.excerpts);
+          }
         }
       }
-    }
 
-    bundleSources.push({
-      source,
-      anchors,
-      selection_rationale: buildSelectionRationale(source, request),
-      excerpts,
-    });
+      return {
+        bundleSource: {
+          source,
+          anchors,
+          selection_rationale: buildSelectionRationale(source, request),
+          excerpts,
+        },
+        warnings: sourceWarnings,
+      };
+    },
+  );
+
+  for (const result of perSource) {
+    bundleSources.push(result.bundleSource);
+    warnings.push(...result.warnings);
   }
 
   warnings.push(...authorityConflictWarnings(sources));
@@ -222,6 +252,39 @@ export function discoverTopics(
   });
 
   return { topics };
+}
+
+// Cap on concurrent per-source resolutions. A single bundle can fan out to
+// sources × anchors live resolutions; with single-flight (plan 008) same-page
+// anchors share one fetch, but distinct sources/pages do not. Bound the SOURCES
+// level so a wide topic cannot burst the external provider. Anchors within a
+// source stay an unbounded `Promise.all` (N is tiny — anchors per source).
+const SOURCE_RESOLUTION_CONCURRENCY = 5;
+
+/**
+ * Run `fn` over `items` with at most `limit` in flight, returning results in
+ * input order. Order-preserving (results indexed by input position), so callers
+ * can flatten deterministically. `limit` is clamped to `[1, items.length]`.
+ */
+async function mapWithConcurrency<T, R>(
+  items: readonly T[],
+  limit: number,
+  fn: (item: T) => Promise<R>,
+): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  const bound = Math.max(1, Math.min(limit, items.length || 1));
+  let nextIndex = 0;
+
+  async function worker(): Promise<void> {
+    while (nextIndex < items.length) {
+      const index = nextIndex;
+      nextIndex += 1;
+      results[index] = await fn(items[index]);
+    }
+  }
+
+  await Promise.all(Array.from({ length: Math.min(bound, items.length) }, () => worker()));
+  return results;
 }
 
 function selectSources(service: ContextBundleService, request: ContextRequest): Source[] {

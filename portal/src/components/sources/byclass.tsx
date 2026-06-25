@@ -70,15 +70,26 @@ export function SourcesByClass({ sources }: { sources: ReadonlyArray<Source> }) 
   const groups = useMemo(() => groupTwoLevel(filtered, axis, freshOf), [filtered, axis, freshOf]);
 
   // Facet counts reflect the search-filtered set so chips never all collapse.
-  const authorityCounts = AUTHORITY_ORDER.map((level) => ({
-    level,
-    count: searchFiltered.filter((s) => s.authority_level === level).length,
-  })).filter((e) => e.count > 0);
-  const freshnessCounts = FRESHNESS_ORDER.map((state) => ({
-    state,
-    count: searchFiltered.filter((s) => (freshOf.get(s.id) ?? "needs-review") === state).length,
-  })).filter((e) => e.count > 0);
-  const restrictedCount = searchFiltered.filter((s) => s.visibility === "restricted").length;
+  const authorityCounts = useMemo(
+    () =>
+      AUTHORITY_ORDER.map((level) => ({
+        level,
+        count: searchFiltered.filter((s) => s.authority_level === level).length,
+      })).filter((e) => e.count > 0),
+    [searchFiltered],
+  );
+  const freshnessCounts = useMemo(
+    () =>
+      FRESHNESS_ORDER.map((state) => ({
+        state,
+        count: searchFiltered.filter((s) => (freshOf.get(s.id) ?? "needs-review") === state).length,
+      })).filter((e) => e.count > 0),
+    [searchFiltered, freshOf],
+  );
+  const restrictedCount = useMemo(
+    () => searchFiltered.filter((s) => s.visibility === "restricted").length,
+    [searchFiltered],
+  );
 
   const anyFilter =
     q !== "" || authorityFilter.size > 0 || freshnessFilter.size > 0 || restrictedOnly;
