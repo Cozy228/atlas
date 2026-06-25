@@ -13,6 +13,16 @@ export function buildApiCatalog(origin: string = DEFAULT_PORTAL_ORIGIN) {
         anchor: `${origin}/api`,
         "service-desc": [{ href: `${origin}/openapi.json`, type: "application/openapi+json" }],
         "service-doc": [{ href: `${origin}/llms.txt`, type: "text/plain" }],
+        // Same governed contract, other renderings: MCP tools (incl.
+        // `atlas_get_availability`) and the self-installing skill.
+        "service-meta": [
+          { href: `${origin}/mcp`, rel: "mcp-server" },
+          {
+            href: `${origin}/.well-known/agent-skills/index.json`,
+            rel: "agent-skills",
+            type: "application/json",
+          },
+        ],
         status: [{ href: `${origin}/health`, type: "application/json" }],
       },
     ],
@@ -30,16 +40,24 @@ export function buildLlmsTxt(origin: string = DEFAULT_PORTAL_ORIGIN): string {
 
 ## API (start here)
 
-- [OpenAPI description](${origin}/openapi.json): the Context API contract — topic/source discovery, the context bundle, and feedback
+- [OpenAPI description](${origin}/openapi.json): the Context API contract — base path \`/api\`; topic/source discovery (\`GET /api/topics\`, \`GET /api/sources\`), the cited context bundle (\`GET /api/topics/{id}/context\`), per-source content (\`GET /api/sources/{id}/content\`), and feedback
 - [API catalog](${origin}/.well-known/api-catalog): linkset pointing at the API description, docs, and health
-- [MCP endpoint](${origin}/mcp): read-only MCP tools over the same Context API
+- [MCP endpoint](${origin}/mcp): read-only MCP tools over the same Context API — service search, the context bundle, source lookup, and service/region availability (\`atlas_get_availability\`)
 - [Agent skills](${origin}/.well-known/agent-skills/index.json): the atlas-context-consumer skill teaches the bundle workflow
+
+## What you can ask
+
+- **Service capabilities & config** — e.g. private-networking/subnet usage: resolve a topic, then read its cited context bundle.
+- **Regional / service availability** — which services are available, planned, or interim per region: the \`atlas_get_availability\` MCP tool, or the \`Regional Availability Matrix\` source via \`GET /api/sources/{id}/content\`.
+- **Guardrails, policies & landing zones** — registered as topics (e.g. S3 guardrails, IAM boundary, private networking) and policy/guide sources.
+
+Typical flow: \`GET /api/topics?query=<terms>\` → \`GET /api/topics/{id}/context\` → answer only from the returned Excerpts, each with its Citation, relaying every \`warnings[]\` entry verbatim. The OpenAPI \`description\` and the agent-skill carry the full conduct rules.
 
 ## Pages
 
-- [Service catalog](${origin}/catalog): registered platform services
-- [Sources](${origin}/sources): registered systems of record Atlas can cite
-- [Guidance](${origin}/guidance): evidence-backed platform guidance
+- [Service catalog](${origin}/catalog): registered platform services, landing zones, and guardrail areas
+- [Sources](${origin}/sources): registered systems of record Atlas can cite — Confluence guides, policy documents, Terraform modules, and the regional availability matrix
+- [Guidance](${origin}/guidance): evidence-backed platform guidance flows
 `;
 }
 
