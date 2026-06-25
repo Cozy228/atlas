@@ -1,11 +1,9 @@
-import type { H3Event } from "nitro";
-
 import { buildSitemapXml } from "@/api/server/agentDiscovery";
-import { resolvePortalOrigin } from "@/api/server/portalOrigin";
+import { handlerRequest, resolvePortalOrigin } from "@/api/server/portalOrigin";
 import { serverContextApiClient } from "@/api/server/serverContextApiClient";
 import { loadGuidance } from "@/api/server/loadGuidance";
 
-export default async (event: H3Event): Promise<Response> => {
+export default async (event: unknown): Promise<Response> => {
   const [topics, sources] = await Promise.all([
     serverContextApiClient.discoverTopics(),
     serverContextApiClient.discoverSources(),
@@ -16,7 +14,7 @@ export default async (event: H3Event): Promise<Response> => {
       sourceIds: sources.sources.map((source) => source.id),
       guidanceIds: loadGuidance().map((guidance) => guidance.id),
     },
-    resolvePortalOrigin(event),
+    resolvePortalOrigin(handlerRequest(event)),
   );
   return new Response(xml, {
     headers: { "content-type": "application/xml; charset=utf-8" },

@@ -1,9 +1,7 @@
-import type { H3Event } from "nitro";
-
 import { buildOpenApiDocument } from "@/api/server/openapiDocument";
-import { resolvePortalOrigin } from "@/api/server/portalOrigin";
+import { handlerRequest, resolvePortalOrigin } from "@/api/server/portalOrigin";
 
-export default (event: H3Event): Response =>
-  Response.json(buildOpenApiDocument(resolvePortalOrigin(event)), {
+export default (event: unknown): Response =>
+  Response.json(buildOpenApiDocument(resolvePortalOrigin(handlerRequest(event))), {
     headers: { "content-type": "application/openapi+json" },
   });

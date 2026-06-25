@@ -1,9 +1,7 @@
-import type { H3Event } from "nitro";
-
 import { buildLlmsTxt } from "@/api/server/agentDiscovery";
-import { resolvePortalOrigin } from "@/api/server/portalOrigin";
+import { handlerRequest, resolvePortalOrigin } from "@/api/server/portalOrigin";
 
-export default (event: H3Event): Response =>
-  new Response(buildLlmsTxt(resolvePortalOrigin(event)), {
+export default (event: unknown): Response =>
+  new Response(buildLlmsTxt(resolvePortalOrigin(handlerRequest(event))), {
     headers: { "content-type": "text/plain; charset=utf-8" },
   });
