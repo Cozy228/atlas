@@ -62,3 +62,12 @@ describe("homepage Link header", () => {
     }
   });
 });
+
+describe("origin is request-derived, not hardcoded", () => {
+  const origin = "https://portal.acme.example";
+  it("propagates the caller origin through every discovery surface", () => {
+    expect(buildApiCatalog(origin).linkset[0].anchor).toBe(`${origin}/api`);
+    expect(buildLlmsTxt(origin)).toContain(`${origin}/openapi.json`);
+    expect(buildHomeLinkHeader(origin)).toContain(`<${origin}/llms.txt>`);
+  });
+});
