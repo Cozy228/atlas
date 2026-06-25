@@ -1,15 +1,11 @@
-import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 import { loadGuidance } from "./loadGuidance";
-import { buildSitemapXml } from "./agentDiscovery";
+import { buildOauthProtectedResource, buildRobotsTxt, buildSitemapXml } from "./agentDiscovery";
 import { serverContextApiClient } from "./serverContextApiClient";
 
-const PUBLIC_DIR = fileURLToPath(new URL("../../../public/", import.meta.url));
-
 describe("robots.txt", () => {
-  const robots = readFileSync(`${PUBLIC_DIR}robots.txt`, "utf8");
+  const robots = buildRobotsTxt();
 
   it("carries the sitemap and content-signal lines", () => {
     expect(robots).toContain("Sitemap: https://portal.example.com/sitemap.xml");
@@ -56,9 +52,7 @@ describe("sitemap.xml", () => {
 
 describe("oauth-protected-resource", () => {
   it("is generic and fabricates no scopes", () => {
-    const metadata = JSON.parse(
-      readFileSync(`${PUBLIC_DIR}.well-known/oauth-protected-resource`, "utf8"),
-    ) as Record<string, unknown>;
+    const metadata = buildOauthProtectedResource() as Record<string, unknown>;
     expect(metadata.resource).toBe("https://portal.example.com");
     expect(metadata.bearer_methods_supported).toEqual(["header"]);
     // The Bearer pipe (ADR 0001) defines no OAuth scopes — none may be advertised.

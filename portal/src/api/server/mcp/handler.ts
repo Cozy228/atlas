@@ -16,6 +16,27 @@ export const MCP_SERVER_INFO = {
   version: "1.0.0",
 };
 
+/**
+ * Public MCP server card served at `/.well-known/mcp/server-card.json`. The
+ * tool list is derived from `mcpTools` so it can never drift into phantom
+ * tools; `origin` is env-first (spec-canonical transport URL).
+ */
+export function buildMcpServerCard(origin: string) {
+  return {
+    ...MCP_SERVER_INFO,
+    description:
+      "Read-only MCP facade over the Atlas Context API: governed, citation-backed platform context (services, sources, regional availability). Every Excerpt carries its Citation; warnings such as restricted_source and stale_source are relayed verbatim.",
+    transport: { type: "streamable-http", url: `${origin}/mcp` },
+    authentication: {
+      scheme: "bearer",
+      description:
+        "Optional. The caller's Bearer token is threaded unparsed to the system of record (identity-agnostic Bearer pipe); without one, a narrow service-token fallback applies.",
+    },
+    capabilities: { tools: {} },
+    tools: mcpTools.map((tool) => ({ name: tool.name, description: tool.description })),
+  };
+}
+
 type JsonRpcId = string | number | null;
 
 type JsonRpcMessage = {

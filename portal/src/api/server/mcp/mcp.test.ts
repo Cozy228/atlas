@@ -1,10 +1,8 @@
-import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { ContextBundleResponseSchema } from "@atlas/schema";
 
 import { serverContextApiClient } from "../serverContextApiClient";
-import { handleMcpRequest } from "./handler";
+import { buildMcpServerCard, handleMcpRequest } from "./handler";
 import { mcpTools } from "./tools";
 
 function rpc(method: string, params?: Record<string, unknown>, id: number = 1): Request {
@@ -148,17 +146,7 @@ describe("mcp tools against the pilot fixtures", () => {
 
 describe("mcp server card", () => {
   it("lists exactly the implemented tools — no phantom tools", () => {
-    const card = JSON.parse(
-      readFileSync(
-        fileURLToPath(
-          new URL("../../../../public/.well-known/mcp/server-card.json", import.meta.url),
-        ),
-        "utf8",
-      ),
-    ) as {
-      transport: { type: string; url: string };
-      tools: { name: string; description: string }[];
-    };
+    const card = buildMcpServerCard("https://portal.example.com");
 
     expect(card.transport).toEqual({
       type: "streamable-http",

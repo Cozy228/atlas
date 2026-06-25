@@ -39,8 +39,13 @@ describe("openapi document validity", () => {
     expect(mutations.sort()).toEqual(["POST /context-bundle", "POST /feedback"]);
   });
 
-  it("uses the public-safe fictional host", () => {
+  it("defaults to the public-safe fictional host", () => {
     expect(document.servers[0]?.url).toBe("https://portal.example.com/api");
+  });
+
+  it("uses the caller origin when one is supplied", () => {
+    const scoped = buildOpenApiDocument("https://portal.acme.example");
+    expect(scoped.servers[0]?.url).toBe("https://portal.acme.example/api");
   });
 });
 

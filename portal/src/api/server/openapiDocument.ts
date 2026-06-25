@@ -21,8 +21,7 @@ import {
   sourceClasses,
   topicTypes,
 } from "@atlas/schema";
-
-export const PORTAL_ORIGIN = "https://portal.example.com";
+import { DEFAULT_PORTAL_ORIGIN } from "./portalOrigin";
 
 /**
  * Atlas vocabulary, inlined so agents get the glossary without a second
@@ -154,7 +153,7 @@ const BUNDLE_EXAMPLE = {
   ],
 };
 
-export function buildOpenApiDocument() {
+export function buildOpenApiDocument(origin: string = DEFAULT_PORTAL_ORIGIN) {
   return {
     openapi: "3.1.0",
     info: {
@@ -162,7 +161,7 @@ export function buildOpenApiDocument() {
       version: "1.0.0",
       description: `${VOCABULARY}\n\n${WARNING_GLOSSARY}\n\n${BEARER_PIPE}\n\nEvery route is read-only except \`POST /feedback\`, the single mutation endpoint.`,
     },
-    servers: [{ url: `${PORTAL_ORIGIN}/api`, description: "Atlas Portal origin" }],
+    servers: [{ url: `${origin}/api`, description: "Atlas Portal origin" }],
     security: [{ bearerPipe: [] }, {}],
     paths: {
       "/topics": {

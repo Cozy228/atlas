@@ -1,6 +1,0 @@
-{
-  "resource": "https://portal.example.com",
-  "bearer_methods_supported": ["header"],
-  "resource_documentation": "https://portal.example.com/llms.txt",
-  "resource_name": "Atlas Context Layer"
-}
