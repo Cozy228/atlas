@@ -1,6 +1,5 @@
 import { lazy, Suspense } from "react";
 
-import { AWS_ICON_MAP } from "@/lib/aws-icon-map";
 import {
   MappedServiceIcon,
   ServiceIconFallback,
@@ -10,6 +9,11 @@ import {
 type ServiceIconProps = {
   serviceId: string;
   provider?: ServiceIconProvider;
+  size?: ServiceIconSize;
+};
+
+type ProviderIconProps = {
+  serviceId: string;
   size?: ServiceIconSize;
 };
 
@@ -30,14 +34,34 @@ export function preloadAzureServiceIcons() {
   void loadAzureServiceIconModule();
 }
 
-export function ServiceIcon({ serviceId, provider = "aws", size = "md" }: ServiceIconProps) {
-  if (provider === "azure") {
-    return (
-      <Suspense fallback={<ServiceIconFallback serviceId={serviceId} size={size} />}>
-        <AzureServiceIcon serviceId={serviceId} size={size} />
-      </Suspense>
-    );
-  }
+// The AWS icon pack (~36 KB gzip) is split off the same way as Azure: detail
+// routes that render a single AWS ServiceIcon no longer pull the whole pack into
+// their eager chunk — it loads on demand, and the availability matrix preloads
+// it (see `preloadAwsServiceIcons`) so its first paint keeps the real icons.
+let awsIconMapModule: Promise<typeof import("@/lib/aws-icon-map")> | null = null;
 
-  return <MappedServiceIcon serviceId={serviceId} iconMap={AWS_ICON_MAP} size={size} />;
+function loadAwsIconMapModule() {
+  awsIconMapModule ??= import("@/lib/aws-icon-map");
+  return awsIconMapModule;
+}
+
+const AwsServiceIcon = lazy(() =>
+  loadAwsIconMapModule().then((module) => ({
+    default: ({ serviceId, size }: ProviderIconProps) => (
+      <MappedServiceIcon serviceId={serviceId} iconMap={module.AWS_ICON_MAP} size={size} />
+    ),
+  })),
+);
+
+export function preloadAwsServiceIcons() {
+  void loadAwsIconMapModule();
+}
+
+export function ServiceIcon({ serviceId, provider = "aws", size = "md" }: ServiceIconProps) {
+  const ProviderIcon = provider === "azure" ? AzureServiceIcon : AwsServiceIcon;
+  return (
+    <Suspense fallback={<ServiceIconFallback serviceId={serviceId} size={size} />}>
+      <ProviderIcon serviceId={serviceId} size={size} />
+    </Suspense>
+  );
 }

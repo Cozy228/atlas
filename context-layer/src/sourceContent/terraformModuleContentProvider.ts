@@ -43,6 +43,50 @@ type RegistryModuleResponse = {
 
 type ModuleAddress = { namespace: string; name: string; provider: string; version?: string };
 
+type FetchRegistryModuleResult =
+  | { ok: true; body: RegistryModuleResponse }
+  | { ok: false; code: ResolverWarning["code"]; message: string };
+
+/** The registry detail URL for a module address — also its `pageCache` key. */
+function registryModuleUrl(config: TerraformLiveConfig, mod: ModuleAddress): string {
+  const base = config.baseUrl.replace(/\/+$/, "");
+  const apiRoot = /registry\.terraform\.io/.test(base)
+    ? `${base}/v1/modules`
+    : `${base}/api/registry/v1/modules`;
+  const path = `${mod.namespace}/${mod.name}/${mod.provider}`;
+  return `${apiRoot}/${path}${mod.version ? `/${mod.version}` : ""}`;
+}
+
+/**
+ * Memoize a module's registry detail (fetch + JSON body) in the request-scoped
+ * `ctx.pageCache`, keyed by the registry URL. The README anchor and every
+ * `module-field` anchor on a module hit the SAME URL, so they share ONE fetch
+ * per module per bundle. The in-flight Promise is stored BEFORE awaiting, so
+ * anchors resolving concurrently (plan 009) share a single load. Without a
+ * `pageCache` it is a straight fetch — today's per-anchor behaviour.
+ *
+ * Not `async` on purpose: the cache `set` must run synchronously at call time,
+ * before the first `await` yields, so concurrent callers see the stored Promise.
+ */
+function loadRegistryModule(
+  ctx: ResolutionContext,
+  config: TerraformLiveConfig,
+  mod: ModuleAddress,
+): Promise<FetchRegistryModuleResult> {
+  const cache = ctx.pageCache;
+  if (!cache) {
+    return fetchRegistryModule(ctx, config, mod);
+  }
+  const key = registryModuleUrl(config, mod);
+  const existing = cache.get(key) as Promise<FetchRegistryModuleResult> | undefined;
+  if (existing) {
+    return existing;
+  }
+  const promise = fetchRegistryModule(ctx, config, mod);
+  cache.set(key, promise);
+  return promise;
+}
+
 /**
  * Fetch a module version's registry detail. Public registry => `/v1/modules`,
  * a TFC/TFE host => `/api/registry/v1/modules`. Maps HTTP status to a warning
@@ -52,15 +96,8 @@ async function fetchRegistryModule(
   ctx: ResolutionContext,
   config: TerraformLiveConfig,
   mod: ModuleAddress,
-): Promise<
-  { ok: true; body: RegistryModuleResponse } | { ok: false; code: ResolverWarning["code"]; message: string }
-> {
-  const base = config.baseUrl.replace(/\/+$/, "");
-  const apiRoot = /registry\.terraform\.io/.test(base)
-    ? `${base}/v1/modules`
-    : `${base}/api/registry/v1/modules`;
-  const path = `${mod.namespace}/${mod.name}/${mod.provider}`;
-  const url = `${apiRoot}/${path}${mod.version ? `/${mod.version}` : ""}`;
+): Promise<FetchRegistryModuleResult> {
+  const url = registryModuleUrl(config, mod);
 
   const response = await ctx.fetch(url, {
     method: "GET",
@@ -78,7 +115,11 @@ async function fetchRegistryModule(
     };
   }
   if (response.status === 404) {
-    return { ok: false, code: "source_unavailable", message: "Module was not found in the registry at request time." };
+    return {
+      ok: false,
+      code: "source_unavailable",
+      message: "Module was not found in the registry at request time.",
+    };
   }
   if (!response.ok) {
     return {
@@ -116,7 +157,7 @@ export async function resolveTerraformModuleLive(
     });
   }
 
-  const fetched = await fetchRegistryModule(request.ctx, config, mod);
+  const fetched = await loadRegistryModule(request.ctx, config, mod);
   if (!fetched.ok) {
     return warningResult({
       code: fetched.code,
@@ -177,7 +218,7 @@ export async function resolveTerraformModuleFieldLive(
     });
   }
 
-  const fetched = await fetchRegistryModule(request.ctx, config, mod);
+  const fetched = await loadRegistryModule(request.ctx, config, mod);
   if (!fetched.ok) {
     return warningResult({
       code: fetched.code,

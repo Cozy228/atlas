@@ -10,17 +10,10 @@
  *   - Service catalog → a typographic BOOK INDEX (columned link lines)
  *   - What changed   → a DATE-LED TIMELINE with recency hierarchy
  */
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { IconArrowLeft, IconArrowRight, IconMessageCircle } from "@tabler/icons-react";
-import {
-  AnimatePresence,
-  LazyMotion,
-  MotionConfig,
-  domAnimation,
-  m,
-  type Variants,
-} from "motion/react";
+import { AnimatePresence, LazyMotion, MotionConfig, m, type Variants } from "motion/react";
 
 import { useAskAtlas } from "@/components/ask-atlas/context";
 import { JourneyGrid } from "@/components/home/journey-grid";
@@ -38,6 +31,10 @@ import {
   type HomeLoaderData,
   type MainlineRoute,
 } from "./data";
+
+// Load motion's DOM feature bundle (~26 kB gzip) lazily so it stays off the
+// home page's first paint — it loads when the catalog swap first animates.
+const loadDomAnimation = () => import("motion/react").then((mod) => mod.domAnimation);
 
 export function HomeWelcome({ data }: { data: HomeLoaderData }) {
   return (
@@ -72,6 +69,19 @@ export function HomeWelcome({ data }: { data: HomeLoaderData }) {
  * ========================================================================== */
 
 function WhatsNewTicker({ announcements }: { announcements: ReadonlyArray<HomeAnnouncement> }) {
+  // Pause the infinite marquee whenever it's scrolled out of the viewport so it
+  // stops waking the compositor on low-power machines (browsers already throttle
+  // it in background tabs; this covers the on-page scrolled-away case).
+  const viewportRef = useRef<HTMLDivElement>(null);
+  const [paused, setPaused] = useState(false);
+  useEffect(() => {
+    const el = viewportRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(([entry]) => setPaused(!entry.isIntersecting));
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
   if (announcements.length === 0) return null;
   return (
     <Link
@@ -86,8 +96,16 @@ function WhatsNewTicker({ announcements }: { announcements: ReadonlyArray<HomeAn
           className="size-3 transition-transform group-hover:translate-x-0.5"
         />
       </span>
-      <div className="relative min-w-0 flex-1 overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_4%,black_96%,transparent)]">
-        <div className="flex w-max animate-[proto-marquee_50s_linear_infinite] group-hover:[animation-play-state:paused] motion-reduce:animate-none">
+      <div
+        ref={viewportRef}
+        className="relative min-w-0 flex-1 overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_4%,black_96%,transparent)]"
+      >
+        <div
+          className={cn(
+            "flex w-max animate-[proto-marquee_50s_linear_infinite] group-hover:[animation-play-state:paused] motion-reduce:animate-none",
+            paused && "[animation-play-state:paused]",
+          )}
+        >
           <TickerTrack announcements={announcements} />
           <TickerTrack announcements={announcements} ariaHidden />
         </div>
@@ -265,7 +283,10 @@ function IntentFocus() {
               <div className="flex min-w-0 flex-col">
                 <span
                   className={cn(
-                    "w-fit bg-background font-mono font-semibold uppercase tracking-[0.14em] transition-all duration-200",
+                    // Smooth focus animation: transition the exact props that change
+                    // (no transition-all bleed). The layout cost is bounded — only the
+                    // entering + leaving row animate, on hover, for 200ms.
+                    "w-fit bg-background font-mono font-semibold uppercase tracking-[0.14em] transition-[font-size,opacity,color,margin] duration-200",
                     open
                       ? "mb-1 text-[10px] text-muted-foreground group-hover:text-brand-ink"
                       : "mb-0 text-[0px] opacity-0",
@@ -275,7 +296,9 @@ function IntentFocus() {
                 </span>
                 <span
                   className={cn(
-                    "w-fit bg-background font-bold tracking-[-0.02em] transition-all duration-200 group-hover:text-brand-ink",
+                    // Smooth title scale-up on focus — transition font-size + color
+                    // explicitly so the size grows fluidly rather than snapping.
+                    "w-fit bg-background font-bold tracking-[-0.02em] transition-[font-size,color] duration-200 group-hover:text-brand-ink",
                     open
                       ? "text-[1.125rem] leading-[1.2] text-foreground"
                       : "text-[0.9375rem] text-foreground/55",
@@ -285,7 +308,9 @@ function IntentFocus() {
                 </span>
                 <div
                   className={cn(
-                    "grid transition-all duration-200",
+                    // Scope the transition to the reveal props only (no transition-all
+                    // bleed onto layout-affecting properties).
+                    "grid transition-[grid-template-rows,opacity] duration-200",
                     open ? "mt-1 grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0",
                   )}
                 >
@@ -369,7 +394,7 @@ function CatalogIndex({
         description={`${serviceCount} services across ${domains.length} domains. Open one to see what's in it.`}
         action={{ to: "/catalog", label: "View all services" }}
       />
-      <LazyMotion features={domAnimation}>
+      <LazyMotion features={loadDomAnimation}>
         <MotionConfig reducedMotion="user">
           <AnimatePresence mode="wait" initial={false}>
             {domain ? (

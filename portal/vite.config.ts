@@ -23,6 +23,10 @@ const portalCodeSplittingGroups = [
   { name: "react-dom", test: /node_modules[\\/]react-dom[\\/]/, priority: 52 },
   { name: "react", test: /node_modules[\\/]react[\\/]/, priority: 50 },
   { name: "motion", test: /node_modules[\\/]motion[\\/]/, priority: 30 },
+  // react-table is imported only by the lazy availability matrix, so split it
+  // out of the eager `tanstack` group (higher priority wins) to keep it off the
+  // cold-load path.
+  { name: "react-table", test: /node_modules[\\/]@tanstack[\\/]react-table[\\/]/, priority: 26 },
   { name: "tanstack", test: /node_modules[\\/]@tanstack[\\/]/, priority: 25 },
   { name: "aws-icons", test: /node_modules[\\/]aws-react-icons[\\/]/, priority: 23 },
   {
@@ -50,7 +54,14 @@ export default defineConfig({
     // `serverDir` enables Nitro filesystem routing for the agent-facing
     // server surface (`server/routes/**`, `server/middleware/**`) without
     // touching the TanStack route tree.
-    !isVitest && nitro({ serverDir: "server" }),
+    !isVitest &&
+      nitro({
+        serverDir: "server",
+        // Pre-compress public assets (>1KB) to .gz/.br at build time so any host
+        // serves smaller bytes with zero runtime overhead. CDNs that already
+        // compress will simply ignore these files.
+        compressPublicAssets: { gzip: true, brotli: true },
+      }),
     viteReact(),
     // React Compiler: auto-memoizes components/values/callbacks so manual
     // memo()/useMemo()/useCallback() are no longer load-bearing for re-render perf.

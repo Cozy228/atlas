@@ -9,16 +9,22 @@
  *
  * Data: the chat + search are the production components, not mocks.
  */
+import { Suspense, lazy } from "react";
 import { Link } from "@tanstack/react-router";
 import { IconMessageCircle, IconSearch } from "@tabler/icons-react";
 
-import { AskAtlasChat } from "@/components/ask/ask-atlas-chat";
 import { AskAtlasSearch } from "@/components/ask/ask-atlas-search";
 import { ClientOnly } from "@/components/client-only";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/utils";
+
+// Chat pulls in the markdown renderer + syntax highlighter; keep it out of the
+// search-only path (⌘K) by loading it lazily when the Ask tab is shown.
+const AskAtlasChat = lazy(() =>
+  import("@/components/ask/ask-atlas-chat").then((m) => ({ default: m.AskAtlasChat })),
+);
 
 export type AskTab = "search" | "ask";
 
@@ -91,7 +97,9 @@ export function AskOverlay({
           <>
             <div className="min-h-0 flex-1 overflow-hidden border-t border-border">
               <ClientOnly fallback={<TabSkeleton />}>
-                <AskAtlasChat suggestions={SUGGESTIONS} className="h-full min-h-0" />
+                <Suspense fallback={<TabSkeleton />}>
+                  <AskAtlasChat suggestions={SUGGESTIONS} className="h-full min-h-0" />
+                </Suspense>
               </ClientOnly>
             </div>
             <div className="flex shrink-0 items-center justify-between gap-3 border-t border-border bg-muted/40 px-4 py-2.5">

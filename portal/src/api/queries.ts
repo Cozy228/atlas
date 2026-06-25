@@ -69,5 +69,9 @@ export function contextBundleQueryOptions(request: ContextRequest) {
   return queryOptions<ContextBundleResponse>({
     queryKey: ["context-bundle", request] as const,
     queryFn: () => fetchContextBundle({ data: request }),
+    // 5 min: bundles are immutable per { topic_id, disclosure_level } within a
+    // session, so caching avoids re-resolving every cited anchor (the app's most
+    // expensive call) on re-nav. Not Infinity, so a long-lived tab still refreshes.
+    staleTime: 5 * 60_000,
   });
 }

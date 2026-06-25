@@ -19,10 +19,12 @@ import { GuidanceDetailLog } from "@/components/guidance/detail-log";
 
 export const Route = createFileRoute("/guidance/$guidanceId")({
   loader: async ({ context, params }) => {
-    const guidances = await context.queryClient.ensureQueryData(guidanceQueryOptions);
+    const [guidances, sourcesResp] = await Promise.all([
+      context.queryClient.ensureQueryData(guidanceQueryOptions),
+      context.queryClient.ensureQueryData(sourceDiscoveryQueryOptions),
+    ]);
     const guidance = resolveGuidanceFlow(guidances, params.guidanceId);
     if (!guidance) throw notFound();
-    const sourcesResp = await context.queryClient.ensureQueryData(sourceDiscoveryQueryOptions);
     return { guidance, sources: sourcesResp.sources };
   },
   component: GuidanceDetailRoute,

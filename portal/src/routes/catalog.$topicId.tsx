@@ -54,36 +54,38 @@ const TYPE_LABEL: Record<Topic["topic_type"], string> = {
 
 export const Route = createFileRoute("/catalog/$topicId")({
   loader: async ({ context, params }): Promise<LoaderData> => {
-    const [topicsResp, availability, guidances]: [
-      TopicDiscoveryResponse,
-      AvailabilityResponse,
-      ReadonlyArray<Guidance>,
-    ] = await Promise.all([
-      context.queryClient.ensureQueryData(topicDiscoveryQueryOptions),
-      context.queryClient.ensureQueryData(availabilityQueryOptions),
-      context.queryClient.ensureQueryData(guidanceQueryOptions),
-    ]);
+    const topicsResp: TopicDiscoveryResponse = await context.queryClient.ensureQueryData(
+      topicDiscoveryQueryOptions,
+    );
 
     const topic = topicsResp.topics.find((entry) => entry.id === params.topicId);
     if (!topic) throw notFound();
 
-    let bundle: ContextBundleResponse | null = null;
-    try {
-      // disclosure_level 2 resolves every anchor on each source (the default of
-      // 1 returns only the first), so References can show all cited sections.
-      bundle = await context.queryClient.ensureQueryData(
-        contextBundleQueryOptions({ topic_id: topic.id, disclosure_level: 2 }),
-      );
-    } catch (error) {
-      if (
-        error instanceof ContextApiError &&
-        (error.code === "topic_not_found" || error.code === "source_not_found")
-      ) {
-        bundle = null;
-      } else {
+    // disclosure_level 2 resolves every anchor on each source (the default of 1
+    // returns only the first), so References can show all cited sections. The
+    // bundle needs topic.id, so it can't join the first await — but availability
+    // and guidance don't depend on it, so all three overlap below.
+    const bundlePromise: Promise<ContextBundleResponse | null> = context.queryClient
+      .ensureQueryData(contextBundleQueryOptions({ topic_id: topic.id, disclosure_level: 2 }))
+      .catch((error: unknown) => {
+        if (
+          error instanceof ContextApiError &&
+          (error.code === "topic_not_found" || error.code === "source_not_found")
+        ) {
+          return null;
+        }
         throw error;
-      }
-    }
+      });
+
+    const [availability, guidances, bundle]: [
+      AvailabilityResponse,
+      ReadonlyArray<Guidance>,
+      ContextBundleResponse | null,
+    ] = await Promise.all([
+      context.queryClient.ensureQueryData(availabilityQueryOptions),
+      context.queryClient.ensureQueryData(guidanceQueryOptions),
+      bundlePromise,
+    ]);
 
     return {
       topic,

@@ -22,7 +22,10 @@ import {
   type RegionMaintenance,
   type RegionStats,
 } from "@/components/explore/region-detail";
-import { preloadAzureServiceIcons } from "@/components/explore/service-icon";
+import {
+  preloadAwsServiceIcons,
+  preloadAzureServiceIcons,
+} from "@/components/explore/service-icon";
 import { PageBody, PageHeader } from "@/components/page-section";
 import {
   Select,
@@ -141,7 +144,10 @@ function RegionsRoute() {
   const selected = locations.find((l) => l.id === state.selectedLocationId) ?? null;
 
   useEffect(() => {
+    // Warm the active zone's icon pack so the matrix keeps its real icons on
+    // first paint (AWS is the default zone, so this preloads AWS on mount).
     if (state.zone === "azure") preloadAzureServiceIcons();
+    else preloadAwsServiceIcons();
   }, [state.zone]);
 
   // Per-region health + coverage stats, derived from the availability data.
@@ -321,7 +327,7 @@ function ZoneSwitcher({
             type="button"
             role="radio"
             aria-checked={isActive}
-            onPointerEnter={zoneId === "azure" ? preloadAzureServiceIcons : undefined}
+            onPointerEnter={zoneId === "azure" ? preloadAzureServiceIcons : preloadAwsServiceIcons}
             onClick={() => onChange(zoneId)}
             className={cn(
               "flex items-baseline gap-1.5 rounded-md px-3 py-1.5 transition-all",

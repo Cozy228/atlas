@@ -59,18 +59,18 @@ export async function resolveConfluencePageLive(
   const pageId = request.source.location;
   const baseUrl = config.baseUrl.replace(/\/+$/, "");
 
-  const fetched = await fetchConfluenceStorageHtml(request.ctx, config, pageId);
-  if (!fetched.ok) {
+  const loaded = await loadConfluencePage(request.ctx, config, pageId);
+  if (!loaded.ok) {
     return warningResult({
-      code: fetched.code,
-      message: fetched.message,
+      code: loaded.code,
+      message: loaded.message,
       source_id: request.source.id,
       anchor_id: anchor.id,
     });
   }
 
-  const html = fetched.html;
-  const sectionText = extractSectionText(html, locator);
+  // Extract this anchor's section from the page parsed ONCE per bundle.
+  const sectionText = extractSectionFromRoot(loaded.root, locator);
 
   if (!sectionText) {
     return brokenAnchor(
@@ -81,7 +81,7 @@ export async function resolveConfluencePageLive(
   }
 
   const warnings: ResolverWarning[] = [];
-  const driftWarning = driftWarningFor(request.source, fetched.version, anchor.id);
+  const driftWarning = driftWarningFor(request.source, loaded.version, anchor.id);
   if (driftWarning) {
     warnings.push(driftWarning);
   }
@@ -95,12 +95,73 @@ export async function resolveConfluencePageLive(
           source_id: request.source.id,
           anchor_id: anchor.id,
           label: anchor.citation_label,
-          location: buildCitationLocation(baseUrl, pageId, fetched.webui, locator),
+          location: buildCitationLocation(baseUrl, pageId, loaded.webui, locator),
         },
       },
     ],
     warnings,
   };
+}
+
+/**
+ * A Confluence page fetched + JSON-decoded + structurally parsed ONCE. The
+ * `root` HTMLElement is shared by every anchor on the page so the per-anchor
+ * `parse(html)` cost collapses to one parse per page per bundle.
+ */
+type LoadedConfluencePage =
+  | { ok: true; root: HTMLElement; version: number | undefined; webui: string | undefined }
+  | { ok: false; code: "restricted_source" | "source_unavailable"; message: string };
+
+/**
+ * Memoize fetch + JSON + `parse(html)` for one page in the request-scoped
+ * `ctx.pageCache`, keyed by the page's registry URL. The in-flight Promise is
+ * stored BEFORE awaiting, so anchors resolving concurrently (plan 009) share a
+ * single load (request-scoped single-flight). Without a `pageCache` (callers
+ * that do not thread one) it is a straight fetch+parse — today's behaviour.
+ *
+ * Not `async` on purpose: the cache `set` must run synchronously at call time,
+ * before the first `await` yields, so concurrent callers see the stored Promise.
+ */
+function loadConfluencePage(
+  ctx: ResolutionContext,
+  config: ConfluenceLiveConfig,
+  pageId: string,
+): Promise<LoadedConfluencePage> {
+  const cache = ctx.pageCache;
+  if (!cache) {
+    return fetchAndParseConfluencePage(ctx, config, pageId);
+  }
+  const key = confluencePageUrl(config, pageId);
+  const existing = cache.get(key) as Promise<LoadedConfluencePage> | undefined;
+  if (existing) {
+    return existing;
+  }
+  const promise = fetchAndParseConfluencePage(ctx, config, pageId);
+  cache.set(key, promise);
+  return promise;
+}
+
+async function fetchAndParseConfluencePage(
+  ctx: ResolutionContext,
+  config: ConfluenceLiveConfig,
+  pageId: string,
+): Promise<LoadedConfluencePage> {
+  const fetched = await fetchConfluenceStorageHtml(ctx, config, pageId);
+  if (!fetched.ok) {
+    return { ok: false, code: fetched.code, message: fetched.message };
+  }
+  return {
+    ok: true,
+    root: parse(fetched.html),
+    version: fetched.version,
+    webui: fetched.webui,
+  };
+}
+
+/** The v2 storage URL a page is fetched from — also its `pageCache` key. */
+function confluencePageUrl(config: ConfluenceLiveConfig, pageId: string): string {
+  const baseUrl = config.baseUrl.replace(/\/+$/, "");
+  return `${baseUrl}/wiki/api/v2/pages/${encodeURIComponent(pageId)}?body-format=storage`;
 }
 
 /**
@@ -207,12 +268,10 @@ function buildCitationLocation(
  * Find the heading whose slugified text matches the locator and collect the
  * following sibling content until the next heading. Tolerant of Confluence
  * `<ac:*>` storage tags because node-html-parser does not enforce HTML rules.
+ * Operates on the page parsed ONCE in `loadConfluencePage`; an empty/whitespace
+ * body parses to a root with no headings, so it yields `undefined` as before.
  */
-function extractSectionText(html: string, locator: string): string | undefined {
-  if (!html.trim()) {
-    return undefined;
-  }
-  const root = parse(html);
+function extractSectionFromRoot(root: HTMLElement, locator: string): string | undefined {
   const headings = root.querySelectorAll("h1, h2, h3, h4, h5, h6");
   const match = headings.find((heading) => slugify(heading.text) === locator);
   if (!match) {

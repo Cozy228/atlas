@@ -13,8 +13,12 @@ import {
  * adapter activates only when `ATLAS_CACHE_VALKEY_URL` is set.
  */
 
-/** The shape `FetchLike` yields, buffered so it can be replayed from cache. */
-export type CachedResponse = { status: number; body: unknown };
+/**
+ * The shape `FetchLike` yields, buffered so it can be replayed from cache.
+ * `freshUntil` (epoch ms) marks the end of an OK entry's fresh window for
+ * stale-while-revalidate; absent on negative entries (never served stale).
+ */
+export type CachedResponse = { status: number; body: unknown; freshUntil?: number };
 
 export interface SourceContentCache {
   get(key: string): Promise<CachedResponse | undefined>;
@@ -22,6 +26,7 @@ export interface SourceContentCache {
 }
 
 const DEFAULT_TTL_SECONDS = 300;
+const DEFAULT_NEGATIVE_TTL_SECONDS = 30;
 const DEFAULT_MAX_ENTRIES = 500;
 
 /**
@@ -64,16 +69,71 @@ export class InMemoryContentCache implements SourceContentCache {
 
 /**
  * Wrap a `FetchLike` so GET requests are served from / stored in the cache.
- * Only `ok` GET responses are cached; non-GET methods and non-OK responses pass
- * straight through. The caller's `Authorization` is folded into the key (as a
- * digest, never stored raw) so one identity's authorized content is never
- * served to another.
+ * Non-GET methods pass straight through. The caller's `Authorization` is folded
+ * into the key (as a digest, never stored raw) so one identity's authorized
+ * content is never served to another.
+ *
+ * Three resilience behaviours guard the live fetch path:
+ *  - single-flight: concurrent misses for the same key share ONE underlying
+ *    fetch (a per-closure in-flight map keyed on the full auth-scoped cacheKey);
+ *  - negative caching: non-OK responses are cached for `negativeTtlSeconds` so a
+ *    hot 404/403/5xx does not re-hit the source on every request;
+ *  - stale-while-revalidate: an OK entry past its fresh window is served instantly
+ *    while a background refresh runs (bounded by `staleTtlSeconds`). SWR applies
+ *    to OK entries only — a negative entry is never served stale.
+ *
+ * Transport exceptions (a thrown `fetch`) are NEVER cached — only HTTP responses
+ * with a status are stored; a throw propagates and the in-flight entry clears.
  */
 export function withCache(
   fetch: FetchLike,
   cache: SourceContentCache,
   ttlSeconds: number = DEFAULT_TTL_SECONDS,
+  negativeTtlSeconds: number = DEFAULT_NEGATIVE_TTL_SECONDS,
+  staleTtlSeconds: number = ttlSeconds,
+  now: () => number = Date.now,
 ): FetchLike {
+  // Per-closure in-flight map. Keyed on the FULL cacheKey (which includes the
+  // Authorization digest) so two different auth scopes never share a fetch.
+  const inFlight = new Map<string, Promise<CachedResponse>>();
+
+  async function fetchAndStore(
+    key: string,
+    input: string,
+    init: Parameters<FetchLike>[1],
+  ): Promise<CachedResponse> {
+    const response = await fetch(input, init);
+    // Only OK responses carry a body and a fresh window; negatives are stored
+    // bodiless with the short negative TTL and never marked fresh-bounded.
+    if (response.ok) {
+      const body = await response.json();
+      const value: CachedResponse = {
+        status: response.status,
+        body,
+        freshUntil: now() + ttlSeconds * 1000,
+      };
+      await cache.set(key, value, ttlSeconds + staleTtlSeconds);
+      return value;
+    }
+    const value: CachedResponse = { status: response.status, body: undefined };
+    await cache.set(key, value, negativeTtlSeconds);
+    return value;
+  }
+
+  /** Start a single-flight fetch for `key`, deleting the entry when it settles. */
+  function startFetch(
+    key: string,
+    input: string,
+    init: Parameters<FetchLike>[1],
+  ): Promise<CachedResponse> {
+    let pending = inFlight.get(key);
+    if (!pending) {
+      pending = fetchAndStore(key, input, init).finally(() => inFlight.delete(key));
+      inFlight.set(key, pending);
+    }
+    return pending;
+  }
+
   return async (input, init) => {
     const method = init?.method ?? "GET";
     if (method !== "GET") {
@@ -83,17 +143,21 @@ export function withCache(
     const key = cacheKey(method, input, init?.headers);
     const hit = await cache.get(key);
     if (hit) {
+      // SWR applies to OK entries only: a negative entry (no freshUntil) is
+      // served as-is until it expires, never refreshed in the background.
+      const isOk = hit.status >= 200 && hit.status < 300;
+      const fresh = hit.freshUntil === undefined || now() < hit.freshUntil;
+      if (!isOk || fresh) {
+        return replay(hit);
+      }
+      // Stale OK entry: kick a non-awaited single-flight refresh and serve the
+      // last-good copy immediately. A rejected background fetch is swallowed so
+      // it cannot surface as an unhandled rejection on this hot path.
+      void startFetch(key, input, init).catch(() => {});
       return replay(hit);
     }
 
-    const response = await fetch(input, init);
-    if (!response.ok) {
-      return response;
-    }
-
-    const body = await response.json();
-    await cache.set(key, { status: response.status, body }, ttlSeconds);
-    return replay({ status: response.status, body });
+    return replay(await startFetch(key, input, init));
   };
 }
 
