@@ -14,7 +14,7 @@ describe("loadRegistryFromManifests", () => {
     const seed = loadRegistryFromManifests(DATA_DIR);
     expect(seed.sources).toHaveLength(16);
     expect(seed.topics).toHaveLength(12);
-    expect(seed.anchors).toHaveLength(23);
+    expect(seed.anchors).toHaveLength(24);
     expect(seed.mappings).toHaveLength(20);
     expect(seed.feedback.length).toBeGreaterThan(0);
   });

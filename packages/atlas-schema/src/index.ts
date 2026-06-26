@@ -55,6 +55,9 @@ export const apiErrorCodes = [
   "source_unavailable",
   "access_denied",
   "topic_not_found",
+  // No such resource is registered on the kind-first resource surface; the
+  // caller should resolve the canonical id via searchResources.
+  "resource_not_found",
   "invalid_request",
 ] as const;
 
@@ -464,6 +467,165 @@ export type DecisionOption = z.infer<typeof DecisionOptionSchema>;
 export type GuidanceStep = z.infer<typeof GuidanceStepSchema>;
 export type Guidance = z.infer<typeof GuidanceSchema>;
 export type GuidanceResponse = z.infer<typeof GuidanceResponseSchema>;
+
+/* -------------------------------------------------------------------------- *
+ * Resource projection contract (agent-facing, ADR-0013)
+ *
+ * The kind-first resource surface (`/api/resources/...`). Unlike the snake_case
+ * internal Topic/Source API, the agent-facing resource API uses the camelCase
+ * field names from the discovery proposal (§5.5–§5.7): `resolvedAt`,
+ * `requestedSections`, `matchReason`, `resourceUrl`, … Reasons reuse the same
+ * `warningCodes` vocabulary above — no parallel status words are invented.
+ *
+ * Two orthogonal axes (ADR-0013 §4):
+ *   axis 1 — section.status ∈ available | partial | unresolved
+ *   axis 2 — reasons via warnings[].code / missingSections[].code (warningCodes)
+ * -------------------------------------------------------------------------- */
+
+export const resourceKinds = ["service", "guardrail"] as const;
+export const sectionStatuses = ["available", "partial", "unresolved"] as const;
+
+// Coarse, stable Section vocabulary (proposal §5.2.1). The union spans every
+// kind; per-kind applicability is owned by the resource-kind registry and
+// documented in the OpenAPI `sections` enum. A consistency test asserts the
+// registry's section ids stay a subset of this union.
+export const sectionIds = [
+  // service kind — complete vocabulary
+  "overview",
+  "availability",
+  "network",
+  "security",
+  "compliance",
+  "pricing",
+  "limits",
+  "guidance",
+  "examples",
+  "sources",
+  // guardrail kind — a non-service kind, proving the vocabulary is per-kind
+  "scope",
+  "enforced-controls",
+  "exceptions",
+] as const;
+
+export const ResourceKindSchema = z.enum(resourceKinds);
+export const SectionStatusSchema = z.enum(sectionStatuses);
+export const SectionIdSchema = z.enum(sectionIds);
+
+export const ResourceCitationSchema = z
+  .object({
+    sourceId: z.string().min(1),
+    title: z.string().min(1),
+    url: z.string().min(1),
+    anchor: z.string().min(1).optional(),
+    // The moment the content was actually parsed from the Source. On a perf-cache
+    // hit this is the ORIGINAL parse time frozen with the excerpt, never the
+    // request time or cache-hit time (ADR-0013 §6).
+    resolvedAt: z.string().datetime(),
+  })
+  .strict();
+
+export const ResourceFactSchema = z
+  .object({
+    id: z.string().min(1),
+    label: z.string().min(1),
+    value: z.union([z.string().min(1), z.array(z.string().min(1))]),
+    status: z.string().min(1).optional(),
+  })
+  .strict();
+
+export const ResourceWarningSchema = z
+  .object({ code: WarningCodeSchema, message: z.string().min(1) })
+  .strict();
+
+export const ContextSectionSchema = z
+  .object({
+    // axis 1 — this projection's resolution result
+    status: SectionStatusSchema,
+    summary: z.string().min(1).optional(),
+    content: z.string().min(1).nullable(),
+    facts: z.array(ResourceFactSchema).optional(),
+    citations: z.array(ResourceCitationSchema),
+    // axis 2 — reasons (warningCodes), never a parallel status vocabulary
+    warnings: z.array(ResourceWarningSchema),
+  })
+  .strict();
+
+export const MissingSectionSchema = z
+  .object({
+    section: z.string().min(1),
+    code: WarningCodeSchema,
+    message: z.string().min(1),
+  })
+  .strict();
+
+export const ResourceSummarySchema = z
+  .object({
+    kind: ResourceKindSchema,
+    id: z.string().min(1), // canonical {kind}/{slug}
+    slug: z.string().min(1), // kind-relative, e.g. "aws/textract"
+    provider: z.string().min(1).optional(),
+    name: z.string().min(1),
+    aliases: z.array(z.string().min(1)),
+    resourceUrl: z.string().min(1),
+    markdownUrl: z.string().min(1),
+  })
+  .strict();
+
+export const ResourceSearchItemSchema = ResourceSummarySchema.extend({
+  matchReason: z.string().min(1),
+}).strict();
+
+export const ResourceSearchResponseSchema = z
+  .object({ items: z.array(ResourceSearchItemSchema) })
+  .strict();
+
+export const ResourceContextResponseSchema = z
+  .object({
+    resource: ResourceSummarySchema,
+    requestedSections: z.array(z.string().min(1)),
+    sections: z.record(z.string(), ContextSectionSchema),
+    missingSections: z.array(MissingSectionSchema),
+    // Top-level: the moment THIS live projection ran (ADR-0013 §3), distinct
+    // from each citation's resolvedAt (the excerpt's own parse time).
+    resolvedAt: z.string().datetime(),
+  })
+  .strict();
+
+// Persisted projection record (data/resources.yaml). Holds references + rules,
+// never Section content (ADR-0013 §2). snake_case matches the other manifests.
+export const ResourceSectionBindingSchema = z
+  .object({
+    source_id: z.string().min(1),
+    anchor_id: z.string().min(1).optional(),
+    order: z.number().int().nonnegative(),
+  })
+  .strict();
+
+export const ResourceProjectionRecordSchema = z
+  .object({
+    kind: ResourceKindSchema,
+    slug: z.string().min(1),
+    provider: z.string().min(1).optional(),
+    name: z.string().min(1),
+    aliases: z.array(z.string().min(1)),
+    sections: z.record(z.string(), z.array(ResourceSectionBindingSchema).min(1)),
+  })
+  .strict();
+
+export type ResourceKind = z.infer<typeof ResourceKindSchema>;
+export type SectionStatus = z.infer<typeof SectionStatusSchema>;
+export type SectionId = z.infer<typeof SectionIdSchema>;
+export type ResourceCitation = z.infer<typeof ResourceCitationSchema>;
+export type ResourceFact = z.infer<typeof ResourceFactSchema>;
+export type ResourceWarning = z.infer<typeof ResourceWarningSchema>;
+export type ContextSection = z.infer<typeof ContextSectionSchema>;
+export type MissingSection = z.infer<typeof MissingSectionSchema>;
+export type ResourceSummary = z.infer<typeof ResourceSummarySchema>;
+export type ResourceSearchItem = z.infer<typeof ResourceSearchItemSchema>;
+export type ResourceSearchResponse = z.infer<typeof ResourceSearchResponseSchema>;
+export type ResourceContextResponse = z.infer<typeof ResourceContextResponseSchema>;
+export type ResourceSectionBinding = z.infer<typeof ResourceSectionBindingSchema>;
+export type ResourceProjectionRecord = z.infer<typeof ResourceProjectionRecordSchema>;
 
 export {
   validateGuidanceDocument,

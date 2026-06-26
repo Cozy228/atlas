@@ -1,10 +1,12 @@
-import type { ApiErrorResponse, ContextRequest } from "@atlas/schema";
+import type { ApiErrorResponse, ContextRequest, ResourceContextResponse } from "@atlas/schema";
 import { handleContextRequest } from "./contextRoute";
 import { handleFeedbackRequest } from "./feedbackRoute";
+import { handleResourceContextRequest, handleResourceSearchRequest } from "./resourceRoutes";
 import { handleSourceDiscoveryRequest } from "./sourceDiscoveryRoute";
 import { handleSourceRequest } from "./sourceRoute";
 import { handleTopicDiscoveryRequest } from "./topicDiscoveryRoute";
 import { handleTopicRequest } from "./topicRoute";
+import { renderResourceMarkdown } from "../resources/renderResourceMarkdown";
 import type { ResolutionContext } from "../resolvers/resolverTypes";
 import { cachedResolutionContext } from "../sourceContent/sourceContentCache";
 
@@ -14,6 +16,9 @@ export type HttpRequest = {
   query?: Record<string, string | undefined>;
   headers?: Record<string, string | undefined>;
   body?: string;
+  /** Request origin (e.g. https://portal.example.com), used to build absolute
+   * resource URLs in responses. Set by the Portal bridge; absent in-process. */
+  origin?: string;
 };
 
 export type HttpResponse = {
@@ -74,6 +79,29 @@ export async function handleHttpRequest(request: HttpRequest): Promise<HttpRespo
         ctx,
       ),
     );
+  }
+
+  if (method === "GET" && path === "/resources") {
+    return jsonResponse(
+      handleResourceSearchRequest(request.query?.query, { baseUrl: request.origin }),
+    );
+  }
+
+  const resourceContextMatch = path.match(/^\/resources\/([^/]+)\/(.+)$/);
+  if (method === "GET" && resourceContextMatch) {
+    const result = await handleResourceContextRequest(
+      {
+        kind: decodeURIComponent(resourceContextMatch[1]),
+        slug: decodeURIComponent(resourceContextMatch[2]),
+        sections: request.query?.sections,
+        baseUrl: request.origin,
+      },
+      ctx,
+    );
+    if (result.status === 200 && prefersMarkdown(request.headers)) {
+      return markdownResponse(renderResourceMarkdown(result.body as ResourceContextResponse));
+    }
+    return jsonResponse(result);
   }
 
   if (method === "GET" && path === "/context") {
@@ -170,4 +198,25 @@ function jsonResponse(result: RouteResult): HttpResponse {
     headers: { "content-type": "application/json" },
     body: JSON.stringify(result.body),
   };
+}
+
+function markdownResponse(body: string): HttpResponse {
+  return {
+    status: 200,
+    headers: { "content-type": "text/markdown; charset=utf-8" },
+    body,
+  };
+}
+
+/** True when the caller's `Accept` header prefers Markdown over JSON (§5.4). */
+function prefersMarkdown(headers: HttpRequest["headers"]): boolean {
+  if (!headers) {
+    return false;
+  }
+  for (const [key, value] of Object.entries(headers)) {
+    if (key.toLowerCase() === "accept" && value) {
+      return /text\/markdown/i.test(value);
+    }
+  }
+  return false;
 }
