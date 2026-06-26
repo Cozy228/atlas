@@ -16,7 +16,7 @@ import {
   authorityLevels,
   sourceClasses,
   topicTypes,
-} from "./index.js";
+} from "./index";
 
 const anchor = {
   id: "textract-private-subnet",
@@ -35,7 +35,7 @@ const source = {
   id: "textract-module-readme",
   title: "Textract Terraform Module",
   source_class: "terraform-module",
-  location: "github.com/acme/terraform-aws-textract",
+  location: "github.com/example/terraform-aws-textract",
   steward: "cloud-platform",
   visibility: "internal",
   authority_scope: ["module-usage"],
@@ -48,16 +48,16 @@ const source = {
 const topic = {
   id: "aws-textract",
   name: "AWS Textract",
-  topic_type: "capability",
+  topic_type: "service",
   category: "ai-ml",
   status: "active",
-  description: "Managed OCR capability for document workflows.",
+  description: "Managed OCR service for document workflows.",
   owner_team: "cloud-platform",
   support_channel: "#cloud-platform",
   entry_tools: [
     {
       label: "Terraform module",
-      url: "https://github.com/acme/terraform-aws-textract",
+      url: "https://github.com/example/terraform-aws-textract",
     },
   ],
 };
@@ -68,15 +68,12 @@ describe("contract enums", () => {
       "terraform-module",
       "confluence-page",
       "policy-document",
+      "availability-matrix",
     ]);
   });
 
   it("matches the V1 topic types exactly", () => {
-    expect(topicTypes).toEqual([
-      "capability",
-      "landing-zone",
-      "guardrail-area",
-    ]);
+    expect(topicTypes).toEqual(["service", "landing-zone", "security-policy"]);
   });
 
   it("matches the V1 authority levels exactly", () => {
@@ -96,6 +93,7 @@ describe("contract enums", () => {
       "source_unavailable",
       "access_denied",
       "topic_not_found",
+      "resource_not_found",
       "invalid_request",
     ]);
   });
@@ -133,15 +131,11 @@ describe("entity schemas", () => {
   });
 
   it("rejects malformed source enum values", () => {
-    expect(() =>
-      SourceSchema.parse({ ...source, source_class: "sharepoint-page" }),
-    ).toThrow();
+    expect(() => SourceSchema.parse({ ...source, source_class: "sharepoint-page" })).toThrow();
   });
 
   it("keeps governance fields off Topic", () => {
-    expect(() =>
-      TopicSchema.parse({ ...topic, authority_level: "authoritative" }),
-    ).toThrow();
+    expect(() => TopicSchema.parse({ ...topic, authority_level: "authoritative" })).toThrow();
   });
 
   it("keeps governance fields off SourceTopicMapping", () => {
@@ -165,8 +159,8 @@ describe("request and response schemas", () => {
     expect(SourceDiscoveryRequestSchema.parse({ query: "textract" })).toEqual({
       query: "textract",
     });
-    expect(TopicDiscoveryRequestSchema.parse({ topic_type: "capability" })).toEqual({
-      topic_type: "capability",
+    expect(TopicDiscoveryRequestSchema.parse({ topic_type: "service" })).toEqual({
+      topic_type: "service",
     });
     expect(ContextRequestSchema.parse({ topic_id: "aws-textract" })).toEqual({
       topic_id: "aws-textract",
@@ -220,7 +214,7 @@ describe("request and response schemas", () => {
                 source_id: "textract-module-readme",
                 anchor_id: "textract-private-subnet",
                 label: "Private subnet usage",
-                location: "github.com/acme/terraform-aws-textract#private-subnet-usage",
+                location: "github.com/example/terraform-aws-textract#private-subnet-usage",
               },
             },
           ],

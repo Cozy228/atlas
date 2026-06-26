@@ -3,40 +3,40 @@ import { createContext, use, useCallback, useMemo, useState } from "react";
 type TabValue = "search" | "ask";
 
 type AskAtlasContextValue = {
-  open: boolean;
-  activeTab: TabValue;
-  openSearch: () => void;
-  openAsk: () => void;
-  setOpen: (open: boolean) => void;
-  setActiveTab: (tab: TabValue) => void;
+  // The in-place Ask overlay (Search ⇄ Ask). Lifted here so the floating FAB,
+  // the top-bar search button, and surfaces like the Home "just ask" band all
+  // open the same one. Asking is always an overlay over the current surface —
+  // never a separate page.
+  overlayOpen: boolean;
+  overlayTab: TabValue;
+  openOverlay: (tab?: TabValue) => void;
+  setOverlayOpen: (open: boolean) => void;
+  setOverlayTab: (tab: TabValue) => void;
 };
 
 const AskAtlasContext = createContext<AskAtlasContextValue | null>(null);
 
 export function AskAtlasProvider({ children }: { children: React.ReactNode }) {
-  const [open, setOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<TabValue>("search");
+  const [overlayOpen, setOverlayOpen] = useState(false);
+  const [overlayTab, setOverlayTab] = useState<TabValue>("ask");
 
-  const openSearch = useCallback(() => {
-    setActiveTab("search");
-    setOpen(true);
-  }, []);
-
-  const openAsk = useCallback(() => {
-    setActiveTab("ask");
-    setOpen(true);
+  const openOverlay = useCallback((tab: TabValue = "ask") => {
+    setOverlayTab(tab);
+    setOverlayOpen(true);
   }, []);
 
   const value = useMemo<AskAtlasContextValue>(
-    () => ({ open, activeTab, openSearch, openAsk, setOpen, setActiveTab }),
-    [open, activeTab, openSearch, openAsk],
+    () => ({
+      overlayOpen,
+      overlayTab,
+      openOverlay,
+      setOverlayOpen,
+      setOverlayTab,
+    }),
+    [overlayOpen, overlayTab, openOverlay],
   );
 
-  return (
-    <AskAtlasContext.Provider value={value}>
-      {children}
-    </AskAtlasContext.Provider>
-  );
+  return <AskAtlasContext.Provider value={value}>{children}</AskAtlasContext.Provider>;
 }
 
 export function useAskAtlas() {

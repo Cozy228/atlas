@@ -8,7 +8,7 @@ import {
 import { serverContextApiClient } from "./serverContextApiClient";
 
 export const submitFeedback = createServerFn({ method: "POST" })
-  .inputValidator((input: unknown): FeedbackSubmission => FeedbackSubmissionSchema.parse(input))
-  .handler(async ({ data }): Promise<FeedbackResponse> =>
-    serverContextApiClient.submitFeedback(data),
+  .validator((input: unknown): FeedbackSubmission => FeedbackSubmissionSchema.parse(input))
+  .handler(
+    async ({ data }): Promise<FeedbackResponse> => serverContextApiClient.submitFeedback(data),
   );

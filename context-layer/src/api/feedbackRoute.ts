@@ -5,10 +5,10 @@ import {
   type FeedbackResponse,
   type FeedbackSubmission,
 } from "@atlas/schema";
-import { createDefaultContextBundleService } from "../services/contextBundleService.js";
-import type { ContextBundleService } from "../services/contextBundleService.js";
-import type { ApiResponse } from "./routeTypes.js";
-import { errorResponse } from "./routeTypes.js";
+import { createDefaultContextBundleService } from "../services/contextBundleService";
+import type { ContextBundleService } from "../services/contextBundleService";
+import type { ApiResponse } from "./routeTypes";
+import { errorResponse } from "./routeTypes";
 
 export async function handleFeedbackRequest(
   input: unknown,

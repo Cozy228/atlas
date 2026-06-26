@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { Suspense, lazy, useEffect, useState, type ReactNode } from "react";
 import { QueryClientProvider, type QueryClient } from "@tanstack/react-query";
 import {
   HeadContent,
@@ -9,9 +9,16 @@ import {
 } from "@tanstack/react-router";
 
 import { PortalShell } from "@/components/portal-shell";
-import { Toaster } from "@/components/ui/sonner";
 import { themeInitScript } from "@/lib/theme-script";
 import globalsCss from "@/styles/globals.css?url";
+// Preload the latin Inter Variable file so the brand font is discovered in the
+// first HTML response instead of only after globals.css parses — one fewer serial
+// hop before text paints in-brand (swap is on, so this trims the swap-in delay).
+import interLatinWoff2 from "@fontsource-variable/inter/files/inter-latin-wght-normal.woff2?url";
+
+// Toasts only matter once one fires; keep sonner out of the entry chunk and
+// mount the Toaster after hydration so it never blocks first paint.
+const Toaster = lazy(() => import("@/components/ui/sonner").then((m) => ({ default: m.Toaster })));
 
 export interface RouterContext {
   queryClient: QueryClient;
@@ -32,7 +39,29 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       },
       { title: "Atlas Portal" },
     ],
-    links: [{ rel: "stylesheet", href: globalsCss }],
+    links: [
+      {
+        rel: "preload",
+        as: "font",
+        type: "font/woff2",
+        href: interLatinWoff2,
+        crossOrigin: "anonymous",
+      },
+      { rel: "stylesheet", href: globalsCss },
+      // Agent-discovery hints mirrored into <head> so a body-only reader (not
+      // just a client that inspects response `Link` headers) finds the surface.
+      { rel: "llms-txt", type: "text/plain", href: "/llms.txt" },
+      { rel: "service-desc", type: "application/openapi+json", href: "/openapi.json" },
+      { rel: "api-catalog", type: "application/linkset+json", href: "/.well-known/api-catalog" },
+      { rel: "ai-catalog", type: "application/json", href: "/.well-known/ai-catalog.json" },
+      {
+        rel: "agent-skills",
+        type: "application/json",
+        href: "/.well-known/agent-skills/index.json",
+      },
+      { rel: "mcp-server", href: "/mcp" },
+      { rel: "sitemap", type: "application/xml", href: "/sitemap.xml" },
+    ],
   }),
   component: RootComponent,
   notFoundComponent: NotFoundComponent,
@@ -48,9 +77,9 @@ function NotFoundComponent() {
         Atlas could not resolve that record.
       </h1>
       <p className="text-sm leading-[1.6] text-muted-foreground">
-        The topic, source, or path you followed is not registered in the Context API. Browse
-        the catalog, guidance, or sources to find what you need, or report the gap from the
-        feedback form on any detail page.
+        The topic, source, or path you followed is not registered in the Context API. Browse the
+        catalog, guidance, or sources to find what you need, or report the gap from the feedback
+        form on any detail page.
       </p>
       <div className="flex flex-wrap gap-2">
         <Link
@@ -72,13 +101,21 @@ function NotFoundComponent() {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  // Defer mounting the Toaster (and fetching the sonner chunk) until after the
+  // initial client render.
+  const [showToaster, setShowToaster] = useState(false);
+  useEffect(() => setShowToaster(true), []);
   return (
     <RootDocument>
       <QueryClientProvider client={queryClient}>
         <PortalShell>
           <Outlet />
         </PortalShell>
-        <Toaster />
+        {showToaster ? (
+          <Suspense fallback={null}>
+            <Toaster />
+          </Suspense>
+        ) : null}
       </QueryClientProvider>
     </RootDocument>
   );

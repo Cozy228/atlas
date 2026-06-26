@@ -1,24 +1,24 @@
 import { describe, expect, it } from "vitest";
-import { InMemoryFeedbackRepository } from "../repositories/feedbackRepository.js";
-import { loadPilotRegistry, pilotRegistrySeed } from "./pilotRegistry.js";
+import { InMemoryFeedbackRepository } from "../repositories/feedbackRepository";
+import { loadPilotRegistry, pilotRegistrySeed } from "./pilotRegistry";
 
 describe("pilot registry seed", () => {
   it("loads validated repositories for V1 pilot topics and governed sources", async () => {
     const registry = loadPilotRegistry(pilotRegistrySeed);
 
-    expect(registry.topics.list()).toHaveLength(10);
-    expect(registry.sources.list()).toHaveLength(12);
+    expect(registry.topics.list()).toHaveLength(12);
+    expect(registry.sources.list()).toHaveLength(16);
     expect(registry.anchors.list().length).toBeGreaterThan(10);
     expect((await registry.feedback.list()).length).toBeGreaterThan(0);
     expect(registry.mappings.list().length).toBeGreaterThan(12);
   });
 
-  it("supports capability, landing-zone, and guardrail-area scenarios", () => {
+  it("supports service, landing-zone, and security-policy scenarios", () => {
     const registry = loadPilotRegistry(pilotRegistrySeed);
 
-    expect(registry.topics.findByType("capability").length).toBeGreaterThan(0);
+    expect(registry.topics.findByType("service").length).toBeGreaterThan(0);
     expect(registry.topics.findByType("landing-zone").length).toBeGreaterThan(0);
-    expect(registry.topics.findByType("guardrail-area").length).toBeGreaterThan(0);
+    expect(registry.topics.findByType("security-policy").length).toBeGreaterThan(0);
   });
 
   it("includes stale, deprecated, restricted, and broken-anchor examples", () => {
@@ -26,14 +26,10 @@ describe("pilot registry seed", () => {
     const sources = registry.sources.list();
 
     expect(sources.some((source) => source.id === "legacy-s3-policy")).toBe(true);
-    expect(sources.some((source) => source.authority_level === "deprecated")).toBe(
-      true,
-    );
+    expect(sources.some((source) => source.authority_level === "deprecated")).toBe(true);
     expect(sources.some((source) => source.visibility === "restricted")).toBe(true);
     expect(
-      registry.anchors
-        .list()
-        .some((anchor) => String(anchor.selector.locator).includes("missing")),
+      registry.anchors.list().some((anchor) => String(anchor.selector.locator).includes("missing")),
     ).toBe(true);
   });
 

@@ -11,15 +11,18 @@ full-stack developers deploying services — plus occasional technical PMs and E
 to understand platform decisions without deep infrastructure knowledge.
 
 Context: engineers open Atlas mid-task. They are in flow and need a fast, reliable answer:
-which capability to adopt, whether a service is available in their region, whether a design
+which service to adopt, whether a service is available in their region, whether a design
 choice is approved policy. They are not browsing for inspiration; they have a specific
 question and a deadline.
 
 ## Product Purpose
 
-Atlas Portal is the authoritative self-service catalog for the company's cloud platform.
-It maps platform capabilities to their owners, approved sources, and entry tools; surfaces
-regional availability projections; and provides AI-assisted answers grounded exclusively
+Atlas is an information-centric DevEx Portal — the primary consumer surface of a governed
+Context Layer (its core engine). The canonical product identity lives in
+[`docs/product/mvp-product-design.md`](docs/product/mvp-product-design.md); the Portal does not own
+the data model or boundary.
+It maps platform services to their owners, approved sources, and entry tools; surfaces
+governed regional availability; and provides AI-assisted answers grounded exclusively
 in registered, authoritative context.
 
 Success looks like: an engineer opens Atlas, gets a confident answer in under two minutes,
@@ -48,7 +51,7 @@ data actually requires. It speaks to engineers as peers.
 2. **Density is a feature.** Engineers navigate at speed. Whitespace exists for rhythm,
    not to pad scanty content. Complex information should be complex; clarity comes from
    structure, not reduction.
-3. **Platform vocabulary is sacred.** Labels like "capability", "landing zone", "anchor",
+3. **Platform vocabulary is sacred.** Labels like "service", "landing zone", "anchor",
    "authority level" are domain language. Never soften or genericize them for assumed
    non-technical readers.
 4. **Calmness under load.** Degraded states, stale sources, broken anchors, and missing

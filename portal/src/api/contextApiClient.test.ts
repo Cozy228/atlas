@@ -1,19 +1,19 @@
 import { describe, expect, it } from "vitest";
-import { createStaticContextApiClient } from "./contextApiClient.js";
-import { capabilityBundle, landingZoneBundle } from "../fixtures/contextBundles.js";
+import { createStaticContextApiClient } from "./contextApiClient";
+import { serviceBundle, landingZoneBundle } from "../fixtures/contextBundles";
 
 describe("Context API client", () => {
   it("parses context bundles through the shared schema", async () => {
     const client = createStaticContextApiClient({
       contextBundles: {
-        "aws-textract": capabilityBundle,
+        "aws-textract": serviceBundle,
       },
       sourceDiscovery: { sources: [] },
       topicDiscovery: { topics: [] },
     });
 
     await expect(client.getContextBundle({ topic_id: "aws-textract" })).resolves.toEqual(
-      capabilityBundle,
+      serviceBundle,
     );
   });
 

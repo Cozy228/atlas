@@ -1,7 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { Anchor, Source } from "@atlas/schema";
-import { confluencePageResolver } from "./confluencePageResolver.js";
-import { createInMemorySourceContentProvider } from "./sourceContentProvider.js";
+import { confluencePageResolver } from "./confluencePageResolver";
+import { offlineResolutionContext, type FetchLike } from "./resolverTypes";
+import { createInMemorySourceContentProvider } from "./sourceContentProvider";
 
 const source: Source = {
   id: "central-lz-confluence",
@@ -29,8 +30,9 @@ const anchor: Anchor = {
 };
 
 describe("confluencePageResolver", () => {
-  it("resolves a registered Confluence section", () => {
-    const result = confluencePageResolver.resolve({
+  it("resolves a registered Confluence section", async () => {
+    const result = await confluencePageResolver.resolve({
+      ctx: offlineResolutionContext(),
       source,
       anchors: [anchor],
       anchorId: "environment-matrix",
@@ -45,8 +47,9 @@ describe("confluencePageResolver", () => {
     expect(result.warnings).toEqual([]);
   });
 
-  it("returns broken_anchor when the section is absent", () => {
-    const result = confluencePageResolver.resolve({
+  it("returns broken_anchor when the section is absent", async () => {
+    const result = await confluencePageResolver.resolve({
+      ctx: offlineResolutionContext(),
       source,
       anchors: [anchor],
       anchorId: "environment-matrix",
@@ -58,8 +61,9 @@ describe("confluencePageResolver", () => {
     expect(result.warnings[0]?.code).toBe("broken_anchor");
   });
 
-  it("returns source_unavailable when the page cannot be fetched", () => {
-    const result = confluencePageResolver.resolve({
+  it("returns source_unavailable when the page cannot be fetched", async () => {
+    const result = await confluencePageResolver.resolve({
+      ctx: offlineResolutionContext(),
       source,
       anchors: [anchor],
       anchorId: "environment-matrix",
@@ -69,8 +73,9 @@ describe("confluencePageResolver", () => {
     expect(result.warnings[0]?.code).toBe("source_unavailable");
   });
 
-  it("returns broken_anchor for malformed section input", () => {
-    const result = confluencePageResolver.resolve({
+  it("returns broken_anchor for malformed section input", async () => {
+    const result = await confluencePageResolver.resolve({
+      ctx: offlineResolutionContext(),
       source,
       anchors: [
         {
@@ -88,5 +93,68 @@ describe("confluencePageResolver", () => {
     });
 
     expect(result.warnings[0]?.code).toBe("broken_anchor");
+  });
+
+  it("falls back to the pilot provider offline (no token, no base url) without fetching", async () => {
+    const fetch = vi.fn<FetchLike>();
+
+    const result = await confluencePageResolver.resolve({
+      ctx: { token: undefined, fetch },
+      source,
+      anchors: [anchor],
+      anchorId: "environment-matrix",
+      contentProvider: createInMemorySourceContentProvider({
+        "central-lz-confluence": {
+          "environment-matrix": "Production and non-production accounts are separated.",
+        },
+      }),
+    });
+
+    expect(fetch).not.toHaveBeenCalled();
+    expect(result.excerpts[0]?.text).toContain("Production");
+    expect(result.warnings).toEqual([]);
+  });
+
+  it("takes the live branch when a token and base url are configured", async () => {
+    const env = (
+      globalThis as typeof globalThis & {
+        process: { env: Record<string, string | undefined> };
+      }
+    ).process.env;
+    const previousBaseUrl = env.ATLAS_CONFLUENCE_BASE_URL;
+    env.ATLAS_CONFLUENCE_BASE_URL = "https://example.atlassian.net";
+
+    const fetch = vi.fn<FetchLike>(async () => ({
+      ok: true,
+      status: 200,
+      async json() {
+        return {
+          version: { number: 3 },
+          body: {
+            storage: {
+              value: "<h2>Environment matrix</h2><p>Live separation of accounts.</p>",
+            },
+          },
+          _links: { webui: "/spaces/CLOUD/pages/123456/Central" },
+        };
+      },
+    }));
+
+    const result = await confluencePageResolver.resolve({
+      ctx: { token: "fictional-bearer-token", fetch },
+      source: { ...source, location: "123456" },
+      anchors: [anchor],
+      anchorId: "environment-matrix",
+      contentProvider: createInMemorySourceContentProvider({}),
+    });
+
+    if (previousBaseUrl === undefined) {
+      delete env.ATLAS_CONFLUENCE_BASE_URL;
+    } else {
+      env.ATLAS_CONFLUENCE_BASE_URL = previousBaseUrl;
+    }
+
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(result.excerpts[0]?.text).toContain("Live separation of accounts.");
   });
 });

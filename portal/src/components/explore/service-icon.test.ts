@@ -1,14 +1,10 @@
 import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
 
-const componentFiles = [
-  "service-card.tsx",
-  "matrix-view.tsx",
-  "expand-panel.tsx",
-] as const;
+const componentFiles = ["service-card.tsx", "matrix-view.tsx", "expand-panel.tsx"] as const;
 
 describe("explore service icons", () => {
-  it("uses the shared AWS service icon in cards, matrix rows, and expanded panels", async () => {
+  it("uses the shared service icon in cards, matrix rows, and expanded panels", async () => {
     const sources = await Promise.all(
       componentFiles.map(async (file) => ({
         file,
@@ -23,13 +19,28 @@ describe("explore service icons", () => {
   });
 
   it("keeps service icon wrappers borderless", async () => {
-    const source = await readFile(new URL("./service-icon.tsx", import.meta.url), "utf8");
+    const source = await readFile(new URL("./service-icon-frame.tsx", import.meta.url), "utf8");
 
     expect(source).not.toContain("border border-border");
   });
 
-  it("supports larger icon sizes for capability identity surfaces", async () => {
-    const source = await readFile(new URL("./service-icon.tsx", import.meta.url), "utf8");
+  it("loads Azure service icons through a lazy provider module", async () => {
+    const serviceIconSource = await readFile(
+      new URL("./service-icon.tsx", import.meta.url),
+      "utf8",
+    );
+    const azureIconSource = await readFile(
+      new URL("./azure-service-icon.tsx", import.meta.url),
+      "utf8",
+    );
+
+    expect(serviceIconSource).toContain("preloadAzureServiceIcons");
+    expect(serviceIconSource).not.toContain("AZURE_ICON_MAP");
+    expect(azureIconSource).toContain("AZURE_ICON_MAP");
+  });
+
+  it("supports larger icon sizes for service identity surfaces", async () => {
+    const source = await readFile(new URL("./service-icon-frame.tsx", import.meta.url), "utf8");
 
     expect(source).toContain('xl: "size-12"');
     expect(source).toContain('hero: "size-16"');

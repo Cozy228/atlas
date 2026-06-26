@@ -1,108 +1,116 @@
+/**
+ * Home redesign · route `/`
+ * ======================================================================
+ * Round 2: the "Welcome desk" direction (the round-1 baseline the review
+ * liked) carried forward as the single home. The centered hero + "From idea to
+ * production" JourneyGrid stay; the formerly-samey sections each keep their own
+ * register (ledger band · featured intent doors · catalog book index · change
+ * timeline). The "front page" broadsheet moved to its own `/whatsnew`.
+ *
+ * Renders inside the real PortalShell (top bar + grid canvas stay). Real
+ * availability data feeds the domain index and stats; the rest is fictional
+ * and public-safe. Links target the portal so the flow stays
+ * coherent.
+ */
 import { createFileRoute } from "@tanstack/react-router";
-import type { Topic, TopicDiscoveryResponse } from "@atlas/schema";
 
-import { topicDiscoveryQueryOptions } from "@/api/queries";
-import { cn } from "@/lib/utils";
-import { EntryCards } from "@/components/home/entry-cards";
-import { JourneyGrid } from "@/components/home/journey-grid";
-import { PlatformUpdates } from "@/components/home/platform-updates";
-import { RecentlyViewed } from "@/components/home/recently-viewed";
-import { ResourceLinkGrid } from "@/components/home/resource-link-grid";
-import { IntentSearch } from "@/components/intent-search";
-import { PageBody } from "@/components/page-section";
-import { SectionEyebrow } from "@/components/section-eyebrow";
+import { availabilityQueryOptions, announcementsQueryOptions } from "@/api/queries";
+import { withDevLatency } from "@/lib/dev-latency";
+import { DOMAIN_BLURBS } from "@/components/catalog/data";
+import { HomeWelcome } from "@/components/home/welcome";
+import type {
+  DomainService,
+  HomeAnnouncement,
+  HomeLoaderData,
+  HomeStats,
+} from "@/components/home/data";
 
-type HomeLoaderData = {
-  capabilities: ReadonlyArray<Topic>;
-  landingZones: ReadonlyArray<Topic>;
-};
+function slugifyDomain(domain: string): string {
+  return domain
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+}
 
 export const Route = createFileRoute("/")({
-  loader: async ({ context }): Promise<HomeLoaderData> => {
-    const topicsResp: TopicDiscoveryResponse = await context.queryClient.ensureQueryData(
-      topicDiscoveryQueryOptions,
+  loader: ({ context }): HomeLoaderData => {
+    // Deferred (a live newsletter feed in the real adapter): the What's-new ticker
+    // — same dev latency + skeleton as the other live data on the page.
+    const announcements = withDevLatency(
+      context.queryClient
+        .ensureQueryData(announcementsQueryOptions)
+        .then((feed): HomeAnnouncement[] =>
+          feed.slice(0, 8).map((a) => ({ kind: a.kind ?? "Update", title: a.title })),
+        ),
     );
 
-    return {
-      capabilities: topicsResp.topics.filter((topic) => topic.topic_type === "capability"),
-      landingZones: topicsResp.topics.filter((topic) => topic.topic_type === "landing-zone"),
-    };
+    // Slow: availability is a live Confluence fetch + parse in the real adapter —
+    // defer it (no await) so the home shell (hero, intents, lifecycle, ticker)
+    // paints immediately; the hero stat numbers + domain index show a skeleton
+    // until it lands. Same projection as /catalog so the numbers agree.
+    const stats: Promise<HomeStats> = context.queryClient
+      .ensureQueryData(availabilityQueryOptions)
+      .then((availability) => {
+        const zone = availability.zones.find((z) => z.id === "aws") ?? availability.zones[0]!;
+        const services = zone.services.filter((service) => service.id !== "landing-zones");
+        const byDomain = new Map<string, DomainService[]>();
+        for (const service of services) {
+          let live = 0;
+          let planned = 0;
+          for (const loc of zone.locations) {
+            const status = service.availability[loc.id]?.status;
+            if (status === "available" || status === "interim") live += 1;
+            else if (status === "planned") planned += 1;
+          }
+          const entry: DomainService = {
+            id: service.id,
+            name: service.name,
+            status: live > 0 ? "ga" : planned > 0 ? "planned" : "none",
+            liveRegions: live,
+            plannedRegions: planned,
+          };
+          (
+            byDomain.get(service.domain) ?? byDomain.set(service.domain, []).get(service.domain)!
+          ).push(entry);
+        }
+        const domains = [...byDomain.entries()]
+          .sort((a, b) => a[0].localeCompare(b[0]))
+          .map(([domain, entries]) => {
+            const sorted = entries.toSorted((a, b) => a.name.localeCompare(b.name));
+            return {
+              domain,
+              anchor: `domain-${slugifyDomain(domain)}`,
+              count: sorted.length,
+              preview: sorted
+                .slice(0, 3)
+                .map((s) => s.name)
+                .join(" · "),
+              blurb: DOMAIN_BLURBS[domain] ?? "",
+              services: sorted,
+            };
+          });
+        return {
+          serviceCount: services.length,
+          domainCount: domains.length,
+          regionCount: availability.zones.reduce((sum, z) => sum + z.locations.length, 0),
+          domains,
+        };
+      });
+
+    // withDevLatency on stats too (like announcements): the public-safe mock
+    // resolves instantly, which hides the hero-stat + service-catalog skeletons in
+    // dev; the real adapter's availability fetch is genuinely slow.
+    return { announcements, stats: withDevLatency(stats) };
   },
   component: HomeRoute,
 });
 
 function HomeRoute() {
-  const { capabilities, landingZones } = Route.useLoaderData();
+  const data = Route.useLoaderData();
 
   return (
-    <PageBody width="comfortable">
-      <Hero />
-      <Section
-        eyebrow="Platform"
-        title="Choose your starting point"
-        description="Pick the question that matches where you are in your platform journey."
-      >
-        <EntryCards capabilities={capabilities} landingZones={landingZones} />
-      </Section>
-
-      <Section
-        eyebrow="Developer journey"
-        title="From idea to production"
-        description="Follow the lifecycle or jump to what you need right now."
-        className="gap-6"
-      >
-        <JourneyGrid />
-      </Section>
-
-      <Section eyebrow="Recently viewed">
-        <RecentlyViewed />
-      </Section>
-
-      <Section eyebrow="Platform updates" title="What's new">
-        <PlatformUpdates />
-      </Section>
-
-      <Section eyebrow="Resources" title="Keep exploring">
-        <ResourceLinkGrid />
-      </Section>
-    </PageBody>
-  );
-}
-
-function Hero() {
-  return (
-    <div className="flex flex-col gap-6 pt-2">
-      <div className="flex flex-col gap-2">
-        <h1 className="max-w-[20ch] type-display font-semibold leading-[1.1] tracking-[-0.03em] text-foreground sm:type-display-lg">
-          Find the right platform path
-        </h1>
-        <p className="max-w-[52ch] type-body leading-[1.6] text-muted-foreground">
-          Search across capabilities, landing zones, tools, and owners. Start from a question or
-          browse the catalog.
-        </p>
-      </div>
-      <IntentSearch />
+    <div className="mx-auto flex w-full max-w-[1180px] flex-col gap-8 px-6 py-8 sm:px-8">
+      <HomeWelcome data={data} />
     </div>
-  );
-}
-
-function Section({
-  eyebrow,
-  title,
-  description,
-  children,
-  className,
-}: {
-  eyebrow: string;
-  title?: string;
-  description?: string;
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <section className={cn("flex flex-col gap-4", className)}>
-      <SectionEyebrow eyebrow={eyebrow} title={title} description={description} />
-      {children}
-    </section>
   );
 }

@@ -135,7 +135,6 @@ export function DetailLayout({ main, side }: DetailLayoutProps) {
 type DetailMetaItem = {
   label: string;
   value: ReactNode;
-  mono?: boolean;
 };
 
 type DetailMetaCardProps = {
@@ -152,12 +151,7 @@ export function DetailMetaCard({ items, actions }: DetailMetaCardProps) {
             <dt className="font-mono type-caption font-semibold uppercase tracking-[0.05em] text-muted-foreground">
               {item.label}
             </dt>
-            <dd
-              className={cn(
-                "min-w-0 flex-1 truncate text-right text-xs font-semibold text-foreground",
-                item.mono && "font-mono text-xs",
-              )}
-            >
+            <dd className="min-w-0 flex-1 truncate text-right font-mono text-xs font-semibold text-foreground">
               {item.value}
             </dd>
           </div>

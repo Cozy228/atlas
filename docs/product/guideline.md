@@ -3,7 +3,7 @@
 ## Key Questions Raised
 
 - Is there a centralized portal for managing landing zones?
-- How do teams navigate documentation and platform capabilities?
+- How do teams navigate documentation and platform services?
 
 ## Current State
 

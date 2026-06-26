@@ -1,5 +1,6 @@
 import {
   ApiErrorResponseSchema,
+  AvailabilityReadResponseSchema,
   ContextBundleResponseSchema,
   FeedbackResponseSchema,
   SourceDiscoveryResponseSchema,
@@ -12,9 +13,9 @@ import {
   type TopicDiscoveryRequest,
 } from "@atlas/schema";
 
-import type { ContextApiClient } from "../contextApiClient.js";
-import { ContextApiError } from "../contextApiError.js";
-import { serverContextApiClient as inProcessContextApiClient } from "./inProcessContextApi.js";
+import type { ContextApiClient } from "../contextApiClient";
+import { ContextApiError } from "../contextApiError";
+import { serverContextApiClient as inProcessContextApiClient } from "./inProcessContextApi";
 
 type FetchLike = (input: string, init?: RequestInit) => Promise<Response>;
 
@@ -22,14 +23,17 @@ export type ServerContextApiClient = ContextApiClient & {
   kind: "http" | "in-process";
 };
 
-export function createServerContextApiClient(input: {
-  env?: Record<string, string | undefined>;
-  fetch?: FetchLike;
-} = {}): ServerContextApiClient {
+export function createServerContextApiClient(
+  input: {
+    env?: Record<string, string | undefined>;
+    fetch?: FetchLike;
+    token?: string;
+  } = {},
+): ServerContextApiClient {
   const baseUrl = input.env?.ATLAS_CONTEXT_API_BASE_URL ?? process.env.ATLAS_CONTEXT_API_BASE_URL;
   if (baseUrl) {
     return {
-      ...createFetchContextApiClient({ baseUrl, fetch: input.fetch }),
+      ...createFetchContextApiClient({ baseUrl, fetch: input.fetch, token: input.token }),
       kind: "http",
     };
   }
@@ -43,9 +47,20 @@ export function createServerContextApiClient(input: {
 export function createFetchContextApiClient(input: {
   baseUrl: string;
   fetch?: FetchLike;
+  token?: string;
 }): ContextApiClient {
-  const fetchImpl = input.fetch ?? fetch;
+  const rawFetch = input.fetch ?? fetch;
   const baseUrl = input.baseUrl.replace(/\/+$/, "");
+  // The opaque caller Bearer, attached to every outbound call when present.
+  // It is threaded unparsed and never serialized into any browser-facing body.
+  const authHeaders: Record<string, string> = input.token
+    ? { authorization: `Bearer ${input.token}` }
+    : {};
+  const fetchImpl: FetchLike = (url, init) =>
+    rawFetch(url, {
+      ...init,
+      headers: { ...authHeaders, ...(init?.headers as Record<string, string> | undefined) },
+    });
 
   return {
     async getTopic(id: string) {
@@ -90,6 +105,13 @@ export function createFetchContextApiClient(input: {
         schema: ContextBundleResponseSchema,
         url: `${baseUrl}/context-bundle`,
         init: jsonPost(request),
+      });
+    },
+    async getAvailability() {
+      return requestJson({
+        fetch: fetchImpl,
+        schema: AvailabilityReadResponseSchema,
+        url: `${baseUrl}/availability`,
       });
     },
     async discoverSources(request: SourceDiscoveryRequest = {}) {

@@ -1,10 +1,7 @@
 import { describe, expect, it } from "vitest";
-import {
-  SourceDiscoveryResponseSchema,
-  TopicDiscoveryResponseSchema,
-} from "@atlas/schema";
-import { handleSourceDiscoveryRequest } from "./sourceDiscoveryRoute.js";
-import { handleTopicDiscoveryRequest } from "./topicDiscoveryRoute.js";
+import { SourceDiscoveryResponseSchema, TopicDiscoveryResponseSchema } from "@atlas/schema";
+import { handleSourceDiscoveryRequest } from "./sourceDiscoveryRoute";
+import { handleTopicDiscoveryRequest } from "./topicDiscoveryRoute";
 
 describe("discovery routes", () => {
   it("discovers sources by class through the shared response schema", () => {
@@ -13,7 +10,7 @@ describe("discovery routes", () => {
     });
 
     expect(response.status).toBe(200);
-    expect(SourceDiscoveryResponseSchema.parse(response.body).sources.length).toBe(3);
+    expect(SourceDiscoveryResponseSchema.parse(response.body).sources.length).toBe(5);
   });
 
   it("discovers topics by type through the shared response schema", () => {

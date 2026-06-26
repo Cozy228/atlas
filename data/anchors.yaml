@@ -1,0 +1,230 @@
+# Atlas Anchor manifest — public-safe, fictional sample.
+# Ported 1:1 from pilotRegistrySeed; the equivalence oracle test asserts parity.
+
+- id: private-subnet-usage
+  source_id: textract-module-readme
+  anchor_strategy: markdown-heading
+  title: Private subnet usage
+  selector:
+    locator: "#private-subnet-usage"
+  citation_label: Private subnet usage
+  status: valid
+  last_validated_at: 2026-05-05T00:00:00.000Z
+- id: model-access
+  source_id: bedrock-module-readme
+  anchor_strategy: markdown-heading
+  title: Model access
+  selector:
+    locator: "#model-access"
+  citation_label: Model access
+  status: valid
+  last_validated_at: 2026-05-05T00:00:00.000Z
+- id: event-sources
+  source_id: lambda-module-readme
+  anchor_strategy: markdown-heading
+  title: Event sources
+  selector:
+    locator: "#event-sources"
+  citation_label: Event sources
+  status: valid
+  last_validated_at: 2026-05-05T00:00:00.000Z
+- id: environment-matrix
+  source_id: central-lz-confluence
+  anchor_strategy: confluence-section
+  title: Environment matrix
+  selector:
+    locator: environment-matrix
+  citation_label: Environment matrix
+  status: valid
+  last_validated_at: 2026-05-05T00:00:00.000Z
+- id: regulated-controls
+  source_id: regulated-lz-confluence
+  anchor_strategy: confluence-section
+  title: Regulated controls
+  selector:
+    locator: regulated-controls
+  citation_label: Regulated controls
+  status: valid
+  last_validated_at: 2026-05-05T00:00:00.000Z
+- id: expiration-policy
+  source_id: sandbox-lz-confluence
+  anchor_strategy: confluence-section
+  title: Expiration policy
+  selector:
+    locator: expiration-policy
+  citation_label: Expiration policy
+  status: valid
+  last_validated_at: 2026-05-05T00:00:00.000Z
+- id: public-access
+  source_id: s3-policy-doc
+  anchor_strategy: document-clause
+  title: Public access controls
+  selector:
+    locator: clause-2.1
+  citation_label: Public access controls
+  status: valid
+  last_validated_at: 2026-05-05T00:00:00.000Z
+- id: legacy-public-access
+  source_id: legacy-s3-policy
+  anchor_strategy: document-clause
+  title: Legacy public access
+  selector:
+    locator: clause-1.4
+  citation_label: Legacy public access
+  status: valid
+  last_validated_at: 2026-05-05T00:00:00.000Z
+- id: vpc-endpoints
+  source_id: private-networking-policy
+  anchor_strategy: document-clause
+  title: VPC endpoints
+  selector:
+    locator: missing-clause-4.2
+  citation_label: VPC endpoints
+  status: broken
+  last_validated_at: 2026-05-05T00:00:00.000Z
+- id: delegated-roles
+  source_id: iam-boundary-policy
+  anchor_strategy: document-clause
+  title: Delegated roles
+  selector:
+    locator: clause-3.1
+  citation_label: Delegated roles
+  status: valid
+  last_validated_at: 2026-05-05T00:00:00.000Z
+- id: required-signals
+  source_id: logging-standard-doc
+  anchor_strategy: document-clause
+  title: Required signals
+  selector:
+    locator: clause-1.2
+  citation_label: Required signals
+  status: valid
+  last_validated_at: 2026-05-05T00:00:00.000Z
+- id: pilot-limitations
+  source_id: platform-reference-guide
+  anchor_strategy: confluence-section
+  title: Pilot limitations
+  selector:
+    locator: pilot-limitations
+  citation_label: Pilot limitations
+  status: valid
+  last_validated_at: 2026-05-05T00:00:00.000Z
+# API Gateway module — the starter snippet leads so disclosure level 1 surfaces it.
+- id: apigateway-terraform-starter
+  source_id: apigateway-module-readme
+  anchor_strategy: markdown-heading
+  title: Terraform starter
+  selector:
+    locator: "#terraform-starter"
+  citation_label: Terraform starter
+  status: valid
+  last_validated_at: 2026-05-05T00:00:00.000Z
+- id: apigateway-rest-api-setup
+  source_id: apigateway-module-readme
+  anchor_strategy: markdown-heading
+  title: REST API setup
+  selector:
+    locator: "#rest-api-setup"
+  citation_label: REST API setup
+  status: valid
+  last_validated_at: 2026-05-05T00:00:00.000Z
+- id: apigateway-lambda-integration
+  source_id: apigateway-module-readme
+  anchor_strategy: markdown-heading
+  title: Lambda integration
+  selector:
+    locator: "#lambda-integration"
+  citation_label: Lambda integration
+  status: valid
+  last_validated_at: 2026-05-05T00:00:00.000Z
+- id: apigateway-app-integration
+  source_id: apigateway-integration-guide
+  anchor_strategy: confluence-section
+  title: Fitting API Gateway into your app
+  selector:
+    locator: apigateway-app-integration
+  citation_label: Fitting API Gateway into your app
+  status: valid
+  last_validated_at: 2026-05-05T00:00:00.000Z
+# S3 module — starter leads so disclosure level 1 surfaces it.
+- id: s3-terraform-starter
+  source_id: s3-module-readme
+  anchor_strategy: markdown-heading
+  title: Terraform starter
+  selector:
+    locator: "#terraform-starter"
+  citation_label: Terraform starter
+  status: valid
+  last_validated_at: 2026-05-05T00:00:00.000Z
+- id: s3-bucket-setup
+  source_id: s3-module-readme
+  anchor_strategy: markdown-heading
+  title: Bucket setup
+  selector:
+    locator: "#bucket-setup"
+  citation_label: Bucket setup
+  status: valid
+  last_validated_at: 2026-05-05T00:00:00.000Z
+# Textract module — add the cited Terraform starter alongside private-subnet usage.
+- id: textract-terraform-starter
+  source_id: textract-module-readme
+  anchor_strategy: markdown-heading
+  title: Terraform starter
+  selector:
+    locator: "#terraform-starter"
+  citation_label: Terraform starter
+  status: valid
+  last_validated_at: 2026-05-05T00:00:00.000Z
+# Availability matrix (ADR-0009) — parametric availability-cell anchors. Precision
+# mirrors granularity: cell (service+region), row (service), column (region).
+- id: availability-s3-us-east-1
+  source_id: availability-matrix
+  anchor_strategy: availability-cell
+  title: S3 availability in us-east-1
+  selector:
+    service: S3
+    region: us-east-1
+  citation_label: Availability Matrix → S3 × us-east-1
+  status: valid
+  last_validated_at: 2026-05-05T00:00:00.000Z
+- id: availability-s3-row
+  source_id: availability-matrix
+  anchor_strategy: availability-cell
+  title: S3 regional availability
+  selector:
+    service: S3
+  citation_label: Availability Matrix → S3 row
+  status: valid
+  last_validated_at: 2026-05-05T00:00:00.000Z
+- id: availability-us-east-1-column
+  source_id: availability-matrix
+  anchor_strategy: availability-cell
+  title: Availability in us-east-1
+  selector:
+    region: us-east-1
+  citation_label: Availability Matrix → us-east-1 column
+  status: valid
+  last_validated_at: 2026-05-05T00:00:00.000Z
+# Terraform module registry metadata (ADR-0010) — a module-field anchor cites the
+# module's version alongside the README prose anchors on the same Source.
+- id: textract-module-version
+  source_id: textract-module-readme
+  anchor_strategy: module-field
+  title: Module version
+  selector:
+    field: version
+  citation_label: Module version
+  status: valid
+  last_validated_at: 2026-05-05T00:00:00.000Z
+# Textract availability projection (plan 011 §3) — net-new availability-cell row
+# anchor (service=Textract). The service resource's `availability` Section binds
+# here so the governed matrix is the single availability source for the agent face.
+- id: availability-textract-row
+  source_id: availability-matrix
+  anchor_strategy: availability-cell
+  title: Textract regional availability
+  selector:
+    service: Textract
+  citation_label: Availability Matrix → Textract row
+  status: valid
+  last_validated_at: 2026-05-05T00:00:00.000Z

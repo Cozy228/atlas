@@ -5,28 +5,45 @@ import { cn } from "@/lib/utils";
 type PageHeaderProps = {
   eyebrow?: string;
   title: string;
+  badge?: ReactNode;
   description?: ReactNode;
   actions?: ReactNode;
   className?: string;
 };
 
-export function PageHeader({ eyebrow, title, description, actions, className }: PageHeaderProps) {
+export function PageHeader({
+  eyebrow,
+  title,
+  badge,
+  description,
+  actions,
+  className,
+}: PageHeaderProps) {
   return (
-    <header className={cn("flex flex-col gap-3 border-b border-border pb-6", className)}>
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-        <div className="flex flex-col gap-1">
-          {eyebrow ? (
-            <span className="font-mono text-xs font-semibold uppercase tracking-[0.05em] text-muted-foreground">
-              {eyebrow}
-            </span>
-          ) : null}
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">{title}</h1>
-          {description ? (
-            <p className="max-w-[68ch] text-sm leading-6 text-muted-foreground">{description}</p>
-          ) : null}
+    <header
+      className={cn("flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between", className)}
+    >
+      <div className="flex flex-col gap-2">
+        {eyebrow ? (
+          <span className="w-fit font-mono text-xs font-semibold uppercase tracking-[0.05em] text-muted-foreground">
+            {eyebrow}
+          </span>
+        ) : null}
+        <div className="flex flex-wrap items-baseline gap-3">
+          <h1 className="w-fit text-2xl font-bold tracking-[-0.02em] text-balance text-foreground">
+            {title}
+          </h1>
+          {badge}
         </div>
-        {actions ? <div className="flex items-center gap-2 sm:self-end">{actions}</div> : null}
+        {description ? (
+          <p className="w-fit max-w-[60ch] type-body leading-[1.6] text-pretty text-muted-foreground">
+            {description}
+          </p>
+        ) : null}
       </div>
+      {actions ? (
+        <div className="flex flex-wrap items-center gap-2 sm:self-end">{actions}</div>
+      ) : null}
     </header>
   );
 }
@@ -50,11 +67,13 @@ export function PageSection({
     <section className={cn("flex flex-col gap-3", className)}>
       {title ? (
         <div className="flex flex-col gap-1">
-          <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+          <h2 className="w-fit text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground">
             {title}
           </h2>
           {description ? (
-            <p className="max-w-[68ch] text-sm leading-6 text-muted-foreground">{description}</p>
+            <p className="w-fit max-w-[68ch] text-sm leading-6 text-muted-foreground">
+              {description}
+            </p>
           ) : null}
         </div>
       ) : null}
@@ -71,21 +90,26 @@ type PageBodyProps = {
 };
 
 const PAGE_WIDTHS: Record<NonNullable<PageBodyProps["width"]>, string> = {
+  // Canonical content column, shared across every page so widths stay consistent.
+  // 1180px matches the raw-div pages (catalog, sources, guidance, …) so every
+  // surface reads as the same site.
   narrow: "max-w-[960px]",
-  comfortable: "max-w-[1200px]",
-  wide: "max-w-[1360px]",
+  comfortable: "max-w-[1180px]",
+  wide: "max-w-[1180px]",
 };
 
 const PAGE_GAPS: Record<NonNullable<PageBodyProps["gap"]>, string> = {
-  compact: "gap-7",
-  standard: "gap-12",
+  // gap-8 matches the raw-div pages; standard keeps a touch more air for
+  // content-dense reading pages.
+  compact: "gap-8",
+  standard: "gap-10",
 };
 
 export function PageBody({ children, className, width = "wide", gap = "standard" }: PageBodyProps) {
   return (
     <div
       className={cn(
-        "mx-auto flex w-full flex-col px-6 pb-16 pt-12 sm:px-8",
+        "mx-auto flex w-full flex-col px-6 py-8 sm:px-8",
         PAGE_WIDTHS[width],
         PAGE_GAPS[gap],
         className,

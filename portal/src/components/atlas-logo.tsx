@@ -13,9 +13,8 @@ type AtlasLogoProps = ComponentPropsWithoutRef<"div"> & {
 /**
  * AtlasLogo holds the company logo slot. The real asset is provided by the
  * brand team. Until that asset is supplied we render a neutral, stable
- * placeholder that occupies the same dimensions described in
- * `docs/architecture/portal_frontend_design_plan.md` (32px mark height,
- * 160px x 32px wordmark area). Replace this component when the asset lands.
+ * placeholder that occupies the shell's current logo dimensions. Replace this
+ * component when the asset lands.
  */
 export function AtlasLogo({ variant = "wordmark", className, ...props }: AtlasLogoProps) {
   const isMark = variant === "mark";

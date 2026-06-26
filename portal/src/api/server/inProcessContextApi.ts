@@ -7,6 +7,7 @@
  * the same `ContextApiClient` interface so route loaders do not change.
  */
 import {
+  handleAvailabilityRequest,
   handleContextRequest,
   handleFeedbackRequest,
   handleSourceDiscoveryRequest,
@@ -16,12 +17,14 @@ import {
 } from "@atlas/context-layer";
 import {
   ApiErrorResponseSchema,
+  AvailabilityReadResponseSchema,
   ContextBundleResponseSchema,
   FeedbackResponseSchema,
   SourceDiscoveryResponseSchema,
   SourceResponseSchema,
   TopicDiscoveryResponseSchema,
   TopicResponseSchema,
+  type AvailabilityReadResponse,
   type ContextBundleResponse,
   type ContextRequest,
   type FeedbackResponse,
@@ -34,8 +37,8 @@ import {
   type TopicResponse,
 } from "@atlas/schema";
 
-import type { ContextApiClient } from "../contextApiClient.js";
-import { ContextApiError } from "../contextApiError.js";
+import type { ContextApiClient } from "../contextApiClient";
+import { ContextApiError } from "../contextApiError";
 
 type HandlerResult = { status: number; body: unknown };
 
@@ -65,7 +68,10 @@ export const serverContextApiClient: ContextApiClient = {
     return unwrap(handleSourceRequest(id), SourceResponseSchema);
   },
   async getContextBundle(request: ContextRequest): Promise<ContextBundleResponse> {
-    return unwrap(handleContextRequest(request), ContextBundleResponseSchema);
+    return unwrap(await handleContextRequest(request), ContextBundleResponseSchema);
+  },
+  async getAvailability(): Promise<AvailabilityReadResponse> {
+    return unwrap(handleAvailabilityRequest(), AvailabilityReadResponseSchema);
   },
   async discoverSources(request: SourceDiscoveryRequest = {}): Promise<SourceDiscoveryResponse> {
     return unwrap(handleSourceDiscoveryRequest(request), SourceDiscoveryResponseSchema);

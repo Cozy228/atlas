@@ -1,5 +1,13 @@
 # Atlas Guidance Design Doc
 
+> **V1 scope.** The MVP builds only the `route` type and **one** journey (the hero domain —
+> Central Landing Zone onboarding), registry-backed. The `decision` and `checklist` *types*
+> are modeled in `@atlas/schema` (`guidanceTypes`) for forward-compatibility but **not
+> built for MVP**. `destination` is the **required terminal step kind** (schema-enforced) —
+> it is *not* cut. Sections below describing decision/checklist are forward design, not V1
+> build scope. MVP scope of record: [`mvp-product-design.md`](./mvp-product-design.md); authoring guide:
+> [`guidance-authoring.md`](./guidance-authoring.md).
+
 ## 1. Purpose
 
 Atlas Guidance is a lightweight, Git-managed route guidance object for internal platform processes.
@@ -22,9 +30,9 @@ It provides structured process guidance, visual navigation, source evidence, too
 
 Atlas Guidance is a managed journey definition that turns platform processes into stepper-oriented, evidence-backed guidance.
 
-Guidance is a first-class browse object in Atlas. It has its own index route, such as `/guidance`, and does not appear in `/explore`. `/explore` remains the catalog and availability surface for capabilities, landing zones, guardrails, and tool entries.
+Guidance is a first-class browse object in Atlas. It has its own index route, such as `/guidance`, and does not appear in `/explore`. `/explore` remains the catalog and availability surface for services, landing zones, guardrails, and tool entries.
 
-Capability and Landing Zone detail pages should show related Guidance, not embed the full Guidance index. A related Guidance module can preview the route and link into the full Guidance workspace when the user needs the complete path.
+Service and Landing Zone detail pages should show related Guidance, not embed the full Guidance index. A related Guidance module can preview the route and link into the full Guidance workspace when the user needs the complete path.
 
 Each Guidance has:
 
@@ -147,9 +155,9 @@ Atlas Guidance V1 does not aim to support:
 
 A Guidance is a complete route for a specific scenario.
 
-In Atlas, Guidance is a first-class browse object. The `/guidance` index helps users find the right scenario route. Capability and Landing Zone detail pages show related Guidance when a route helps users continue from the current object.
+In Atlas, Guidance is a first-class browse object. The `/guidance` index helps users find the right scenario route. Service and Landing Zone detail pages show related Guidance when a route helps users continue from the current object.
 
-Guidance should not be treated as a Source. It can reference sources and catalog objects, but it is not the system of record for platform documentation, capability truth, or operational execution.
+Guidance should not be treated as a Source. It can reference sources and catalog objects, but it is not the system of record for platform documentation, service truth, or operational execution.
 
 Example:
 
@@ -692,12 +700,12 @@ Each index item represents one scenario. The card/list fallback should preserve 
 
 ### 14.2 Related Guidance
 
-Capability and Landing Zone detail pages show related Guidance.
+Service and Landing Zone detail pages show related Guidance.
 
 Related Guidance should be lightweight:
 
 * show a short stepper preview
-* show why the route is relevant to the current capability or landing zone
+* show why the route is relevant to the current service or landing zone
 * show owner/support and source health
 * link to the full Guidance workspace
 
@@ -856,7 +864,7 @@ Use:
 
 ## 17.2 compact_inline_stepper
 
-Best for short flows embedded in capability pages.
+Best for short flows embedded in service pages.
 
 Recommended for 3 to 5 steps.
 
@@ -948,7 +956,7 @@ Recommended APIs:
 GET /guidance
 GET /guidance/{id}
 GET /guidance?scenario=onboarding
-GET /guidance?capability=aws-textract
+GET /guidance?service=aws-textract
 POST /context/guidance
 ```
 
@@ -1075,7 +1083,7 @@ V1 should support:
 * source links
 * support link
 * `/guidance` index
-* related Guidance modules on Capability and Landing Zone detail pages
+* related Guidance modules on Service and Landing Zone detail pages
 * vertical stepper renderer
 * restrained route state transitions
 * Context API read endpoint
@@ -1114,7 +1122,7 @@ Troubleshooting examples should stay post-V1 until the route, decision, and chec
 * Validate with local JSON Schema.
 * Render the `/guidance` index and static route workspaces.
 * Implement active step panel.
-* Implement related Guidance previews for one Capability or Landing Zone detail page.
+* Implement related Guidance previews for one Service or Landing Zone detail page.
 
 ### Phase 1: Registry-backed Guidance
 

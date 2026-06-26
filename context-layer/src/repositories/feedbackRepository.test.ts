@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Feedback } from "@atlas/schema";
-import { InMemoryFeedbackRepository } from "./feedbackRepository.js";
+import { InMemoryFeedbackRepository } from "./feedbackRepository";
 
 const feedback: Feedback = {
   id: "feedback-1",
@@ -18,9 +18,7 @@ describe("InMemoryFeedbackRepository", () => {
     repository.put(feedback);
 
     expect(repository.getById("feedback-1")).toEqual(feedback);
-    expect(repository.findByTarget("anchor", "textract-private-subnet")).toEqual([
-      feedback,
-    ]);
+    expect(repository.findByTarget("anchor", "textract-private-subnet")).toEqual([feedback]);
   });
 
   it("rejects malformed feedback records", () => {

@@ -8,59 +8,93 @@ import type {
   Topic,
   TopicDiscoveryRequest,
   TopicDiscoveryResponse,
+  ResourceContextRecord,
 } from "@atlas/schema";
-import { DynamoFeedbackRepository } from "../repositories/dynamoFeedbackRepository.js";
+import { DynamoFeedbackRepository } from "../repositories/dynamoFeedbackRepository";
 import {
   InMemoryFeedbackRepository,
   type FeedbackRepository,
-} from "../repositories/feedbackRepository.js";
-import { loadPilotRegistry, pilotRegistrySeed, type PilotRegistry } from "../seeds/pilotRegistry.js";
-import { confluencePageResolver } from "../resolvers/confluencePageResolver.js";
-import { policyDocumentResolver } from "../resolvers/policyDocumentResolver.js";
-import { createResolverRegistry, type ResolverRegistry } from "../resolvers/resolverRegistry.js";
-import type { SourceContentProvider } from "../resolvers/sourceContentProvider.js";
-import { terraformModuleResolver } from "../resolvers/terraformModuleResolver.js";
-import { createPilotSourceContentProvider } from "../sourceContent/pilotSourceContent.js";
+} from "../repositories/feedbackRepository";
+import {
+  loadPilotRegistry,
+  type PilotRegistry,
+  type PilotRegistrySeed,
+} from "../seeds/pilotRegistry";
+import { DATA_DIR, loadRegistryFromManifests } from "../seeds/loadRegistryFromManifests";
+import { availabilityMatrixResolver } from "../resolvers/availabilityMatrixResolver";
+import { confluencePageResolver } from "../resolvers/confluencePageResolver";
+import { policyDocumentResolver } from "../resolvers/policyDocumentResolver";
+import { createResolverRegistry, type ResolverRegistry } from "../resolvers/resolverRegistry";
+import { offlineResolutionContext, type ResolutionContext } from "../resolvers/resolverTypes";
+import type { SourceContentProvider } from "../resolvers/sourceContentProvider";
+import { terraformModuleResolver } from "../resolvers/terraformModuleResolver";
+import { createPilotSourceContentProvider } from "../sourceContent/pilotSourceContent";
+import { loadResources } from "../resources/loadResources";
+import { isStale } from "./freshness";
 
 export type ContextBundleService = {
   registry: PilotRegistry;
   resolvers: ResolverRegistry;
   contentProvider: SourceContentProvider;
+  /** Kind-first resource projection records (agent-facing resource surface). */
+  resources: ResourceContextRecord[];
   now: Date;
 };
 
 export type ContextBundleServiceOptions = {
   env?: Record<string, string | undefined>;
   feedbackRepository?: FeedbackRepository;
+  /** Injection seam: override the manifest-loaded registry seed (tests). */
+  registrySeed?: PilotRegistrySeed;
+  /** Injection seam: override the manifest-loaded resource records (tests). */
+  resources?: ResourceContextRecord[];
 };
+
+// The default registry now comes from the `data/*.yaml` manifest control plane.
+// The loader reads + validates the filesystem, so we memoize it: the routes
+// build a fresh service per request and must not re-read/parse YAML each time.
+let cachedRegistrySeed: PilotRegistrySeed | undefined;
+let cachedResources: ResourceContextRecord[] | undefined;
+
+function getDefaultRegistrySeed(): PilotRegistrySeed {
+  return (cachedRegistrySeed ??= loadRegistryFromManifests(DATA_DIR));
+}
+
+function getDefaultResources(): ResourceContextRecord[] {
+  return (cachedResources ??= loadResources(DATA_DIR));
+}
 
 export function createDefaultContextBundleService(
   options: ContextBundleServiceOptions = {},
 ): ContextBundleService {
+  const seed = options.registrySeed ?? getDefaultRegistrySeed();
   const feedbackRepository =
     options.feedbackRepository ??
-    createFeedbackRepository(options.env ?? readProcessEnv());
+    createFeedbackRepository(options.env ?? readProcessEnv(), seed.feedback);
 
   return {
-    registry: loadPilotRegistry(pilotRegistrySeed, { feedback: feedbackRepository }),
+    registry: loadPilotRegistry(seed, { feedback: feedbackRepository }),
     resolvers: createResolverRegistry([
       terraformModuleResolver,
       confluencePageResolver,
       policyDocumentResolver,
+      availabilityMatrixResolver,
     ]),
     contentProvider: createPilotSourceContentProvider(),
+    resources: options.resources ?? getDefaultResources(),
     now: new Date(),
   };
 }
 
 export function createFeedbackRepository(
   env: Record<string, string | undefined>,
+  feedback?: PilotRegistrySeed["feedback"],
 ): FeedbackRepository {
   const tableName = env.ATLAS_FEEDBACK_TABLE;
   if (tableName) {
     return new DynamoFeedbackRepository({ tableName });
   }
-  return new InMemoryFeedbackRepository(pilotRegistrySeed.feedback);
+  return new InMemoryFeedbackRepository(feedback ?? getDefaultRegistrySeed().feedback);
 }
 
 function readProcessEnv(): Record<string, string | undefined> {
@@ -70,16 +104,15 @@ function readProcessEnv(): Record<string, string | undefined> {
   return processLike.process?.env ?? {};
 }
 
-export function buildContextBundle(
+export async function buildContextBundle(
   service: ContextBundleService,
   request: ContextRequest,
-): ContextBundleResponse {
+  ctx: ResolutionContext = offlineResolutionContext(),
+): Promise<ContextBundleResponse> {
   const disclosureLevel = request.disclosure_level ?? 1;
   const selectedSources = selectSources(service, request);
   const sources =
-    disclosureLevel >= 3
-      ? expandRelatedSources(service, selectedSources)
-      : selectedSources;
+    disclosureLevel >= 3 ? expandRelatedSources(service, selectedSources) : selectedSources;
 
   if (sources.length === 0) {
     return {
@@ -103,54 +136,81 @@ export function buildContextBundle(
     service.registry.anchors.findBySourceId(source.id),
   );
 
-  for (const source of sources) {
-    const anchors = service.registry.anchors.findBySourceId(source.id);
+  // One fresh request-scoped fetch+parse memo per bundle, threaded into the ctx
+  // passed to resolvers so same-page/same-module anchors share one fetch + parse
+  // (plan 011). Lives only inside this call under the single caller identity in
+  // `ctx`, so it never leaks content across requests. Idempotent if a caller
+  // already threaded one.
+  const bundleCtx: ResolutionContext = ctx.pageCache ? ctx : { ...ctx, pageCache: new Map() };
 
-    if (source.visibility === "restricted") {
-      warnings.push({
-        code: "restricted_source",
-        message: "Source exists but has restricted visibility.",
-        source_id: source.id,
-      });
-    }
+  // Resolve sources concurrently (bounded) and anchors within a source concurrently.
+  // Output stays byte-identical to the sequential version: each unit collects its
+  // warnings/excerpts into its own ordered array, and we flatten in `sources` /
+  // `anchorIds` order after all promises settle — never pushing from a racing
+  // callback. `Promise.all` preserves array order, so this is deterministic.
+  const perSource = await mapWithConcurrency(
+    sources,
+    SOURCE_RESOLUTION_CONCURRENCY,
+    async (source) => {
+      const sourceWarnings: ContextBundleResponse["warnings"] = [];
+      const anchors = service.registry.anchors.findBySourceId(source.id);
 
-    if (isStale(source, service.now)) {
-      warnings.push({
-        code: "stale_source",
-        message: "Source is past its review frequency.",
-        source_id: source.id,
-      });
-    }
-
-    const excerpts = [];
-
-    if (disclosureLevel > 0) {
-      const resolver = service.resolvers.get(source.source_class);
-      for (const anchorId of anchorIdsForDisclosure(
-        anchors,
-        request.anchor_id,
-        disclosureLevel,
-      )) {
-        const resolved = resolver?.resolve({
-          source,
-          anchors,
-          anchorId,
-          contentProvider: service.contentProvider,
+      if (source.visibility === "restricted") {
+        sourceWarnings.push({
+          code: "restricted_source",
+          message: "Source exists but has restricted visibility.",
+          source_id: source.id,
         });
+      }
 
-        if (resolved) {
-          warnings.push(...resolved.warnings);
-          excerpts.push(...resolved.excerpts);
+      if (isStale(source, service.now)) {
+        sourceWarnings.push({
+          code: "stale_source",
+          message: "Source is past its review frequency.",
+          source_id: source.id,
+        });
+      }
+
+      const excerpts = [];
+
+      if (disclosureLevel > 0) {
+        const resolver = service.resolvers.get(source.source_class);
+        const anchorIds = anchorIdsForDisclosure(anchors, request.anchor_id, disclosureLevel);
+        const resolutions = await Promise.all(
+          anchorIds.map((anchorId) =>
+            resolver?.resolve({
+              source,
+              anchors,
+              anchorId,
+              contentProvider: service.contentProvider,
+              ctx: bundleCtx,
+            }),
+          ),
+        );
+
+        for (const resolved of resolutions) {
+          if (resolved) {
+            sourceWarnings.push(...resolved.warnings);
+            excerpts.push(...resolved.excerpts);
+          }
         }
       }
-    }
 
-    bundleSources.push({
-      source,
-      anchors,
-      selection_rationale: buildSelectionRationale(source, request),
-      excerpts,
-    });
+      return {
+        bundleSource: {
+          source,
+          anchors,
+          selection_rationale: buildSelectionRationale(source, request),
+          excerpts,
+        },
+        warnings: sourceWarnings,
+      };
+    },
+  );
+
+  for (const result of perSource) {
+    bundleSources.push(result.bundleSource);
+    warnings.push(...result.warnings);
   }
 
   warnings.push(...authorityConflictWarnings(sources));
@@ -207,10 +267,40 @@ export function discoverTopics(
   return { topics };
 }
 
-function selectSources(
-  service: ContextBundleService,
-  request: ContextRequest,
-): Source[] {
+// Cap on concurrent per-source resolutions. A single bundle can fan out to
+// sources × anchors live resolutions; with single-flight (plan 008) same-page
+// anchors share one fetch, but distinct sources/pages do not. Bound the SOURCES
+// level so a wide topic cannot burst the external provider. Anchors within a
+// source stay an unbounded `Promise.all` (N is tiny — anchors per source).
+const SOURCE_RESOLUTION_CONCURRENCY = 5;
+
+/**
+ * Run `fn` over `items` with at most `limit` in flight, returning results in
+ * input order. Order-preserving (results indexed by input position), so callers
+ * can flatten deterministically. `limit` is clamped to `[1, items.length]`.
+ */
+async function mapWithConcurrency<T, R>(
+  items: readonly T[],
+  limit: number,
+  fn: (item: T) => Promise<R>,
+): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  const bound = Math.max(1, Math.min(limit, items.length || 1));
+  let nextIndex = 0;
+
+  async function worker(): Promise<void> {
+    while (nextIndex < items.length) {
+      const index = nextIndex;
+      nextIndex += 1;
+      results[index] = await fn(items[index]);
+    }
+  }
+
+  await Promise.all(Array.from({ length: Math.min(bound, items.length) }, () => worker()));
+  return results;
+}
+
+function selectSources(service: ContextBundleService, request: ContextRequest): Source[] {
   if (request.source_id) {
     const source = service.registry.sources.getById(request.source_id);
     return source ? [source] : [];
@@ -228,41 +318,44 @@ function selectSources(
     return [];
   }
 
-  const topics = service.registry.topics
-    .list()
-    .filter((topic) => matchesTopic(topic, query));
-  const topicSources = topics.flatMap((topic) =>
-    service.registry.mappings
-      .findByTopicId(topic.id)
-      .map((mapping) => service.registry.sources.getById(mapping.source_id)),
+  // Topic-anchored relevance: a free-text query first resolves to matching topics
+  // and returns only their mapped Sources. The loose Source-text scan is a fallback
+  // used ONLY when no topic matches — otherwise generic tokens like "terraform"
+  // (present in every module's source_class and title) would pull unrelated Sources
+  // into the bundle, e.g. "api gateway terraform" returning the Textract module.
+  const topicSources = uniqueSources(
+    service.registry.topics
+      .list()
+      .filter((topic) => matchesTopic(topic, query))
+      .flatMap((topic) =>
+        service.registry.mappings
+          .findByTopicId(topic.id)
+          .map((mapping) => service.registry.sources.getById(mapping.source_id)),
+      )
+      .filter((source): source is Source => Boolean(source)),
   );
 
-  return uniqueSources([
-    ...topicSources.filter((source): source is Source => Boolean(source)),
-    ...service.registry.sources.list().filter((source) => matchesText(source, query)),
-  ]);
+  if (topicSources.length > 0) {
+    return topicSources;
+  }
+
+  return uniqueSources(
+    service.registry.sources.list().filter((source) => matchesText(source, query)),
+  );
 }
 
-function expandRelatedSources(
-  service: ContextBundleService,
-  sources: Source[],
-): Source[] {
+function expandRelatedSources(service: ContextBundleService, sources: Source[]): Source[] {
   const sourceIds = new Set(sources.map((source) => source.id));
   const topicIds = new Set(
     sources.flatMap((source) =>
-      service.registry.mappings
-        .findBySourceId(source.id)
-        .map((mapping) => mapping.topic_id),
+      service.registry.mappings.findBySourceId(source.id).map((mapping) => mapping.topic_id),
     ),
   );
   const relatedSources = Array.from(topicIds).flatMap((topicId) =>
     service.registry.mappings
       .findByTopicId(topicId)
       .map((mapping) => service.registry.sources.getById(mapping.source_id))
-      .filter(
-        (source): source is Source =>
-          source !== undefined && !sourceIds.has(source.id),
-      ),
+      .filter((source): source is Source => source !== undefined && !sourceIds.has(source.id)),
   );
 
   return uniqueSources([...sources, ...relatedSources]);
@@ -313,9 +406,7 @@ function buildSelectionRationale(source: Source, request: ContextRequest): strin
   return `Selected through deterministic registry match for ${source.authority_level} source metadata.`;
 }
 
-function buildAnchorReferences(
-  anchors: Anchor[],
-): ContextBundleResponse["anchor_references"] {
+function buildAnchorReferences(anchors: Anchor[]): ContextBundleResponse["anchor_references"] {
   return anchors.map((anchor) => ({
     source_id: anchor.source_id,
     anchor_id: anchor.id,
@@ -331,9 +422,7 @@ function anchorIdsForDisclosure(
 ): Array<string | undefined> {
   if (disclosureLevel >= 2) {
     const anchorIds = anchors.map((anchor) => anchor.id);
-    return uniqueAnchorIds(
-      requestedAnchorId ? [requestedAnchorId, ...anchorIds] : anchorIds,
-    );
+    return uniqueAnchorIds(requestedAnchorId ? [requestedAnchorId, ...anchorIds] : anchorIds);
   }
 
   return [requestedAnchorId ?? anchors[0]?.id];
@@ -360,9 +449,7 @@ function buildExpansionPaths(
   }));
 }
 
-function authorityConflictWarnings(
-  sources: Source[],
-): ContextBundleResponse["warnings"] {
+function authorityConflictWarnings(sources: Source[]): ContextBundleResponse["warnings"] {
   const warnings: ContextBundleResponse["warnings"] = [];
   const byScope = new Map<string, Set<string>>();
 
@@ -384,13 +471,4 @@ function authorityConflictWarnings(
   }
 
   return warnings;
-}
-
-function isStale(source: Source, now: Date): boolean {
-  const days = Number(source.review_frequency.match(/^P(\d+)D$/)?.[1] ?? "0");
-  if (days === 0) {
-    return false;
-  }
-  const reviewedAt = new Date(source.last_reviewed_at).getTime();
-  return reviewedAt + days * 24 * 60 * 60 * 1000 < now.getTime();
 }
