@@ -15,18 +15,23 @@ import { CatalogAdopted } from "@/components/catalog/adopted";
 
 type LoaderData = {
   topics: ReadonlyArray<Topic>;
-  zone: LandingZoneData;
+  zone: Promise<LandingZoneData>;
 };
 
 export const Route = createFileRoute("/catalog/")({
   loader: async ({ context }): Promise<LoaderData> => {
-    const [topicsResp, availability] = await Promise.all([
-      context.queryClient.ensureQueryData(
-        topicDiscoveryQueryOptions,
-      ) as Promise<TopicDiscoveryResponse>,
-      context.queryClient.ensureQueryData(availabilityQueryOptions),
-    ]);
-    const zone = availability.zones.find((entry) => entry.id === "aws") ?? availability.zones[0]!;
+    const topicsResp = (await context.queryClient.ensureQueryData(
+      topicDiscoveryQueryOptions,
+    )) as TopicDiscoveryResponse;
+    // Slow: availability is a live Confluence fetch in the real adapter — defer it
+    // (no await) so the catalog shell (header, tabs, search) paints immediately;
+    // the workspace renders a skeleton until the zone lands.
+    const zone = context.queryClient
+      .ensureQueryData(availabilityQueryOptions)
+      .then(
+        (availability) =>
+          availability.zones.find((entry) => entry.id === "aws") ?? availability.zones[0]!,
+      );
     return { topics: topicsResp.topics, zone };
   },
   component: CatalogIndex,

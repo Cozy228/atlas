@@ -15,7 +15,7 @@
  * topics. `useRecordRecent` keeps the topic in the Home "recently viewed" trail.
  */
 import type { ReactNode } from "react";
-import { Link, createFileRoute, notFound } from "@tanstack/react-router";
+import { Await, Link, createFileRoute, notFound } from "@tanstack/react-router";
 import { IconArrowLeft, IconArrowUpRight, IconInfoCircle, IconRoute } from "@tabler/icons-react";
 import type { ContextBundleResponse, Topic, TopicDiscoveryResponse } from "@atlas/schema";
 
@@ -25,7 +25,7 @@ import {
   guidanceQueryOptions,
   topicDiscoveryQueryOptions,
 } from "@/api/queries";
-import type { AvailabilityResponse, LandingZoneData } from "@/api/server/availability";
+import type { LandingZoneData } from "@/api/server/availability";
 import { ContextApiError } from "@/api/contextApiError";
 import { AuthorityBadge, FreshnessIndicator } from "@/components/evidence/badges";
 import { FeedbackInlineForm } from "@/components/evidence/feedback-inline-form";
@@ -33,6 +33,7 @@ import { ServiceIcon } from "@/components/explore/service-icon";
 import { ServiceIconFallback } from "@/components/explore/service-icon-frame";
 import { useRecordRecent, type RecentItem } from "@/components/home/recently-viewed";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { findAvailabilityServiceForTopic } from "@/lib/availability-service";
 import { relatedGuidanceForTopic, type Guidance } from "@/lib/guidance";
 import { cn } from "@/lib/utils";
@@ -41,9 +42,8 @@ type LoaderData = {
   topic: Topic;
   related: ReadonlyArray<Topic>;
   guidance: ReadonlyArray<Guidance>;
-  bundle: ContextBundleResponse | null;
-  defaultZone: LandingZoneData;
-  totalZones: number;
+  bundle: Promise<ContextBundleResponse | null>;
+  zone: Promise<{ defaultZone: LandingZoneData; totalZones: number }>;
 };
 
 const TYPE_LABEL: Record<Topic["topic_type"], string> = {
@@ -61,11 +61,11 @@ export const Route = createFileRoute("/catalog/$topicId")({
     const topic = topicsResp.topics.find((entry) => entry.id === params.topicId);
     if (!topic) throw notFound();
 
+    // Slow: defer the live bundle (no await) so navigation is instant and the
+    // References + evidence-health blocks render a skeleton until it lands.
     // disclosure_level 2 resolves every anchor on each source (the default of 1
-    // returns only the first), so References can show all cited sections. The
-    // bundle needs topic.id, so it can't join the first await — but availability
-    // and guidance don't depend on it, so all three overlap below.
-    const bundlePromise: Promise<ContextBundleResponse | null> = context.queryClient
+    // returns only the first), so References can show all cited sections.
+    const bundle: Promise<ContextBundleResponse | null> = context.queryClient
       .ensureQueryData(contextBundleQueryOptions({ topic_id: topic.id, disclosure_level: 2 }))
       .catch((error: unknown) => {
         if (
@@ -77,15 +77,18 @@ export const Route = createFileRoute("/catalog/$topicId")({
         throw error;
       });
 
-    const [availability, guidances, bundle]: [
-      AvailabilityResponse,
-      ReadonlyArray<Guidance>,
-      ContextBundleResponse | null,
-    ] = await Promise.all([
-      context.queryClient.ensureQueryData(availabilityQueryOptions),
-      context.queryClient.ensureQueryData(guidanceQueryOptions),
-      bundlePromise,
-    ]);
+    // Fast: guidance reads a cached projection; await it for the page shell.
+    const guidances = await context.queryClient.ensureQueryData(guidanceQueryOptions);
+
+    // Slow: availability is a live Confluence fetch + parse in the real adapter —
+    // defer it (no await) so navigation is instant; the specs, where-it-runs and
+    // identity icon render a skeleton until it lands.
+    const zone: Promise<{ defaultZone: LandingZoneData; totalZones: number }> = context.queryClient
+      .ensureQueryData(availabilityQueryOptions)
+      .then((availability) => ({
+        defaultZone: availability.zones[0]!,
+        totalZones: availability.zones.length,
+      }));
 
     return {
       topic,
@@ -94,8 +97,7 @@ export const Route = createFileRoute("/catalog/$topicId")({
       ),
       guidance: relatedGuidanceForTopic(guidances, topic.id),
       bundle,
-      defaultZone: availability.zones[0]!,
-      totalZones: availability.zones.length,
+      zone,
     };
   },
   component: CatalogDetailRoute,
@@ -123,7 +125,7 @@ function formatDate(iso: string): string {
  * ========================================================================== */
 
 function CatalogDetailRoute() {
-  const { topic, related, guidance, bundle, defaultZone, totalZones } = Route.useLoaderData();
+  const { topic, related, guidance, bundle, zone } = Route.useLoaderData();
 
   const recent: RecentItem | null =
     topic.topic_type === "service"
@@ -134,84 +136,113 @@ function CatalogDetailRoute() {
   useRecordRecent(recent);
 
   const isService = topic.topic_type === "service";
-  const locations = defaultZone.locations;
-  const service = isService ? findAvailabilityServiceForTopic(topic, defaultZone.services) : null;
-
-  const sources = bundle?.sources ?? [];
-  const warnings = bundle?.warnings ?? [];
-
-  const live = locations.filter((loc) => {
-    const status = service?.availability[loc.id]?.status;
-    return status === "available" || status === "interim";
-  }).length;
-  const planned = locations.filter(
-    (loc) => service?.availability[loc.id]?.status === "planned",
-  ).length;
-
-  const freshest = sources
-    .map((entry) => entry.source.last_reviewed_at)
-    .toSorted()
-    .at(-1);
-
-  // Type-aware specifications.
-  const specs: ReadonlyArray<{ label: string; value: ReactNode }> = [
-    { label: "Type", value: TYPE_LABEL[topic.topic_type] },
-    { label: "Domain", value: topic.category },
-    { label: "Status", value: STATUS_CHIP[topic.status].label },
-    { label: "Owner", value: topic.owner_team },
-    {
-      label: "Support",
-      value: <code className="font-mono text-[11.5px]">{topic.support_channel}</code>,
-    },
-    ...(isService
-      ? [
-          { label: "Landing zone", value: defaultZone.name },
-          {
-            label: "Regions live",
-            value: (
-              <span className="tabular-nums">
-                {live} of {locations.length}
-              </span>
-            ),
-          },
-          { label: "Regions planned", value: <span className="tabular-nums">{planned}</span> },
-        ]
-      : topic.topic_type === "landing-zone"
-        ? [
-            {
-              label: "Services",
-              value: <span className="tabular-nums">{defaultZone.services.length}</span>,
-            },
-            { label: "Regions", value: <span className="tabular-nums">{locations.length}</span> },
-            { label: "Landing zones", value: <span className="tabular-nums">{totalZones}</span> },
-          ]
-        : []),
-  ];
+  // locations / service / live / planned / availability spec rows all derive from
+  // the deferred `zone` — computed inside the <Await> blocks below so the shell
+  // (identity band, get-started, application notes) paints without waiting on it.
 
   // Numbered main-column sections — only the ones that apply, in order.
   const sections: ReadonlyArray<{ title: string; node: ReactNode }> = [
     {
       title: "Specifications",
       node: (
-        <dl className="grid grid-cols-1 overflow-hidden rounded-[4px] border border-border bg-card sm:grid-cols-2">
-          {specs.map((spec) => (
-            <SpecRow key={spec.label} label={spec.label} value={spec.value} />
-          ))}
-        </dl>
+        <Await
+          promise={zone}
+          fallback={
+            <SpecsSkeleton rows={isService || topic.topic_type === "landing-zone" ? 8 : 5} />
+          }
+        >
+          {({ defaultZone, totalZones }) => {
+            const locations = defaultZone.locations;
+            const service = isService
+              ? findAvailabilityServiceForTopic(topic, defaultZone.services)
+              : null;
+            const live = locations.filter((loc) => {
+              const status = service?.availability[loc.id]?.status;
+              return status === "available" || status === "interim";
+            }).length;
+            const planned = locations.filter(
+              (loc) => service?.availability[loc.id]?.status === "planned",
+            ).length;
+            const specs: ReadonlyArray<{ label: string; value: ReactNode }> = [
+              { label: "Type", value: TYPE_LABEL[topic.topic_type] },
+              { label: "Domain", value: topic.category },
+              { label: "Status", value: STATUS_CHIP[topic.status].label },
+              { label: "Owner", value: topic.owner_team },
+              {
+                label: "Support",
+                value: <code className="font-mono text-[11.5px]">{topic.support_channel}</code>,
+              },
+              ...(isService
+                ? [
+                    { label: "Landing zone", value: defaultZone.name },
+                    {
+                      label: "Regions live",
+                      value: (
+                        <span className="tabular-nums">
+                          {live} of {locations.length}
+                        </span>
+                      ),
+                    },
+                    {
+                      label: "Regions planned",
+                      value: <span className="tabular-nums">{planned}</span>,
+                    },
+                  ]
+                : topic.topic_type === "landing-zone"
+                  ? [
+                      {
+                        label: "Services",
+                        value: <span className="tabular-nums">{defaultZone.services.length}</span>,
+                      },
+                      {
+                        label: "Regions",
+                        value: <span className="tabular-nums">{locations.length}</span>,
+                      },
+                      {
+                        label: "Landing zones",
+                        value: <span className="tabular-nums">{totalZones}</span>,
+                      },
+                    ]
+                  : []),
+            ];
+            return (
+              <dl className="grid grid-cols-1 overflow-hidden rounded-[4px] border border-border bg-card sm:grid-cols-2">
+                {specs.map((spec) => (
+                  <SpecRow key={spec.label} label={spec.label} value={spec.value} />
+                ))}
+              </dl>
+            );
+          }}
+        </Await>
       ),
     },
     ...(isService
       ? [
           {
             title: "Where it runs",
-            node: <WhereItRuns service={service} locations={locations} />,
+            node: (
+              <Await promise={zone} fallback={<WhereItRunsSkeleton />}>
+                {({ defaultZone }) => (
+                  <WhereItRuns
+                    service={findAvailabilityServiceForTopic(topic, defaultZone.services)}
+                    locations={defaultZone.locations}
+                  />
+                )}
+              </Await>
+            ),
           },
         ]
       : topic.topic_type === "landing-zone"
         ? [
             {
               title: "Catalog scope",
-              node: <CatalogScope zone={defaultZone} totalZones={totalZones} />,
+              node: (
+                <Await promise={zone} fallback={<WhereItRunsSkeleton />}>
+                  {({ defaultZone, totalZones }) => (
+                    <CatalogScope zone={defaultZone} totalZones={totalZones} />
+                  )}
+                </Await>
+              ),
             },
           ]
         : []),
@@ -232,7 +263,14 @@ function CatalogDetailRoute() {
           },
         ]
       : []),
-    { title: "References", node: <References sources={sources} /> },
+    {
+      title: "References",
+      node: (
+        <Await promise={bundle} fallback={<ReferencesSkeleton />}>
+          {(resolved) => <References sources={resolved?.sources ?? []} />}
+        </Await>
+      ),
+    },
     ...(related.length > 0
       ? [{ title: "Related in domain", node: <RelatedInDomain topics={related} /> }]
       : []),
@@ -259,8 +297,20 @@ function CatalogDetailRoute() {
             aria-hidden
             className="flex size-14 shrink-0 items-center justify-center rounded-lg bg-brand-tint"
           >
-            {service ? (
-              <ServiceIcon serviceId={service.id} size="lg" />
+            {isService ? (
+              <Await
+                promise={zone}
+                fallback={<ServiceIconFallback serviceId={topic.id} size="lg" />}
+              >
+                {({ defaultZone }) => {
+                  const service = findAvailabilityServiceForTopic(topic, defaultZone.services);
+                  return service ? (
+                    <ServiceIcon serviceId={service.id} size="lg" />
+                  ) : (
+                    <ServiceIconFallback serviceId={topic.id} size="lg" />
+                  );
+                }}
+              </Await>
             ) : (
               <ServiceIconFallback serviceId={topic.id} size="lg" />
             )}
@@ -291,15 +341,36 @@ function CatalogDetailRoute() {
           <Sep />
           <code className="font-mono text-[11px]">{topic.support_channel}</code>
           <Sep />
-          <span className="tabular-nums">
-            {sources.length} source{sources.length === 1 ? "" : "s"}
-          </span>
-          {freshest ? (
-            <>
-              <Sep />
-              <span className="tabular-nums">reviewed {formatDate(freshest)}</span>
-            </>
-          ) : null}
+          <Await
+            promise={bundle}
+            fallback={
+              <span
+                aria-hidden
+                className="inline-block h-3 w-24 animate-pulse rounded bg-accent align-middle"
+              />
+            }
+          >
+            {(resolved) => {
+              const sources = resolved?.sources ?? [];
+              const freshest = sources
+                .map((entry) => entry.source.last_reviewed_at)
+                .toSorted()
+                .at(-1);
+              return (
+                <>
+                  <span className="tabular-nums">
+                    {sources.length} source{sources.length === 1 ? "" : "s"}
+                  </span>
+                  {freshest ? (
+                    <>
+                      <Sep />
+                      <span className="tabular-nums">reviewed {formatDate(freshest)}</span>
+                    </>
+                  ) : null}
+                </>
+              );
+            }}
+          </Await>
         </p>
       </header>
 
@@ -346,21 +417,31 @@ function CatalogDetailRoute() {
             <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
               Evidence health
             </span>
-            <RailStat label="Registered sources" value={String(sources.length)} />
-            <RailStat
-              label="Anchored references"
-              value={String(bundle?.anchor_references.length ?? 0)}
-            />
-            <RailStat label="Open warnings" value={String(warnings.length)} />
-            {warnings.map((warning) => (
-              <p
-                key={`${warning.code}-${warning.source_id ?? ""}`}
-                className="flex items-start gap-2 rounded-[3px] border border-warning/50 bg-warning-tint px-3 py-2 text-[12px] leading-[1.5] text-warning-ink"
-              >
-                <IconInfoCircle aria-hidden className="mt-0.5 size-3.5 shrink-0" />
-                {warning.message}
-              </p>
-            ))}
+            <Await promise={bundle} fallback={<EvidenceHealthSkeleton />}>
+              {(resolved) => {
+                const sources = resolved?.sources ?? [];
+                const warnings = resolved?.warnings ?? [];
+                return (
+                  <>
+                    <RailStat label="Registered sources" value={String(sources.length)} />
+                    <RailStat
+                      label="Anchored references"
+                      value={String(resolved?.anchor_references.length ?? 0)}
+                    />
+                    <RailStat label="Open warnings" value={String(warnings.length)} />
+                    {warnings.map((warning) => (
+                      <p
+                        key={`${warning.code}-${warning.source_id ?? ""}`}
+                        className="flex items-start gap-2 rounded-[3px] border border-warning/50 bg-warning-tint px-3 py-2 text-[12px] leading-[1.5] text-warning-ink"
+                      >
+                        <IconInfoCircle aria-hidden className="mt-0.5 size-3.5 shrink-0" />
+                        {warning.message}
+                      </p>
+                    ))}
+                  </>
+                );
+              }}
+            </Await>
           </div>
         </aside>
       </div>
@@ -606,6 +687,63 @@ function RailStat({ label, value }: { label: string; value: string }) {
     <div className="flex items-baseline justify-between gap-3">
       <span className="text-[12.5px] text-muted-foreground">{label}</span>
       <span className="text-[14px] font-bold tabular-nums text-foreground">{value}</span>
+    </div>
+  );
+}
+
+/** Placeholder for the deferred Specifications table while availability resolves. */
+function SpecsSkeleton({ rows }: { rows: number }) {
+  return (
+    <dl
+      aria-hidden
+      className="grid grid-cols-1 overflow-hidden rounded-[4px] border border-border bg-card sm:grid-cols-2"
+    >
+      {Array.from({ length: rows }, (_, i) => (
+        <div
+          key={i}
+          className="flex items-baseline justify-between gap-4 border-b border-border px-4 py-2.5 last:border-b-0"
+        >
+          <Skeleton className="h-3 w-16" />
+          <Skeleton className="h-3 w-20" />
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+/** Placeholder for the deferred "Where it runs" / "Catalog scope" section. */
+function WhereItRunsSkeleton() {
+  return <Skeleton aria-hidden className="h-[124px] w-full rounded-[4px]" />;
+}
+
+/** Placeholder for the deferred References list — a couple of source-card rows. */
+function ReferencesSkeleton() {
+  return (
+    <div aria-hidden className="overflow-hidden rounded-[4px] border border-border bg-card">
+      {Array.from({ length: 2 }, (_, i) => (
+        <div key={i} className={cn("flex gap-4 px-4 py-4", i > 0 && "border-t border-border")}>
+          <Skeleton className="size-6 shrink-0" />
+          <div className="flex min-w-0 flex-1 flex-col gap-2">
+            <Skeleton className="h-3.5 w-48" />
+            <Skeleton className="h-3 w-full max-w-[40ch]" />
+            <Skeleton className="h-3 w-32" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Placeholder for the deferred evidence-health rail — three stat rows. */
+function EvidenceHealthSkeleton() {
+  return (
+    <div aria-hidden className="flex flex-col gap-2.5">
+      {Array.from({ length: 3 }, (_, i) => (
+        <div key={i} className="flex items-baseline justify-between gap-3">
+          <Skeleton className="h-3 w-28" />
+          <Skeleton className="h-3.5 w-6" />
+        </div>
+      ))}
     </div>
   );
 }

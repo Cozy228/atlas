@@ -19,7 +19,7 @@ import { useRecordRecent } from "@/components/home/recently-viewed";
 
 type LoaderData = {
   source: Source;
-  bundle: ContextBundleResponse | null;
+  bundle: Promise<ContextBundleResponse | null>;
   related: ReadonlyArray<Source>;
 };
 
@@ -47,18 +47,17 @@ export const Route = createFileRoute("/sources/$sourceId")({
       .slice(0, 5)
       .map((entry) => entry.s);
 
-    let bundle: ContextBundleResponse | null = null;
-    try {
-      // disclosure_level 2 resolves every registered anchor on the source (the
-      // default of 1 returns only the first), so "Key sections" shows the real
-      // sections of this page, not just one.
-      bundle = await context.queryClient.ensureQueryData(
-        contextBundleQueryOptions({ source_id: source.id, disclosure_level: 2 }),
-      );
-    } catch (error) {
-      if (error instanceof ContextApiError) bundle = null;
-      else throw error;
-    }
+    // Slow: defer the live bundle (no await) so navigation is instant and the
+    // evidence sections render a skeleton until anchors/excerpts resolve.
+    // disclosure_level 2 resolves every registered anchor on the source (the
+    // default of 1 returns only the first), so "Key sections" shows the real
+    // sections of this page, not just one.
+    const bundle = context.queryClient
+      .ensureQueryData(contextBundleQueryOptions({ source_id: source.id, disclosure_level: 2 }))
+      .catch((error: unknown): ContextBundleResponse | null => {
+        if (error instanceof ContextApiError) return null;
+        throw error;
+      });
     return { source, bundle, related };
   },
   component: SourceDetailRoute,
