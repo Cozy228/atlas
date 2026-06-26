@@ -263,7 +263,7 @@ export function SnapshotLine() {
   return (
     <span className="flex flex-wrap items-center gap-2">
       <SeedBadge label="demo snapshot" />
-      <span className="bg-background font-mono text-[11px] tabular-nums text-muted-foreground">
+      <span className="font-mono text-[11px] tabular-nums text-muted-foreground">
         {SNAPSHOT_AT}
       </span>
     </span>

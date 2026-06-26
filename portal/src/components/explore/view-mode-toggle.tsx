@@ -1,4 +1,4 @@
-import { Fragment, type ReactNode } from "react";
+import { type ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -28,29 +28,27 @@ export function ViewModeToggle<T extends string>({
     <div
       role="group"
       aria-label={ariaLabel}
-      className="inline-flex w-fit overflow-hidden rounded-md border border-border"
+      className="inline-flex w-fit gap-0.5 rounded-lg bg-muted p-0.5"
     >
-      {options.map((option, index) => {
+      {options.map((option) => {
         const active = option.value === value;
         return (
-          <Fragment key={option.value}>
-            {index > 0 ? <span className="w-px self-stretch bg-border" aria-hidden /> : null}
-            <button
-              type="button"
-              onClick={() => onChange(option.value)}
-              aria-pressed={active}
-              className={cn(
-                "inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-colors",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset",
-                active
-                  ? "bg-brand-tint text-primary"
-                  : "bg-card text-muted-foreground hover:bg-muted hover:text-foreground",
-              )}
-            >
-              {option.icon}
-              {option.label}
-            </button>
-          </Fragment>
+          <button
+            key={option.value}
+            type="button"
+            onClick={() => onChange(option.value)}
+            aria-pressed={active}
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              active
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {option.icon}
+            {option.label}
+          </button>
         );
       })}
     </div>

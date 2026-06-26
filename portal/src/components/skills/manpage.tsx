@@ -22,10 +22,8 @@ export function SkillsManpage({ selectedId }: { selectedId: string }) {
   return (
     <div className="flex flex-col gap-6">
       <header className="flex flex-col gap-1.5">
-        <h1 className="w-fit bg-background text-2xl font-bold tracking-[-0.02em] text-foreground">
-          Skills
-        </h1>
-        <p className="w-fit max-w-[64ch] bg-background text-[13.5px] leading-[1.55] text-muted-foreground">
+        <h1 className="w-fit text-2xl font-bold tracking-[-0.02em] text-foreground">Skills</h1>
+        <p className="w-fit max-w-[64ch] text-[13.5px] leading-[1.55] text-muted-foreground">
           {SKILLS.length} installable automations, documented like manual pages. Pick one from the
           index; its page opens on the right.
         </p>

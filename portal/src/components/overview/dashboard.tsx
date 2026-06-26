@@ -116,10 +116,10 @@ export function OverviewDashboard() {
         </div>
         <div className="flex min-w-0 flex-col gap-2.5">
           <h2 className="flex items-baseline justify-between gap-2">
-            <span className="bg-background font-mono text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            <span className="font-mono text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
               Needs attention
             </span>
-            <span className="bg-background font-mono text-[10.5px] tabular-nums text-muted-foreground">
+            <span className="font-mono text-[10.5px] tabular-nums text-muted-foreground">
               {attention.length} items
             </span>
           </h2>
@@ -169,7 +169,7 @@ function PipelinesPanel() {
   const recent = PIPELINES.slice(0, 5);
   return (
     <section aria-label="Pipelines" className="flex flex-col gap-2.5">
-      <span className="bg-background font-mono text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+      <span className="font-mono text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
         CI/CD pipelines
       </span>
       <ul className="overflow-hidden rounded-[4px] border border-border bg-card">
@@ -202,7 +202,7 @@ function ScanPanel() {
   const totals = scanTotals();
   return (
     <section aria-label="Security scans" className="flex flex-col gap-2.5">
-      <span className="bg-background font-mono text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+      <span className="font-mono text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
         Security scans
       </span>
       <div className="flex flex-col gap-3 rounded-[4px] border border-border bg-card p-3.5">
@@ -273,7 +273,7 @@ function TfeStatusPanel() {
   return (
     <section aria-label="Terraform workspaces" className="flex flex-col gap-2.5">
       <h2 className="flex items-baseline justify-between gap-2">
-        <span className="bg-background font-mono text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+        <span className="font-mono text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
           Terraform workspaces · TFE
         </span>
         <span
@@ -319,10 +319,10 @@ function TicketsPanel({ tickets }: { tickets: ReturnType<typeof openTickets> }) 
   return (
     <section aria-label="Open tickets" className="flex flex-col gap-2.5">
       <h2 className="flex items-baseline justify-between gap-2">
-        <span className="bg-background font-mono text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+        <span className="font-mono text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
           Open tickets
         </span>
-        <span className="bg-background font-mono text-[10.5px] tabular-nums text-muted-foreground">
+        <span className="font-mono text-[10.5px] tabular-nums text-muted-foreground">
           {tickets.length}
         </span>
       </h2>
@@ -372,7 +372,7 @@ function Figure({ value, label, warn }: { value: number; label: string; warn?: b
 function FleetTable() {
   return (
     <section aria-label="Fleet health" className="flex flex-col gap-2.5">
-      <h2 className="w-fit bg-background font-mono text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+      <h2 className="w-fit font-mono text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
         Fleet health · {APP_SERVICES.length} services
       </h2>
       <div className="overflow-x-auto rounded-[4px] border border-border bg-card">
@@ -461,10 +461,10 @@ function PendingPromotions() {
   return (
     <section aria-label="Pending promotions" className="flex flex-col gap-2.5">
       <h2 className="flex items-baseline justify-between gap-2">
-        <span className="bg-background font-mono text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+        <span className="font-mono text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
           Pending promotions
         </span>
-        <span className="bg-background font-mono text-[10.5px] tabular-nums text-muted-foreground">
+        <span className="font-mono text-[10.5px] tabular-nums text-muted-foreground">
           {pending.length}
         </span>
       </h2>

@@ -59,7 +59,7 @@ export function ServiceCard({ provider, row, selected, onSelect }: ServiceCardPr
         {overflow > 0 ? (
           <span
             className={cn(
-              "inline-flex items-center rounded border border-border bg-background px-1.5 py-px",
+              "inline-flex items-center rounded border border-border px-1.5 py-px",
               "font-mono type-chip font-medium text-muted-foreground",
             )}
           >

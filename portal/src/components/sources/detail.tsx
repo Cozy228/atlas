@@ -11,9 +11,12 @@
  * from the mainline; the layout is this surface's own.
  */
 import { Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { IconArrowLeft, IconExternalLink, IconLock } from "@tabler/icons-react";
 import type { AnchorReference, ContextBundleResponse, Source } from "@atlas/schema";
 
+import { contextBundleQueryOptions } from "@/api/queries";
+import { LastFetchChip } from "@/components/last-fetch-chip";
 import {
   AnchorStatusBadge,
   AuthorityBadge,
@@ -82,7 +85,7 @@ function BackLink() {
   return (
     <Link
       to="/sources"
-      className="inline-flex w-fit items-center gap-1.5 bg-background text-[13px] font-semibold text-muted-foreground hover:text-brand-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      className="inline-flex w-fit items-center gap-1.5 text-[13px] font-semibold text-muted-foreground hover:text-brand-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       <IconArrowLeft aria-hidden className="size-3.5" />
       Source registry
@@ -162,7 +165,7 @@ function RestingCitations({ anchors }: { anchors: ReadonlyArray<AnchorReference>
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <h2 className="w-fit bg-background font-mono text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+    <h2 className="w-fit font-mono text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
       {children}
     </h2>
   );
@@ -170,11 +173,14 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 
 /** Shared identity header — back link, record line, title, status badges. */
 function DetailHeader({ source }: { source: Source }) {
+  const { dataUpdatedAt } = useQuery(
+    contextBundleQueryOptions({ source_id: source.id, disclosure_level: 2 }),
+  );
   return (
     <>
       <BackLink />
       <header className="flex flex-col gap-3">
-        <span className="flex flex-wrap items-center gap-x-2.5 gap-y-1 bg-background font-mono text-[11px] uppercase tracking-[0.08em] text-muted-foreground">
+        <span className="flex flex-wrap items-center gap-x-2.5 gap-y-1 font-mono text-[11px] uppercase tracking-[0.08em] text-muted-foreground">
           <span className="font-semibold">{CLASS_LABEL[source.source_class]}</span>
           <span aria-hidden className="text-border-strong">
             ·
@@ -182,7 +188,7 @@ function DetailHeader({ source }: { source: Source }) {
           <span>{source.id}</span>
         </span>
         <div className="flex flex-wrap items-start justify-between gap-4">
-          <h1 className="w-fit max-w-[24ch] bg-background text-[1.875rem] font-bold leading-[1.1] tracking-[-0.03em] text-foreground">
+          <h1 className="w-fit max-w-[24ch] text-[1.875rem] font-bold leading-[1.1] tracking-[-0.03em] text-foreground">
             {source.title}
           </h1>
           <OpenAtSource source={source} />
@@ -191,6 +197,7 @@ function DetailHeader({ source }: { source: Source }) {
           <AuthorityBadge level={source.authority_level} />
           <FreshnessIndicator source={source} />
           <VisibilityBadge value={source.visibility} />
+          {dataUpdatedAt ? <LastFetchChip updatedAt={dataUpdatedAt} className="ml-1" /> : null}
         </div>
       </header>
       {source.visibility === "restricted" ? <RestrictedNotice /> : null}
@@ -291,7 +298,7 @@ export function SourceDossier({
                   <section className="flex flex-col gap-2.5">
                     <div className="flex items-baseline justify-between gap-2">
                       <SectionLabel>Citations resting on this source</SectionLabel>
-                      <span className="bg-background font-mono text-[10.5px] tabular-nums text-muted-foreground">
+                      <span className="font-mono text-[10.5px] tabular-nums text-muted-foreground">
                         {anchors.length}
                       </span>
                     </div>
@@ -306,7 +313,7 @@ export function SourceDossier({
             <section className="flex flex-col gap-2.5">
               <div className="flex items-baseline justify-between gap-2">
                 <SectionLabel>Related records</SectionLabel>
-                <span className="bg-background font-mono text-[10.5px] tabular-nums text-muted-foreground">
+                <span className="font-mono text-[10.5px] tabular-nums text-muted-foreground">
                   {related.length}
                 </span>
               </div>

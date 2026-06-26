@@ -16,8 +16,11 @@
  */
 import type { ReactNode } from "react";
 import { Link, createFileRoute, notFound } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { IconArrowLeft, IconArrowUpRight, IconInfoCircle, IconRoute } from "@tabler/icons-react";
 import type { ContextBundleResponse, Topic, TopicDiscoveryResponse } from "@atlas/schema";
+
+import { LastFetchChip } from "@/components/last-fetch-chip";
 
 import {
   availabilityQueryOptions,
@@ -127,6 +130,9 @@ function formatDate(iso: string): string {
 
 function CatalogDetailRoute() {
   const { topic, related, guidance, bundle, zone } = Route.useLoaderData();
+  const { dataUpdatedAt } = useQuery(
+    contextBundleQueryOptions({ topic_id: topic.id, disclosure_level: 2 }),
+  );
 
   const recent: RecentItem | null =
     topic.topic_type === "service"
@@ -300,7 +306,7 @@ function CatalogDetailRoute() {
     <div className="mx-auto flex w-full max-w-[1180px] flex-col gap-7 px-6 py-9 sm:px-8">
       <Link
         to="/catalog"
-        className="flex w-fit items-center gap-1.5 bg-background text-[13px] font-medium text-muted-foreground transition-colors hover:text-brand-ink"
+        className="flex w-fit items-center gap-1.5 text-[13px] font-medium text-muted-foreground transition-colors hover:text-brand-ink"
       >
         <IconArrowLeft aria-hidden className="size-3.5" />
         Catalog
@@ -333,27 +339,25 @@ function CatalogDetailRoute() {
             )}
           </span>
           <div className="flex min-w-0 flex-col gap-1.5">
-            <span className="w-fit bg-background font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            <span className="w-fit font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
               {TYPE_LABEL[topic.topic_type]} · {topic.category}
             </span>
             <div className="flex flex-wrap items-center gap-3">
-              <h1 className="w-fit bg-background text-[1.75rem] font-bold leading-[1.1] tracking-[-0.025em] text-foreground">
+              <h1 className="w-fit text-[1.75rem] font-bold leading-[1.1] tracking-[-0.025em] text-foreground">
                 {topic.name}
               </h1>
               <Badge variant={STATUS_CHIP[topic.status].variant}>
                 {STATUS_CHIP[topic.status].label}
               </Badge>
-              <code className="bg-background font-mono text-[11.5px] text-muted-foreground">
-                {topic.id}
-              </code>
+              <code className="font-mono text-[11.5px] text-muted-foreground">{topic.id}</code>
             </div>
-            <p className="w-fit max-w-[68ch] bg-background text-[14.5px] leading-[1.55] text-muted-foreground">
+            <p className="w-fit max-w-[68ch] text-[14.5px] leading-[1.55] text-muted-foreground">
               {topic.description}
             </p>
           </div>
         </div>
         {/* Trust line: every fact below is real loader data. */}
-        <p className="flex w-fit flex-wrap items-center gap-x-2.5 gap-y-1 bg-background text-[12.5px] text-muted-foreground">
+        <p className="flex w-fit flex-wrap items-center gap-x-2.5 gap-y-1 text-[12.5px] text-muted-foreground">
           <span className="font-semibold text-foreground">{topic.owner_team}</span>
           <Sep />
           <code className="font-mono text-[11px]">{topic.support_channel}</code>
@@ -389,6 +393,12 @@ function CatalogDetailRoute() {
               );
             }}
           </DeferredRegion>
+          {dataUpdatedAt ? (
+            <>
+              <Sep />
+              <LastFetchChip updatedAt={dataUpdatedAt} />
+            </>
+          ) : null}
         </p>
       </header>
 
@@ -524,7 +534,7 @@ function WhereItRuns({
       )}
       <Link
         to="/availability"
-        className="mt-2 flex w-fit items-center gap-1 bg-background text-[12.5px] font-semibold text-brand-ink hover:underline"
+        className="mt-2 flex w-fit items-center gap-1 text-[12.5px] font-semibold text-brand-ink hover:underline"
       >
         Open in availability map
         <IconArrowUpRight aria-hidden className="size-3.5" />
@@ -545,7 +555,7 @@ function CatalogScope({ zone, totalZones }: { zone: LandingZoneData; totalZones:
       </p>
       <Link
         to="/availability"
-        className="mt-2 flex w-fit items-center gap-1 bg-background text-[12.5px] font-semibold text-brand-ink hover:underline"
+        className="mt-2 flex w-fit items-center gap-1 text-[12.5px] font-semibold text-brand-ink hover:underline"
       >
         Open in availability map
         <IconArrowUpRight aria-hidden className="size-3.5" />
@@ -679,10 +689,10 @@ function Sep() {
 function DatasheetHead({ index, title }: { index: string; title: string }) {
   return (
     <div className="mb-3 flex items-baseline gap-2.5">
-      <span className="bg-background font-mono text-[11px] font-semibold tabular-nums text-muted-foreground/70">
+      <span className="font-mono text-[11px] font-semibold tabular-nums text-muted-foreground/70">
         {index}
       </span>
-      <h2 className="w-fit bg-background text-[1.0625rem] font-bold tracking-[-0.015em] text-foreground">
+      <h2 className="w-fit text-[1.0625rem] font-bold tracking-[-0.015em] text-foreground">
         {title}
       </h2>
     </div>

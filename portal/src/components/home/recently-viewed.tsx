@@ -101,7 +101,7 @@ function RecentlyViewedClient({ lead }: { lead?: string }) {
     >
       {lead ? (
         <>
-          <span className="bg-background text-[12.5px] text-muted-foreground">{lead}</span>
+          <span className="text-[12.5px] text-muted-foreground">{lead}</span>
           <span aria-hidden className="bg-background text-muted-foreground/40">
             ·
           </span>

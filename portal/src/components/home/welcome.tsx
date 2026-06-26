@@ -122,7 +122,7 @@ function WhatsNewTicker({ announcements }: { announcements: ReadonlyArray<HomeAn
       aria-label="What's new — read the full dispatch"
       className="group flex w-full items-center gap-4 border-y border-border py-2.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
-      <span className="flex shrink-0 items-center gap-1.5 bg-background font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-brand-ink">
+      <span className="flex shrink-0 items-center gap-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-brand-ink">
         What&rsquo;s new
         <IconArrowRight
           aria-hidden
@@ -181,17 +181,17 @@ function SectionHead({
   return (
     <div className="mb-5 flex items-end justify-between gap-4">
       <div className="flex flex-col gap-1.5">
-        <h2 className="w-fit bg-background text-[1.375rem] font-bold tracking-[-0.02em] text-foreground">
+        <h2 className="w-fit text-[1.375rem] font-bold tracking-[-0.02em] text-foreground">
           {title}
         </h2>
         {description ? (
-          <p className="w-fit bg-background text-[13.5px] text-muted-foreground">{description}</p>
+          <p className="w-fit text-[13.5px] text-muted-foreground">{description}</p>
         ) : null}
       </div>
       {action ? (
         <Link
           to={action.to}
-          className="flex shrink-0 items-center gap-1 bg-background text-[13px] font-semibold text-brand-ink hover:underline"
+          className="flex shrink-0 items-center gap-1 text-[13px] font-semibold text-brand-ink hover:underline"
         >
           {action.label}
           <IconArrowRight aria-hidden className="size-3.5" />
@@ -219,17 +219,17 @@ function Hero({
       <HomeDeferred promise={announcements} fallback={<TickerSkeleton />}>
         {(announcements) => <WhatsNewTicker announcements={announcements} />}
       </HomeDeferred>
-      <h1 className="w-fit max-w-[18ch] bg-background text-[2.5rem] font-bold leading-[1.05] tracking-[-0.035em] text-balance text-foreground">
+      <h1 className="w-fit max-w-[18ch] text-[2.5rem] font-bold leading-[1.05] tracking-[-0.035em] text-balance text-foreground">
         Welcome to Atlas Portal
       </h1>
-      <p className="w-fit max-w-[52ch] bg-background text-[1.0625rem] leading-[1.55] text-pretty text-muted-foreground">
+      <p className="w-fit max-w-[52ch] text-[1.0625rem] leading-[1.55] text-pretty text-muted-foreground">
         Find the right guidance, services, and evidence to build with confidence. Every claim links
         back to its source.
       </p>
       <div className="flex w-full max-w-[600px] flex-col items-center gap-3 pt-1">
         <IntentSearch className="h-12 w-full" />
         <div className="flex flex-wrap items-center justify-center gap-1.5">
-          <span className="bg-background text-xs font-medium text-muted-foreground">Popular</span>
+          <span className="text-xs font-medium text-muted-foreground">Popular</span>
           {POPULAR.map((q) => (
             <Link
               key={q}
@@ -277,7 +277,7 @@ function StatsSkeleton() {
 
 function Stat({ value, label }: { value: number; label: string }) {
   return (
-    <div className="flex items-baseline gap-1.5 bg-background">
+    <div className="flex items-baseline gap-1.5">
       <dt className="sr-only">{label}</dt>
       <dd className="text-[1.375rem] font-bold tabular-nums tracking-[-0.02em] text-foreground">
         {value}
@@ -332,19 +332,19 @@ function IntentFocus() {
             className="group/row grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-6 py-3.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <div className="flex min-w-0 flex-col">
-              <span className="intent-eyebrow w-fit bg-background font-mono font-semibold uppercase tracking-[0.14em] transition-[font-size,opacity,color,margin] duration-200 group-hover/row:text-brand-ink">
+              <span className="intent-eyebrow w-fit font-mono font-semibold uppercase tracking-[0.14em] transition-[font-size,opacity,color,margin] duration-200 group-hover/row:text-brand-ink">
                 {intent.verb}
               </span>
-              <span className="intent-title w-fit bg-background font-bold tracking-[-0.02em] transition-[font-size,color] duration-200 group-hover/row:text-brand-ink">
+              <span className="intent-title w-fit font-bold tracking-[-0.02em] transition-[font-size,color] duration-200 group-hover/row:text-brand-ink">
                 {intent.title}
               </span>
               <div className="intent-reveal grid transition-[grid-template-rows,opacity] duration-200">
-                <p className="w-fit max-w-[54ch] overflow-hidden bg-background text-[13px] leading-[1.5] text-muted-foreground">
+                <p className="w-fit max-w-[54ch] overflow-hidden text-[13px] leading-[1.5] text-muted-foreground">
                   {intent.description}
                 </p>
               </div>
             </div>
-            <span className="intent-lands flex items-center gap-1.5 self-center bg-background font-mono text-[10px] uppercase tracking-[0.06em] transition-colors duration-200 group-hover/row:text-brand-ink">
+            <span className="intent-lands flex items-center gap-1.5 self-center font-mono text-[10px] uppercase tracking-[0.06em] transition-colors duration-200 group-hover/row:text-brand-ink">
               {intent.lands}
               <IconArrowRight
                 aria-hidden
@@ -443,7 +443,7 @@ function CatalogIndex({
                   <button
                     type="button"
                     onClick={() => setSelected(null)}
-                    className="group flex w-fit items-center gap-1.5 bg-background text-[12.5px] font-medium text-muted-foreground transition-colors hover:text-brand-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    className="group flex w-fit items-center gap-1.5 text-[12.5px] font-medium text-muted-foreground transition-colors hover:text-brand-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     <IconArrowLeft
                       aria-hidden
@@ -451,14 +451,14 @@ function CatalogIndex({
                     />
                     All domains
                   </button>
-                  <h3 className="w-fit bg-background text-[1.25rem] font-bold tracking-[-0.02em] text-foreground">
+                  <h3 className="w-fit text-[1.25rem] font-bold tracking-[-0.02em] text-foreground">
                     {domain.domain}
                   </h3>
-                  <span className="w-fit bg-background font-mono text-[11px] tabular-nums text-muted-foreground">
+                  <span className="w-fit font-mono text-[11px] tabular-nums text-muted-foreground">
                     {domain.count} services
                   </span>
                   {domain.blurb ? (
-                    <p className="w-fit max-w-[30ch] bg-background text-[12.5px] leading-[1.5] text-muted-foreground">
+                    <p className="w-fit max-w-[30ch] text-[12.5px] leading-[1.5] text-muted-foreground">
                       {domain.blurb}
                     </p>
                   ) : null}
@@ -486,14 +486,14 @@ function CatalogIndex({
                       className="group flex w-full items-baseline justify-between gap-3 border-b border-border py-2.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       <span className="flex min-w-0 flex-col">
-                        <span className="truncate bg-background text-[13.5px] font-semibold text-foreground group-hover:text-brand-ink">
+                        <span className="truncate text-[13.5px] font-semibold text-foreground group-hover:text-brand-ink">
                           {d.domain}
                         </span>
-                        <span className="truncate bg-background text-[11.5px] text-muted-foreground">
+                        <span className="truncate text-[11.5px] text-muted-foreground">
                           {d.preview}
                         </span>
                       </span>
-                      <span className="shrink-0 self-center bg-background text-[12px] tabular-nums text-muted-foreground">
+                      <span className="shrink-0 self-center text-[12px] tabular-nums text-muted-foreground">
                         {d.count}
                       </span>
                     </button>
@@ -525,10 +525,10 @@ function ServiceLine({ service, variants }: { service: DomainService; variants: 
           aria-hidden
           className={cn("size-1.5 shrink-0 self-center rounded-full", ENTRY_DOT[service.status])}
         />
-        <span className="min-w-0 truncate bg-background text-[13px] font-medium text-foreground underline decoration-border underline-offset-[3px] group-hover:text-brand-ink group-hover:decoration-current">
+        <span className="min-w-0 truncate text-[13px] font-medium text-foreground underline decoration-border underline-offset-[3px] group-hover:text-brand-ink group-hover:decoration-current">
           {service.name}
         </span>
-        <span className="ml-auto shrink-0 bg-background font-mono text-[10px] tabular-nums text-muted-foreground">
+        <span className="ml-auto shrink-0 font-mono text-[10px] tabular-nums text-muted-foreground">
           {note}
         </span>
       </Link>
@@ -550,14 +550,14 @@ function HelpCloser() {
       data-fab-dismiss
       className="flex flex-col items-center gap-3 border-t border-border py-7 text-center"
     >
-      <span className="flex items-center gap-1.5 bg-background font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-brand-ink">
+      <span className="flex items-center gap-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-brand-ink">
         <IconMessageCircle aria-hidden className="size-3.5" />
         Ask Atlas
       </span>
-      <h2 className="w-fit max-w-[28ch] bg-background text-[1.25rem] font-bold tracking-[-0.02em] text-foreground">
+      <h2 className="w-fit max-w-[28ch] text-[1.25rem] font-bold tracking-[-0.02em] text-foreground">
         Didn&rsquo;t find it? Just ask.
       </h2>
-      <p className="w-fit max-w-[50ch] bg-background text-[13px] leading-[1.55] text-muted-foreground">
+      <p className="w-fit max-w-[50ch] text-[13px] leading-[1.55] text-muted-foreground">
         Describe what you&rsquo;re trying to do in plain language. Every answer links back to the
         guidance, service, or policy it came from.
       </p>

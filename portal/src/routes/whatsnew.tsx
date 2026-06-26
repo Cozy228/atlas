@@ -12,8 +12,11 @@
  * Data: fictional, public-safe fixtures in `proto/whatsnew/data.ts`. Home's
  * "What changed" section links here; the freshest slice are Home's announcements.
  */
+import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 
+import { LastFetchChip } from "@/components/last-fetch-chip";
 import {
   changesFromAnnouncements,
   KIND_TONE,
@@ -29,8 +32,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { DeferredRegion } from "@/components/deferred-region";
 import { withDevLatency } from "@/lib/dev-latency";
 import { cn } from "@/lib/utils";
-
-const DATELINE = "Thursday · June 11, 2026";
 
 export const Route = createFileRoute("/whatsnew")({
   loader: ({ context }) => {
@@ -122,21 +123,38 @@ function WhatsNewRoute() {
 }
 
 function Masthead() {
+  const [dateline, setDateline] = useState("");
+  useEffect(() => {
+    const now = new Date();
+    setDateline(
+      `${now.toLocaleDateString("en-US", { weekday: "long" })} · ${now.toLocaleDateString("en-US", {
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+      })}`,
+    );
+  }, []);
+  const { dataUpdatedAt } = useQuery(announcementsQueryOptions);
+
   return (
     <header className="flex flex-col gap-4 border-b-[3px] border-double border-border-strong pb-5">
       <div className="flex items-center justify-between gap-4 border-b border-border pb-2 font-mono text-[10.5px] uppercase tracking-[0.14em] text-muted-foreground">
-        <span className="tabular-nums">{DATELINE}</span>
+        <span className="tabular-nums">{dateline}</span>
         <span className="hidden tracking-[0.2em] sm:inline">The Atlas Dispatch</span>
-        <span>Internal</span>
+        {dataUpdatedAt ? (
+          <LastFetchChip updatedAt={dataUpdatedAt} className="tracking-normal" />
+        ) : (
+          <span>Internal</span>
+        )}
       </div>
       {/* Same column grid as the body below, so the edition plate's divider lines
           up exactly with the rail's hairline. */}
       <div className="grid items-end gap-x-12 gap-y-4 lg:grid-cols-[minmax(0,1fr)_240px]">
         <div className="flex flex-col gap-1.5">
-          <h1 className="w-fit bg-background text-[3rem] font-bold leading-[0.95] tracking-[-0.045em] text-foreground sm:text-[3.5rem]">
+          <h1 className="w-fit text-[3rem] font-bold leading-[0.95] tracking-[-0.045em] text-foreground sm:text-[3.5rem]">
             What&rsquo;s New
           </h1>
-          <p className="w-fit max-w-[52ch] bg-background text-[13px] italic leading-[1.5] text-muted-foreground">
+          <p className="w-fit max-w-[52ch] text-[13px] italic leading-[1.5] text-muted-foreground">
             Platform releases, policy changes, and resolved incidents across the cloud platform —
             newest first.
           </p>
@@ -170,7 +188,7 @@ function Kicker({ change, size = "sm" }: { change: Change; size?: "sm" | "lg" })
       />
       <span
         className={cn(
-          "bg-background font-mono font-semibold uppercase tracking-[0.06em] text-muted-foreground",
+          "font-mono font-semibold uppercase tracking-[0.06em] text-muted-foreground",
           size === "lg" ? "text-[11px]" : "text-[10px]",
         )}
       >
@@ -185,7 +203,7 @@ function StoryLink({ change }: { change: Change }) {
   return (
     <a
       href={change.link.href}
-      className="flex w-fit items-center gap-1 bg-background text-[12.5px] font-semibold text-brand-ink hover:underline"
+      className="flex w-fit items-center gap-1 text-[12.5px] font-semibold text-brand-ink hover:underline"
     >
       {change.link.label}
       <span aria-hidden>→</span>
@@ -197,10 +215,10 @@ function LeadStory({ change }: { change: Change }) {
   return (
     <article className="flex flex-col gap-3">
       <Kicker change={change} size="lg" />
-      <h2 className="w-fit max-w-[20ch] bg-background text-[2.25rem] font-bold leading-[1.05] tracking-[-0.03em] text-balance text-foreground">
+      <h2 className="w-fit max-w-[20ch] text-[2.25rem] font-bold leading-[1.05] tracking-[-0.03em] text-balance text-foreground">
         {change.title}
       </h2>
-      <p className="w-fit max-w-[62ch] bg-background text-[15px] leading-[1.6] text-pretty text-muted-foreground">
+      <p className="w-fit max-w-[62ch] text-[15px] leading-[1.6] text-pretty text-muted-foreground">
         {change.summary}
       </p>
       <StoryLink change={change} />
@@ -212,10 +230,10 @@ function SecondaryStory({ change, divided }: { change: Change; divided: boolean 
   return (
     <article className={cn("flex flex-col gap-2", divided && "border-border sm:border-l sm:pl-10")}>
       <Kicker change={change} />
-      <h3 className="w-fit bg-background text-[1.25rem] font-bold leading-[1.2] tracking-[-0.02em] text-foreground">
+      <h3 className="w-fit text-[1.25rem] font-bold leading-[1.2] tracking-[-0.02em] text-foreground">
         {change.title}
       </h3>
-      <p className="w-fit max-w-[52ch] bg-background text-[13px] leading-[1.55] text-muted-foreground">
+      <p className="w-fit max-w-[52ch] text-[13px] leading-[1.55] text-muted-foreground">
         {change.summary}
       </p>
       <StoryLink change={change} />
@@ -255,12 +273,12 @@ function BriefRow({
       )}
     >
       <Kicker change={change} />
-      <h3 className="w-fit bg-background text-[13.5px] font-bold tracking-[-0.01em] text-foreground">
+      <h3 className="w-fit text-[13.5px] font-bold tracking-[-0.01em] text-foreground">
         {change.title}
       </h3>
       <p
         className={cn(
-          "w-fit max-w-[44ch] bg-background text-[12px] leading-[1.5] text-muted-foreground",
+          "w-fit max-w-[44ch] text-[12px] leading-[1.5] text-muted-foreground",
           dense && "line-clamp-2",
         )}
       >
@@ -297,9 +315,9 @@ function Rail({ changes }: { changes: ReadonlyArray<Change> }) {
                   aria-hidden
                   className={cn("size-2 rounded-full", TONE_DOT[KIND_TONE[k.kind]])}
                 />
-                <span className="bg-background text-[12.5px] text-foreground">{k.kind}</span>
+                <span className="text-[12.5px] text-foreground">{k.kind}</span>
               </dt>
-              <dd className="bg-background font-mono text-[11px] tabular-nums text-muted-foreground">
+              <dd className="font-mono text-[11px] tabular-nums text-muted-foreground">
                 {k.count}
               </dd>
             </div>
@@ -315,10 +333,10 @@ function Rail({ changes }: { changes: ReadonlyArray<Change> }) {
                 href={`#${monthAnchor(m.month)}`}
                 className="group flex items-baseline justify-between gap-3 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                <span className="bg-background text-[13px] font-semibold text-foreground group-hover:text-brand-ink">
+                <span className="text-[13px] font-semibold text-foreground group-hover:text-brand-ink">
                   {m.month}
                 </span>
-                <span className="shrink-0 bg-background font-mono text-[11px] tabular-nums text-muted-foreground">
+                <span className="shrink-0 font-mono text-[11px] tabular-nums text-muted-foreground">
                   {m.items.length}
                 </span>
               </a>
@@ -328,7 +346,7 @@ function Rail({ changes }: { changes: ReadonlyArray<Change> }) {
       </RailModule>
 
       <RailModule label="Editor's note">
-        <p className="bg-background text-[12px] leading-[1.6] text-muted-foreground">
+        <p className="text-[12px] leading-[1.6] text-muted-foreground">
           Every entry links back to the surface that owns it — a catalog page, a guidance route, or
           a source record. Read the dispatch top-down for the day&rsquo;s shape, or jump by type.
         </p>
@@ -359,7 +377,7 @@ function GlanceStat({ value, label, tone }: { value: number; label: string; tone
 function RailModule({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <section className="flex flex-col gap-2.5">
-      <h2 className="w-fit border-b-2 border-border-strong bg-background pb-1.5 font-mono text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+      <h2 className="w-fit border-b-2 border-border-strong pb-1.5 font-mono text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
         {label}
       </h2>
       {children}
