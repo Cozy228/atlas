@@ -9,6 +9,7 @@
  * plain equirectangular transform.
  */
 import {
+  Suspense,
   startTransition,
   useEffect,
   useLayoutEffect,
@@ -42,6 +43,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { buildAvailabilityRowModel } from "@/lib/availability-row-model";
 import { cn } from "@/lib/utils";
@@ -52,7 +54,11 @@ export const Route = createFileRoute("/availability/")({
     // with real icons in a single commit (no glyph→real upgrade). Client-only: on
     // the server the chunk is already bundled, so warming it does nothing useful.
     if (typeof window !== "undefined") preloadAwsServiceIcons();
-    return context.queryClient.ensureQueryData(availabilityQueryOptions);
+    // Warm the availability cache WITHOUT blocking navigation (no return/await).
+    // The real projection is a live Confluence fetch + parse, so awaiting it here
+    // would freeze on the click; instead the body suspends on the query and shows
+    // AvailabilitySkeleton until it lands.
+    void context.queryClient.ensureQueryData(availabilityQueryOptions);
   },
   component: RegionsRoute,
 });
@@ -143,6 +149,17 @@ function reducer(state: State, action: Action): State {
 }
 
 function RegionsRoute() {
+  // Suspense boundary so navigation is instant: the body suspends on the
+  // (live-fetched) projection and AvailabilitySkeleton holds the layout until
+  // it resolves. The post-data matrix mount is deferred separately below.
+  return (
+    <Suspense fallback={<AvailabilitySkeleton />}>
+      <RegionsContent />
+    </Suspense>
+  );
+}
+
+function RegionsContent() {
   const {
     data: { zones },
   } = useSuspenseQuery(availabilityQueryOptions);
@@ -690,11 +707,41 @@ function LegendItem({ dotClass, label }: { dotClass: string; label: string }) {
 /** Reserves the matrix's above-the-fold height while its mount is deferred. */
 function MatrixSkeleton() {
   return (
-    <div
+    <Skeleton
       aria-busy
       aria-label="Loading service availability"
-      className="min-h-[480px] rounded-lg border border-border bg-card"
+      className="min-h-[480px] rounded-lg"
     />
+  );
+}
+
+/**
+ * Full-body fallback while the availability projection (a live Confluence fetch
+ * + parse in the real adapter) resolves. The static page header paints instantly;
+ * the controls bar, map, matrix and region aside hold their real layout so the
+ * page doesn't jump when data lands. Distinct from MatrixSkeleton, which only
+ * covers the post-data matrix mount.
+ */
+function AvailabilitySkeleton() {
+  return (
+    <PageBody width="wide" gap="compact" className="py-9">
+      <PageHeader
+        eyebrow="Availability"
+        title="Regions"
+        description="See where services run and check per-region operational status across your landing zones."
+        actions={<Skeleton className="h-9 w-[132px] rounded-lg" />}
+      />
+      <div aria-busy aria-label="Loading availability" className="flex flex-col gap-4">
+        <Skeleton className="h-9 w-full max-w-lg rounded-lg" />
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px] xl:items-start">
+          <div className="flex min-w-0 flex-col gap-4">
+            <Skeleton className="h-[260px] w-full rounded-xl" />
+            <Skeleton className="min-h-[480px] w-full rounded-lg" />
+          </div>
+          <Skeleton className="min-h-[320px] w-full rounded-xl" />
+        </div>
+      </div>
+    </PageBody>
   );
 }
 

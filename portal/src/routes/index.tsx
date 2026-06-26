@@ -15,9 +15,15 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { availabilityQueryOptions, announcementsQueryOptions } from "@/api/queries";
+import { withDevLatency } from "@/lib/dev-latency";
 import { DOMAIN_BLURBS } from "@/components/catalog/data";
 import { HomeWelcome } from "@/components/home/welcome";
-import type { DomainService, HomeAnnouncement, HomeLoaderData } from "@/components/home/data";
+import type {
+  DomainService,
+  HomeAnnouncement,
+  HomeLoaderData,
+  HomeStats,
+} from "@/components/home/data";
 
 function slugifyDomain(domain: string): string {
   return domain
@@ -27,62 +33,71 @@ function slugifyDomain(domain: string): string {
 }
 
 export const Route = createFileRoute("/")({
-  loader: async ({ context }): Promise<HomeLoaderData> => {
-    const [availability, feed] = await Promise.all([
-      context.queryClient.ensureQueryData(availabilityQueryOptions),
-      context.queryClient.ensureQueryData(announcementsQueryOptions),
-    ]);
-    // The "What's new" ticker = the newsletter's standalone announcements, the
-    // most recent few (the feed is authored newest-first).
-    const announcements: HomeAnnouncement[] = feed
-      .slice(0, 8)
-      .map((a) => ({ kind: a.kind ?? "Update", title: a.title }));
-    // Same projection as /catalog so the numbers on both pages agree.
-    const zone = availability.zones.find((z) => z.id === "aws") ?? availability.zones[0]!;
-    const services = zone.services.filter((service) => service.id !== "landing-zones");
-    const byDomain = new Map<string, DomainService[]>();
-    for (const service of services) {
-      let live = 0;
-      let planned = 0;
-      for (const loc of zone.locations) {
-        const status = service.availability[loc.id]?.status;
-        if (status === "available" || status === "interim") live += 1;
-        else if (status === "planned") planned += 1;
-      }
-      const entry: DomainService = {
-        id: service.id,
-        name: service.name,
-        status: live > 0 ? "ga" : planned > 0 ? "planned" : "none",
-        liveRegions: live,
-        plannedRegions: planned,
-      };
-      (byDomain.get(service.domain) ?? byDomain.set(service.domain, []).get(service.domain)!).push(
-        entry,
-      );
-    }
-    const domains = [...byDomain.entries()]
-      .sort((a, b) => a[0].localeCompare(b[0]))
-      .map(([domain, entries]) => {
-        const sorted = entries.toSorted((a, b) => a.name.localeCompare(b.name));
+  loader: ({ context }): HomeLoaderData => {
+    // Deferred (a live newsletter feed in the real adapter): the What's-new ticker
+    // — same dev latency + skeleton as the other live data on the page.
+    const announcements = withDevLatency(
+      context.queryClient
+        .ensureQueryData(announcementsQueryOptions)
+        .then((feed): HomeAnnouncement[] =>
+          feed.slice(0, 8).map((a) => ({ kind: a.kind ?? "Update", title: a.title })),
+        ),
+    );
+
+    // Slow: availability is a live Confluence fetch + parse in the real adapter —
+    // defer it (no await) so the home shell (hero, intents, lifecycle, ticker)
+    // paints immediately; the hero stat numbers + domain index show a skeleton
+    // until it lands. Same projection as /catalog so the numbers agree.
+    const stats: Promise<HomeStats> = context.queryClient
+      .ensureQueryData(availabilityQueryOptions)
+      .then((availability) => {
+        const zone = availability.zones.find((z) => z.id === "aws") ?? availability.zones[0]!;
+        const services = zone.services.filter((service) => service.id !== "landing-zones");
+        const byDomain = new Map<string, DomainService[]>();
+        for (const service of services) {
+          let live = 0;
+          let planned = 0;
+          for (const loc of zone.locations) {
+            const status = service.availability[loc.id]?.status;
+            if (status === "available" || status === "interim") live += 1;
+            else if (status === "planned") planned += 1;
+          }
+          const entry: DomainService = {
+            id: service.id,
+            name: service.name,
+            status: live > 0 ? "ga" : planned > 0 ? "planned" : "none",
+            liveRegions: live,
+            plannedRegions: planned,
+          };
+          (
+            byDomain.get(service.domain) ?? byDomain.set(service.domain, []).get(service.domain)!
+          ).push(entry);
+        }
+        const domains = [...byDomain.entries()]
+          .sort((a, b) => a[0].localeCompare(b[0]))
+          .map(([domain, entries]) => {
+            const sorted = entries.toSorted((a, b) => a.name.localeCompare(b.name));
+            return {
+              domain,
+              anchor: `domain-${slugifyDomain(domain)}`,
+              count: sorted.length,
+              preview: sorted
+                .slice(0, 3)
+                .map((s) => s.name)
+                .join(" · "),
+              blurb: DOMAIN_BLURBS[domain] ?? "",
+              services: sorted,
+            };
+          });
         return {
-          domain,
-          anchor: `domain-${slugifyDomain(domain)}`,
-          count: sorted.length,
-          preview: sorted
-            .slice(0, 3)
-            .map((s) => s.name)
-            .join(" · "),
-          blurb: DOMAIN_BLURBS[domain] ?? "",
-          services: sorted,
+          serviceCount: services.length,
+          domainCount: domains.length,
+          regionCount: availability.zones.reduce((sum, z) => sum + z.locations.length, 0),
+          domains,
         };
       });
-    return {
-      serviceCount: services.length,
-      domainCount: domains.length,
-      regionCount: availability.zones.reduce((sum, z) => sum + z.locations.length, 0),
-      domains,
-      announcements,
-    };
+
+    return { announcements, stats };
   },
   component: HomeRoute,
 });

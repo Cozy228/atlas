@@ -14,7 +14,7 @@
  * own surface at `/sources`, so the catalog carries no Sources tab.
  */
 import { useCallback, useDeferredValue, useMemo, useState, type MouseEvent } from "react";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Await, Link, useNavigate } from "@tanstack/react-router";
 import {
   IconArrowRight,
   IconArrowUpRight,
@@ -44,6 +44,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { findAvailabilityServiceForTopic } from "@/lib/availability-service";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
 type ViewMode = "cards" | "table";
@@ -54,7 +55,7 @@ export function CatalogAdopted({
   zone,
 }: {
   topics: ReadonlyArray<Topic>;
-  zone: LandingZoneData;
+  zone: Promise<LandingZoneData>;
 }) {
   const [tab, setTab] = useState<AdoptedTab>("services");
   const [query, setQuery] = useState("");
@@ -127,33 +128,54 @@ export function CatalogAdopted({
       </div>
 
       <div key={tab}>
-        {tab === "services" ? (
-          <TopicWorkspace
-            type="service"
-            topics={serviceTopics}
-            zone={zone}
-            query={query}
-            view={view}
-          />
-        ) : null}
-        {tab === "landing-zones" ? (
-          <TopicWorkspace
-            type="landing-zone"
-            topics={landingZones}
-            zone={zone}
-            query={query}
-            view={view}
-          />
-        ) : null}
-        {tab === "guardrails" ? (
-          <TopicWorkspace
-            type="guardrail-area"
-            topics={guardrails}
-            zone={zone}
-            query={query}
-            view={view}
-          />
-        ) : null}
+        <Await promise={zone} fallback={<WorkspaceSkeleton />}>
+          {(resolvedZone) => (
+            <>
+              {tab === "services" ? (
+                <TopicWorkspace
+                  type="service"
+                  topics={serviceTopics}
+                  zone={resolvedZone}
+                  query={query}
+                  view={view}
+                />
+              ) : null}
+              {tab === "landing-zones" ? (
+                <TopicWorkspace
+                  type="landing-zone"
+                  topics={landingZones}
+                  zone={resolvedZone}
+                  query={query}
+                  view={view}
+                />
+              ) : null}
+              {tab === "guardrails" ? (
+                <TopicWorkspace
+                  type="guardrail-area"
+                  topics={guardrails}
+                  zone={resolvedZone}
+                  query={query}
+                  view={view}
+                />
+              ) : null}
+            </>
+          )}
+        </Await>
+      </div>
+    </div>
+  );
+}
+
+/** Placeholder for the deferred catalog workspace (facet rail + cards) while the
+ * availability zone resolves. Header / tabs / search stay visible above it. */
+function WorkspaceSkeleton() {
+  return (
+    <div aria-hidden className="flex flex-col gap-4">
+      <Skeleton className="h-9 w-full max-w-md rounded-md" />
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {Array.from({ length: 6 }, (_, i) => (
+          <Skeleton key={i} className="h-28 rounded-lg" />
+        ))}
       </div>
     </div>
   );

@@ -54,8 +54,20 @@ export type AvailabilityResponse = {
 /* -------------------------------------------------------------------------- */
 
 const AWS_LOCATIONS: ReadonlyArray<Location> = [
-  { id: "us-east-1", label: "US-East-1", sub: "North Virginia", kind: "region", coordinates: [-78.0, 38.9] },
-  { id: "ca-central-1", label: "CA-Central-1", sub: "Canada Central", kind: "region", coordinates: [-73.6, 45.5] },
+  {
+    id: "us-east-1",
+    label: "US-East-1",
+    sub: "North Virginia",
+    kind: "region",
+    coordinates: [-78.0, 38.9],
+  },
+  {
+    id: "ca-central-1",
+    label: "CA-Central-1",
+    sub: "Canada Central",
+    kind: "region",
+    coordinates: [-73.6, 45.5],
+  },
   { id: "gdc", label: "GDC", sub: "Primary Outpost", kind: "outpost", coordinates: [-0.1, 51.5] },
   { id: "dc16", label: "DC16", sub: "DR Outpost", kind: "outpost", coordinates: [8.7, 50.1] },
   { id: "mt10", label: "MT10", sub: "Future DR", kind: "outpost", coordinates: [103.8, 1.3] },
@@ -326,14 +338,56 @@ const AWS_SERVICES: ReadonlyArray<AvailabilityRecord> = [
 
 const AZURE_LOCATIONS: ReadonlyArray<Location> = [
   { id: "eastus", label: "East US", sub: "Virginia", kind: "region", coordinates: [-79.0, 37.5] },
-  { id: "westus2", label: "West US 2", sub: "Washington", kind: "region", coordinates: [-119.7, 47.2] },
+  {
+    id: "westus2",
+    label: "West US 2",
+    sub: "Washington",
+    kind: "region",
+    coordinates: [-119.7, 47.2],
+  },
   { id: "centralus", label: "Central US", sub: "Iowa", kind: "region", coordinates: [-93.6, 41.9] },
-  { id: "northeurope", label: "North EU", sub: "Ireland", kind: "region", coordinates: [-6.3, 53.3] },
-  { id: "westeurope", label: "West EU", sub: "Netherlands", kind: "region", coordinates: [4.9, 52.4] },
-  { id: "southeastasia", label: "SE Asia", sub: "Singapore", kind: "region", coordinates: [103.8, 1.3] },
-  { id: "eastasia", label: "East Asia", sub: "Hong Kong", kind: "region", coordinates: [114.2, 22.3] },
-  { id: "australiaeast", label: "AU East", sub: "Sydney", kind: "region", coordinates: [151.2, -33.9] },
-  { id: "canadacentral", label: "CA Central", sub: "Toronto", kind: "region", coordinates: [-79.4, 43.7] },
+  {
+    id: "northeurope",
+    label: "North EU",
+    sub: "Ireland",
+    kind: "region",
+    coordinates: [-6.3, 53.3],
+  },
+  {
+    id: "westeurope",
+    label: "West EU",
+    sub: "Netherlands",
+    kind: "region",
+    coordinates: [4.9, 52.4],
+  },
+  {
+    id: "southeastasia",
+    label: "SE Asia",
+    sub: "Singapore",
+    kind: "region",
+    coordinates: [103.8, 1.3],
+  },
+  {
+    id: "eastasia",
+    label: "East Asia",
+    sub: "Hong Kong",
+    kind: "region",
+    coordinates: [114.2, 22.3],
+  },
+  {
+    id: "australiaeast",
+    label: "AU East",
+    sub: "Sydney",
+    kind: "region",
+    coordinates: [151.2, -33.9],
+  },
+  {
+    id: "canadacentral",
+    label: "CA Central",
+    sub: "Toronto",
+    kind: "region",
+    coordinates: [-79.4, 43.7],
+  },
   { id: "uksouth", label: "UK South", sub: "London", kind: "region", coordinates: [-0.1, 51.5] },
 ];
 
@@ -459,4 +513,11 @@ export const availabilityProjection: AvailabilityResponse = { zones: ZONES };
 export const fetchAvailability = createServerFn({
   method: "GET",
   strict: { output: false },
-}).handler(async (): Promise<AvailabilityResponse> => availabilityProjection);
+}).handler(async (): Promise<AvailabilityResponse> => {
+  // The real adapter live-fetches + parses a Confluence page (slow). This mock is
+  // instant, which hides the loading skeleton — simulate that latency in dev only
+  // so the deferred UX is visible/testable. Drops out of prod builds and is moot
+  // once the real fetch replaces this stub.
+  if (import.meta.env.DEV) await new Promise((resolve) => setTimeout(resolve, 2000));
+  return availabilityProjection;
+});

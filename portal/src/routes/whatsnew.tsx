@@ -12,7 +12,7 @@
  * Data: fictional, public-safe fixtures in `proto/whatsnew/data.ts`. Home's
  * "What changed" section links here; the freshest slice are Home's announcements.
  */
-import { createFileRoute } from "@tanstack/react-router";
+import { Await, createFileRoute } from "@tanstack/react-router";
 
 import {
   changesFromAnnouncements,
@@ -25,16 +25,21 @@ import {
 } from "@/components/whatsnew/data";
 import { announcementsQueryOptions, releaseNotesQueryOptions } from "@/api/queries";
 import { ReleasesSection } from "@/components/whatsnew/releases";
+import { Skeleton } from "@/components/ui/skeleton";
+import { withDevLatency } from "@/lib/dev-latency";
 import { cn } from "@/lib/utils";
 
 const DATELINE = "Thursday · June 11, 2026";
 
 export const Route = createFileRoute("/whatsnew")({
-  loader: async ({ context }) => {
-    const [releases, announcements] = await Promise.all([
-      context.queryClient.ensureQueryData(releaseNotesQueryOptions),
+  loader: ({ context }) => {
+    // The whole dispatch is a live newsletter in the real adapter — defer both
+    // feeds (same dev latency + skeleton) so only the masthead paints instantly
+    // and the entire body fills in when they land.
+    const announcements = withDevLatency(
       context.queryClient.ensureQueryData(announcementsQueryOptions),
-    ]);
+    );
+    const releases = withDevLatency(context.queryClient.ensureQueryData(releaseNotesQueryOptions));
     return { releases, announcements };
   },
   component: WhatsNewRoute,
@@ -42,56 +47,65 @@ export const Route = createFileRoute("/whatsnew")({
 
 function WhatsNewRoute() {
   const { releases, announcements } = Route.useLoaderData();
-  const changes = changesFromAnnouncements(announcements);
-  const lead = changes[0];
-  const secondary = changes.slice(1, 3);
-  const rest = changes.slice(3);
-  // The snapshot day's remaining updates cluster into a "Today" roundup; the
-  // older entries flow as briefs. This is what gives a heavy day real weight.
-  const today = lead ? rest.filter((c) => c.date === lead.date) : [];
-  const earlier = lead ? rest.filter((c) => c.date !== lead.date) : rest;
-  const earlierMonths = groupByMonth(earlier);
 
   return (
     <div className="mx-auto flex w-full max-w-[1180px] flex-col gap-8 px-6 py-8 sm:px-8">
       <Masthead />
-      <div className="grid gap-x-12 gap-y-10 lg:grid-cols-[minmax(0,1fr)_240px]">
-        <main className="flex min-w-0 flex-col">
-          {lead ? <LeadStory change={lead} /> : null}
+      <Await promise={announcements} fallback={<WhatsNewBodySkeleton />}>
+        {(announcements) => {
+          const changes = changesFromAnnouncements(announcements);
+          const lead = changes[0];
+          const secondary = changes.slice(1, 3);
+          const rest = changes.slice(3);
+          // The snapshot day's remaining updates cluster into a "Today" roundup;
+          // the older entries flow as briefs. A heavy day gets real weight.
+          const today = lead ? rest.filter((c) => c.date === lead.date) : [];
+          const earlier = lead ? rest.filter((c) => c.date !== lead.date) : rest;
+          const earlierMonths = groupByMonth(earlier);
 
-          {secondary.length > 0 ? (
-            <div className="mt-8 grid gap-x-10 gap-y-6 border-t-2 border-border-strong pt-6 sm:grid-cols-2">
-              {secondary.map((change, i) => (
-                <SecondaryStory key={change.id} change={change} divided={i > 0} />
-              ))}
-            </div>
-          ) : null}
+          return (
+            <div className="grid gap-x-12 gap-y-10 lg:grid-cols-[minmax(0,1fr)_240px]">
+              <main className="flex min-w-0 flex-col">
+                {lead ? <LeadStory change={lead} /> : null}
 
-          {today.length > 0 ? <TodayDispatch items={today} /> : null}
+                {secondary.length > 0 ? (
+                  <div className="mt-8 grid gap-x-10 gap-y-6 border-t-2 border-border-strong pt-6 sm:grid-cols-2">
+                    {secondary.map((change, i) => (
+                      <SecondaryStory key={change.id} change={change} divided={i > 0} />
+                    ))}
+                  </div>
+                ) : null}
 
-          <ReleasesSection releases={releases} />
+                {today.length > 0 ? <TodayDispatch items={today} /> : null}
 
-          {earlierMonths.map(({ month, items }) => (
-            <section key={month} id={monthAnchor(month)} className="mt-8 scroll-mt-20">
-              <h2 className="mb-4 flex items-baseline gap-3 border-t border-border pt-3">
-                <span className="font-mono text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                  {month}
-                </span>
-                <span className="font-mono text-[10px] tabular-nums text-muted-foreground/70">
-                  {items.length} {items.length === 1 ? "entry" : "entries"}
-                </span>
-              </h2>
-              {/* Newspaper columns: briefs flow top-to-bottom, each carries its date */}
-              <ul className="gap-x-10 sm:columns-2 lg:columns-3">
-                {items.map((change) => (
-                  <BriefRow key={change.id} change={change} columned />
+                <Await promise={releases} fallback={<ReleasesSkeleton />}>
+                  {(releases) => <ReleasesSection releases={releases} />}
+                </Await>
+
+                {earlierMonths.map(({ month, items }) => (
+                  <section key={month} id={monthAnchor(month)} className="mt-8 scroll-mt-20">
+                    <h2 className="mb-4 flex items-baseline gap-3 border-t border-border pt-3">
+                      <span className="font-mono text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                        {month}
+                      </span>
+                      <span className="font-mono text-[10px] tabular-nums text-muted-foreground/70">
+                        {items.length} {items.length === 1 ? "entry" : "entries"}
+                      </span>
+                    </h2>
+                    {/* Newspaper columns: briefs flow top-to-bottom, each carries its date */}
+                    <ul className="gap-x-10 sm:columns-2 lg:columns-3">
+                      {items.map((change) => (
+                        <BriefRow key={change.id} change={change} columned />
+                      ))}
+                    </ul>
+                  </section>
                 ))}
-              </ul>
-            </section>
-          ))}
-        </main>
-        <Rail changes={changes} />
-      </div>
+              </main>
+              <Rail changes={changes} />
+            </div>
+          );
+        }}
+      </Await>
     </div>
   );
 }
@@ -338,6 +352,65 @@ function RailModule({ label, children }: { label: string; children: React.ReactN
         {label}
       </h2>
       {children}
+    </section>
+  );
+}
+
+/** Placeholder for the entire deferred dispatch body (broadsheet front + rail) —
+ * only the masthead paints before the live newsletter feed resolves. */
+function WhatsNewBodySkeleton() {
+  return (
+    <div aria-hidden className="grid gap-x-12 gap-y-10 lg:grid-cols-[minmax(0,1fr)_240px]">
+      <div className="flex min-w-0 flex-col gap-8">
+        <div className="flex flex-col gap-3">
+          <Skeleton className="h-3 w-32" />
+          <Skeleton className="h-9 w-full max-w-[20ch]" />
+          <Skeleton className="h-4 w-full max-w-[62ch]" />
+          <Skeleton className="h-4 w-full max-w-[48ch]" />
+        </div>
+        <div className="grid gap-x-10 gap-y-6 border-t-2 border-border-strong pt-6 sm:grid-cols-2">
+          {Array.from({ length: 2 }, (_, i) => (
+            <div key={i} className="flex flex-col gap-2">
+              <Skeleton className="h-3 w-24" />
+              <Skeleton className="h-5 w-full max-w-[18ch]" />
+              <Skeleton className="h-3 w-full" />
+            </div>
+          ))}
+        </div>
+        <div className="gap-x-9 border-t-2 border-border-strong pt-5 sm:columns-2 lg:columns-3">
+          {Array.from({ length: 6 }, (_, i) => (
+            <div key={i} className="mb-4 flex break-inside-avoid flex-col gap-1.5">
+              <Skeleton className="h-3 w-20" />
+              <Skeleton className="h-3.5 w-full" />
+              <Skeleton className="h-3 w-full" />
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="flex flex-col gap-8 lg:border-l lg:border-border lg:pl-7">
+        {Array.from({ length: 3 }, (_, i) => (
+          <div key={i} className="flex flex-col gap-2.5">
+            <Skeleton className="h-3 w-24" />
+            <Skeleton className="h-16 w-full" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Placeholder for the deferred releases section (the live newsletter / Confluence
+ * release notes), so the broadsheet front stays instant while they resolve. */
+function ReleasesSkeleton() {
+  return (
+    <section aria-hidden className="mt-8 flex flex-col gap-3 border-t-2 border-border-strong pt-6">
+      <Skeleton className="h-4 w-40" />
+      {Array.from({ length: 3 }, (_, i) => (
+        <div key={i} className="flex flex-col gap-1.5">
+          <Skeleton className="h-3.5 w-48" />
+          <Skeleton className="h-3 w-full max-w-[60ch]" />
+        </div>
+      ))}
     </section>
   );
 }

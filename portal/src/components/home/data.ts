@@ -40,13 +40,21 @@ export type DomainSummary = {
 /** A recent newsletter entry surfaced on the home "What's new" ticker. */
 export type HomeAnnouncement = { kind: string; title: string };
 
-export type HomeLoaderData = {
+export type HomeStats = {
   serviceCount: number;
   domainCount: number;
   regionCount: number;
   domains: ReadonlyArray<DomainSummary>;
-  /** Most-recent release-notes items, newest first (the newsletter feed). */
-  announcements: ReadonlyArray<HomeAnnouncement>;
+};
+
+export type HomeLoaderData = {
+  /** Most-recent release-notes items, newest first (the newsletter feed) —
+   * deferred (live in the real adapter) so the ticker shows a skeleton. */
+  announcements: Promise<ReadonlyArray<HomeAnnouncement>>;
+  /** Availability-derived stats — deferred (a live Confluence fetch + parse in
+   * the real adapter); the hero stat numbers + domain index render a skeleton
+   * until it resolves. */
+  stats: Promise<HomeStats>;
 };
 
 export type Intent = {

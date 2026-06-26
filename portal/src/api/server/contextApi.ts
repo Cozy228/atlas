@@ -63,7 +63,15 @@ export const fetchSource = createServerFn(SERVER_FN_OPTIONS)
 
 export const fetchContextBundle = createServerFn(SERVER_FN_OPTIONS)
   .validator((input: unknown): ContextRequest => ContextRequestSchema.parse(input))
-  .handler(async ({ data }) => contextApiForRequest().getContextBundle(data));
+  .handler(async ({ data }) => {
+    // Simulate the resolver's real live fetch + parse of each cited anchor (e.g.
+    // Confluence pages) so the deferred detail-page skeletons are visible in dev.
+    // Dev-only: dropped from prod builds, and moot once the resolver hits real
+    // external systems. Only the bundle is delayed — discovery (source/topic
+    // lists) is awaited synchronously in loaders and must stay fast.
+    if (import.meta.env.DEV) await new Promise((resolve) => setTimeout(resolve, 2000));
+    return contextApiForRequest().getContextBundle(data);
+  });
 
 export const fetchTopicDiscovery = createServerFn(SERVER_FN_OPTIONS)
   .validator(

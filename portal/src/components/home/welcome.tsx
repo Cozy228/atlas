@@ -11,13 +11,14 @@
  *   - What changed   → a DATE-LED TIMELINE with recency hierarchy
  */
 import { useEffect, useRef, useState } from "react";
-import { Link } from "@tanstack/react-router";
+import { Await, Link } from "@tanstack/react-router";
 import { IconArrowLeft, IconArrowRight, IconMessageCircle } from "@tabler/icons-react";
 import { AnimatePresence, LazyMotion, MotionConfig, m, type Variants } from "motion/react";
 
 import { useAskAtlas } from "@/components/ask-atlas/context";
 import { JourneyGrid } from "@/components/home/journey-grid";
 import { IntentSearch } from "@/components/intent-search";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
 import { ENTRY_DOT } from "@/components/catalog/data";
@@ -29,6 +30,7 @@ import {
   type DomainService,
   type HomeAnnouncement,
   type HomeLoaderData,
+  type HomeStats,
   type MainlineRoute,
 } from "./data";
 
@@ -40,12 +42,7 @@ export function HomeWelcome({ data }: { data: HomeLoaderData }) {
   return (
     <div className="flex flex-col gap-16">
       <div className="flex flex-col gap-8">
-        <Hero
-          serviceCount={data.serviceCount}
-          domainCount={data.domainCount}
-          regionCount={data.regionCount}
-          announcements={data.announcements}
-        />
+        <Hero announcements={data.announcements} stats={data.stats} />
         <ResumeBand />
       </div>
       <IntentDoors />
@@ -56,7 +53,9 @@ export function HomeWelcome({ data }: { data: HomeLoaderData }) {
         />
         <JourneyGrid />
       </section>
-      <CatalogIndex serviceCount={data.serviceCount} domains={data.domains} />
+      <Await promise={data.stats} fallback={<CatalogIndexSkeleton />}>
+        {(stats) => <CatalogIndex serviceCount={stats.serviceCount} domains={stats.domains} />}
+      </Await>
       <MachineAccess />
       <HelpCloser />
     </div>
@@ -233,21 +232,19 @@ function SectionHead({
  * ========================================================================== */
 
 function Hero({
-  serviceCount,
-  domainCount,
-  regionCount,
   announcements,
+  stats,
 }: {
-  serviceCount: number;
-  domainCount: number;
-  regionCount: number;
-  announcements: ReadonlyArray<HomeAnnouncement>;
+  announcements: Promise<ReadonlyArray<HomeAnnouncement>>;
+  stats: Promise<HomeStats>;
 }) {
   return (
     <section className="flex flex-col items-center gap-5 text-center">
       {/* The What's-new ticker stands in for the eyebrow: the platform's pulse
           above the welcome, not a static label. */}
-      <WhatsNewTicker announcements={announcements} />
+      <Await promise={announcements} fallback={<TickerSkeleton />}>
+        {(announcements) => <WhatsNewTicker announcements={announcements} />}
+      </Await>
       <h1 className="w-fit max-w-[18ch] bg-background text-[2.5rem] font-bold leading-[1.05] tracking-[-0.035em] text-balance text-foreground">
         Welcome to Atlas Portal
       </h1>
@@ -271,11 +268,36 @@ function Hero({
         </div>
       </div>
       <dl className="flex flex-wrap justify-center gap-x-7 gap-y-2 pt-1">
-        <Stat value={serviceCount} label="services" />
-        <Stat value={domainCount} label="domains" />
-        <Stat value={regionCount} label="regions & outposts" />
+        <Await promise={stats} fallback={<StatsSkeleton />}>
+          {(s) => (
+            <>
+              <Stat value={s.serviceCount} label="services" />
+              <Stat value={s.domainCount} label="domains" />
+              <Stat value={s.regionCount} label="regions & outposts" />
+            </>
+          )}
+        </Await>
       </dl>
     </section>
+  );
+}
+
+/** Placeholder for the What's-new ticker while the (live) feed resolves. */
+function TickerSkeleton() {
+  return <Skeleton aria-hidden className="h-6 w-72 rounded-full" />;
+}
+
+/** Placeholder for the three hero stat numbers while availability resolves. */
+function StatsSkeleton() {
+  return (
+    <>
+      {Array.from({ length: 3 }, (_, i) => (
+        <div key={i} className="flex items-baseline gap-1.5">
+          <Skeleton className="h-5 w-7" />
+          <Skeleton className="h-3 w-16" />
+        </div>
+      ))}
+    </>
   );
 }
 
@@ -437,12 +459,26 @@ const LINE_VARIANTS: Variants = {
   show: { opacity: 1, transition: { duration: 0.2 } },
 };
 
+/** Placeholder for the deferred domain index (book-index columns). */
+function CatalogIndexSkeleton() {
+  return (
+    <section aria-hidden className="flex flex-col gap-4">
+      <Skeleton className="h-6 w-48" />
+      <div className="gap-x-12 sm:columns-2 lg:columns-3">
+        {Array.from({ length: 6 }, (_, i) => (
+          <Skeleton key={i} className="mb-3 h-8 w-full" />
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function CatalogIndex({
   serviceCount,
   domains,
 }: {
   serviceCount: number;
-  domains: HomeLoaderData["domains"];
+  domains: HomeStats["domains"];
 }) {
   const [selected, setSelected] = useState<string | null>(null);
   const domain = selected ? domains.find((d) => d.domain === selected) : undefined;
