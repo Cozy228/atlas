@@ -18,6 +18,12 @@ export function getRouter() {
     scrollRestoration: true,
     defaultPreload: "intent",
     defaultPreloadStaleTime: 0,
+    // P1-5 View Transitions (`defaultViewTransition: true`) intentionally NOT
+    // enabled: measured under CPU 6×+Slow-4G it RE-ADDS ~160–280 ms of main-thread
+    // blocking to the `/`→`/availability` switch (vs 0 ms without it) — the
+    // snapshot capture + cross-fade cost on a throttled CPU undoes the exact
+    // tab-switch win this plan delivered, even with the matrix mount deferred
+    // (P0-1). Net-negative on the slow-device lens; see perf-iteration-log Iter 9.
     context: { queryClient },
   });
 

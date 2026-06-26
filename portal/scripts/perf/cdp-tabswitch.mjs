@@ -4,7 +4,7 @@ const BASE = process.argv[3] || "http://localhost:3200";
 const ws = new WebSocket(TARGET_WS);
 let id = 0; const pending = new Map();
 function send(m, p = {}) { const i = ++id; ws.send(JSON.stringify({ id: i, method: m, params: p })); return new Promise((res, rej) => pending.set(i, { res, rej })); }
-ws.addEventListener("message", (e) => { const m = JSON.parse(e.data); if (m.id && pending.has(m.id)) { const x = pending.get(m.id); pending.delete(m.id); m.error ? x.rej(new Error(m.error.message)) : x.res(m.result); } });
+ws.addEventListener("message", (e) => { const m = JSON.parse(e.data); if (m.id && pending.has(m.id)) { const x = pending.get(m.id); pending.delete(m.id); if (m.error) x.rej(new Error(m.error.message)); else x.res(m.result); } });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const evalJs = async (expr) => { const r = await send("Runtime.evaluate", { expression: expr, returnByValue: true }); return r.result.value; };
 await new Promise((r) => ws.addEventListener("open", r));

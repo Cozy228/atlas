@@ -8,7 +8,15 @@
  * silhouette (see `components/explore/world-geo.ts`) and projects markers with a
  * plain equirectangular transform.
  */
-import { useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from "react";
+import {
+  startTransition,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+} from "react";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { IconMap, IconMapPin, IconTable } from "@tabler/icons-react";
@@ -39,7 +47,13 @@ import { buildAvailabilityRowModel } from "@/lib/availability-row-model";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/availability/")({
-  loader: ({ context }) => context.queryClient.ensureQueryData(availabilityQueryOptions),
+  loader: ({ context }) => {
+    // Warm the default-zone icon pack before render so the deferred matrix mounts
+    // with real icons in a single commit (no glyph→real upgrade). Client-only: on
+    // the server the chunk is already bundled, so warming it does nothing useful.
+    if (typeof window !== "undefined") preloadAwsServiceIcons();
+    return context.queryClient.ensureQueryData(availabilityQueryOptions);
+  },
   component: RegionsRoute,
 });
 
@@ -87,6 +101,7 @@ type State = {
 type Action =
   | { type: "setZone"; value: LandingZoneId }
   | { type: "selectLocation"; value: string | null }
+  | { type: "toggleLocation"; id: string }
   | { type: "toggleService"; id: string }
   | { type: "setView"; value: ViewMode }
   | { type: "setStatus"; value: LocationStatus | "all" }
@@ -106,6 +121,11 @@ function reducer(state: State, action: Action): State {
       };
     case "selectLocation":
       return { ...state, selectedLocationId: action.value };
+    case "toggleLocation":
+      return {
+        ...state,
+        selectedLocationId: state.selectedLocationId === action.id ? null : action.id,
+      };
     case "toggleService":
       return {
         ...state,
@@ -150,6 +170,23 @@ function RegionsRoute() {
     else preloadAwsServiceIcons();
   }, [state.zone]);
 
+  // Defer mounting the ~50-row × N-region matrix (hundreds of cells + brand
+  // icons) until after the route shell + map have painted. The cold nav commit
+  // is otherwise one long task that freezes the main thread; splitting the matrix
+  // into a post-paint transition lets the shell paint first and keeps the switch
+  // interactive. Subsequent zone/filter changes render normally (already mounted).
+  const [matrixMounted, setMatrixMounted] = useState(false);
+  useEffect(() => {
+    let raf2 = 0;
+    const raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(() => startTransition(() => setMatrixMounted(true)));
+    });
+    return () => {
+      cancelAnimationFrame(raf1);
+      cancelAnimationFrame(raf2);
+    };
+  }, []);
+
   // Per-region health + coverage stats, derived from the availability data.
   const { healthById, statsById } = useMemo(() => {
     const health = new Map<string, RegionHealth>();
@@ -180,7 +217,11 @@ function RegionsRoute() {
       statusFilter: state.statusFilter,
       domainFilter: state.domainFilter,
       activeLocationId: null,
-      selectedServiceId: state.selectedServiceId,
+      // The row model's only use of `selectedServiceId` is `selectedRow`, which
+      // this route never reads — selection is passed straight to MatrixView. Keep
+      // it out so toggling a service doesn't rebuild rows/groups (and remount the
+      // whole matrix). The dependency is omitted below for the same reason.
+      selectedServiceId: null,
     });
     if (state.serviceFilter === "all") return model;
     // Narrow to the single picked service; domain options stay zone-wide.
@@ -194,19 +235,14 @@ function RegionsRoute() {
         }))
         .filter((group) => group.rowIds.length > 0),
     };
-  }, [
-    locations,
-    services,
-    state.statusFilter,
-    state.domainFilter,
-    state.selectedServiceId,
-    state.serviceFilter,
-  ]);
+  }, [locations, services, state.statusFilter, state.domainFilter, state.serviceFilter]);
 
   const selectLocation = (id: string | null) => dispatch({ type: "selectLocation", value: id });
-  // Map / list clicks toggle: clicking the active region clears the selection.
-  const toggleLocation = (id: string) =>
-    selectLocation(state.selectedLocationId === id ? null : id);
+  // Map / list / matrix-header clicks toggle: clicking the active region clears it.
+  // Toggling lives in the reducer so the React Compiler keeps this handler
+  // referentially stable — the matrix columns depend on it and must not rebuild
+  // when a region is picked.
+  const toggleLocation = (id: string) => dispatch({ type: "toggleLocation", id });
 
   return (
     <PageBody width="wide" gap="compact" className="py-9">
@@ -267,16 +303,20 @@ function RegionsRoute() {
                 <LegendItem dotClass="bg-muted-foreground/30" label="Not available" />
               </div>
             </div>
-            <MatrixView
-              provider={state.zone}
-              locations={locations}
-              rows={rowModel.rows}
-              groups={rowModel.groups}
-              selectedServiceId={state.selectedServiceId}
-              onSelect={(id) => dispatch({ type: "toggleService", id })}
-              activeLocationId={state.selectedLocationId}
-              onLocationSelect={selectLocation}
-            />
+            {matrixMounted ? (
+              <MatrixView
+                provider={state.zone}
+                locations={locations}
+                rows={rowModel.rows}
+                groups={rowModel.groups}
+                selectedServiceId={state.selectedServiceId}
+                onSelect={(id) => dispatch({ type: "toggleService", id })}
+                activeLocationId={state.selectedLocationId}
+                onLocationSelect={toggleLocation}
+              />
+            ) : (
+              <MatrixSkeleton />
+            )}
           </section>
         </div>
 
@@ -501,12 +541,22 @@ function StickyAside({ children }: { children: React.ReactNode }) {
   useLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
-    const update = () => setTop(Math.min(76, window.innerHeight - el.offsetHeight - 16));
+    let raf = 0;
+    // Batch the layout read + state write into one rAF so a burst of resize /
+    // ResizeObserver callbacks coalesces to a single measurement per frame
+    // (avoids read→write→reflow thrash and RO feedback loops).
+    const update = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        setTop(Math.min(76, window.innerHeight - el.offsetHeight - 16));
+      });
+    };
     update();
     const observer = new ResizeObserver(update);
     observer.observe(el);
     window.addEventListener("resize", update);
     return () => {
+      cancelAnimationFrame(raf);
       observer.disconnect();
       window.removeEventListener("resize", update);
     };
@@ -634,6 +684,17 @@ function LegendItem({ dotClass, label }: { dotClass: string; label: string }) {
       <span aria-hidden className={cn("size-2 rounded-full", dotClass)} />
       {label}
     </span>
+  );
+}
+
+/** Reserves the matrix's above-the-fold height while its mount is deferred. */
+function MatrixSkeleton() {
+  return (
+    <div
+      aria-busy
+      aria-label="Loading service availability"
+      className="min-h-[480px] rounded-lg border border-border bg-card"
+    />
   );
 }
 

@@ -17,7 +17,8 @@ ws.addEventListener("message", (e) => {
   if (m.id && pending.has(m.id)) {
     const p = pending.get(m.id);
     pending.delete(m.id);
-    m.error ? p.rej(new Error(m.error.message)) : p.res(m.result);
+    if (m.error) p.rej(new Error(m.error.message));
+    else p.res(m.result);
   }
 });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
