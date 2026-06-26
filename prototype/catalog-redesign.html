@@ -1,0 +1,1007 @@
+<!doctype html>
+<!--
+  ATLAS PORTAL — CATALOG redesign · PROTOTYPE (throwaway) · v2 (converged)
+  ===================================================================
+  Supersedes the 3-variant explorer (archived: catalog-redesign-v1-3variants.html).
+  Folds the v1 feedback into ONE direction + a separate detail page:
+    • C1 header de-cluttered: dropped the stats-chips row; domain/status/region filtering
+      moved OUT of the header INTO a left facet rail. Header is now just Hero + search + ONE
+      row of type tabs.
+    • C2's left FACET RAIL kept (the part that worked); its flat table is demoted to an
+      optional "Table" view that is now row-clickable and carries a Status column.
+    • C3's split dropped in favour of TWO PAGES (matches real routes catalog.index +
+      catalog.$topicId): click a card/row → dedicated full-width DETAIL page (← back link).
+
+  Two surfaces, flip with the floating bar or ← / → ; ◐ (or `t`) = Blueprint(light)/Ink(dark):
+    LIST   (#list)   — Hero + search + type tabs + facet rail + card grid (Cards/Table toggle)
+    DETAIL (#detail) — back link + detail header + main (availability / entry tools / sources
+                       cited evidence) + sticky side meta card
+
+  Design source of truth: ../DESIGN.md + atlas-design-system.html (tokens & components verbatim).
+  Data SHAPE mirrors portal/src/routes/catalog.index.tsx + catalog.$topicId.tsx. Fictional /
+  public-safe. Run: cd prototype && python3 -m http.server 8753
+-->
+<html lang="en" data-variant="blueprint">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Atlas — Catalog (redesign)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+/* ============================================================================
+   TOKENS — copied verbatim from atlas-design-system.html (Blueprint + Ink)
+   ============================================================================ */
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%;
+  --font-ui: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", "SF Mono", Menlo, Consolas, monospace;
+  --r-xs: 3px; --r-sm: 4px; --r-md: 6px; --r-lg: 10px; --r-pill: 999px;
+  --card-r: var(--r-sm); --control-r: var(--r-xs); }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-ui); font-size: 15px;
+  line-height: 1.55; font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+  -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility;
+  font-optical-sizing: auto; font-synthesis: none; padding-bottom: 92px;
+  transition: background-color .25s ease, color .25s ease; }
+:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 2px; }
+
+html[data-variant="blueprint"] {
+  --bg: oklch(98.2% 0.004 264.18); --grid: oklch(72% 0.04 264.18 / 0.08);
+  --surface: oklch(99.6% 0.0015 264.18); --surface-2: oklch(97% 0.006 264.18);
+  --ink: oklch(23% 0.03 264.18); --ink-2: oklch(46% 0.03 264.18); --ink-3: oklch(53% 0.027 264.18);
+  --line: oklch(90% 0.012 264.18); --line-2: oklch(80% 0.016 264.18);
+  --brand: oklch(46.28% 0.3059 264.18); --brand-hover: oklch(40% 0.28 264.18);
+  --brand-tint: oklch(95% 0.045 264.18); --brand-ink: oklch(45% 0.29 264.18);
+  --on-brand: oklch(99.6% 0.0015 264.18);
+  --success: oklch(56% 0.13 152); --success-tint: oklch(95% 0.05 152); --success-ink: oklch(38% 0.11 152);
+  --warning: oklch(70% 0.15 75);  --warning-tint: oklch(95% 0.07 85);  --warning-ink: oklch(45% 0.12 60);
+  --critical:oklch(55% 0.2 25);   --critical-tint:oklch(95% 0.05 25);  --critical-ink:oklch(45% 0.18 25);
+  --info:    oklch(60% 0.12 230); --info-tint:    oklch(95% 0.04 230); --info-ink:    oklch(42% 0.11 230);
+  --shadow-pop: 0 1px 2px oklch(40% 0.05 264.18 / 0.08), 0 6px 16px oklch(40% 0.05 264.18 / 0.06); }
+html[data-variant="blueprint-ink"] {
+  --bg: oklch(12% 0.008 264.18); --grid: oklch(82% 0.03 264.18 / 0.045);
+  --surface: oklch(16% 0.009 264.18); --surface-2: oklch(20% 0.011 264.18);
+  --ink: oklch(96% 0.005 264.18); --ink-2: oklch(68% 0.012 264.18); --ink-3: oklch(52% 0.012 264.18);
+  --line: oklch(24% 0.01 264.18); --line-2: oklch(34% 0.012 264.18);
+  --brand: oklch(62% 0.26 264.18); --brand-hover: oklch(69% 0.23 264.18);
+  --brand-tint: oklch(25% 0.06 264.18); --brand-ink: oklch(80% 0.15 264.18);
+  --on-brand: oklch(12% 0.008 264.18);
+  --success: oklch(72% 0.16 152); --success-tint: oklch(24% 0.06 152); --success-ink: oklch(81% 0.14 152);
+  --warning: oklch(80% 0.15 85);  --warning-tint: oklch(26% 0.07 80);  --warning-ink: oklch(86% 0.13 85);
+  --critical:oklch(67% 0.2 25);   --critical-tint:oklch(26% 0.08 25);  --critical-ink:oklch(82% 0.15 25);
+  --info:    oklch(72% 0.12 230); --info-tint:    oklch(26% 0.06 230); --info-ink:    oklch(84% 0.1 230);
+  --shadow-pop: 0 2px 8px oklch(0% 0 0 / 0.55), 0 16px 34px oklch(0% 0 0 / 0.45); }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; } }
+
+/* ============================================================================
+   SHELL — grid (negative space only) + top nav + FAB
+   ============================================================================ */
+.canvas { min-height: 100dvh; background-image:
+  linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 32px 32px; background-position: -1px -1px; }
+.listwrap { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+.dwrap { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+/* same-colour plates mask the grid behind copy */
+.eyebrow, .chead h1, .chead p, .dom-head, .legend, .facet-h, .pv-label, .dhead h1, .dhead .deyebrow { background: var(--bg); }
+
+.topbar { position: sticky; top: 0; z-index: 30; display: grid; grid-template-columns: 1fr auto 1fr;
+  align-items: center; gap: 16px; height: 56px; padding: 0 24px; background: var(--bg); border-bottom: 1px solid var(--line); }
+.tb-left { display: flex; align-items: center; gap: 12px; justify-self: start; }
+.tb-right { display: flex; align-items: center; gap: 6px; justify-self: end; }
+.brandmark { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px;
+  border-radius: 7px; background: var(--brand); color: var(--on-brand); font-family: var(--font-mono);
+  font-weight: 600; font-size: 13px; letter-spacing: -0.04em; }
+.wordmark { font-weight: 700; font-size: 16px; letter-spacing: -0.02em; }
+.topnav { display: flex; gap: 2px; justify-self: center; }
+.topnav a { padding: 6px 12px; border-radius: var(--control-r); color: var(--ink-2); text-decoration: none;
+  font-size: 14px; font-weight: 500; transition: background-color .15s, color .15s; }
+.topnav a:hover { background: var(--surface-2); color: var(--ink); }
+.topnav a[aria-current="page"] { color: var(--ink); font-weight: 600; box-shadow: inset 0 -2px 0 var(--brand);
+  border-radius: var(--control-r) var(--control-r) 0 0; }
+.icobtn { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px;
+  border-radius: var(--control-r); border: 1px solid transparent; background: transparent; color: var(--ink-2);
+  cursor: pointer; transition: background-color .15s, color .15s; }
+.icobtn:hover { background: var(--surface-2); color: var(--ink); }
+.fab { position: fixed; right: 24px; bottom: 24px; z-index: 90; display: inline-flex; align-items: center; gap: 8px;
+  padding: 11px 18px; border-radius: var(--r-pill); background: var(--brand); color: var(--on-brand); border: none;
+  cursor: pointer; font-family: var(--font-ui); font-size: 14px; font-weight: 600; box-shadow: var(--shadow-pop);
+  transition: background-color .15s, transform .06s; }
+.fab:hover { background: var(--brand-hover); } .fab:active { transform: translateY(1px); }
+
+/* ============================================================================
+   CATALOG HEADER (Hero treatment, scaled for a list page)
+   ============================================================================ */
+/* compact tool-page header: title + search on one row, one short sub line (no big hero) */
+.chead { padding: 24px 0 0; }
+.chead-top { display: flex; align-items: center; justify-content: space-between; gap: 16px 24px; flex-wrap: wrap; }
+.eyebrow { display: inline-flex; font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+  letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); }
+.chead h1 { margin: 0; font-size: 24px; line-height: 1.1; letter-spacing: -0.02em;
+  font-weight: 700; width: fit-content; text-wrap: balance; }
+.chead p { margin: 9px 0 0; max-width: 72ch; width: fit-content; color: var(--ink-2); font-size: 14px; line-height: 1.5; }
+
+.search { position: relative; display: flex; align-items: center; flex: 1 1 260px; max-width: 380px; }
+.search.full { max-width: none; }
+.search .ico-search { position: absolute; left: 12px; color: var(--ink-3); pointer-events: none; display: flex; }
+.search input { font-family: var(--font-ui); font-size: 14px; color: var(--ink); height: 40px; width: 100%;
+  padding: 0 14px 0 38px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md);
+  transition: border-color .15s, box-shadow .15s; }
+.search input::placeholder { color: var(--ink-3); }
+.search input:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px color-mix(in oklab, var(--brand) 16%, transparent); }
+.search.sm input { height: 38px; font-size: 13.5px; padding-left: 38px; }
+.search.sm .ico-search { left: 12px; }
+
+.mono { font-family: var(--font-mono); } .muted { color: var(--ink-2); }
+
+/* type tabs — single clean row (brand underline). Replaces the old 3-row stack. */
+.tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); margin-top: 18px; }
+.tabs button { font-family: var(--font-ui); font-size: 14px; font-weight: 500; color: var(--ink-2); background: none;
+  border: none; padding: 9px 14px; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px;
+  transition: color .15s; display: inline-flex; align-items: center; gap: 7px; }
+.tabs button:hover { color: var(--ink); }
+.tabs button[aria-selected="true"] { color: var(--brand-ink); border-bottom-color: var(--brand); font-weight: 600; }
+.tabs .ct { font-family: var(--font-mono); font-size: 11px; font-weight: 600; color: var(--ink-3); }
+.tabs button[aria-selected="true"] .ct { color: var(--brand-ink); }
+
+/* ============================================================================
+   PRIMITIVES — chips, dots, buttons (verbatim from design system)
+   ============================================================================ */
+.chip { display: inline-flex; align-items: center; gap: 5px; font-family: var(--font-ui); font-size: 11.5px;
+  font-weight: 600; letter-spacing: .01em; padding: 3px 8px; border-radius: 2px; border: 1px solid var(--line-2);
+  background: transparent; color: var(--ink-2); text-decoration: none; white-space: nowrap; }
+.chip.brand   { border-color: color-mix(in oklab, var(--brand) 35%, var(--line)); color: var(--brand-ink); }
+.chip.success { border-color: color-mix(in oklab, var(--success) 45%, var(--line)); color: var(--success-ink); }
+.chip.warning { border-color: color-mix(in oklab, var(--warning) 50%, var(--line)); color: var(--warning-ink); }
+.chip.critical{ border-color: color-mix(in oklab, var(--critical) 45%, var(--line)); color: var(--critical-ink); }
+.chip.info    { border-color: color-mix(in oklab, var(--info) 45%, var(--line)); color: var(--info-ink); }
+.dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.dot.success { background: var(--success); } .dot.warning { background: var(--warning); }
+.dot.critical { background: var(--critical); } .dot.info { background: var(--info); } .dot.neutral { background: var(--ink-3); }
+.dot.na { background: transparent; box-shadow: inset 0 0 0 1.5px var(--line-2); }
+
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; font-family: var(--font-ui);
+  font-size: 13px; font-weight: 600; line-height: 1; padding: 8px 14px; border-radius: var(--control-r);
+  border: 1px solid transparent; cursor: pointer; text-decoration: none; white-space: nowrap;
+  transition: background-color .14s, color .14s, border-color .14s, box-shadow .14s, transform .04s; }
+.btn:active { transform: translateY(0.5px); }
+.btn-primary { background: var(--brand); color: var(--on-brand); }
+.btn-primary:hover { background: var(--brand-hover); }
+.btn-secondary { background: var(--surface); color: var(--ink); border-color: var(--line-2); }
+.btn-secondary:hover { border-color: var(--brand); color: var(--brand-ink); }
+.btn-sm { padding: 5px 10px; font-size: 12px; }
+.btn-block { justify-content: space-between; width: 100%; }
+
+/* ============================================================================
+   CAPABILITY CARD — surface card + brand corner ticks
+   ============================================================================ */
+.cap-grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+.cap { display: flex; flex-direction: column; gap: 10px; background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--card-r); padding: 16px; text-decoration: none; color: inherit; position: relative;
+  transition: border-color .15s, box-shadow .15s; }
+.cap:hover { border-color: var(--line-2); box-shadow: var(--shadow-pop); }
+.cap::before, .cap::after { content: ""; position: absolute; width: 7px; height: 7px; border-color: var(--brand);
+  border-style: solid; opacity: .5; pointer-events: none; }
+.cap::before { top: -1px; left: -1px; border-width: 1px 0 0 1px; }
+.cap::after { bottom: -1px; right: -1px; border-width: 0 1px 1px 0; }
+.cap-top { display: flex; align-items: flex-start; gap: 12px; }
+.cap-icon { width: 36px; height: 36px; flex: none; border-radius: var(--control-r); display: grid; place-items: center;
+  background: var(--brand-tint); color: var(--brand-ink); font-family: var(--font-mono); font-size: 11px; font-weight: 600; }
+.cap-title { font-size: 15px; font-weight: 700; letter-spacing: -0.01em; margin: 0; }
+.cap-slug { font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); margin-top: 2px; }
+.cap-desc { font-size: 13px; color: var(--ink-2); line-height: 1.5; margin: 0; flex: 1; }
+.cap-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.cap-arrow { margin-left: auto; color: var(--ink-3); transition: transform .15s, color .15s; align-self: flex-start; }
+.cap:hover .cap-arrow { transform: translateX(2px); color: var(--brand-ink); }
+.cap-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 2px;
+  padding-top: 10px; border-top: 1px solid var(--line); font-size: 11.5px; }
+.cap-foot .own { font-weight: 600; color: var(--ink); }
+.cap-foot .ch { font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); }
+
+/* domain group header — mono label + count */
+.dom + .dom { margin-top: 26px; }
+.dom-head { display: inline-flex; align-items: center; gap: 10px; margin: 0 0 12px; }
+.dom-head .nm { font-family: var(--font-mono); font-size: 12px; font-weight: 600; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--ink-2); }
+.dom-head .ct { font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); padding: 1px 7px;
+  border-radius: var(--r-pill); background: var(--surface-2); border: 1px solid var(--line); }
+
+/* topic card (landing zones / guardrails) — meta dl */
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 0; padding-top: 10px;
+  border-top: 1px solid var(--line); font-size: 12px; }
+.kv dt { font-family: var(--font-mono); font-size: 10.5px; font-weight: 600; letter-spacing: .05em;
+  text-transform: uppercase; color: var(--ink-3); }
+.kv dd { margin: 0; color: var(--ink); text-align: right; }
+.kv dd.mono { font-family: var(--font-mono); font-size: 11px; }
+
+/* ============================================================================
+   DOCUMENT SOURCES — numbered reference entries (verbatim from design system)
+   ============================================================================ */
+.sources { background: var(--surface); border: 1px solid var(--line); border-radius: var(--card-r); overflow: hidden; }
+.src-entry { display: grid; grid-template-columns: 44px 1fr auto; gap: 18px; padding: 18px; border-bottom: 1px solid var(--line); align-items: start; }
+.src-entry:last-child { border-bottom: 0; }
+.src-num { font-family: var(--font-mono); font-size: 20px; font-weight: 600; color: var(--brand-ink); line-height: 1.2; font-variant-numeric: tabular-nums; }
+.src-body h3 { margin: 0 0 5px; font-size: 15px; font-weight: 700; letter-spacing: -0.01em; }
+.src-body .cap-slug { margin: 0 0 8px; }
+.src-body p { margin: 0 0 10px; font-size: 13px; color: var(--ink-2); max-width: 66ch; line-height: 1.55; }
+.src-meta { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.src-side { text-align: right; font-size: 12px; color: var(--ink-3); white-space: nowrap; line-height: 1.7; }
+.src-side a { color: var(--brand-ink); text-decoration: none; border-bottom: 1px solid color-mix(in oklab, var(--brand) 35%, transparent); }
+.src-side a:hover { border-bottom-color: var(--brand); }
+
+/* ============================================================================
+   DENSE DATA — sans + tabular-nums, drawing-grid hairlines (verbatim)
+   ============================================================================ */
+.tbl-wrap { border: 1px solid var(--line); border-radius: var(--card-r); overflow-x: auto; }
+table.tbl { width: 100%; border-collapse: collapse; font-size: 13px; line-height: 1.4; font-variant-numeric: tabular-nums; }
+table.tbl th { text-align: left; font-family: var(--font-ui); font-size: 11px; font-weight: 600; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--ink-3); padding: 10px 14px; background: var(--surface-2); border-bottom: 1px solid var(--line); white-space: nowrap; }
+table.tbl td { padding: 11px 14px; border-bottom: 1px solid var(--line); color: var(--ink); }
+table.tbl tr:last-child td { border-bottom: 0; }
+table.tbl tbody tr { background: var(--surface); transition: background-color .12s; cursor: pointer; }
+table.tbl tbody tr:hover { background: var(--surface-2); }
+table.tbl .c-id { font-weight: 600; color: var(--ink); }
+table.tbl .c-sub { font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); }
+table.tbl th, table.tbl td { border-right: 1px solid var(--line); }
+table.tbl th:last-child, table.tbl td:last-child { border-right: 0; }
+table.tbl .c-go { color: var(--ink-3); text-align: center; }
+table.tbl tbody tr:hover .c-go { color: var(--brand-ink); }
+.cell-status { display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; }
+.cell-status .rlab { font-size: 12px; color: var(--ink-2); }
+.cell-status.off .rlab { color: var(--ink-3); }
+.tbl-svc { display: flex; align-items: center; gap: 10px; }
+.tbl-svc .ic { width: 24px; height: 24px; flex: none; border-radius: var(--r-xs); display: grid; place-items: center;
+  background: var(--brand-tint); color: var(--brand-ink); font-family: var(--font-mono); font-size: 9px; font-weight: 600; }
+
+/* availability dot grid (detail) */
+.legend { display: inline-flex; gap: 16px; align-items: center; margin-bottom: 12px; font-size: 12px; color: var(--ink-2); padding-right: 14px; flex-wrap: wrap; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.avail { border: 1px solid var(--line); border-radius: var(--card-r); overflow: hidden; font-variant-numeric: tabular-nums; }
+.avail-row { display: grid; grid-template-columns: 1.4fr 1fr 1.2fr; align-items: center; padding: 0 16px; height: 44px; border-bottom: 1px solid var(--line); background: var(--surface); }
+.avail-row:last-child { border-bottom: 0; }
+.avail-row.head { background: var(--surface-2); height: 36px; }
+.avail-row.head span { font-family: var(--font-ui); font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); }
+.avail-row .loc-name { font-size: 13px; font-weight: 600; }
+.avail-row .loc-name small { font-family: var(--font-mono); font-weight: 400; color: var(--ink-3); margin-left: 6px; font-size: 11px; }
+.avail-cell { display: flex; align-items: center; gap: 7px; font-size: 13px; color: var(--ink-2); }
+.avail-eta { font-size: 12px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+
+/* evidence callout + alerts (verbatim) */
+.evidence { display: grid; grid-template-columns: auto 1fr; gap: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--card-r); padding: 13px 15px; }
+.evidence + .evidence { margin-top: 8px; }
+.evidence .src-no { font-family: var(--font-mono); font-size: 12px; font-weight: 600; color: var(--brand-ink); }
+.evidence .claim { margin: 0; font-size: 13.5px; font-weight: 600; }
+.evidence .cite { margin: 4px 0 0; font-size: 12px; color: var(--ink-3); }
+.evidence a { color: var(--brand-ink); text-decoration: none; border-bottom: 1px solid color-mix(in oklab, var(--brand) 35%, transparent); }
+.evidence a:hover { border-bottom-color: var(--brand); }
+.alert { display: flex; gap: 10px; padding: 12px 14px; border-radius: var(--card-r); border: 1px solid; font-size: 13px; }
+.alert.info { background: var(--info-tint); border-color: color-mix(in oklab, var(--info) 35%, var(--line)); color: var(--info-ink); }
+.alert .t { font-weight: 700; }
+.empty { text-align: center; padding: 40px 20px; border: 1px dashed var(--line-2); border-radius: var(--card-r); color: var(--ink-2); }
+.empty b { color: var(--ink); display: block; margin-bottom: 4px; }
+
+/* ============================================================================
+   LIST PAGE — facet rail + content
+   ============================================================================ */
+.catwork { display: grid; grid-template-columns: 224px 1fr; gap: 30px; align-items: start; margin-top: 18px; }
+.catwork.solo { grid-template-columns: 1fr; }
+.content-main { min-width: 0; }   /* let the wide table scroll inside instead of widening the column → cards/table width parity */
+
+/* table Status → click to peek per-region availability (popover; keeps the catalog at list-altitude) */
+.status-trigger { display: inline-flex; align-items: center; gap: 6px; background: none; border: none; padding: 0; margin: 0; cursor: pointer; font: inherit; }
+.status-trigger .cv { font-size: 9px; color: var(--ink-3); transition: transform .12s, color .12s; }
+.status-trigger:hover .cv { color: var(--ink); }
+.status-trigger[aria-expanded="true"] .cv { transform: rotate(180deg); color: var(--ink); }
+.avpop { position: fixed; z-index: 120; min-width: 232px; max-width: 290px; background: var(--surface); border: 1px solid var(--line-2);
+  border-radius: var(--card-r); box-shadow: var(--shadow-pop); padding: 10px 11px;
+  transform-origin: top left; animation: avpop-in .13s cubic-bezier(.22, 1, .36, 1); }
+.avpop[hidden] { display: none; }
+@keyframes avpop-in { from { opacity: 0; transform: translateY(-4px) scale(.985); } to { opacity: 1; transform: none; } }
+.avpop .ph { font-family: var(--font-mono); font-size: 10px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); margin: 0 2px 8px; }
+.avpop ul { list-style: none; margin: 0; padding: 0; }
+.avpop li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 2px; }
+.avpop li + li { border-top: 1px solid var(--line); }
+.avpop .rn { font-size: 12.5px; font-weight: 600; }
+.avpop .rn small { font-family: var(--font-mono); font-weight: 400; color: var(--ink-3); font-size: 10px; margin-left: 5px; }
+.avpop .foot { margin-top: 9px; padding-top: 8px; border-top: 1px solid var(--line); display: flex; justify-content: flex-end; }
+.avpop .foot a { font-family: var(--font-mono); font-size: 11px; font-weight: 600; color: var(--brand-ink); text-decoration: none; }
+.avpop .foot a:hover { text-decoration: underline; }
+.facet { position: sticky; top: 72px; display: flex; flex-direction: column; gap: 22px; }
+.facet-group { display: flex; flex-direction: column; gap: 9px; }
+.facet-h { display: inline-flex; align-items: center; gap: 8px; width: fit-content; font-family: var(--font-mono);
+  font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); }
+.facet-opt { display: flex; align-items: center; gap: 9px; font-size: 13px; color: var(--ink-2); cursor: pointer;
+  padding: 3px 0; transition: color .12s; }
+.facet-opt:hover { color: var(--ink); }
+.facet-opt input { accent-color: var(--brand); width: 14px; height: 14px; cursor: pointer; }
+.facet-opt .fc { margin-left: auto; font-family: var(--font-mono); font-size: 10.5px; color: var(--ink-3); }
+.facet-opt.on { color: var(--ink); font-weight: 600; }
+.facet-reset { align-self: flex-start; font-size: 12px; font-weight: 600; color: var(--brand-ink); background: none;
+  border: none; cursor: pointer; padding: 0; }
+.facet-reset:hover { text-decoration: underline; }
+
+.content-bar { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
+.meta-count { font-size: 12.5px; color: var(--ink-3); white-space: nowrap; }
+.spacer { flex: 1; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: var(--control-r); overflow: hidden; }
+.seg button { padding: 5px 12px; border: none; background: var(--surface); font-family: var(--font-ui); font-size: 12px;
+  font-weight: 600; color: var(--ink-3); cursor: pointer; transition: background-color .14s, color .14s; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--brand-tint); color: var(--brand-ink); }
+.seg button:hover:not([aria-pressed="true"]) { background: var(--surface-2); color: var(--ink); }
+
+/* ============================================================================
+   DETAIL PAGE — back link + header + main/side (mirrors catalog.$topicId)
+   ============================================================================ */
+.back { display: inline-flex; align-items: center; gap: 6px; margin: 26px 0 0; font-size: 13px; font-weight: 600;
+  color: var(--ink-2); background: none; border: none; cursor: pointer; padding: 0; }
+.back:hover { color: var(--brand-ink); }
+.dhead { display: flex; align-items: flex-start; gap: 16px; padding: 18px 0 20px; }
+.dhead .di { width: 56px; height: 56px; flex: none; border-radius: var(--r-sm); display: grid; place-items: center;
+  background: var(--brand-tint); color: var(--brand-ink); font-family: var(--font-mono); font-size: 15px; font-weight: 600; }
+.dhead .deyebrow { font-family: var(--font-mono); font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); width: fit-content; }
+.dhead h1 { margin: 6px 0 0; font-size: clamp(26px, 3.4vw, 36px); line-height: 1.08; letter-spacing: -0.028em; font-weight: 700; width: fit-content; }
+.dhead .dbadges { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+.dhead .dactions { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+.dsub { font-size: 16px; color: var(--ink-2); line-height: 1.55; max-width: 70ch; margin: 0 0 6px; }
+.dlayout { display: grid; grid-template-columns: 1fr 300px; gap: 30px; align-items: start; padding: 6px 0 48px; }
+.pv-sec { margin-top: 26px; }
+.pv-sec:first-child { margin-top: 8px; }
+.pv-label { display: inline-flex; font-size: 13px; font-weight: 700; letter-spacing: -0.01em; margin-bottom: 12px; }
+.pv-tools { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 8px; }
+.related { display: flex; flex-direction: column; gap: 2px; }
+.related a { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border: 1px solid var(--line);
+  border-radius: var(--control-r); background: var(--surface); text-decoration: none; color: inherit; transition: border-color .14s; }
+.related a:hover { border-color: var(--line-2); }
+.related .ic { width: 24px; height: 24px; flex: none; border-radius: var(--r-xs); display: grid; place-items: center;
+  background: var(--surface-2); border: 1px solid var(--line); color: var(--ink-2); font-family: var(--font-mono); font-size: 9px; font-weight: 600; }
+.related .nm { font-size: 13px; font-weight: 600; }
+.related .nm small { font-family: var(--font-mono); font-weight: 400; color: var(--ink-3); margin-left: 6px; font-size: 10.5px; }
+.related .go { margin-left: auto; color: var(--ink-3); }
+.related a:hover .go { color: var(--brand-ink); }
+
+.meta-card { position: sticky; top: 72px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--card-r); padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+.meta-card dl { display: grid; grid-template-columns: auto 1fr; gap: 11px 12px; margin: 0; align-items: baseline; }
+.meta-card dt { font-family: var(--font-mono); font-size: 10.5px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--ink-3); }
+/* one value column: uniform weight + size; only the FONT swaps to mono for system values (status/channel/id) */
+.meta-card dd { margin: 0; text-align: right; font-size: 12.5px; font-weight: 600; color: var(--ink); }
+.meta-card dd.mono { font-family: var(--font-mono); font-size: 12px; font-weight: 600; }
+.meta-card .acts { display: flex; flex-direction: column; gap: 8px; padding-top: 14px; border-top: 1px solid var(--line); }
+
+/* header trust line */
+.dmeta { margin-top: 9px; font-size: 12.5px; color: var(--ink-3); }
+.dmeta .own { font-weight: 600; color: var(--ink-2); }
+.dmeta .mono { font-family: var(--font-mono); }
+
+/* compact availability strip (mirrors AvailabilityStrip — one horizontal row) */
+.avstrip { border: 1px solid var(--line); border-radius: var(--card-r); overflow: hidden; background: var(--surface); }
+.avstrip .scroll { overflow-x: auto; }
+.avstrip .grid { display: grid; min-width: max-content; }
+.avcell { display: flex; flex-direction: column; gap: 6px; padding: 10px 13px; border-right: 1px solid var(--line); }
+.avcell:last-child { border-right: 0; }
+.avcell .l { font-size: 12px; font-weight: 700; letter-spacing: -0.01em; }
+.avcell .s { font-family: var(--font-mono); font-size: 10.5px; color: var(--ink-3); }
+.avstrip .foot { display: flex; justify-content: flex-end; padding: 8px 13px; border-top: 1px solid var(--line); background: var(--bg); }
+.avstrip .foot a { font-family: var(--font-mono); font-size: 12px; font-weight: 600; color: var(--brand-ink); text-decoration: none; }
+.avstrip .foot a:hover { text-decoration: underline; }
+
+/* governance: guardrails + landing zones */
+.govern { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.gpanel { border: 1px solid var(--line); border-radius: var(--card-r); background: var(--surface); padding: 14px 15px; }
+.gpanel .gh { font-family: var(--font-mono); font-size: 10.5px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 11px; }
+.glist { display: flex; flex-direction: column; gap: 9px; }
+.gitem { display: flex; align-items: center; gap: 9px; font-size: 13px; text-decoration: none; color: inherit; }
+.gitem .nm { font-weight: 600; }
+.gitem .sub { margin-left: auto; font-size: 11.5px; color: var(--ink-3); }
+.gitem:hover .nm { color: var(--brand-ink); }
+.zchips { display: flex; flex-wrap: wrap; gap: 7px; }
+.zchip { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; padding: 5px 10px;
+  border: 1px solid var(--line); border-radius: var(--r-pill); text-decoration: none; color: var(--ink-2); transition: border-color .14s; }
+.zchip:hover { border-color: var(--line-2); }
+
+/* related guidance cards (step preview) */
+.guide-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(258px, 1fr)); gap: 10px; }
+.guide { display: flex; flex-direction: column; gap: 9px; border: 1px solid var(--line); border-radius: var(--card-r);
+  background: var(--surface); padding: 14px; text-decoration: none; color: inherit; transition: border-color .15s, box-shadow .15s; }
+.guide:hover { border-color: var(--line-2); box-shadow: var(--shadow-pop); }
+.guide-h { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.guide-t { font-size: 13.5px; font-weight: 700; letter-spacing: -0.01em; }
+.guide-o { font-size: 12px; color: var(--ink-2); line-height: 1.45; }
+.steps { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding-top: 9px; border-top: 1px solid var(--line); }
+.step { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: var(--ink-2); white-space: nowrap; }
+.step .sn { width: 16px; height: 16px; border-radius: 50%; border: 1px solid var(--line-2); display: grid; place-items: center;
+  font-family: var(--font-mono); font-size: 9px; color: var(--ink-3); }
+.step .arr { color: var(--ink-3); }
+
+/* sources summary + evidence claim */
+.src-summary { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--ink-2); margin-bottom: 10px; }
+.evidence .backs { margin: 6px 0 0; font-size: 12px; color: var(--ink-2); }
+@media (max-width: 760px) { .govern { grid-template-columns: 1fr; } }
+
+.page { display: none; } .page.on { display: block; }
+@media (max-width: 1000px) {
+  .catwork { grid-template-columns: 1fr; }
+  .facet { position: static; flex-direction: row; flex-wrap: wrap; gap: 18px 28px; }
+  .dlayout { grid-template-columns: 1fr; }
+  .meta-card { position: static; }
+}
+
+/* ============================================================================
+   SWITCHER (neutral chrome — not part of the design under test)
+   ============================================================================ */
+.switcher { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); z-index: 100; display: flex;
+  align-items: center; gap: 4px; background: #0b0d12; color: #fff; border: 1px solid #2a2f3a; border-radius: 999px;
+  padding: 6px; box-shadow: 0 8px 30px rgba(0,0,0,.35); font-family: "Inter", system-ui, sans-serif; }
+.switcher button { background: none; border: none; color: #b8bfcc; cursor: pointer; width: 30px; height: 30px;
+  border-radius: 999px; display: grid; place-items: center; font-size: 15px; }
+.switcher button:hover { background: #1a1e27; color: #fff; }
+.switcher .label { padding: 0 10px; font-size: 13px; min-width: 168px; text-align: center; }
+.switcher .label .k { font-family: "IBM Plex Mono", monospace; color: #6f7686; font-size: 11px; }
+.switcher .dots { display: flex; gap: 5px; padding: 0 6px; }
+.switcher .dots i { width: 6px; height: 6px; border-radius: 50%; background: #3a4150; }
+.switcher .dots i.on { background: #4d6bff; }
+.switcher .sep { width: 1px; height: 20px; background: #2a2f3a; margin: 0 2px; }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="tb-left"><span class="brandmark">A</span><span class="wordmark">Atlas</span></div>
+  <nav class="topnav">
+    <a href="#">Home</a><a href="#" aria-current="page">Catalog</a><a href="#">Availability</a>
+    <a href="#">Guidance</a><a href="#">Sources</a>
+  </nav>
+  <div class="tb-right">
+    <button class="icobtn" title="Search" aria-label="Search"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35" stroke-linecap="round"/></svg></button>
+    <button class="icobtn" id="themeIco" title="Toggle theme" aria-label="Toggle theme"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" stroke-linecap="round"/></svg></button>
+  </div>
+</header>
+
+<div class="canvas">
+
+<!-- LIST -->
+<div class="page on" data-page="list">
+  <div class="listwrap">
+    <header class="chead">
+      <div class="chead-top">
+        <h1>Catalog</h1>
+        <div class="search">
+          <span class="ico-search"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35" stroke-linecap="round"/></svg></span>
+          <input id="search" placeholder="Filter capabilities, zones, sources…" />
+        </div>
+      </div>
+      <p>Approved capabilities, landing zones, and guardrail areas, with where they run and the authoritative sources behind them.</p>
+    </header>
+    <div class="tabs" id="tabs"></div>
+    <div class="catwork" id="catwork">
+      <aside class="facet" id="facet"></aside>
+      <div class="content-main">
+        <div class="content-bar">
+          <span class="meta-count" id="count"></span>
+          <span class="spacer"></span>
+          <div class="seg" id="viewToggle">
+            <button data-view="cards" aria-pressed="true">Cards</button>
+            <button data-view="table" aria-pressed="false">Table</button>
+          </div>
+        </div>
+        <div id="content"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DETAIL -->
+<div class="page" data-page="detail">
+  <div class="dwrap">
+    <button class="back" id="backLink">← Back to catalog</button>
+    <div id="detail"></div>
+  </div>
+</div>
+
+</div><!-- /canvas -->
+
+<button class="fab" title="Ask Atlas">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.5 8.5 0 0 1-12.6 7.4L3 21l2.1-5.4A8.5 8.5 0 1 1 21 11.5z" stroke-linejoin="round"/></svg>
+  Ask Atlas
+</button>
+
+<div class="switcher" role="group" aria-label="Prototype page switcher">
+  <button id="prev" title="Previous surface (←)">‹</button>
+  <span class="label"><span id="lbl">List</span> <span class="k" id="lblk">#list</span></span>
+  <button id="next" title="Next surface (→)">›</button>
+  <span class="dots" id="dots"><i class="on"></i><i></i></span>
+  <span class="sep"></span>
+  <button id="theme" title="Toggle Blueprint / Ink">◐</button>
+</div>
+
+<script>
+  /* ============================================================================
+     DATA — fictional / public-safe. Shape mirrors @atlas/schema Topic + Source +
+     availability (regions/outposts). NOT wired to any real loader.
+     ============================================================================ */
+  const REGIONS = [
+    { id: "us-east-1",    label: "us-east-1",    sub: "N. Virginia",     kind: "region"  },
+    { id: "ca-central-1", label: "ca-central-1", sub: "Canada Central",  kind: "region"  },
+    { id: "gdc",          label: "gdc",          sub: "Primary Outpost", kind: "outpost" },
+    { id: "dc16",         label: "dc16",          sub: "DR Outpost",     kind: "outpost" },
+    { id: "mt10",         label: "mt10",          sub: "Future DR",      kind: "outpost" },
+  ];
+  const DOM = {
+    "Compute":              { owner: "Compute Platform",     ch: "#plat-compute" },
+    "Containers":           { owner: "Container Platform",   ch: "#plat-containers" },
+    "Storage":              { owner: "Storage Platform",     ch: "#plat-storage" },
+    "Database":             { owner: "Data Platform",        ch: "#plat-data" },
+    "Analytics":            { owner: "Analytics Platform",   ch: "#plat-analytics" },
+    "App Integration":      { owner: "Integration Platform", ch: "#plat-integration" },
+    "AI Services":          { owner: "AI Platform",          ch: "#plat-ai" },
+    "Migration & Transfer": { owner: "Migration Office",     ch: "#plat-migration" },
+    "Networking":           { owner: "Network Platform",     ch: "#plat-network" },
+  };
+  const DOMAIN_ORDER = ["Compute","Containers","Storage","Database","Analytics","App Integration","AI Services","Migration & Transfer","Networking"];
+
+  const av = () => ({ s: "available" });
+  const pl = (eta) => ({ s: "planned", eta: eta || "TBD" });
+  const np = () => ({ s: "not-planned" });
+  const CORE = (extra) => Object.assign({ "us-east-1": av(), "ca-central-1": av() }, extra || {});
+  const STATUS = {
+    "available":   { dot: "success", short: "GA",      long: "Available",  chip: "success" },
+    "planned":     { dot: "info",    short: "Planned", long: "Planned",    chip: "info" },
+    "not-planned": { dot: "na",      short: "—",       long: "Not planned", chip: "neutral" },
+  };
+
+  const CAPS = [
+    { slug: "ec2", n: "EC2", dom: "Compute", ic: "EC2", d: "Virtual servers with flexible compute, memory, and networking.", av: CORE({ gdc: pl("05/30/2026"), dc16: pl("07/31/2026"), mt10: pl("TBD") }), cite: ["SRC-001","SRC-002"] },
+    { slug: "lambda", n: "Lambda", dom: "Compute", ic: "LAM", d: "Run functions without provisioning servers; pay per invocation.", av: CORE(), cite: ["SRC-001"] },
+    { slug: "ecs-fargate", n: "ECS Fargate", dom: "Containers", ic: "ECS", d: "Serverless containers, no node management.", av: CORE(), cite: ["SRC-001"] },
+    { slug: "eks", n: "Elastic Kubernetes Service", dom: "Containers", ic: "EKS", d: "Managed Kubernetes control plane and worker orchestration.", av: CORE(), cite: ["SRC-001"] },
+    { slug: "ecr", n: "Elastic Container Registry", dom: "Containers", ic: "ECR", d: "Private, scanned container image registry.", av: CORE(), cite: ["SRC-001"] },
+    { slug: "ecs-ec2", n: "ECS on EC2", dom: "Containers", ic: "EC2", d: "Containers on managed EC2 capacity for custom hosts.", av: { gdc: pl("06/30/2026"), dc16: pl("07/31/2026"), mt10: pl("TBD") }, cite: ["SRC-001","SRC-002"] },
+    { slug: "s3", n: "S3", dom: "Storage", ic: "S3", d: "Durable object storage for any volume of unstructured data.", av: CORE(), cite: ["SRC-001"] },
+    { slug: "efs", n: "Elastic File System", dom: "Storage", ic: "EFS", d: "Shared, elastic NFS file storage across instances.", av: CORE(), cite: ["SRC-001"] },
+    { slug: "ebs", n: "Elastic Block Storage", dom: "Storage", ic: "EBS", d: "High-performance block volumes for instances and databases.", av: CORE(), cite: ["SRC-001"] },
+    { slug: "backup", n: "Backup", dom: "Storage", ic: "BAK", d: "Centralised, policy-driven backup across services.", av: CORE(), cite: ["SRC-001"] },
+    { slug: "aurora", n: "Aurora Serverless v2", dom: "Database", ic: "PG", d: "PostgreSQL-compatible relational database that auto-scales.", av: CORE(), cite: ["SRC-001"] },
+    { slug: "elasticache", n: "ElastiCache", dom: "Database", ic: "EC", d: "In-memory caching for sub-millisecond data access.", av: CORE(), cite: ["SRC-001"] },
+    { slug: "kinesis", n: "Kinesis", dom: "Analytics", ic: "KIN", d: "Ingest and process real-time streaming data at scale.", av: CORE(), cite: ["SRC-001"] },
+    { slug: "glue", n: "Glue", dom: "Analytics", ic: "GLU", d: "Serverless ETL — discover, prepare, and combine data.", av: CORE(), cite: ["SRC-001"] },
+    { slug: "athena", n: "Athena", dom: "Analytics", ic: "ATH", d: "Query data in object storage using standard SQL.", av: CORE(), cite: ["SRC-001"] },
+    { slug: "sqs", n: "Simple Queue Service", dom: "App Integration", ic: "SQS", d: "Fully managed message queues for decoupled services.", av: CORE(), cite: ["SRC-001"] },
+    { slug: "sns", n: "Simple Notification Service", dom: "App Integration", ic: "SNS", d: "Pub/sub messaging and fan-out notifications.", av: CORE(), cite: ["SRC-001"] },
+    { slug: "eventbridge", n: "EventBridge", dom: "App Integration", ic: "EVB", d: "Serverless event bus connecting apps and services.", av: CORE(), cite: ["SRC-001"] },
+    { slug: "step-functions", n: "Step Functions", dom: "App Integration", ic: "SFN", d: "Coordinate distributed workflows as state machines.", av: CORE(), cite: ["SRC-001"] },
+    { slug: "airflow", n: "Managed Apache Airflow", dom: "App Integration", ic: "MWA", d: "Schedule and orchestrate data pipelines.", av: CORE(), cite: ["SRC-001"] },
+    { slug: "bedrock", n: "Bedrock", dom: "AI Services", ic: "BDR", d: "Build and scale with managed foundation models.", av: CORE(), cite: ["SRC-001"] },
+    { slug: "agentcore", n: "Bedrock AgentCore", dom: "AI Services", ic: "AGC", d: "Runtime and tooling for production AI agents.", av: CORE(), cite: ["SRC-001"] },
+    { slug: "textract", n: "Textract", dom: "AI Services", ic: "TEX", d: "Extract text, forms, and tables from documents.", av: CORE(), cite: ["SRC-001"] },
+    { slug: "transfer", n: "Transfer Family", dom: "Migration & Transfer", ic: "TRN", d: "Managed SFTP/FTPS into platform storage.", av: CORE(), cite: ["SRC-001"] },
+    { slug: "dms", n: "Database Migration Service", dom: "Migration & Transfer", ic: "DMS", d: "Migrate schemas and data with minimal downtime.", av: { "us-east-1": pl("05/30/2026"), "ca-central-1": pl("05/30/2026") }, cite: ["SRC-001","SRC-002"] },
+    { slug: "elb", n: "Elastic Load Balancing", dom: "Networking", ic: "ELB", d: "Distribute traffic across targets at layer 4 and 7.", av: { gdc: pl("06/30/2026"), dc16: pl("06/30/2026"), mt10: pl("TBD") }, cite: ["SRC-001","SRC-002"] },
+  ];
+  const ZONES = [
+    { slug: "lz-l3", n: "L3 · Foundational", dom: "Landing Zones", ic: "L3", status: "live", d: "Baseline account with core guardrails, shared networking, and logging.", owner: "Cloud Foundations", ch: "#cloud-foundations", cite: ["SRC-003"] },
+    { slug: "lz-l4", n: "L4 · Regulated", dom: "Landing Zones", ic: "L4", status: "live", d: "Adds data-residency, stricter egress, and audit controls for regulated workloads.", owner: "Cloud Foundations", ch: "#cloud-foundations", cite: ["SRC-003","SRC-004"] },
+    { slug: "lz-l5", n: "L5 · Isolated", dom: "Landing Zones", ic: "L5", status: "planned", d: "Fully isolated enclave with dedicated connectivity for the most sensitive workloads.", owner: "Cloud Foundations", ch: "#cloud-foundations", cite: ["SRC-003"] },
+  ];
+  const GUARDRAILS = [
+    { slug: "gr-network", n: "Network Isolation", dom: "Networking", ic: "NET", status: "live", d: "Egress controls, private endpoints, and segmentation baselines.", owner: "Network Platform", ch: "#plat-network", cite: ["SRC-004"] },
+    { slug: "gr-data", n: "Data Residency", dom: "Database", ic: "DAT", status: "live", d: "Keep regulated data in approved regions with enforced controls.", owner: "Data Governance", ch: "#data-governance", cite: ["SRC-004","SRC-003"] },
+    { slug: "gr-iam", n: "Identity Baseline", dom: "Security", ic: "IAM", status: "live", d: "Least-privilege roles, federation, and access review defaults.", owner: "Security Assurance", ch: "#sec-assurance", cite: ["SRC-004"] },
+    { slug: "gr-enc", n: "Encryption Standards", dom: "Security", ic: "ENC", status: "planned", d: "Customer-managed keys and in-transit encryption requirements.", owner: "Security Assurance", ch: "#sec-assurance", cite: ["SRC-004"] },
+  ];
+  const SOURCES = [
+    { id: "SRC-001", title: "Platform Service Catalog", steward: "Platform Office",    auth: "authoritative", scope: "capabilities, ownership", cls: "registry", fresh: "Updated 2d ago" },
+    { id: "SRC-002", title: "Regional Availability Matrix", steward: "Platform Office", auth: "authoritative", scope: "regions, outposts", cls: "registry", fresh: "Updated 6h ago" },
+    { id: "SRC-003", title: "Landing Zone Standards", steward: "Cloud Foundations",    auth: "authoritative", scope: "landing zones", cls: "standard", fresh: "Updated 9d ago" },
+    { id: "SRC-004", title: "Guardrail Control Library", steward: "Security Assurance", auth: "reference", scope: "guardrails, controls", cls: "reference", fresh: "Updated 3w ago" },
+    { id: "SRC-005", title: "Service Onboarding Runbook", steward: "Enablement",       auth: "reference", scope: "onboarding", cls: "runbook", fresh: "Review due", stale: true },
+  ];
+  const GUIDANCE = [
+    { id: "gd-provision", title: "Provision with Terraform", type: "Runbook",  obj: "Stand the service up inside an approved landing zone using platform modules.", steps: ["Pick zone","Import module","Set guardrails","Plan & apply","Verify"] },
+    { id: "gd-onboard",   title: "Team onboarding",          type: "Checklist", obj: "Get access, quotas, and the right support channel wired up before first use.", steps: ["Request access","Confirm quotas","Join channel","Smoke test"] },
+    { id: "gd-operate",   title: "Operate & monitor",        type: "Playbook",  obj: "Wire health, freshness, and availability alerts once you are live.", steps: ["Dashboards","Alerts","Runbook","Review"] },
+  ];
+  const SRC_BACKS = {
+    "SRC-001": "Ownership, support channel & catalog entry",
+    "SRC-002": "Regional availability & rollout ETAs",
+    "SRC-003": "Landing-zone eligibility",
+    "SRC-004": "Applicable guardrail controls",
+    "SRC-005": "Onboarding steps",
+  };
+  const TYPES = [
+    { key: "capability",   label: "Capabilities",  items: CAPS },
+    { key: "landing-zone", label: "Landing zones", items: ZONES },
+    { key: "guardrail",    label: "Guardrails",    items: GUARDRAILS },
+    { key: "sources",      label: "Sources",       items: SOURCES },
+  ];
+  const TYPE_LABEL = { capability: "Capability", "landing-zone": "Landing zone", guardrail: "Guardrail area" };
+
+  /* ---- helpers ---- */
+  const esc = (s) => { const d = document.createElement("div"); d.textContent = s; return d.innerHTML; };
+  const itemsOf = (type) => (TYPES.find((t) => t.key === type) || {}).items || [];
+  const findItem = (type, slug) => (type === "sources" ? SOURCES.find((s) => s.id === slug) : itemsOf(type).find((i) => i.slug === slug));
+  const cell = (c, locId) => c.av[locId] || np();
+  const activeLocs = (c) => REGIONS.filter((r) => cell(c, r.id).s !== "not-planned");
+  const capStatus = (c) => (activeLocs(c).some((r) => cell(c, r.id).s === "available") ? "live" : "planned");
+  const defaultTools = () => [{ l: "Service catalog", primary: true }, { l: "User guide" }, { l: "Onboarding runbook" }];
+  const matchQ = (q, fields) => !q || fields.join(" ").toLowerCase().includes(q.toLowerCase());
+
+  function statusChip(c) {
+    const live = capStatus(c) === "live", n = activeLocs(c).length;
+    return live
+      ? `<span class="chip success"><span class="dot success"></span>GA · ${n} ${n > 1 ? "regions" : "region"}</span>`
+      : `<span class="chip info"><span class="dot info"></span>Planned</span>`;
+  }
+  function topicStatusChip(status) {
+    return status === "live"
+      ? `<span class="chip success"><span class="dot success"></span>Live</span>`
+      : status === "planned"
+        ? `<span class="chip info"><span class="dot info"></span>Planned</span>`
+        : `<span class="chip critical"><span class="dot critical"></span>Deprecated</span>`;
+  }
+  function regionChips(c) {
+    const locs = activeLocs(c);
+    const shown = locs.slice(0, 2).map((r) => {
+      const cl = cell(c, r.id), m = STATUS[cl.s];
+      const note = cl.s === "planned" && cl.eta && cl.eta !== "TBD" ? ` ${cl.eta}` : "";
+      return `<span class="chip ${m.chip}"><span class="dot ${m.dot}"></span>${esc(r.label)}${note}</span>`;
+    });
+    const extra = locs.length - shown.length;
+    if (extra > 0) shown.push(`<span class="chip"><span class="dot na"></span>+${extra}</span>`);
+    if (locs.length === 0) shown.push(`<span class="chip"><span class="dot na"></span>No availability yet</span>`);
+    return shown.join("");
+  }
+  const authChip = (s) => s.auth === "authoritative" ? `<span class="chip brand">Authoritative</span>` : `<span class="chip">Reference</span>`;
+  const freshChip = (s) => s.stale
+    ? `<span class="chip warning"><span class="dot warning"></span>${esc(s.fresh)}</span>`
+    : `<span class="chip success"><span class="dot success"></span>${esc(s.fresh)}</span>`;
+
+  function groupByDomain(list) {
+    return DOMAIN_ORDER
+      .map((d) => [d, list.filter((c) => c.dom === d)]).filter(([, l]) => l.length)
+      .concat([...new Set(list.map((c) => c.dom))].filter((d) => !DOMAIN_ORDER.includes(d)).map((d) => [d, list.filter((c) => c.dom === d)]));
+  }
+
+  /* ---- card builders (clickable → detail) ---- */
+  function capCard(c) {
+    const m = DOM[c.dom] || { owner: "Platform", ch: "#platform" };
+    return `<a class="cap" href="#" data-open="${c.slug}" data-type="capability">
+      <div class="cap-top">
+        <div class="cap-icon">${esc(c.ic)}</div>
+        <div style="min-width:0"><h3 class="cap-title">${esc(c.n)}</h3><div class="cap-slug">${esc(c.slug)}</div></div>
+        <span class="cap-arrow">→</span>
+      </div>
+      <p class="cap-desc">${esc(c.d)}</p>
+      <div class="cap-chips">${regionChips(c)}</div>
+      <div class="cap-foot"><span class="own">${esc(m.owner)}</span><span class="ch">${esc(m.ch)}</span></div>
+    </a>`;
+  }
+  function topicCard(t, type) {
+    return `<a class="cap" href="#" data-open="${t.slug}" data-type="${type}">
+      <div class="cap-top">
+        <div class="cap-icon">${esc(t.ic)}</div>
+        <div style="min-width:0"><h3 class="cap-title">${esc(t.n)}</h3><div class="cap-slug">${esc(t.slug)}</div></div>
+        <span class="cap-arrow">→</span>
+      </div>
+      <p class="cap-desc">${esc(t.d)}</p>
+      <dl class="kv">
+        <dt>Domain</dt><dd>${esc(t.dom)}</dd>
+        <dt>Status</dt><dd class="mono">${esc(t.status)}</dd>
+        <dt>Owner</dt><dd>${esc(t.owner)}</dd>
+        <dt>Support</dt><dd class="mono">${esc(t.ch)}</dd>
+      </dl>
+    </a>`;
+  }
+  function sourcesPanel(list) {
+    return `<div class="sources">` + list.map((s, i) => `
+      <div class="src-entry">
+        <div class="src-num">${String(i + 1).padStart(2, "0")}</div>
+        <div class="src-body">
+          <h3>${esc(s.title)}</h3>
+          <div class="cap-slug">${esc(s.cls)} · ${esc(s.id)}</div>
+          <p>Steward of ${esc(s.scope)}. Cited by capability and availability records across the catalog.</p>
+          <div class="src-meta">${authChip(s)}${freshChip(s)}</div>
+        </div>
+        <div class="src-side">steward ${esc(s.steward)}<br>${esc(s.fresh)}<br><a href="#">Open source →</a></div>
+      </div>`).join("") + `</div>`;
+  }
+  const legendHtml = () => `<span><span class="dot success"></span>Available / Live</span>
+    <span><span class="dot info"></span>Planned</span><span><span class="dot na"></span>Not planned</span>`;
+  function guardrailsFor(cap) {
+    const base = ["gr-network", "gr-iam", "gr-enc"];
+    if (["Database", "Analytics", "Storage"].includes(cap.dom)) base.splice(1, 0, "gr-data");
+    return base.map((s) => GUARDRAILS.find((g) => g.slug === s)).filter(Boolean).slice(0, 3);
+  }
+  const guidanceFor = () => GUIDANCE.slice(0, 2);
+  const freshestOf = (cites) => cites.map((s) => s.fresh).find((f) => /Updated/.test(f)) || "Updated recently";
+
+  /* ============================================================================
+     STATE
+     ============================================================================ */
+  const S = { page: "list", type: "capability", view: "cards", q: "", doms: new Set(), status: "all", region: "all", current: null };
+
+  /* ---- list filtering ---- */
+  function filtered() {
+    const items = itemsOf(S.type);
+    return items.filter((it) => {
+      if (S.type === "sources") return matchQ(S.q, [it.title, it.steward, it.id, it.scope]);
+      if (!matchQ(S.q, [it.n, it.d, it.dom, (DOM[it.dom] || {}).owner || it.owner || ""])) return false;
+      if (S.doms.size && !S.doms.has(it.dom)) return false;
+      if (S.type === "capability") {
+        if (S.region !== "all" && cell(it, S.region).s === "not-planned") return false;
+        if (S.status !== "all") {
+          const ok = S.region !== "all" ? cell(it, S.region).s === S.status : REGIONS.some((r) => cell(it, r.id).s === S.status);
+          if (!ok) return false;
+        }
+      } else if (S.status !== "all") {
+        if (it.status !== S.status) return false;
+      }
+      return true;
+    });
+  }
+
+  /* ---- render: tabs ---- */
+  function renderTabs() {
+    document.getElementById("tabs").innerHTML = TYPES.map((t) =>
+      `<button data-tab="${t.key}" aria-selected="${S.type === t.key}">${t.label}<span class="ct">${t.items.length}</span></button>`).join("");
+    document.querySelectorAll("#tabs button").forEach((b) =>
+      b.onclick = () => { S.type = b.dataset.tab; S.doms = new Set(); S.status = "all"; S.region = "all"; if (S.type === "sources") S.view = "cards"; renderList(); });
+  }
+
+  /* ---- render: facet rail (adapts per type; sources → no rail) ---- */
+  function renderFacet() {
+    const catwork = document.getElementById("catwork");
+    const f = document.getElementById("facet");
+    if (S.type === "sources") { catwork.classList.add("solo"); f.style.display = "none"; return; }
+    catwork.classList.remove("solo"); f.style.display = "";
+    const items = itemsOf(S.type);
+    const doms = [...new Set(items.map((i) => i.dom))];
+    const counts = {}; doms.forEach((d) => counts[d] = items.filter((i) => i.dom === d).length);
+    const domGroup = `<div class="facet-group"><div class="facet-h">Domain</div>` +
+      doms.map((d) => `<label class="facet-opt ${S.doms.has(d) ? "on" : ""}"><input type="checkbox" ${S.doms.has(d) ? "checked" : ""} data-dom="${esc(d)}">${esc(d)}<span class="fc">${counts[d]}</span></label>`).join("") + `</div>`;
+    const statusOpts = S.type === "capability" ? [["all","Any status"],["available","Available"],["planned","Planned"]] : [["all","Any status"],["live","Live"],["planned","Planned"]];
+    const statusGroup = `<div class="facet-group"><div class="facet-h">Status</div>` +
+      statusOpts.map(([v, l]) => `<label class="facet-opt ${S.status === v ? "on" : ""}"><input type="radio" name="fstatus" ${S.status === v ? "checked" : ""} data-status="${v}">${l}</label>`).join("") + `</div>`;
+    const regionGroup = S.type !== "capability" ? "" :
+      `<div class="facet-group"><div class="facet-h">Region</div>` +
+      [["all","All regions"]].concat(REGIONS.map((r) => [r.id, r.label])).map(([v, l]) => `<label class="facet-opt ${S.region === v ? "on" : ""}"><input type="radio" name="fregion" ${S.region === v ? "checked" : ""} data-region="${v}">${esc(l)}</label>`).join("") + `</div>`;
+    const dirty = S.doms.size || S.status !== "all" || S.region !== "all";
+    f.innerHTML = domGroup + statusGroup + regionGroup + (dirty ? `<button class="facet-reset" id="facetReset">Reset filters</button>` : "");
+    f.querySelectorAll("[data-dom]").forEach((el) => el.onchange = () => { el.checked ? S.doms.add(el.dataset.dom) : S.doms.delete(el.dataset.dom); renderList(); });
+    f.querySelectorAll("[data-status]").forEach((el) => el.onchange = () => { S.status = el.dataset.status; renderList(); });
+    f.querySelectorAll("[data-region]").forEach((el) => el.onchange = () => { S.region = el.dataset.region; renderList(); });
+    const reset = document.getElementById("facetReset");
+    if (reset) reset.onclick = () => { S.doms = new Set(); S.status = "all"; S.region = "all"; renderList(); };
+  }
+
+  /* ---- render: content (cards | table | sources panel) ---- */
+  function renderContent() {
+    if (typeof closeAvPop === "function") closeAvPop();
+    const list = filtered();
+    const typeLabel = TYPES.find((t) => t.key === S.type).label.toLowerCase();
+    document.getElementById("count").textContent = `${list.length} ${typeLabel}`;
+    // view toggle visibility
+    document.getElementById("viewToggle").style.display = S.type === "sources" ? "none" : "";
+    document.querySelectorAll("#viewToggle button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.view === S.view)));
+    const el = document.getElementById("content");
+    if (!list.length) { el.innerHTML = `<div class="empty"><b>Nothing matches.</b>Loosen a filter or clear the search.</div>`; return; }
+
+    if (S.type === "sources") { el.innerHTML = sourcesPanel(list); return; }
+
+    if (S.view === "cards") {
+      if (S.type === "capability") {
+        el.innerHTML = groupByDomain(list).map(([d, l]) =>
+          `<div class="dom"><div class="dom-head"><span class="nm">${esc(d)}</span><span class="ct">${l.length}</span></div>
+           <div class="cap-grid">${l.map(capCard).join("")}</div></div>`).join("");
+      } else {
+        el.innerHTML = `<div class="cap-grid">${list.map((t) => topicCard(t, S.type)).join("")}</div>`;
+      }
+    } else {
+      // TABLE view (row-clickable, with a Status column — fixes the v1 C2 complaints)
+      let head, rows;
+      if (S.type === "capability") {
+        // catalog-altitude list — NOT a per-region matrix (that belongs to the Availability map).
+        // Same columns as zones/guardrails: identity · domain · status summary · owner · support.
+        head = `<th>Service</th><th>Domain</th><th>Status</th><th>Owner</th><th>Support</th><th></th>`;
+        rows = list.map((c) => {
+          const m = DOM[c.dom] || {};
+          return `<tr data-open="${c.slug}" data-type="capability">
+            <td><div class="tbl-svc"><span class="ic">${esc(c.ic)}</span><span><span class="c-id">${esc(c.n)}</span><br><span class="c-sub">${esc(c.slug)}</span></span></div></td>
+            <td>${esc(c.dom)}</td><td><button class="status-trigger" type="button" data-pop="${c.slug}" aria-expanded="false">${statusChip(c)}<span class="cv" aria-hidden="true">▾</span></button></td><td>${esc(m.owner || "")}</td><td class="c-sub">${esc(m.ch || "")}</td><td class="c-go">→</td></tr>`;
+        }).join("");
+      } else {
+        head = `<th>${S.type === "landing-zone" ? "Landing zone" : "Guardrail area"}</th><th>Domain</th><th>Status</th><th>Owner</th><th>Support</th><th></th>`;
+        rows = list.map((t) => `<tr data-open="${t.slug}" data-type="${S.type}">
+          <td><div class="tbl-svc"><span class="ic">${esc(t.ic)}</span><span><span class="c-id">${esc(t.n)}</span><br><span class="c-sub">${esc(t.slug)}</span></span></div></td>
+          <td>${esc(t.dom)}</td><td>${topicStatusChip(t.status)}</td><td>${esc(t.owner)}</td><td class="c-sub">${esc(t.ch)}</td><td class="c-go">→</td></tr>`).join("");
+      }
+      el.innerHTML = `<div class="tbl-wrap"><table class="tbl"><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table></div>`;
+    }
+    // wire click-through on cards + rows; the table Status cell opens a per-region popover instead
+    el.querySelectorAll("[data-open]").forEach((node) => node.addEventListener("click", (e) => {
+      e.preventDefault(); openDetail(node.dataset.type, node.dataset.open);
+    }));
+    el.querySelectorAll("[data-pop]").forEach((t) => t.addEventListener("click", (e) => {
+      e.preventDefault(); e.stopPropagation(); openAvPop(t, t.dataset.pop);
+    }));
+  }
+
+  function renderList() { renderTabs(); renderFacet(); renderContent(); }
+
+  /* ============================================================================
+     DETAIL PAGE (mirrors catalog.$topicId.tsx)
+     ============================================================================ */
+  function renderDetail() {
+    if (!S.current) S.current = { type: "capability", slug: CAPS[0].slug };
+    const it = findItem(S.current.type, S.current.slug) || CAPS[0];
+    const isCap = S.current.type === "capability";
+    const m = isCap ? (DOM[it.dom] || {}) : { owner: it.owner, ch: it.ch };
+    const typeLabel = TYPE_LABEL[S.current.type] || "Capability";
+    const status = isCap ? capStatus(it) : it.status;
+    const cites = (it.cite || []).map((id) => SOURCES.find((s) => s.id === id)).filter(Boolean);
+    const updated = freshestOf(cites);
+
+    /* Tier 1 — can I use it, and where (compact strip) */
+    const planned = isCap && activeLocs(it).some((r) => cell(it, r.id).s === "planned");
+    const availSec = isCap ? `<section class="pv-sec"><div class="pv-label">Where this is available</div>
+      <div class="avstrip"><div class="scroll"><div class="grid" style="grid-template-columns:repeat(${REGIONS.length},minmax(116px,1fr))">
+        ${REGIONS.map((r) => { const cl = cell(it, r.id), sm = STATUS[cl.s];
+          const sub = cl.s === "planned" && cl.eta && cl.eta !== "TBD" ? `ETA ${esc(cl.eta)}` : esc(r.sub);
+          return `<div class="avcell"><span class="l">${esc(r.label)}</span><span class="s">${sub}</span>
+            <span class="chip ${sm.chip}"><span class="dot ${sm.dot}"></span>${sm.long}</span></div>`; }).join("")}
+      </div></div><div class="foot"><a href="#">Open in availability map ↗</a></div></div>
+      ${planned ? `<div class="alert info" style="margin-top:10px"><span class="dot info" style="margin-top:5px"></span><div><span class="t">Rollout in progress.</span> Some regions are still planned; contact ${esc(m.owner || "the platform team")} for interim access.</div></div>` : ""}
+    </section>` : "";
+
+    /* Tier 1 — how do I start */
+    const toolsSec = `<section class="pv-sec"><div class="pv-label">Get started</div>
+      <div class="pv-tools">${defaultTools().map((t) => `<a class="btn btn-secondary" href="#">${esc(t.l)} ↗</a>`).join("")}</div></section>`;
+
+    /* Tier 2 — governance: guardrails + landing zones (capability-specific platform value) */
+    const grs = isCap ? guardrailsFor(it) : [];
+    const governSec = isCap ? `<section class="pv-sec"><div class="pv-label">Guardrails &amp; landing zones</div>
+      <div class="govern">
+        <div class="gpanel"><div class="gh">Guardrails that apply</div><div class="glist">
+          ${grs.map((g) => `<a class="gitem" href="#" data-open="${g.slug}" data-type="guardrail"><span class="dot ${g.status === "live" ? "success" : "info"}"></span><span class="nm">${esc(g.n)}</span><span class="sub">${esc(g.dom)}</span></a>`).join("")}
+        </div></div>
+        <div class="gpanel"><div class="gh">Offered in landing zones</div><div class="zchips">
+          ${ZONES.map((z) => `<a class="zchip" href="#" data-open="${z.slug}" data-type="landing-zone"><span class="dot ${z.status === "live" ? "success" : "info"}"></span>${esc(z.n.replace(/\s·.*/, ""))}</a>`).join("")}
+        </div><p style="margin:12px 0 0;font-size:11.5px;color:var(--ink-3)">Live in L3–L4 today; the L5 isolated enclave is planned.</p></div>
+      </div></section>` : "";
+
+    /* Tier 2 — related capabilities + guidance */
+    const related = itemsOf(S.current.type).filter((x) => x.dom === it.dom && x.slug !== it.slug).slice(0, 4);
+    const relatedCaps = related.length
+      ? `<div class="related">${related.map((r) => `<a href="#" data-open="${r.slug}" data-type="${S.current.type}"><span class="ic">${esc(r.ic)}</span><span class="nm">${esc(r.n)}<small>${esc(r.slug)}</small></span><span class="go">→</span></a>`).join("")}</div>`
+      : `<div class="empty"><b>Nothing else in ${esc(it.dom)}.</b>This is the only entry in its domain.</div>`;
+    const guides = guidanceFor();
+    const guideCards = `<div class="guide-grid">${guides.map((g) => `<a class="guide" href="#">
+      <div class="guide-h"><span class="guide-t">${esc(g.title)}</span><span class="chip">${esc(g.type)}</span></div>
+      <span class="guide-o">${esc(g.obj)}</span>
+      <div class="steps">${g.steps.slice(0, 4).map((s, i) => `${i ? '<span class="arr">→</span>' : ""}<span class="step"><span class="sn">${i + 1}</span>${esc(s)}</span>`).join("")}${g.steps.length > 4 ? `<span class="step">+${g.steps.length - 4}</span>` : ""}</div></a>`).join("")}</div>`;
+    const relatedSec = `<section class="pv-sec"><div class="pv-label">Related capabilities</div>${relatedCaps}</section>
+      <section class="pv-sec"><div class="pv-label">Related guidance</div>${guideCards}</section>`;
+
+    /* Tier 3 — trust: sources + freshness */
+    const stale = cites.some((s) => s.stale);
+    const srcSummary = `<div class="src-summary"><span class="dot ${stale ? "warning" : "success"}"></span>${cites.length} ${cites.length === 1 ? "source" : "sources"} cited · ${cites.every((s) => s.auth === "authoritative") ? "all authoritative" : "mixed authority"} · ${esc(updated)}</div>`;
+    const evidence = cites.map((s, i) => `<div class="evidence"><span class="src-no">[${i + 1}]</span><div>
+      <p class="claim">${esc(s.title)}</p>
+      <p class="backs">Backs: ${esc(SRC_BACKS[s.id] || s.scope)}</p>
+      <p class="cite">${esc(s.steward)} · ${esc(s.id)} · ${s.auth === "authoritative" ? "authoritative" : "reference"} · ${esc(s.fresh)} · <a href="#">open ↗</a></p></div></div>`).join("");
+    const srcSec = `<section class="pv-sec"><div class="pv-label">Sources &amp; freshness</div>
+      ${stale ? `<div class="alert info" style="margin-bottom:10px"><span class="dot warning" style="margin-top:5px"></span><div><span class="t">A cited source is due for review.</span> Treat its claims as indicative until refreshed.</div></div>` : ""}
+      ${srcSummary}${evidence || `<div class="empty"><b>No registered sources resolved.</b>Use feedback to suggest one.</div>`}</section>`;
+
+    document.getElementById("detail").innerHTML = `
+      <div class="dhead">
+        <div class="di">${esc(it.ic)}</div>
+        <div style="min-width:0">
+          <div class="deyebrow">${typeLabel} · ${esc(it.dom)}</div>
+          <h1>${esc(it.n)}</h1>
+          <div class="dbadges">${isCap ? statusChip(it) : topicStatusChip(it.status)}<span class="chip"><span class="mono">${esc(it.slug)}</span></span></div>
+          <div class="dmeta"><span class="own">${esc(m.owner || "")}</span> · <span class="mono">${esc(m.ch || "")}</span> · ${cites.length} ${cites.length === 1 ? "source" : "sources"} · ${esc(updated)}</div>
+        </div>
+      </div>
+      <div class="dlayout">
+        <div class="dmain">
+          <p class="dsub">${esc(it.d)}</p>
+          ${availSec}${toolsSec}${governSec}${relatedSec}${srcSec}
+        </div>
+        <aside class="meta-card">
+          <dl>
+            <dt>Type</dt><dd>${typeLabel}</dd>
+            <dt>Status</dt><dd class="mono">${esc(status)}</dd>
+            <dt>Domain</dt><dd>${esc(it.dom)}</dd>
+            <dt>Owner</dt><dd>${esc(m.owner || "")}</dd>
+            <dt>Support</dt><dd class="mono">${esc(m.ch || "")}</dd>
+            <dt>Updated</dt><dd>${esc(updated.replace(/^Updated /, ""))}</dd>
+            <dt>ID</dt><dd class="mono">${esc(it.slug)}</dd>
+          </dl>
+          <div class="acts">
+            <a class="btn btn-primary btn-block" href="#">Service catalog <span>↗</span></a>
+            <a class="btn btn-secondary btn-block" href="#">User guide <span>↗</span></a>
+          </div>
+        </aside>
+      </div>`;
+    document.querySelectorAll("#detail [data-open]").forEach((node) => node.addEventListener("click", (e) => {
+      e.preventDefault(); openDetail(node.dataset.type, node.dataset.open);
+    }));
+  }
+
+  /* ============================================================================
+     NAVIGATION (list ↔ detail)
+     ============================================================================ */
+  function openDetail(type, slug) { S.current = { type, slug }; S.page = "detail"; writeHash(); render(); }
+  function showList() { S.page = "list"; writeHash(); render(); }
+  document.getElementById("backLink").onclick = showList;
+  document.getElementById("search").addEventListener("input", (e) => { S.q = e.target.value; renderContent(); });
+  document.querySelectorAll("#viewToggle button").forEach((b) => b.onclick = () => { S.view = b.dataset.view; renderContent(); });
+
+  /* per-region availability popover, opened from the table's Status cell */
+  const avpop = document.createElement("div");
+  avpop.className = "avpop"; avpop.hidden = true; document.body.appendChild(avpop);
+  let avTrigger = null;
+  function closeAvPop() { avpop.hidden = true; if (avTrigger) avTrigger.setAttribute("aria-expanded", "false"); avTrigger = null; }
+  function openAvPop(trigger, slug) {
+    if (avTrigger === trigger) { closeAvPop(); return; }
+    const c = CAPS.find((x) => x.slug === slug); if (!c) return;
+    avpop.innerHTML = `<div class="ph">Availability by region</div><ul>` + REGIONS.map((r) => {
+      const cl = cell(c, r.id), sm = STATUS[cl.s];
+      const sub = cl.s === "planned" && cl.eta && cl.eta !== "TBD" ? `ETA ${esc(cl.eta)}` : esc(r.sub);
+      return `<li><span class="rn">${esc(r.label)} <small>${sub}</small></span><span class="chip ${sm.chip}"><span class="dot ${sm.dot}"></span>${sm.long}</span></li>`;
+    }).join("") + `</ul><div class="foot"><a href="#">Open in availability map ↗</a></div>`;
+    avpop.hidden = false;
+    const rect = trigger.getBoundingClientRect();
+    let left = rect.left;
+    if (left + avpop.offsetWidth > window.innerWidth - 12) left = window.innerWidth - 12 - avpop.offsetWidth;
+    avpop.style.top = (rect.bottom + 6) + "px";
+    avpop.style.left = Math.max(12, left) + "px";
+    if (avTrigger) avTrigger.setAttribute("aria-expanded", "false");
+    avTrigger = trigger; trigger.setAttribute("aria-expanded", "true");
+  }
+  document.addEventListener("click", (e) => { if (!avpop.hidden && !avpop.contains(e.target) && !e.target.closest("[data-pop]")) closeAvPop(); });
+  window.addEventListener("scroll", () => { if (!avpop.hidden) closeAvPop(); }, true);
+  window.addEventListener("keydown", (e) => { if (e.key === "Escape") closeAvPop(); });
+
+  /* ============================================================================
+     SWITCHER (neutral chrome — reused from home-redesign.html)
+     ============================================================================ */
+  const PAGES = [{ key: "list", name: "List" }, { key: "detail", name: "Detail" }];
+  const root = document.documentElement;
+  let scheme = "blueprint";
+  function pageIdx() { return PAGES.findIndex((p) => p.key === S.page); }
+  function parseHash() {
+    const [p, s] = (location.hash || "").replace("#", "").split("-");
+    if (PAGES.some((x) => x.key === p)) S.page = p;
+    scheme = s === "ink" ? "blueprint-ink" : "blueprint";
+  }
+  function writeHash() { location.hash = S.page + (scheme === "blueprint-ink" ? "-ink" : ""); }
+  function render() {
+    root.setAttribute("data-variant", scheme);
+    if (S.page === "detail") renderDetail(); else renderList();
+    document.querySelectorAll(".page").forEach((el) => el.classList.toggle("on", el.dataset.page === S.page));
+    const i = pageIdx();
+    document.getElementById("lbl").textContent = PAGES[i].name;
+    document.getElementById("lblk").textContent = "#" + S.page + (scheme === "blueprint-ink" ? " · ink" : " · light");
+    document.querySelectorAll("#dots i").forEach((d, k) => d.classList.toggle("on", k === i));
+    window.scrollTo({ top: 0 });
+  }
+  function go(n) { S.page = PAGES[(n + PAGES.length) % PAGES.length].key; writeHash(); render(); }
+  function toggleTheme() { scheme = scheme === "blueprint" ? "blueprint-ink" : "blueprint"; writeHash(); render(); }
+  document.getElementById("prev").onclick = () => go(pageIdx() - 1);
+  document.getElementById("next").onclick = () => go(pageIdx() + 1);
+  document.getElementById("theme").onclick = toggleTheme;
+  document.getElementById("themeIco").onclick = toggleTheme;
+  window.addEventListener("keydown", (e) => {
+    const t = e.target;
+    if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable)) return;
+    if (e.key === "ArrowLeft") go(pageIdx() - 1);
+    else if (e.key === "ArrowRight") go(pageIdx() + 1);
+    else if (e.key.toLowerCase() === "t") toggleTheme();
+  });
+  window.addEventListener("hashchange", () => { parseHash(); render(); });
+
+  parseHash(); render();
+</script>
+</body>
+</html>

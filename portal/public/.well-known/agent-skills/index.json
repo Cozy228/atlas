@@ -1,0 +1,12 @@
+{
+  "$schema": "https://schemas.agentskills.io/discovery/0.2.0/schema.json",
+  "skills": [
+    {
+      "name": "atlas-context-consumer",
+      "type": "skill-md",
+      "description": "Resolve governed, citation-backed platform context from Atlas (services, sources, regional availability) through the Context API bundle. Use when an agent needs an authoritative, sourced answer about a cloud platform service instead of guessing.",
+      "url": "/.well-known/agent-skills/atlas-context-consumer/SKILL.md",
+      "digest": "sha256:9bfeca68085cffbdbcf5042d81842fe597fd615e913dee486a603907fc665b1e"
+    }
+  ]
+}

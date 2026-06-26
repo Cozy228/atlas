@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { ApiErrorResponseSchema, FeedbackResponseSchema } from "@atlas/schema";
-import { handleFeedbackRequest } from "./feedbackRoute.js";
+import { handleFeedbackRequest } from "./feedbackRoute";
 
 describe("feedback route", () => {
   it("captures user feedback as a shared contract response", async () => {

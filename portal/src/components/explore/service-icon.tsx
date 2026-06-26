@@ -1,57 +1,67 @@
-import { AWS_ICON_MAP } from "@/lib/aws-icon-map";
-import { cn } from "@/lib/utils";
+import { lazy, Suspense } from "react";
+
+import {
+  MappedServiceIcon,
+  ServiceIconFallback,
+  type ServiceIconSize,
+} from "@/components/explore/service-icon-frame";
 
 type ServiceIconProps = {
   serviceId: string;
-  size?: "sm" | "base" | "md" | "lg" | "xl" | "hero";
+  provider?: ServiceIconProvider;
+  size?: ServiceIconSize;
 };
 
-const sizeClass = {
-  sm: "size-5",
-  base: "size-6",
-  md: "size-[30px]",
-  lg: "size-9",
-  xl: "size-12",
-  hero: "size-16",
-} as const;
+type ProviderIconProps = {
+  serviceId: string;
+  size?: ServiceIconSize;
+};
 
-const iconSize = {
-  sm: 18,
-  base: 20,
-  md: 22,
-  lg: 28,
-  xl: 38,
-  hero: 52,
-} as const;
+export type ServiceIconProvider = "aws" | "azure";
 
-const fallbackClass = {
-  sm: "type-icon-glyph",
-  base: "type-caption",
-  md: "text-xs",
-  lg: "text-xs",
-  xl: "type-detail",
-  hero: "type-body",
-} as const;
+let azureServiceIconModule: Promise<typeof import("./azure-service-icon")> | null = null;
 
-export function ServiceIcon({ serviceId, size = "md" }: ServiceIconProps) {
-  const Icon = AWS_ICON_MAP[serviceId];
+function loadAzureServiceIconModule() {
+  azureServiceIconModule ??= import("./azure-service-icon");
+  return azureServiceIconModule;
+}
 
+const AzureServiceIcon = lazy(() =>
+  loadAzureServiceIconModule().then((module) => ({ default: module.AzureServiceIcon })),
+);
+
+export function preloadAzureServiceIcons() {
+  void loadAzureServiceIconModule();
+}
+
+// The AWS icon pack (~36 KB gzip) is split off the same way as Azure: detail
+// routes that render a single AWS ServiceIcon no longer pull the whole pack into
+// their eager chunk — it loads on demand, and the availability matrix preloads
+// it (see `preloadAwsServiceIcons`) so its first paint keeps the real icons.
+let awsIconMapModule: Promise<typeof import("@/lib/aws-icon-map")> | null = null;
+
+function loadAwsIconMapModule() {
+  awsIconMapModule ??= import("@/lib/aws-icon-map");
+  return awsIconMapModule;
+}
+
+const AwsServiceIcon = lazy(() =>
+  loadAwsIconMapModule().then((module) => ({
+    default: ({ serviceId, size }: ProviderIconProps) => (
+      <MappedServiceIcon serviceId={serviceId} iconMap={module.AWS_ICON_MAP} size={size} />
+    ),
+  })),
+);
+
+export function preloadAwsServiceIcons() {
+  void loadAwsIconMapModule();
+}
+
+export function ServiceIcon({ serviceId, provider = "aws", size = "md" }: ServiceIconProps) {
+  const ProviderIcon = provider === "azure" ? AzureServiceIcon : AwsServiceIcon;
   return (
-    <span
-      aria-hidden
-      className={cn(
-        "flex shrink-0 items-center justify-center rounded-md",
-        Icon ? "bg-transparent" : "bg-brand-tint",
-        sizeClass[size],
-      )}
-    >
-      {Icon ? (
-        <Icon size={iconSize[size]} />
-      ) : (
-        <span className={cn("font-mono font-bold uppercase text-primary", fallbackClass[size])}>
-          {serviceId.charAt(0)}
-        </span>
-      )}
-    </span>
+    <Suspense fallback={<ServiceIconFallback serviceId={serviceId} size={size} />}>
+      <ProviderIcon serviceId={serviceId} size={size} />
+    </Suspense>
   );
 }

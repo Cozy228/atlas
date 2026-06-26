@@ -7,7 +7,7 @@ import {
   compareByAuthority,
   highestPriorityWarning,
   parseDurationToMs,
-} from "./evidence.js";
+} from "./evidence";
 
 const sourceFixture: Source = {
   id: "test-source",

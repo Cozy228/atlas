@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { TopicDiscoveryResponseSchema } from "@atlas/schema";
-import { handler } from "./handler.js";
+import { handler } from "./handler";
 
 describe("context API Lambda handler", () => {
   it("adapts API Gateway HTTP API events to HTTP route responses", async () => {

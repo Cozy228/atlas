@@ -1,18 +1,18 @@
 import { describe, expect, it } from "vitest";
-import { capabilityBundle } from "../fixtures/contextBundles.js";
+import { serviceBundle } from "../fixtures/contextBundles";
 import {
   askAtlas,
   buildAskAtlasPrompt,
   createDailyRateLimiter,
   validateCitations,
   type LlmAdapter,
-} from "./askAtlas.js";
+} from "./askAtlas";
 
 describe("Ask Atlas", () => {
   it("builds prompts only from the context bundle and user question", () => {
     const prompt = buildAskAtlasPrompt({
       question: "How do I use Textract from a private subnet?",
-      bundle: capabilityBundle,
+      bundle: serviceBundle,
     });
 
     expect(prompt).toContain("How do I use Textract from a private subnet?");
@@ -24,7 +24,7 @@ describe("Ask Atlas", () => {
 
   it("strips claims that do not map to bundle citations", () => {
     const answer = validateCitations({
-      bundle: capabilityBundle,
+      bundle: serviceBundle,
       claims: [
         {
           text: "Use private endpoint configuration.",
@@ -54,12 +54,12 @@ describe("Ask Atlas", () => {
   it("rejects claims backed only by non-authoritative sources", () => {
     const answer = validateCitations({
       bundle: {
-        ...capabilityBundle,
+        ...serviceBundle,
         sources: [
           {
-            ...capabilityBundle.sources[0],
+            ...serviceBundle.sources[0],
             source: {
-              ...capabilityBundle.sources[0]!.source,
+              ...serviceBundle.sources[0]!.source,
               authority_level: "draft",
             },
           },
@@ -98,7 +98,7 @@ describe("Ask Atlas", () => {
 
     const answer = await askAtlas({
       question: "How do I use Textract from a private subnet?",
-      bundle: capabilityBundle,
+      bundle: serviceBundle,
       adapter,
       userId: "user-1",
       rateLimiter: createDailyRateLimiter(5),
@@ -112,7 +112,7 @@ describe("Ask Atlas", () => {
     const answer = await askAtlas({
       question: "How do I use a mainframe?",
       bundle: {
-        ...capabilityBundle,
+        ...serviceBundle,
         sources: [],
         warnings: [{ code: "no_registered_source", message: "No registered source found." }],
         expansion_paths: [],
@@ -140,7 +140,7 @@ describe("Ask Atlas", () => {
 
     await askAtlas({
       question: "First question",
-      bundle: capabilityBundle,
+      bundle: serviceBundle,
       adapter,
       userId: "user-1",
       rateLimiter,
@@ -149,7 +149,7 @@ describe("Ask Atlas", () => {
     await expect(
       askAtlas({
         question: "Second question",
-        bundle: capabilityBundle,
+        bundle: serviceBundle,
         adapter,
         userId: "user-1",
         rateLimiter,

@@ -21,7 +21,7 @@ const STEPS: ReadonlyArray<JourneyStep> = [
     phase: "Get started",
     title: "Understand the catalog",
     description:
-      "Browse available capabilities, service domains, and regional availability before committing.",
+      "Browse available services, service domains, and regional availability before committing.",
     links: [
       { label: "Service catalog", to: "/catalog" },
       { label: "Availability map", to: "/availability" },
@@ -36,9 +36,9 @@ const STEPS: ReadonlyArray<JourneyStep> = [
   },
   {
     phase: "Validate",
-    title: "Check guardrails",
+    title: "Check security policies",
     description:
-      "Review applicable guardrails before deploy. Authoritative source citations are inline on each surface.",
+      "Review applicable security policies before deploy. Authoritative source citations are inline on each surface.",
     links: [{ label: "Sources", to: "/sources" }],
   },
   {
@@ -120,7 +120,7 @@ function JourneyStep({
   );
 }
 
-function JourneyLinkItem({ label, to }: { label: ReactNode; to: JourneyLink["to"] }) {
+function JourneyLinkItem({ label, to }: { label: ReactNode; to: string }) {
   return (
     <Link
       to={to}

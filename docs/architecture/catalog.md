@@ -1,9 +1,9 @@
-# AWS-Federated Service and Capability Availability across Global STT Regions
+# AWS-Federated Service Availability across Global STT Regions
 
 **Legend**
 
 * ✅ = Available
-* `:emo:` = Interim Capability
+* `:emo:` = Interim availability
 * ↗️ = Future availability
 * X = Not planned
 
@@ -12,7 +12,7 @@
 
 ## Global STT Regions
 
-| Service / Capability | US-EAST-1 (North Virginia) | CA-CENTRAL-1 (Canada Central) |
+| Service | US-EAST-1 (North Virginia) | CA-CENTRAL-1 (Canada Central) |
 | :--- | :--- | :--- |
 | **Landing Zones** | ✅ L3 - L5 | ✅ L3 - L5 |
 | **Storage** | | |
@@ -50,7 +50,7 @@
 
 ## Outposts
 
-| Service / Capability | GDC (Primary) | DC16 (DR) | MT10 (Future DR) |
+| Service | GDC (Primary) | DC16 (DR) | MT10 (Future DR) |
 | :--- | :--- | :--- | :--- |
 | **Compute** | | | |
 | EC2 | ↗️ 05/30/2026 | ↗️ 07/31/2026 | ↗️ TBD |

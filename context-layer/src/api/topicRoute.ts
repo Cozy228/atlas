@@ -1,14 +1,9 @@
-import {
-  type ApiErrorResponse,
-  type TopicResponse,
-} from "@atlas/schema";
-import { createDefaultContextBundleService } from "../services/contextBundleService.js";
-import type { ApiResponse } from "./routeTypes.js";
-import { errorResponse } from "./routeTypes.js";
+import { type ApiErrorResponse, type TopicResponse } from "@atlas/schema";
+import { createDefaultContextBundleService } from "../services/contextBundleService";
+import type { ApiResponse } from "./routeTypes";
+import { errorResponse } from "./routeTypes";
 
-export function handleTopicRequest(
-  topicId: string,
-): ApiResponse<ApiErrorResponse | TopicResponse> {
+export function handleTopicRequest(topicId: string): ApiResponse<ApiErrorResponse | TopicResponse> {
   const service = createDefaultContextBundleService();
   const topic = service.registry.topics.getById(topicId);
 

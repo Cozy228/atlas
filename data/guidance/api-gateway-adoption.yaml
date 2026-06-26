@@ -1,0 +1,124 @@
+# Atlas Guidance manifest — public-safe, fictional sample.
+#
+# HERO GATE (MVP): "Adopt API Gateway". The governed, end-to-end adoption journey a
+# consuming application runs against the local product — understand fit, get the cited
+# Terraform starter from the approved module, wire the backend, validate edge controls.
+# Mirrors the portal fixture in portal/src/lib/guidance.ts.
+#
+# Validated against @atlas/schema GuidanceSchema by `pnpm validate:guidance`.
+
+id: api-gateway-adoption
+title: Adopt API Gateway
+type: route
+scenario: service_enablement
+family: enable
+objective: Help an application team put API Gateway in front of their workload using the approved module.
+destination:
+  title: API Gateway fronting the application
+  description: The app routes through a module-provisioned API Gateway with a private backend.
+owner:
+  team: Cloud Platform
+  support: cloud-platform-support
+status: published
+version: 1.0.0
+last_reviewed: "2026-05-02"
+applies_to:
+  services:
+    - api-gateway
+  landing_zones:
+    - central-landing-zone
+sources:
+  - apigateway-module-readme
+  - apigateway-integration-guide
+
+steps:
+  - id: understand-fit
+    title: Understand how it fits
+    kind: action
+    description: Review where API Gateway sits in your architecture before provisioning.
+    why: API Gateway is your public edge — it fronts Lambda or a private VPC-link backend.
+    tasks:
+      - id: open-datasheet
+        title: Open the API Gateway datasheet
+        action:
+          type: atlas_page
+          label: Open API Gateway
+          target: /catalog/api-gateway
+      - id: review-integration
+        title: Review the integration guide
+        action:
+          type: external_link
+          label: View integration guide
+          target: https://confluence.example.com/display/CLOUD/API+Gateway+Integration
+    sources:
+      - apigateway-integration-guide
+
+  - id: get-terraform
+    title: Get the Terraform starter
+    kind: action
+    description: Use the approved module — copy the starter and pin it in your workspace.
+    why: Provisioning runs through the approved module, not the console.
+    tasks:
+      - id: open-module
+        title: Open the API Gateway module
+        required: true
+        action:
+          type: tool_link
+          label: Open module
+          target: https://tfe.example.com/app/example/registry/modules/private/example/apigateway/aws
+      - id: copy-starter
+        title: Copy the Terraform starter
+        action:
+          type: copy_text
+          label: Copy starter
+          text: |-
+            module "api" {
+              source     = "app.terraform.io/example/apigateway/aws"
+              name       = "orders-api"
+              protocol   = "HTTP"
+              stage_name = "prod"
+              routes = {
+                "POST /orders"     = { lambda_arn = module.orders_fn.arn }
+                "GET /orders/{id}" = { lambda_arn = module.orders_fn.arn }
+              }
+            }
+    sources:
+      - apigateway-module-readme
+
+  - id: wire-backend
+    title: Wire your backend
+    kind: action
+    description: Point each route at your application function and keep the backend private.
+    why: The module creates the integration and invoke permission from the route's lambda_arn.
+    tasks:
+      - id: set-routes
+        title: Map routes to your Lambda ARNs
+        required: true
+      - id: private-backend
+        title: Confirm the backend stays private (no public endpoint)
+        required: true
+    sources:
+      - apigateway-module-readme
+
+  - id: validate
+    title: Validate before production
+    kind: checklist
+    description: Confirm edge controls before promoting the API.
+    why: The gateway is the public entry point — throttling and logging are required.
+    tasks:
+      - id: throttling
+        title: Request throttling configured
+        required: true
+      - id: access-logs
+        title: Access logging enabled
+        required: true
+      - id: authz
+        title: Authorizer attached to protected routes
+        required: true
+    sources:
+      - apigateway-integration-guide
+
+  - id: done
+    title: API Gateway adopted
+    kind: destination
+    description: The application is fronted by a module-provisioned API Gateway.

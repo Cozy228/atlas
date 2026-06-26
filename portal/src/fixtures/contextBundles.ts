@@ -1,6 +1,6 @@
 import type { ContextBundleResponse } from "@atlas/schema";
 
-export const capabilityBundle: ContextBundleResponse = {
+export const serviceBundle: ContextBundleResponse = {
   bundle_id: "bundle-aws-textract",
   request: { topic_id: "aws-textract", disclosure_level: 1 },
   sources: [
@@ -9,7 +9,7 @@ export const capabilityBundle: ContextBundleResponse = {
         id: "textract-module-readme",
         title: "Textract Terraform Module",
         source_class: "terraform-module",
-        location: "github.com/acme/terraform-aws-textract",
+        location: "example/textract/aws",
         steward: "cloud-platform",
         visibility: "internal",
         authority_scope: ["module-usage"],
@@ -39,7 +39,7 @@ export const capabilityBundle: ContextBundleResponse = {
             source_id: "textract-module-readme",
             anchor_id: "private-subnet-usage",
             label: "Private subnet usage",
-            location: "github.com/acme/terraform-aws-textract#private-subnet-usage",
+            location: "example/textract/aws#private-subnet-usage",
           },
         },
       ],

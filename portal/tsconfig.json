@@ -4,8 +4,6 @@
     "jsx": "react-jsx",
     "lib": ["ES2023", "DOM", "DOM.Iterable"],
     "types": ["vite/client"],
-    "module": "ESNext",
-    "moduleResolution": "Bundler",
     "paths": {
       "@/*": ["./src/*"]
     }
@@ -13,6 +11,7 @@
   "include": [
     "src/**/*.ts",
     "src/**/*.tsx",
+    "server/**/*.ts",
     "scripts/**/*.ts",
     "scripts/**/*.tsx",
     "vite.config.ts"

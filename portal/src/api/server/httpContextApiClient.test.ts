@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { ContextApiError } from "../contextApiError.js";
-import { createFetchContextApiClient, createServerContextApiClient } from "./httpContextApiClient.js";
+import { ContextApiError } from "../contextApiError";
+import { createFetchContextApiClient, createServerContextApiClient } from "./httpContextApiClient";
 
 describe("fetch Context API client", () => {
   it("fetches topic discovery through the deployed HTTP API", async () => {
@@ -15,7 +15,7 @@ describe("fetch Context API client", () => {
             {
               id: "aws-textract",
               name: "AWS Textract",
-              topic_type: "capability",
+              topic_type: "service",
               category: "ai-ml",
               status: "active",
               description: "Extract text from documents.",
@@ -28,11 +28,11 @@ describe("fetch Context API client", () => {
       },
     });
 
-    const response = await client.discoverTopics({ topic_type: "capability" });
+    const response = await client.discoverTopics({ topic_type: "service" });
 
     expect(response.topics[0]?.id).toBe("aws-textract");
     expect(requests[0]).toMatchObject({
-      url: "https://atlas.example.com/api/topics?topic_type=capability",
+      url: "https://atlas.example.com/api/topics?topic_type=service",
       init: { method: "GET" },
     });
   });

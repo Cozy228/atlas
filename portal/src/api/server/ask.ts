@@ -32,11 +32,9 @@ export type AskAtlasResponse = {
 const rateLimiter = createDailyRateLimiter(100);
 
 export const askAtlas = createServerFn({ method: "POST" })
-  .inputValidator((input: unknown) => askInputSchema.parse(input))
+  .validator((input: unknown) => askInputSchema.parse(input))
   .handler(async ({ data }): Promise<AskAtlasResponse> => {
-    const bundle = await serverContextApiClient.getContextBundle(
-      buildAskContextRequest(data),
-    );
+    const bundle = await serverContextApiClient.getContextBundle(buildAskContextRequest(data));
 
     return createAskAtlasResponse({
       question: data.question,

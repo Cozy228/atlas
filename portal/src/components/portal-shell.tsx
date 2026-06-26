@@ -1,22 +1,12 @@
 import { useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
-import { IconChevronDown, IconMenu2, IconMessageCircle } from "@tabler/icons-react";
+import { IconMenu2, IconSearch } from "@tabler/icons-react";
 
 import { AskAtlasFab } from "@/components/ask-atlas-fab";
 import { AskAtlasProvider, useAskAtlas } from "@/components/ask-atlas/context";
+import { PortalFooter } from "@/components/portal-footer";
 import { ThemeToggle } from "@/components/theme-toggle";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { ThemeProvider } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
@@ -33,11 +23,9 @@ type NavItem = {
 const PRIMARY_NAV: ReadonlyArray<NavItem> = [
   { to: "/", label: "Home", exact: true },
   { to: "/availability", label: "Availability" },
+  { to: "/catalog", label: "Catalog" },
   { to: "/guidance", label: "Guidance" },
-];
-
-const MORE_NAV: ReadonlyArray<NavItem> = [
-  { to: "/catalog", label: "Service Catalog" },
+  { to: "/skills", label: "Skills" },
   { to: "/sources", label: "Sources" },
 ];
 
@@ -47,7 +35,11 @@ export function PortalShell({ children }: PortalShellProps) {
       <AskAtlasProvider>
         <div className="flex min-h-dvh w-full flex-col bg-background text-foreground">
           <TopBar />
-          <main className="min-w-0 flex-1">{children}</main>
+          {/* 32px coordinate grid on a full-width canvas, beginning below the
+              opaque top bar. Shows only in negative space; text-bearing blocks
+              carry bg-background plates to mask it (DESIGN.md §5). */}
+          <main className="min-w-0 flex-1 bg-coordinate-grid">{children}</main>
+          <PortalFooter />
           <AskAtlasFab />
         </div>
       </AskAtlasProvider>
@@ -57,24 +49,25 @@ export function PortalShell({ children }: PortalShellProps) {
 
 function TopBar() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const nav = PRIMARY_NAV;
 
   return (
     <header
       className={cn(
-        "sticky top-0 z-40 grid h-14 grid-cols-[auto_1fr_auto] items-center gap-2 border-b border-border px-4 sm:px-8",
-        "bg-background/85 backdrop-blur-sm",
+        // 56px, sticky, opaque (the grid starts cleanly below it). DESIGN.md §4.
+        "sticky top-0 z-40 grid h-14 grid-cols-[1fr_auto_1fr] items-center gap-2 border-b border-border px-4 sm:px-8",
+        "bg-background",
       )}
     >
       <BrandLink />
-      <nav aria-label="Primary" className="hidden items-center justify-center gap-0.5 md:flex">
-        {PRIMARY_NAV.map((item) => (
+      <nav aria-label="Primary" className="hidden items-center justify-center gap-1 md:flex">
+        {nav.map((item) => (
           <TopNavLink key={item.to} item={item} />
         ))}
-        <MoreDropdown />
       </nav>
-      <div className="flex items-center justify-end gap-2">
+      <div className="flex items-center justify-end gap-1">
         <NavMenu open={menuOpen} onOpenChange={(open) => setMenuOpen(open)} />
-        <InlineAskButton />
+        <SearchButton />
         <ThemeToggle />
       </div>
     </header>
@@ -112,9 +105,11 @@ function TopNavLink({ item }: { item: NavItem }) {
       activeOptions={{ exact: item.exact ?? false }}
       activeProps={{ "data-active": "true" } as Record<string, string>}
       className={cn(
-        "rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors",
-        "hover:bg-muted hover:text-foreground",
-        "data-[active=true]:bg-brand-tint data-[active=true]:font-semibold data-[active=true]:text-primary",
+        // Active = brand underline (no tinted pill). DESIGN.md §4 "Top nav / Tabs".
+        "rounded-sm px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors",
+        "hover:bg-secondary hover:text-foreground",
+        "data-[active=true]:rounded-b-none data-[active=true]:font-semibold data-[active=true]:text-foreground",
+        "data-[active=true]:shadow-[inset_0_-2px_0_var(--color-brand)] data-[active=true]:hover:bg-transparent",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
       )}
     >
@@ -123,21 +118,21 @@ function TopNavLink({ item }: { item: NavItem }) {
   );
 }
 
-function InlineAskButton() {
-  const { openAsk } = useAskAtlas();
+function SearchButton() {
+  const { openOverlay } = useAskAtlas();
   return (
     <button
       type="button"
-      aria-label="Open Ask Atlas"
-      onClick={openAsk}
+      aria-label="Search Atlas catalog"
+      onClick={() => openOverlay("search")}
       className={cn(
-        "flex size-7 items-center justify-center rounded-md text-muted-foreground lg:hidden",
-        "transition-colors hover:bg-muted hover:text-foreground",
+        "flex size-8 items-center justify-center rounded-sm text-muted-foreground",
+        "transition-colors hover:bg-secondary hover:text-foreground",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
       )}
     >
-      <IconMessageCircle size={15} strokeWidth={2} aria-hidden />
-      <span className="sr-only">Ask Atlas</span>
+      <IconSearch size={17} strokeWidth={2} aria-hidden />
+      <span className="sr-only">Search</span>
     </button>
   );
 }
@@ -148,6 +143,7 @@ type NavMenuProps = {
 };
 
 function NavMenu({ open, onOpenChange }: NavMenuProps) {
+  const nav = PRIMARY_NAV;
   return (
     <>
       <button
@@ -170,41 +166,13 @@ function NavMenu({ open, onOpenChange }: NavMenuProps) {
             <SheetTitle className="text-sm font-bold tracking-[-0.03em]">Atlas</SheetTitle>
           </SheetHeader>
           <nav aria-label="Primary" className="flex flex-col gap-0.5 p-2">
-            {[...PRIMARY_NAV, ...MORE_NAV].map((item) => (
+            {nav.map((item) => (
               <SheetNavLink key={item.to} item={item} onNavigate={() => onOpenChange(false)} />
             ))}
           </nav>
         </SheetContent>
       </Sheet>
     </>
-  );
-}
-
-function MoreDropdown() {
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        className={cn(
-          "inline-flex items-center gap-0.5 rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors",
-          "hover:bg-muted hover:text-foreground",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-        )}
-      >
-        More
-        <IconChevronDown className="size-3.5" aria-hidden />
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="center" sideOffset={6}>
-        {MORE_NAV.map((item) => (
-          <DropdownMenuItem
-            key={item.to}
-            className="cursor-pointer text-sm font-medium"
-            render={<Link to={item.to} />}
-          >
-            {item.label}
-          </DropdownMenuItem>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
   );
 }
 

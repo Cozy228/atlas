@@ -1,16 +1,25 @@
-import type { ApiErrorResponse, ContextRequest } from "@atlas/schema";
-import { handleContextRequest } from "./contextRoute.js";
-import { handleFeedbackRequest } from "./feedbackRoute.js";
-import { handleSourceDiscoveryRequest } from "./sourceDiscoveryRoute.js";
-import { handleSourceRequest } from "./sourceRoute.js";
-import { handleTopicDiscoveryRequest } from "./topicDiscoveryRoute.js";
-import { handleTopicRequest } from "./topicRoute.js";
+import type { ApiErrorResponse, ContextRequest, ResourceContextResponse } from "@atlas/schema";
+import { handleAvailabilityRequest } from "./availabilityRoute";
+import { handleContextRequest } from "./contextRoute";
+import { handleFeedbackRequest } from "./feedbackRoute";
+import { handleResourceContextRequest, handleResourceSearchRequest } from "./resourceRoutes";
+import { handleSourceDiscoveryRequest } from "./sourceDiscoveryRoute";
+import { handleSourceRequest } from "./sourceRoute";
+import { handleTopicDiscoveryRequest } from "./topicDiscoveryRoute";
+import { handleTopicRequest } from "./topicRoute";
+import { renderResourceMarkdown } from "../resources/renderResourceMarkdown";
+import type { ResolutionContext } from "../resolvers/resolverTypes";
+import { cachedResolutionContext } from "../sourceContent/sourceContentCache";
 
 export type HttpRequest = {
   method: string;
   path: string;
   query?: Record<string, string | undefined>;
+  headers?: Record<string, string | undefined>;
   body?: string;
+  /** Request origin (e.g. https://portal.example.com), used to build absolute
+   * resource URLs in responses. Set by the Portal bridge; absent in-process. */
+  origin?: string;
 };
 
 export type HttpResponse = {
@@ -27,6 +36,7 @@ type RouteResult = {
 export async function handleHttpRequest(request: HttpRequest): Promise<HttpResponse> {
   const method = request.method.toUpperCase();
   const path = normalizePath(request.path);
+  const ctx = await resolutionContextFromHeaders(request.headers);
 
   if (method === "GET" && path === "/topics") {
     return jsonResponse(handleTopicDiscoveryRequest(compactQuery(request.query)));
@@ -40,10 +50,13 @@ export async function handleHttpRequest(request: HttpRequest): Promise<HttpRespo
   const topicContextMatch = path.match(/^\/topics\/([^/]+)\/context$/);
   if (method === "GET" && topicContextMatch) {
     return jsonResponse(
-      handleContextRequest({
-        topic_id: decodeURIComponent(topicContextMatch[1]),
-        ...contextQuery(request.query),
-      }),
+      await handleContextRequest(
+        {
+          topic_id: decodeURIComponent(topicContextMatch[1]),
+          ...contextQuery(request.query),
+        },
+        ctx,
+      ),
     );
   }
 
@@ -59,19 +72,49 @@ export async function handleHttpRequest(request: HttpRequest): Promise<HttpRespo
   const sourceContentMatch = path.match(/^\/sources\/([^/]+)\/content$/);
   if (method === "GET" && sourceContentMatch) {
     return jsonResponse(
-      handleContextRequest({
-        source_id: decodeURIComponent(sourceContentMatch[1]),
-        ...contextQuery(request.query),
-      }),
+      await handleContextRequest(
+        {
+          source_id: decodeURIComponent(sourceContentMatch[1]),
+          ...contextQuery(request.query),
+        },
+        ctx,
+      ),
     );
   }
 
+  if (method === "GET" && path === "/availability") {
+    return jsonResponse(handleAvailabilityRequest());
+  }
+
+  if (method === "GET" && path === "/resources") {
+    return jsonResponse(
+      handleResourceSearchRequest(request.query?.query, { baseUrl: request.origin }),
+    );
+  }
+
+  const resourceContextMatch = path.match(/^\/resources\/([^/]+)\/(.+)$/);
+  if (method === "GET" && resourceContextMatch) {
+    const result = await handleResourceContextRequest(
+      {
+        kind: decodeURIComponent(resourceContextMatch[1]),
+        slug: decodeURIComponent(resourceContextMatch[2]),
+        sections: request.query?.sections,
+        baseUrl: request.origin,
+      },
+      ctx,
+    );
+    if (result.status === 200 && prefersMarkdown(request.headers)) {
+      return markdownResponse(renderResourceMarkdown(result.body as ResourceContextResponse));
+    }
+    return jsonResponse(result);
+  }
+
   if (method === "GET" && path === "/context") {
-    return jsonResponse(handleContextRequest(contextQuery(request.query)));
+    return jsonResponse(await handleContextRequest(contextQuery(request.query), ctx));
   }
 
   if (method === "POST" && path === "/context-bundle") {
-    return jsonResponse(handleContextRequest(parseJsonBody(request.body)));
+    return jsonResponse(await handleContextRequest(parseJsonBody(request.body), ctx));
   }
 
   if (method === "POST" && path === "/feedback") {
@@ -89,11 +132,39 @@ export async function handleHttpRequest(request: HttpRequest): Promise<HttpRespo
   });
 }
 
+/**
+ * Read the opaque caller Bearer from the `Authorization` header and build the
+ * request-scoped resolution context over the shared cached fetch. The token is
+ * threaded unparsed and unpersisted; Confluence enforces ACL against whatever
+ * identity it represents.
+ */
+async function resolutionContextFromHeaders(
+  headers: HttpRequest["headers"],
+): Promise<ResolutionContext> {
+  const base = await cachedResolutionContext();
+  const token = bearerToken(headers);
+  return token ? { ...base, token } : base;
+}
+
+function bearerToken(headers: HttpRequest["headers"]): string | undefined {
+  if (!headers) {
+    return undefined;
+  }
+  for (const [key, value] of Object.entries(headers)) {
+    if (key.toLowerCase() === "authorization" && value) {
+      const match = value.match(/^Bearer\s+(.+)$/i);
+      if (match) {
+        return match[1].trim();
+      }
+    }
+  }
+  return undefined;
+}
+
 function normalizePath(path: string): string {
   const normalized = path.startsWith("/") ? path : `/${path}`;
-  const withoutTrailingSlash = normalized.length > 1 && normalized.endsWith("/")
-    ? normalized.slice(0, -1)
-    : normalized;
+  const withoutTrailingSlash =
+    normalized.length > 1 && normalized.endsWith("/") ? normalized.slice(0, -1) : normalized;
   return withoutTrailingSlash.startsWith("/api/")
     ? withoutTrailingSlash.slice(4)
     : withoutTrailingSlash;
@@ -110,9 +181,7 @@ function contextQuery(query: HttpRequest["query"] = {}): Partial<ContextRequest>
   return {
     anchor_id: compacted.anchor_id,
     query: compacted.query,
-    disclosure_level: compacted.disclosure_level
-      ? Number(compacted.disclosure_level)
-      : undefined,
+    disclosure_level: compacted.disclosure_level ? Number(compacted.disclosure_level) : undefined,
   };
 }
 
@@ -134,4 +203,25 @@ function jsonResponse(result: RouteResult): HttpResponse {
     headers: { "content-type": "application/json" },
     body: JSON.stringify(result.body),
   };
+}
+
+function markdownResponse(body: string): HttpResponse {
+  return {
+    status: 200,
+    headers: { "content-type": "text/markdown; charset=utf-8" },
+    body,
+  };
+}
+
+/** True when the caller's `Accept` header prefers Markdown over JSON (§5.4). */
+function prefersMarkdown(headers: HttpRequest["headers"]): boolean {
+  if (!headers) {
+    return false;
+  }
+  for (const [key, value] of Object.entries(headers)) {
+    if (key.toLowerCase() === "accept" && value) {
+      return /text\/markdown/i.test(value);
+    }
+  }
+  return false;
 }

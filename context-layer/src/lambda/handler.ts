@@ -1,4 +1,4 @@
-import { handleHttpRequest } from "../api/httpRoute.js";
+import { handleHttpRequest } from "../api/httpRoute";
 
 type ApiGatewayHttpEvent = {
   version?: string;
@@ -27,6 +27,7 @@ export async function handler(event: ApiGatewayHttpEvent): Promise<ApiGatewayHtt
     method: event.requestContext?.http?.method ?? "GET",
     path: event.rawPath ?? event.requestContext?.http?.path ?? "/",
     query: parseQueryString(event.rawQueryString ?? ""),
+    headers: event.headers,
     body: decodeBody(event.body, event.isBase64Encoded),
   });
 

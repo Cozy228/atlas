@@ -1,12 +1,16 @@
 # Atlas — Cloud Platform DevEx Portal & Governed Context Layer
 
+> **Status:** Foundational thesis. The current *settled* product identity and MVP boundary
+> live in [`../product/mvp-product-design.md`](../product/mvp-product-design.md); decisions are in
+> [`../adr/`](../adr/). Where this doc disagrees with those, **they win.**
+
 ## Product Definition
 
 Atlas is a **governed internal cloud knowledge context layer** that powers a **Cloud Platform DevEx Portal**.
 
 These are two faces of the same product:
 
-- **Externally (to the organization):** Cloud Platform DevEx Portal — a unified, information-centric entry point for application teams to discover cloud platform capabilities, navigate landing zones, find authoritative guidance, and get AI-assisted answers with citations.
+- **Externally (to the organization):** Cloud Platform DevEx Portal — a unified, information-centric entry point for application teams to discover cloud platform services, navigate landing zones, find authoritative guidance, and get AI-assisted answers with citations.
 - **Internally (to the technical team):** Atlas Context Layer — a governed source registry with authority mapping, locator resolution, and consumer-neutral context delivery API.
 
 Portal is Atlas's first consumer, not Atlas's parent. The Context Layer API simultaneously serves the Portal, AI agents, and future automation flows. Portal UI requirements do not define the Context Layer's data model or system boundary.
@@ -114,13 +118,13 @@ A Source represents a registered, governed piece of cloud knowledge.
 
 ### Topic (Navigation Entity)
 
-A Topic is what users look for — a capability, a landing zone, or a guardrail area.
+A Topic is what users look for — a service, a landing zone, or a guardrail area.
 
 | Field | Type | Description |
 |---|---|---|
 | id | string | Stable unique identifier |
 | name | string | Display name (e.g. "AWS Textract", "Central Landing Zone") |
-| topic_type | enum | `capability` / `landing-zone` / `guardrail-area` |
+| topic_type | enum | `service` / `landing-zone` / `guardrail-area` |
 | category | string | Domain classification (e.g. `ai-ml`, `compute`, `network`, `security`) |
 | status | enum | `active` / `deprecated` / `planned` |
 | description | string | One-line summary |
@@ -172,7 +176,7 @@ Authority and governance metadata stay on the Source, never duplicated onto the 
 Topic-specific default anchors may be referenced from the mapping, but anchor selectors remain owned by Anchor records.
 
 ```
-Topic: AWS Textract (capability)
+Topic: AWS Textract (service)
   ├── Source: textract-module-readme    (authority: module-usage, level: authoritative)
   ├── Source: textract-security-policy  (authority: security-guardrail, level: authoritative)
   └── Source: textract-arch-guidance    (authority: reference-guidance, level: reference)
@@ -238,13 +242,13 @@ Both Portal and AI Agent consumers follow this disclosure pattern. The first res
 
 V1 proves the full chain — source registry → authority mapping → locator resolution → context delivery → consumer presentation — through three scenarios. These are not independent modules; they are three consumption paths over the same Context Layer.
 
-### Scenario 1: Capability Discovery
+### Scenario 1: Service Discovery
 
-**User question:** "What AI/ML capabilities does the platform offer? How do I use Textract?"
+**User question:** "What AI/ML services does the platform offer? How do I use Textract?"
 
-**Portal surface:** Capability card list filtered by category → detail page with overview, how-to-start steps, authoritative sources with badges, support path, tool entry points.
+**Portal surface:** Service card list filtered by category → detail page with overview, how-to-start steps, authoritative sources with badges, support path, tool entry points.
 
-**Context Layer path:** Query topic registry (topic_type=capability) → select associated sources → retrieve authority metadata → package context bundle.
+**Context Layer path:** Query topic registry (topic_type=service) → select associated sources → retrieve authority metadata → package context bundle.
 
 ### Scenario 2: Landing Zone Navigation
 
@@ -337,15 +341,15 @@ V1 minimizes workflow change for source owners:
 
 ### In Scope
 
-| Capability | Description |
+| Component | Description |
 |---|---|
 | Source Registry | Register and manage Terraform repos, Confluence pages, policy docs |
-| Topic Registry | Register capabilities and landing zones as navigation entities |
+| Topic Registry | Register services and landing zones as navigation entities |
 | Source-Topic Mapping | Many-to-many mapping with authority scope |
 | Authority Mapping | Authority scope and level per source |
 | Locator Resolution | Anchor strategies for 3 source classes |
 | Context Bundle API | Consumer-neutral context delivery interface |
-| Portal: Capability Discovery | Browse and detail view for topic_type=capability |
+| Portal: Service Discovery | Browse and detail view for topic_type=service |
 | Portal: Landing Zone Navigator | Navigation, environment matrix, guardrail summary for topic_type=landing-zone |
 | AI Consumer Contract | Context bundle contract usable by Portal Ask UI, local agent skills, CLI tools, MCP tools, and automation workflows |
 | No Auth operating model | Trusted internal V1 surface with no user registration, login, SSO, or identity-based application access |
@@ -361,7 +365,7 @@ V1 minimizes workflow change for source owners:
 | AI-generated doc modifications | Authority risk |
 | Full document migration | Ownership problems |
 | Pre-computed content index | V1 uses request-time resolution |
-| Full platform capability coverage | Pilot scope; 10-15 core topics first |
+| Full platform service coverage | Pilot scope; 10-15 core topics first |
 | Write-back memory layer | No synthesized content written to source systems |
 | Background ingest pipeline | Not needed for request-time model |
 | User authentication or registration | V1 intentionally uses a trusted internal operating model |

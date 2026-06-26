@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { getNextSearchIndex } from "./ask-atlas-search.js";
+import { getNextSearchIndex } from "./ask-atlas-search";
 
 describe("Ask Atlas search keyboard navigation", () => {
   it("keeps selection stable when no results are available", () => {

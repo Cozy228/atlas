@@ -5,15 +5,15 @@ import {
   SourceTopicMappingSchema,
   TopicSchema,
 } from "@atlas/schema";
-import { InMemoryAnchorRepository } from "../repositories/anchorRepository.js";
+import { InMemoryAnchorRepository } from "../repositories/anchorRepository";
 import {
   InMemoryFeedbackRepository,
   type FeedbackRepository,
-} from "../repositories/feedbackRepository.js";
-import { InMemorySourceRepository } from "../repositories/sourceRepository.js";
-import { InMemorySourceTopicMappingRepository } from "../repositories/sourceTopicMappingRepository.js";
-import { InMemoryTopicRepository } from "../repositories/topicRepository.js";
-import { pilotFeedbackSeed } from "./pilotFeedbackSeed.js";
+} from "../repositories/feedbackRepository";
+import { InMemorySourceRepository } from "../repositories/sourceRepository";
+import { InMemorySourceTopicMappingRepository } from "../repositories/sourceTopicMappingRepository";
+import { InMemoryTopicRepository } from "../repositories/topicRepository";
+import { pilotFeedbackSeed } from "./pilotFeedbackSeed";
 
 export type PilotRegistrySeed = {
   anchors: unknown[];
@@ -43,9 +43,7 @@ export function loadPilotRegistry(
   const feedback = seed.feedback.map((item) => FeedbackSchema.parse(item));
   const sources = seed.sources.map((source) => SourceSchema.parse(source));
   const topics = seed.topics.map((topic) => TopicSchema.parse(topic));
-  const mappings = seed.mappings.map((mapping) =>
-    SourceTopicMappingSchema.parse(mapping),
-  );
+  const mappings = seed.mappings.map((mapping) => SourceTopicMappingSchema.parse(mapping));
 
   const sourceIds = new Set(sources.map((source) => source.id));
   const topicIds = new Set(topics.map((topic) => topic.id));
@@ -92,40 +90,54 @@ export const pilotRegistrySeed = {
     {
       id: "aws-textract",
       name: "AWS Textract",
-      topic_type: "capability",
+      topic_type: "service",
       category: "ai-ml",
       status: "active",
-      description: "Managed OCR capability for document workflows.",
+      description: "Managed OCR service for document workflows.",
       owner_team: "cloud-platform",
       support_channel: "#cloud-platform",
       entry_tools: [
         {
           label: "Terraform module",
-          url: "https://github.com/acme/terraform-aws-textract",
+          url: "https://tfe.example.com/app/example/registry/modules/private/example/textract/aws",
+        },
+        {
+          label: "User guide",
+          url: "https://confluence.example.com/display/CLOUD/Textract+User+Guide",
         },
       ],
     },
     {
       id: "aws-bedrock",
       name: "AWS Bedrock",
-      topic_type: "capability",
+      topic_type: "service",
       category: "ai-ml",
       status: "active",
       description: "Managed foundation model access for approved workloads.",
       owner_team: "cloud-platform",
       support_channel: "#cloud-platform",
-      entry_tools: [{ label: "Module", url: "https://github.com/acme/bedrock" }],
+      entry_tools: [
+        {
+          label: "Module",
+          url: "https://tfe.example.com/app/example/registry/modules/private/example/bedrock/aws",
+        },
+      ],
     },
     {
       id: "serverless-compute",
       name: "Serverless Compute",
-      topic_type: "capability",
+      topic_type: "service",
       category: "compute",
       status: "active",
       description: "Lambda-based compute patterns for event-driven workloads.",
       owner_team: "cloud-platform",
       support_channel: "#serverless-support",
-      entry_tools: [{ label: "Module", url: "https://github.com/acme/lambda" }],
+      entry_tools: [
+        {
+          label: "Module",
+          url: "https://tfe.example.com/app/example/registry/modules/private/example/lambda/aws",
+        },
+      ],
     },
     {
       id: "central-landing-zone",
@@ -162,8 +174,8 @@ export const pilotRegistrySeed = {
     },
     {
       id: "s3-guardrails",
-      name: "S3 Guardrails",
-      topic_type: "guardrail-area",
+      name: "S3 Security",
+      topic_type: "security-policy",
       category: "security",
       status: "active",
       description: "Storage encryption, public access, and lifecycle controls.",
@@ -174,7 +186,7 @@ export const pilotRegistrySeed = {
     {
       id: "private-networking",
       name: "Private Networking",
-      topic_type: "guardrail-area",
+      topic_type: "security-policy",
       category: "network",
       status: "active",
       description: "VPC endpoint and private subnet connectivity guidance.",
@@ -185,7 +197,7 @@ export const pilotRegistrySeed = {
     {
       id: "iam-boundary",
       name: "IAM Boundary",
-      topic_type: "guardrail-area",
+      topic_type: "security-policy",
       category: "security",
       status: "active",
       description: "Permission boundary and role delegation requirements.",
@@ -196,7 +208,7 @@ export const pilotRegistrySeed = {
     {
       id: "logging-monitoring",
       name: "Logging and Monitoring",
-      topic_type: "guardrail-area",
+      topic_type: "security-policy",
       category: "operations",
       status: "active",
       description: "Baseline telemetry requirements for platform workloads.",
@@ -204,13 +216,57 @@ export const pilotRegistrySeed = {
       support_channel: "#observability",
       entry_tools: [],
     },
+    {
+      id: "api-gateway",
+      name: "API Gateway",
+      topic_type: "service",
+      category: "networking",
+      status: "active",
+      description: "Managed REST and WebSocket API front doors for application workloads.",
+      owner_team: "cloud-platform",
+      support_channel: "#cloud-platform",
+      entry_tools: [
+        {
+          label: "Terraform module",
+          url: "https://tfe.example.com/app/example/registry/modules/private/example/apigateway/aws",
+        },
+        {
+          label: "Integration guide",
+          url: "https://confluence.example.com/display/CLOUD/API+Gateway+Integration",
+        },
+        {
+          label: "User guide",
+          url: "https://confluence.example.com/display/CLOUD/API+Gateway+User+Guide",
+        },
+      ],
+    },
+    {
+      id: "aws-s3",
+      name: "Amazon S3",
+      topic_type: "service",
+      category: "storage",
+      status: "active",
+      description: "Object storage for application data, backups, and static assets.",
+      owner_team: "cloud-platform",
+      support_channel: "#cloud-platform",
+      entry_tools: [
+        {
+          label: "Terraform module",
+          url: "https://tfe.example.com/app/example/registry/modules/private/example/s3/aws",
+        },
+        {
+          label: "User guide",
+          url: "https://confluence.example.com/display/CLOUD/S3+User+Guide",
+        },
+      ],
+    },
   ],
   sources: [
     {
       id: "textract-module-readme",
       title: "Textract Terraform Module",
       source_class: "terraform-module",
-      location: "github.com/acme/terraform-aws-textract",
+      location: "example/textract/aws",
       steward: "cloud-platform",
       visibility: "internal",
       authority_scope: ["module-usage", "private-networking"],
@@ -223,7 +279,7 @@ export const pilotRegistrySeed = {
       id: "bedrock-module-readme",
       title: "Bedrock Terraform Module",
       source_class: "terraform-module",
-      location: "github.com/acme/terraform-aws-bedrock",
+      location: "example/bedrock/aws",
       steward: "cloud-platform",
       visibility: "internal",
       authority_scope: ["module-usage", "ai-ml"],
@@ -236,7 +292,7 @@ export const pilotRegistrySeed = {
       id: "lambda-module-readme",
       title: "Lambda Terraform Module",
       source_class: "terraform-module",
-      location: "github.com/acme/terraform-aws-lambda",
+      location: "example/lambda/aws",
       steward: "serverless-platform",
       visibility: "internal",
       authority_scope: ["module-usage", "compute"],
@@ -362,6 +418,58 @@ export const pilotRegistrySeed = {
       last_reviewed_at: "2026-04-30T00:00:00.000Z",
       review_frequency: "P30D",
     },
+    {
+      id: "apigateway-module-readme",
+      title: "API Gateway Terraform Module",
+      source_class: "terraform-module",
+      location: "example/apigateway/aws",
+      steward: "cloud-platform",
+      visibility: "internal",
+      authority_scope: ["module-usage", "api-gateway"],
+      authority_level: "authoritative",
+      last_observed_at: "2026-05-05T00:00:00.000Z",
+      last_reviewed_at: "2026-05-02T00:00:00.000Z",
+      review_frequency: "P90D",
+    },
+    {
+      id: "apigateway-integration-guide",
+      title: "API Gateway Integration Guide",
+      source_class: "confluence-page",
+      location: "https://confluence.example.com/display/CLOUD/API+Gateway+Integration",
+      steward: "cloud-platform",
+      visibility: "internal",
+      authority_scope: ["integration-patterns", "api-gateway"],
+      authority_level: "authoritative",
+      last_observed_at: "2026-05-05T00:00:00.000Z",
+      last_reviewed_at: "2026-05-02T00:00:00.000Z",
+      review_frequency: "P120D",
+    },
+    {
+      id: "s3-module-readme",
+      title: "S3 Terraform Module",
+      source_class: "terraform-module",
+      location: "example/s3/aws",
+      steward: "cloud-platform",
+      visibility: "internal",
+      authority_scope: ["module-usage", "storage"],
+      authority_level: "authoritative",
+      last_observed_at: "2026-05-05T00:00:00.000Z",
+      last_reviewed_at: "2026-05-02T00:00:00.000Z",
+      review_frequency: "P90D",
+    },
+    {
+      id: "availability-matrix",
+      title: "Regional Availability Matrix",
+      source_class: "availability-matrix",
+      location: "https://confluence.example.com/display/CLOUD/Regional+Availability+Matrix",
+      steward: "cloud-platform",
+      visibility: "internal",
+      authority_scope: ["regional-availability"],
+      authority_level: "authoritative",
+      last_observed_at: "2026-05-05T00:00:00.000Z",
+      last_reviewed_at: "2026-05-01T00:00:00.000Z",
+      review_frequency: "P90D",
+    },
   ],
   anchors: [
     {
@@ -484,24 +592,184 @@ export const pilotRegistrySeed = {
       status: "valid",
       last_validated_at: "2026-05-05T00:00:00.000Z",
     },
+    {
+      id: "apigateway-terraform-starter",
+      source_id: "apigateway-module-readme",
+      anchor_strategy: "markdown-heading",
+      title: "Terraform starter",
+      selector: { locator: "#terraform-starter" },
+      citation_label: "Terraform starter",
+      status: "valid",
+      last_validated_at: "2026-05-05T00:00:00.000Z",
+    },
+    {
+      id: "apigateway-rest-api-setup",
+      source_id: "apigateway-module-readme",
+      anchor_strategy: "markdown-heading",
+      title: "REST API setup",
+      selector: { locator: "#rest-api-setup" },
+      citation_label: "REST API setup",
+      status: "valid",
+      last_validated_at: "2026-05-05T00:00:00.000Z",
+    },
+    {
+      id: "apigateway-lambda-integration",
+      source_id: "apigateway-module-readme",
+      anchor_strategy: "markdown-heading",
+      title: "Lambda integration",
+      selector: { locator: "#lambda-integration" },
+      citation_label: "Lambda integration",
+      status: "valid",
+      last_validated_at: "2026-05-05T00:00:00.000Z",
+    },
+    {
+      id: "apigateway-app-integration",
+      source_id: "apigateway-integration-guide",
+      anchor_strategy: "confluence-section",
+      title: "Fitting API Gateway into your app",
+      selector: { locator: "apigateway-app-integration" },
+      citation_label: "Fitting API Gateway into your app",
+      status: "valid",
+      last_validated_at: "2026-05-05T00:00:00.000Z",
+    },
+    {
+      id: "s3-terraform-starter",
+      source_id: "s3-module-readme",
+      anchor_strategy: "markdown-heading",
+      title: "Terraform starter",
+      selector: { locator: "#terraform-starter" },
+      citation_label: "Terraform starter",
+      status: "valid",
+      last_validated_at: "2026-05-05T00:00:00.000Z",
+    },
+    {
+      id: "s3-bucket-setup",
+      source_id: "s3-module-readme",
+      anchor_strategy: "markdown-heading",
+      title: "Bucket setup",
+      selector: { locator: "#bucket-setup" },
+      citation_label: "Bucket setup",
+      status: "valid",
+      last_validated_at: "2026-05-05T00:00:00.000Z",
+    },
+    {
+      id: "textract-terraform-starter",
+      source_id: "textract-module-readme",
+      anchor_strategy: "markdown-heading",
+      title: "Terraform starter",
+      selector: { locator: "#terraform-starter" },
+      citation_label: "Terraform starter",
+      status: "valid",
+      last_validated_at: "2026-05-05T00:00:00.000Z",
+    },
+    {
+      id: "availability-s3-us-east-1",
+      source_id: "availability-matrix",
+      anchor_strategy: "availability-cell",
+      title: "S3 availability in us-east-1",
+      selector: { service: "S3", region: "us-east-1" },
+      citation_label: "Availability Matrix → S3 × us-east-1",
+      status: "valid",
+      last_validated_at: "2026-05-05T00:00:00.000Z",
+    },
+    {
+      id: "availability-s3-row",
+      source_id: "availability-matrix",
+      anchor_strategy: "availability-cell",
+      title: "S3 regional availability",
+      selector: { service: "S3" },
+      citation_label: "Availability Matrix → S3 row",
+      status: "valid",
+      last_validated_at: "2026-05-05T00:00:00.000Z",
+    },
+    {
+      id: "availability-us-east-1-column",
+      source_id: "availability-matrix",
+      anchor_strategy: "availability-cell",
+      title: "Availability in us-east-1",
+      selector: { region: "us-east-1" },
+      citation_label: "Availability Matrix → us-east-1 column",
+      status: "valid",
+      last_validated_at: "2026-05-05T00:00:00.000Z",
+    },
+    {
+      id: "textract-module-version",
+      source_id: "textract-module-readme",
+      anchor_strategy: "module-field",
+      title: "Module version",
+      selector: { field: "version" },
+      citation_label: "Module version",
+      status: "valid",
+      last_validated_at: "2026-05-05T00:00:00.000Z",
+    },
+    {
+      id: "availability-textract-row",
+      source_id: "availability-matrix",
+      anchor_strategy: "availability-cell",
+      title: "Textract regional availability",
+      selector: { service: "Textract" },
+      citation_label: "Availability Matrix → Textract row",
+      status: "valid",
+      last_validated_at: "2026-05-05T00:00:00.000Z",
+    },
   ],
   feedback: pilotFeedbackSeed,
   mappings: [
     { id: "map-textract-module", source_id: "textract-module-readme", topic_id: "aws-textract" },
-    { id: "map-textract-networking", source_id: "textract-module-readme", topic_id: "private-networking" },
+    {
+      id: "map-textract-networking",
+      source_id: "textract-module-readme",
+      topic_id: "private-networking",
+    },
     { id: "map-bedrock-module", source_id: "bedrock-module-readme", topic_id: "aws-bedrock" },
     { id: "map-lambda-module", source_id: "lambda-module-readme", topic_id: "serverless-compute" },
     { id: "map-central-lz", source_id: "central-lz-confluence", topic_id: "central-landing-zone" },
-    { id: "map-regulated-lz", source_id: "regulated-lz-confluence", topic_id: "regulated-landing-zone" },
+    {
+      id: "map-regulated-lz",
+      source_id: "regulated-lz-confluence",
+      topic_id: "regulated-landing-zone",
+    },
     { id: "map-sandbox-lz", source_id: "sandbox-lz-confluence", topic_id: "sandbox-landing-zone" },
     { id: "map-s3-policy", source_id: "s3-policy-doc", topic_id: "s3-guardrails" },
     { id: "map-legacy-s3-policy", source_id: "legacy-s3-policy", topic_id: "s3-guardrails" },
-    { id: "map-networking-policy", source_id: "private-networking-policy", topic_id: "private-networking" },
-    { id: "map-networking-central", source_id: "private-networking-policy", topic_id: "central-landing-zone" },
+    {
+      id: "map-networking-policy",
+      source_id: "private-networking-policy",
+      topic_id: "private-networking",
+    },
+    {
+      id: "map-networking-central",
+      source_id: "private-networking-policy",
+      topic_id: "central-landing-zone",
+    },
     { id: "map-iam-boundary", source_id: "iam-boundary-policy", topic_id: "iam-boundary" },
-    { id: "map-iam-regulated", source_id: "iam-boundary-policy", topic_id: "regulated-landing-zone" },
-    { id: "map-logging-standard", source_id: "logging-standard-doc", topic_id: "logging-monitoring" },
-    { id: "map-reference-textract", source_id: "platform-reference-guide", topic_id: "aws-textract" },
-    { id: "map-reference-landing-zone", source_id: "platform-reference-guide", topic_id: "central-landing-zone" },
+    {
+      id: "map-iam-regulated",
+      source_id: "iam-boundary-policy",
+      topic_id: "regulated-landing-zone",
+    },
+    {
+      id: "map-logging-standard",
+      source_id: "logging-standard-doc",
+      topic_id: "logging-monitoring",
+    },
+    {
+      id: "map-reference-textract",
+      source_id: "platform-reference-guide",
+      topic_id: "aws-textract",
+    },
+    {
+      id: "map-reference-landing-zone",
+      source_id: "platform-reference-guide",
+      topic_id: "central-landing-zone",
+    },
+    { id: "map-apigateway-module", source_id: "apigateway-module-readme", topic_id: "api-gateway" },
+    {
+      id: "map-apigateway-integration",
+      source_id: "apigateway-integration-guide",
+      topic_id: "api-gateway",
+    },
+    { id: "map-s3-module", source_id: "s3-module-readme", topic_id: "aws-s3" },
+    { id: "map-s3-policy-service", source_id: "s3-policy-doc", topic_id: "aws-s3" },
   ],
 } satisfies PilotRegistrySeed;

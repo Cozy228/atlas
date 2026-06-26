@@ -1,366 +1,326 @@
 ---
 name: Atlas Portal
 description: Authoritative self-service catalog for the company's cloud platform.
+# Design system: "Blueprint" — an engineering-drawing aesthetic. Light is primary; "Ink" is the
+# dark scheme (same structure, recoloured). OKLCH-native; all neutrals tinted toward hue 264 (brand),
+# chroma reduced near the lightness extremes per OKLCH perceptual rules. No #000 / #fff anywhere.
+# The single hard brand requirement is #001AFF. Reference implementation: prototype/atlas-design-system.html
 colors:
-  # OKLCH-native project. Stitch linter will warn on non-hex values; that is expected.
-  # All neutrals are tinted toward hue 264 (brand). Chroma is reduced near lightness
-  # extremes to avoid garish values per OKLCH perceptual rules.
+  # --- Brand (the one action & selection colour; ≤10% of any screen) ---
+  brand:        "oklch(46.28% 0.3059 264.18)"   # #001AFF — fills (primary buttons, brand mark)
+  brand-hover:  "oklch(40% 0.28 264.18)"
+  brand-tint:   "oklch(95% 0.045 264.18)"        # selected row / focus halo / brand surfaces
+  brand-ink:    "oklch(45% 0.29 264.18)"         # brand-AS-TEXT on light surfaces (links, active) ~7:1
+  on-brand:     "oklch(99.6% 0.0015 264.18)"     # text/icon ON a solid brand fill
 
-  # Primary
-  platform-blue: "oklch(46.28% 0.3059 264.18)"
+  # --- Neutral field (light / Blueprint canonical) ---
+  bg:           "oklch(98.2% 0.004 264.18)"      # page canvas
+  grid:         "oklch(72% 0.04 264.18 / 0.08)"  # coordinate grid lines (negative space only)
+  surface:      "oklch(99.6% 0.0015 264.18)"     # cards, panels, popovers
+  surface-2:    "oklch(97% 0.006 264.18)"        # hover / table header / inset
+  ink:          "oklch(23% 0.03 264.18)"         # primary text
+  ink-2:        "oklch(46% 0.03 264.18)"         # secondary text / labels  (AA on bg)
+  ink-3:        "oklch(58% 0.025 264.18)"        # tertiary / metadata / placeholder
+  line:         "oklch(90% 0.012 264.18)"        # hairline borders / dividers
+  line-2:       "oklch(80% 0.016 264.18)"        # emphasised border (hover, secondary button)
 
-  # Neutral surfaces (light mode canonical; dark equivalents live in CSS custom properties)
-  canvas: "oklch(98.6% 0.005 264.18)"
-  surface: "oklch(99.5% 0.003 264.18)"
-  ink: "oklch(20% 0.02 264.18)"
-  ink-secondary: "oklch(48% 0.025 264.18)"
-  muted: "oklch(96% 0.008 264.18)"
-  border: "oklch(91% 0.01 264.18)"
-  border-strong: "oklch(82% 0.012 264.18)"
-  brand-tint: "oklch(94% 0.05 264.18)"
-
-  # Semantic states (fixed distinct hues — never folded into the brand color)
-  success: "oklch(58% 0.13 152)"
-  warning: "oklch(72% 0.16 75)"
-  critical: "oklch(56% 0.18 25)"
-  info: "oklch(62% 0.12 230)"
+  # --- Semantic states (four fixed distinct hues; never folded into brand) ---
+  success:  "oklch(56% 0.13 152)"   # GA / active / deployed
+  warning:  "oklch(70% 0.15 75)"    # planned / stale
+  critical: "oklch(55% 0.2 25)"     # broken anchor / unavailable / denied
+  info:     "oklch(60% 0.12 230)"   # notice (distinct from brand hue)
+  # each semantic also has -tint (chip background) and -ink (chip text); see §2.
 
 typography:
   display:
-    fontFamily: 'system (SF Pro / Segoe UI Variable / Roboto)'
-    fontSize: "2.25rem / 2.5rem (mobile / sm+)"
+    fontFamily: "Inter (self-hosted variable)"
+    fontSize: "clamp(2rem, 5vw, 3.25rem)"   # 32 → 52px; once per route (hero)
     fontWeight: 700
-    lineHeight: 1.1
+    lineHeight: 1.04
     letterSpacing: "-0.03em"
-  headline:
-    fontFamily: 'system'
-    fontSize: "1.375rem"
+  heading:
+    fontFamily: "Inter"
+    fontSize: "1.375rem"                     # 22px section title
     fontWeight: 700
-    lineHeight: 1.2
     letterSpacing: "-0.02em"
   title:
-    fontFamily: 'system'
-    fontSize: "0.875rem"
+    fontFamily: "Inter"
+    fontSize: "0.9375rem"                    # 15px card / service name
     fontWeight: 700
-    lineHeight: 1.4
     letterSpacing: "-0.01em"
   body:
-    fontFamily: 'system'
-    fontSize: "0.9375rem"
+    fontFamily: "Inter"
+    fontSize: "0.9375rem"                    # 15px
     fontWeight: 400
-    lineHeight: 1.6
-    letterSpacing: "normal"
+    lineHeight: 1.55
   label:
-    fontFamily: 'system'
-    fontSize: "0.8125rem"
-    fontWeight: 400
-    lineHeight: 1.5
-    letterSpacing: "normal"
-  mono-label:
-    fontFamily: 'system mono (Cascadia Mono / SF Mono / Menlo / Consolas)'
-    fontSize: "0.75rem"
+    fontFamily: "Inter"
+    fontSize: "0.8125rem"                    # 13px supporting text
+  detail:
+    fontFamily: "Inter"
+    fontSize: "0.75rem"                      # 12px metadata / help (floor for content)
+  mono:
+    fontFamily: "IBM Plex Mono"
+    fontSize: "0.75rem"                      # 12px — INLINE CODE & identifier tags ONLY (never tables)
     fontWeight: 600
-    lineHeight: 1.4
     letterSpacing: "0.05em"
 
 rounded:
-  sm: "4px"
+  xs: "3px"        # controls (buttons, inputs)
+  sm: "4px"        # cards / panels (--card-r)
   md: "6px"
-  default: "8px"
-  xl: "10px"
+  lg: "10px"
+  pill: "999px"    # tags, FAB, count badges
 
-spacing:
+spacing:           # 4px base
   xs: "4px"
   sm: "8px"
-  md: "16px"
+  md: "12px"
+  base: "16px"
   lg: "24px"
   xl: "32px"
+  "2xl": "48px"
+  "3xl": "64px"
 
 components:
-  button-primary:
-    backgroundColor: "{colors.platform-blue}"
-    textColor: "{colors.canvas}"
-    rounded: "{rounded.default}"
-    padding: "6px 16px"
-    typography: "{typography.label}"
-  button-primary-hover:
-    backgroundColor: "oklch(54% 0.28 264.18)"
-    textColor: "{colors.canvas}"
-  button-ghost:
-    backgroundColor: "transparent"
-    textColor: "{colors.ink-secondary}"
-    rounded: "{rounded.default}"
-    padding: "6px 12px"
-  button-ghost-hover:
-    backgroundColor: "{colors.muted}"
-    textColor: "{colors.ink}"
-  nav-link:
-    backgroundColor: "transparent"
-    textColor: "{colors.ink-secondary}"
-    rounded: "{rounded.default}"
-    padding: "6px 12px"
-  nav-link-active:
-    backgroundColor: "{colors.brand-tint}"
-    textColor: "{colors.platform-blue}"
-  capability-card:
-    backgroundColor: "{colors.surface}"
-    textColor: "{colors.ink}"
-    rounded: "{rounded.default}"
-    padding: "16px"
-  capability-card-hover:
-    backgroundColor: "{colors.surface}"
-    textColor: "{colors.ink}"
-  search-input:
-    backgroundColor: "{colors.surface}"
-    textColor: "{colors.ink}"
-    rounded: "{rounded.default}"
-    height: "44px"
+  button-primary:   { backgroundColor: "{colors.brand}", textColor: "{colors.on-brand}", rounded: "{rounded.xs}", padding: "7px 14px", fontSize: "13px", fontWeight: 600 }
+  button-secondary: { backgroundColor: "{colors.surface}", textColor: "{colors.ink}", border: "1px solid {colors.line-2}", rounded: "{rounded.xs}", hover: "border-color {colors.brand}; color {colors.brand-ink}" }
+  button-ghost:     { backgroundColor: "transparent", textColor: "{colors.ink-2}", hover: "background {colors.surface-2}; color {colors.ink}" }
+  input:            { height: "40px", backgroundColor: "{colors.surface}", border: "1px solid {colors.line}", rounded: "{rounded.xs}", focus: "border {colors.brand}; ring 3px {colors.brand}/16%" }
+  chip:             { fontFamily: "Inter", fontSize: "11.5px", fontWeight: 600, rounded: "2px", border: "1px solid {colors.line-2}", backgroundColor: "transparent" }
+  service-card:  { backgroundColor: "{colors.surface}", border: "1px solid {colors.line}", rounded: "{rounded.sm}", padding: "16px", accent: "brand corner ticks (7px, opacity .5)" }
+  table:            { fontSize: "13px", numerics: "tabular-nums", header: "Inter uppercase 11px tracked", identifier: "weight 600 (no monospace)" }
+  top-nav:          { height: "56px", layout: "grid 1fr auto 1fr — brand left · tabs centred · search+theme icons right", active: "brand underline", sticky: true, opaque: true }
+  fab:              { content: "Ask Atlas", position: "fixed bottom-right", backgroundColor: "{colors.brand}", textColor: "{colors.on-brand}", rounded: "{rounded.pill}" }
 ---
 
-# Design System: Atlas Portal
+# Design System: Atlas Portal — "Blueprint"
 
-## 1. Overview
+## 1. Visual Theme & Atmosphere
 
-**Creative North Star: "The Control Room"**
+**Creative North Star: "The Engineering Drawing."**
 
-Atlas Portal is a briefing interface, not a discovery experience. Like a well-designed control
-room, it communicates state at a glance through structural discipline rather than spectacle:
-the right information, at the right density, with nothing in the way. Engineers arrive
-mid-task with a specific question — which capability to adopt, whether a service is available
-in their region, whether a design choice is policy-approved — and the interface answers without
-ceremony. Every screen earns attention through information integrity, not animation.
+Atlas is an instrument, not a destination. An engineer arrives mid-task with one question — which
+service to adopt, whether a service is available in a region, whether a choice is policy-approved
+— and a deadline. The interface answers fast and gets out of the way. It earns attention through
+information integrity, never spectacle.
 
-The visual system makes one strong commitment: Platform Blue carries the full weight of action
-and selection. All other surfaces are tinted near-neutrals that recede and let structured data
-speak. Depth is expressed through lightness steps alone; shadows appear only as state signals.
-System monospace fonts mark machine-structured vocabulary (category slugs, topic types,
-authority levels, channel names) so that structural metadata is always visually distinct from
-human prose. The result is a palette of calm authority — never cold, never playful.
+The surface reads like a precise engineering drawing: a faint square coordinate grid in the
+negative space, hairline rules, corner ticks on key panels, and a single ink-blue that carries all
+action and selection. Content sits on clean "paper" (solid surfaces) laid over the grid; the grid
+breathes in the margins and gaps but never runs behind running text. The result is calm authority —
+technical, exact, never cold, never decorative.
 
-This system explicitly rejects: cream-and-purple SaaS gradient aesthetics and glowing card
-effects; legacy enterprise blue-grey palettes with heavy sidebars and accordion-nested tables;
-and DevRel marketing pages where large hero sections and flashy scroll effects compensate for
-thin content. If a design choice would feel at home on a product landing page, it does not
-belong in Atlas. The interface earns trust through evidence, structure, and honesty — not
-through decoration.
+This system ships in two schemes from one structure:
+- **Blueprint** (light, primary) — cool near-white paper, faint blue grid.
+- **Ink** (dark) — near-black, high-contrast (OLED-friendly); same components recoloured, brand
+  lifted to punch against the black.
 
-**Key Characteristics:**
-- All neutrals tinted toward hue 264 (brand), never pure white or black
-- System UI fonts for native clarity on every platform (SF Pro on macOS, Segoe UI Variable on Windows, Roboto on Android)
-- Flat-by-tonal-layering: depth through OKLCH lightness steps, not box-shadows
-- Platform Blue on ≤10% of any surface — reserved for action and selection
-- Monospace uppercase labels serve as structural section anchors, not decoration
-- Freshness signals are wired to real data or absent entirely
-- Minimum readable font size: 12px (0.75rem). No text smaller than this anywhere.
+**Register & re-skin** (see [ADR-0005](docs/adr/0005-blueprint-design-identity-and-reskin-seam.md)).
+"Instrument, not spectacle" still admits a *restrained welcoming entry* (the Home "Welcome
+desk") and an *editorial change surface* (What's New) — these are sanctioned, provided they
+earn attention through information integrity, not decoration. Blueprint is this repo's design
+identity; it is **not** assumed to survive import into a company environment unchanged. The
+system is fully token-driven, so a re-skin (e.g. to a "Geist"-style direction) is a **token
+swap, not a rewrite** — the token layer is the re-skin seam.
 
-## 2. Colors: The Hue-264 System
+**Principles (these drive every token and component):**
+1. **Evidence before confidence.** Every authoritative claim surfaces its source; citation/evidence
+   is a first-class component.
+2. **Density is a feature.** Whitespace is for rhythm, not for padding thin content. Clarity comes
+   from structure (alignment, weight, rules), not reduction.
+3. **One brand signal.** `#001AFF` means exactly one thing — *act here* or *this is selected* — and
+   stays ≤10% of any screen. Its value is its rarity.
+4. **Calm under load.** Stale sources, broken anchors, missing data are expected states, shown
+   plainly, never with alarm styling.
+5. **Platform vocabulary is machine-structured but quiet.** Slugs, codes, channels render in mono
+   *inline* and as identifier tags — never as whole table columns.
+6. **Ship-state honesty.** No decorative "Live/Synced"; an indicator is wired to real data or absent.
+7. **OKLCH-native, AA floor.** All colour in OKLCH; body text ≥4.5:1, large ≥3:1; respect
+   `prefers-reduced-motion`.
 
-A restrained single-accent palette. Every surface in the system — from near-white canvas to
-near-black dark background — is tinted toward hue 264 at minimal chroma. The tint is
-imperceptible at a glance but creates deep visual coherence: the entire UI reads as a unified
-field from which Platform Blue emerges as the singular signal.
+## 2. Color Palette & Roles
 
-### Primary
+A restrained single-accent palette. Every neutral is tinted toward hue 264 at minimal chroma — the
+tint is imperceptible at a glance but unifies the field, from which brand emerges as the one signal.
 
-- **Platform Blue** (`oklch(46.28% 0.3059 264.18)`): The one action and selection color.
-  Used for interactive elements (primary buttons, links, active nav states, focus rings,
-  selected rows). Never used for large surface fills. In dark mode: `oklch(58% 0.26 264.18)`.
+### Brand
+- **Brand `#001AFF`** (`oklch(46.28% 0.3059 264.18)`) — fills only: primary buttons, brand mark.
+  Dark scheme: `oklch(62% 0.26 264.18)` (lifted for legibility on black).
+- **Brand / ink** (`oklch(45% 0.29 264.18)`) — brand *as text* on light surfaces (links, active nav,
+  citation links, `[n]` markers), ~7:1. Dark: `oklch(80% 0.15 264.18)`.
+- **Brand / tint** (`oklch(95% 0.045 264.18)`) — selected table row, focus halo. Dark: `oklch(25% 0.06 264.18)`.
+- **On-brand** (`oklch(99.6% 0.0015 264.18)`) — text/icon on a solid brand fill.
 
-### Neutral
+### Neutral field — light (Blueprint) → dark (Ink)
+| role | light | dark (Ink) |
+|---|---|---|
+| bg (canvas) | `oklch(98.2% 0.004 264.18)` | `oklch(12% 0.008 264.18)` |
+| grid line | `oklch(72% 0.04 264.18 / 0.08)` | `oklch(82% 0.03 264.18 / 0.045)` |
+| surface | `oklch(99.6% 0.0015 264.18)` | `oklch(16% 0.009 264.18)` |
+| surface-2 | `oklch(97% 0.006 264.18)` | `oklch(20% 0.011 264.18)` |
+| ink | `oklch(23% 0.03 264.18)` | `oklch(96% 0.005 264.18)` |
+| ink-2 | `oklch(46% 0.03 264.18)` | `oklch(68% 0.012 264.18)` |
+| ink-3 | `oklch(58% 0.025 264.18)` | `oklch(52% 0.012 264.18)` |
+| line | `oklch(90% 0.012 264.18)` | `oklch(24% 0.01 264.18)` |
+| line-2 | `oklch(80% 0.016 264.18)` | `oklch(34% 0.012 264.18)` |
 
-- **Blueprint Canvas** (`oklch(98.6% 0.005 264.18)`): Page background. Near-white with a
-  barely perceptible blue tint. Never pure white. Dark: `oklch(14% 0.008 264.18)`.
-- **Surface White** (`oklch(99.5% 0.003 264.18)`): Card and popover backgrounds. Slightly
-  lighter than canvas to create separation without shadow. Dark: `oklch(18% 0.01 264.18)`.
-- **Ink** (`oklch(20% 0.02 264.18)`): Primary text. Dense but tinted. Dark: `oklch(93% 0.006 264.18)`.
-- **Secondary Ink** (`oklch(48% 0.025 264.18)`): Supporting text, labels, metadata, muted
-  icons. Midpoint neutral. Dark: `oklch(62% 0.012 264.18)`.
-- **Muted Surface** (`oklch(96% 0.008 264.18)`): Hover and selection backgrounds. Dark: `oklch(20% 0.01 264.18)`.
-- **Hairline Border** (`oklch(91% 0.01 264.18)`): Default card borders and dividers. Dark: `oklch(26% 0.01 264.18)`.
-- **Structural Border** (`oklch(82% 0.012 264.18)`): Emphasized borders on hover states. Dark: `oklch(36% 0.012 264.18)`.
-- **Brand Tint** (`oklch(94% 0.05 264.18)`): Active nav background, selected row fills. The
-  only surface-level presence of the brand hue. Dark: `oklch(24% 0.035 264.18)`.
+### Semantic (fixed distinct hues; each has a -tint background and -ink text)
+| state | base (light) | tint (light) | ink (light) |
+|---|---|---|---|
+| success / GA | `oklch(56% 0.13 152)` | `oklch(95% 0.05 152)` | `oklch(38% 0.11 152)` |
+| warning / planned | `oklch(70% 0.15 75)` | `oklch(95% 0.07 85)` | `oklch(45% 0.12 60)` |
+| critical / broken | `oklch(55% 0.2 25)` | `oklch(95% 0.05 25)` | `oklch(45% 0.18 25)` |
+| info / notice | `oklch(60% 0.12 230)` | `oklch(95% 0.04 230)` | `oklch(42% 0.11 230)` |
 
-### Semantic (fixed distinct hues, never folded into the brand color)
+Dark semantics brighten (base ~+12% L) with darker tints (~26% L) and light ink (~82% L). See the
+reference implementation for exact dark values.
 
-- **Healthy Green** (`oklch(58% 0.13 152)`): Active, deployed, and success states.
-- **Amber Alert** (`oklch(72% 0.16 75)`): Warnings, stale sources, planned states.
-- **Critical Red** (`oklch(56% 0.18 25)`): Errors, broken anchors, access denied.
-- **Informational Sky** (`oklch(62% 0.12 230)`): Informational notices. Distinct from brand hue.
+**Rules.** Brand ≤10% of any screen. Neutrals always tinted toward hue 264 (chroma ≥0.004; pure
+greys prohibited). No `#000`/`#fff`. Semantic hues never fold into brand.
 
-**The One Voice Rule.** Platform Blue is the singular action signal. Its signal value depends
-entirely on rarity — ≤10% of any screen. Brand Tint is its echo on surfaces; it never carries
-Platform Blue's interactive meaning. When Platform Blue appears, it means: act here, or this
-is selected. Nowhere else.
+## 3. Typography Rules
 
-**The OKLCH-Only Rule.** All color values are OKLCH. Chroma is always reduced as lightness
-approaches 0 or 100. Dark surfaces use the same hue as their light equivalents, with chroma
-reduced to avoid garish extremes at low lightness. No `#000` or `#fff` anywhere.
+**Interface font:** Inter, self-hosted as a variable font (`@fontsource-variable/inter`).
+**Code/identifier font:** IBM Plex Mono — **inline code and identifier tags only** (e.g. `eu-west-1`,
+a card's `object-storage` slug). **Never** for data-table columns.
 
-**The Tint Discipline Rule.** Every neutral in the system is tinted toward hue 264. A chroma
-of 0.005 is imperceptible but load-bearing: it anchors the neutral to the brand system. Pure
-greys are prohibited.
+### Scale (fixed rem, not fluid — except the hero)
+- **Display** — `clamp(2rem, 5vw, 3.25rem)` / 1.04 / −0.03em / 700. Hero only, once per route.
+- **Heading** — 22–24px / −0.02em / 700. Section titles.
+- **Title** — 15px / 700 / −0.01em. Card & service names.
+- **Body** — 15px / 1.55. Prose; cap line length ~65ch.
+- **Label** — 13px. Supporting text, form labels.
+- **Detail / help** — 12px. Metadata, timestamps (content floor).
+- **Mono (code)** — 12px / 600 / 0.05em, sometimes UPPERCASE. Inline system values & tags only.
+- **Eyebrow** — 11px mono / 0.12em / UPPERCASE. Section kicker.
 
-## 3. Typography
+**Data tables follow data-table best practice:** Inter throughout + `font-variant-numeric:
+tabular-nums`; the identifier column is emphasised by **weight (600)**, not a font switch; headers
+are sans, uppercase, tracked. (Monospace is for code, not tabular data — mixing mono columns into a
+table reads as noise.)
 
-**Body Font:** System UI (SF Pro on macOS, Segoe UI Variable on Windows 11, Segoe UI on Windows 10, Roboto on Android)
-**Label/Mono Font:** System Mono (Cascadia Mono/Code on Windows, SF Mono on macOS, Menlo on older macOS, Consolas fallback)
+### Platform parity (Windows 11)
+The biggest cross-platform risk is Windows falling back to Segoe UI with *synthesised* bold weights.
+Mitigations, baked in:
+- **Webfonts** (self-hosted Inter / IBM Plex Mono) — removes the Segoe fallback.
+- `font-synthesis: none` — only real weights render.
+- `font-optical-sizing: auto` — correct optical sizing everywhere.
+- **Body weight floor 400** — ClearType/DirectWrite render heavier and `-webkit-font-smoothing` is a
+  macOS-only no-op, so never rely on it and never use 300 for body.
+- **Size floor ~11px for UI, ≥12px for content** — below that ClearType smears.
 
-**Character:** System UI fonts are optimized by each OS vendor for screen rendering with
-perfect hinting at all sizes and pixel densities. This eliminates cross-platform rendering
-inconsistencies — text is native and sharp everywhere. The monospace companion brings
-immediate structural legibility to platform vocabulary: category slugs, topic types, authority
-levels, channel names. The pairing makes the distinction between machine-structured data and
-human-readable prose visible at a glance. OpenType features `kern`, `liga`, `calt` are
-enabled for optimal rendering.
+## 4. Component Stylings
 
-### Hierarchy
+Every interactive component ships: **default, hover, focus, active, disabled, loading.**
 
-- **Display** (system, 700, 2.25rem mobile / 2.5rem sm+, 1.1 line-height,
-  −0.03em tracking): Page-level hero headings. Used once per route view. Never on cards or
-  repeated in lists.
-- **Headline** (700, 1.375rem, 1.2 line-height, −0.02em tracking): Section titles within a
-  page, used alongside SectionEyebrow.
-- **Title** (700, 0.875rem, 1.4 line-height, −0.01em tracking): Card headings and capability
-  names. High information density; the weight contrast against body text creates scan paths.
-- **Body** (400, 0.9375rem, 1.6 line-height): Narrative and descriptive text. Max line length
-  52–56ch (scanned from existing page copy).
-- **Label** (400, 0.8125rem, 1.5 line-height): Supporting text, card descriptions, secondary copy.
-- **Detail** (400, 0.75rem): Fine-grain metadata, timestamps, owner team references.
-- **Mono Label** (system mono, 600, 0.75rem, 1.4 line-height, 0.05em tracking, UPPERCASE):
-  Category section anchors, section eyebrows, badge text, topic type codes, API codes.
+- **Buttons.** Radius 3px, ~32px tall (7px/14px pad, 13px/600). *Primary* = solid brand + on-brand
+  text → `brand-hover` on hover. *Secondary* = surface + 1px `line-2`, border lifts to brand + text
+  to `brand-ink` on hover (no fill). *Ghost* = transparent → `surface-2` on hover. *Danger* =
+  transparent + critical-tinted border → `critical-tint` on hover. Focus = 2px brand ring, 2px
+  offset. Loading = inline spinner. `btn-sm` for compact rows.
+- **Inputs / search.** 40–44px, surface, 1px `line`, radius 3px; focus = brand border + `0 0 0 3px`
+  brand/16% halo; error = critical border; disabled = `surface-2`. Placeholder inherits the field's
+  font (no mono/sans mismatch).
+- **Tabs.** Underline indicator: active = `inset 0 -2px 0 brand` + `ink` text + 600.
+- **Chips.** Square (2px radius), 1px hairline, transparent fill, Inter 11.5px/600. Semantic variants
+  colour the border + text (`*-ink`); a leading status dot is optional. Inside tables, chips inherit
+  the cell font.
+- **Status dots.** 8px. success / warning / critical / neutral (`ink-3`) / **na** (transparent with a
+  1.5px inset ring). The primary availability signal.
+- **Service card.** Surface, 1px `line`, radius 4px, 16px pad, **brand corner ticks** (top-left /
+  bottom-right, 7px, opacity .5). Icon 36px on `brand-tint`; title 15/700; `slug` mono 11px; 2-line
+  desc (`ink-2`, 13px); status chips; mono footer (owner · channel) above a hairline; arrow nudges
+  right + turns brand on hover. Hover: border → `line-2` + `shadow-pop`. No nested anchors.
+- **Data table.** See §3. Vertical + horizontal hairlines (the "drawing grid"); header on
+  `surface-2`; rows on surface, hover `surface-2`; selected row `brand-tint`; status = dot + label.
+- **Availability matrix.** A **status-dot grid** with a legend (GA / Planned / Not available). Dots
+  carry colour; short codes (GA, Q3) sit beside them, all Inter + tabular.
+- **Document Sources.** Numbered reference entries inside a solid surface panel: big tabular numeral,
+  title, `type · id` mono tag, description, status chips, and a right-aligned meta column (owner ·
+  freshness · source link). Reusable as any "sources / documents" list.
+- **Evidence callout.** `[n]` brand marker + claim + a mono cite line with a brand-ink source link.
+- **Alerts.** Warning / critical: semantic tint background + matching border + `*-ink` text. Calm,
+  never loud. Icon + bold lead + sentence.
+- **Loading = skeleton**, never a centred spinner in content. **Empty state** teaches the interface
+  (what to try) with a quiet action, not "nothing here".
+- **Top nav.** 56px, sticky, **opaque** (so the grid starts cleanly below it), 3-column grid
+  `1fr auto 1fr`: brand mark + wordmark left · **tabs centred** (active = brand underline) · **search
+  + theme-toggle icon buttons** right.
+- **Ask Atlas = FAB.** A brand pill fixed bottom-right (chat icon + label), not in the bar.
 
-**The Mono Structural Rule.** System monospace at 0.75rem/uppercase/semibold is reserved for
-structured platform vocabulary: topic types, categories, authority levels, API codes, channel
-names. It signals "this is a system value." Never use Mono for conversational, decorative,
-or running prose. If Mono text could appear in a sentence, it is the wrong style.
+## 5. Layout Principles
 
-## 4. Elevation
+- **The coordinate grid.** A 32px square grid lives on a full-width canvas *behind* the content and
+  begins below the opaque top bar. It shows **only in negative space** (page margins, gaps between
+  blocks, the empty side of a paragraph). Each text block carries a **same-colour plate**
+  (`background: bg`, hugging its text) that masks the grid directly behind copy; cards / tables /
+  panels are already solid. The grid is texture for breathing room, never a backdrop for reading.
+- **No full-width section divider lines.** A square grid and full-width horizontal rules are
+  physically incompatible (a hairline lands a few px off a grid line → a "double line"). Separate
+  sections with spacing + the numbered heading instead.
+- **Spacing.** 4px base. Section padding ~52px. Vary rhythm; don't pad uniformly.
+- **Grids.** Flexbox for 1D, CSS grid for 2D. Card grids: `repeat(auto-fit, minmax(230px, 1fr))`.
+- **Line length.** Prose ≤65ch; dense tables may run wide.
 
-Atlas is flat by tonal layering. Depth is expressed through OKLCH lightness steps alone;
-there are no box-shadows at rest. The layering stack (light mode, ascending):
+## 6. Depth & Elevation
 
-1. **Canvas** (`oklch(98.6% 0.005 264.18)`): Page background — the floor.
-2. **Surface / Card** (`oklch(99.5% 0.003 264.18)`): Cards and popovers — marginally lighter,
-   readable as floating without any shadow.
-3. **TopBar** (Canvas at 85% opacity + `backdrop-blur-sm`): Navigation layer — separated
-   from content via stacking context and a blur, not a shadow.
+**Flat by tonal layering.** Depth is expressed through OKLCH lightness steps (canvas → surface →
+surface-2), not ambient shadow. There are **no box-shadows at rest.** A `shadow-pop`
+(`0 1px 2px …, 0 6px 16px …`, deeper in dark) appears **only** on hover of an interactive card or on
+transient overlays (FAB, popovers). If the instinct is "add a shadow to this static element," reroute
+it to a lightness step.
 
-On hover, interactive cards acquire `box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05)` — this is a
-state signal, not ambient depth. Its appearance means: this element is interactive and
-currently elevated by the user's cursor.
+Stacking order (semantic z-scale): content → sticky top bar (30) → FAB (90) → modal/overlay → toast
+→ tooltip. Never arbitrary `9999`.
 
-**The Flat-By-Default Rule.** A surface without a shadow is a surface at rest. Shadows appear
-only in response to interactive state (hover on navigable cards). If a design instinct says
-"add a shadow here on a static element," that instinct should be rerouted to a lightness step.
-The impulse toward shadow on static elements is the wrong answer.
+## 7. Do's and Don'ts
 
-## 5. Components
+**Do**
+- Use brand only for action & selection; keep it ≤10% of any screen; use `brand-ink` for brand-as-text.
+- Keep the coordinate grid in negative space; mask it behind copy with same-colour plates.
+- Use Inter + `tabular-nums` in data tables; reserve mono for inline code & identifier tags.
+- Express depth with lightness steps; reserve shadow for hover/overlays.
+- Communicate stale / broken / missing states calmly, each with its own semantic dot/chip.
+- Self-host Inter; set `font-synthesis: none`; keep body ≥400 weight and UI text ≥11px (Windows).
 
-Precise and restrained. Components are minimal-footprint instruments. Their borders, radii,
-and type sizes are calibrated for density, not breathing room.
+**Don't**
+- ✗ Monospace data-table columns (use Inter + tabular figures; weight the identifier instead).
+- ✗ Full-width horizontal divider lines over the grid (they clash; use spacing + numbered headings).
+- ✗ Let the grid bleed behind running text, or hide it entirely in the margins ("might as well not
+  have it"). It belongs in the negative space *within* the content area.
+- ✗ Cream/sand canvases, purple gradients, glassmorphism, gradient text, or hero-metric templates.
+- ✗ Side-stripe borders (`border-left >1px` accents); `1px border + ≥16px soft shadow` ghost cards;
+  card radius ≥24px; decorative section eyebrows on every block.
+- ✗ `#000`/`#fff`, pure greys, or any non-OKLCH colour.
+- ✗ Decorative "Live/Synced" copy not wired to data. ✗ Nested `<a>` inside an interactive card.
+- ✗ Decorative motion that doesn't convey state.
 
-### Buttons
+## 8. Responsive Behavior
 
-- **Shape:** Gently curved (8px radius / `rounded-default`)
-- **Primary:** Platform Blue background, canvas-white text, 6px vertical / 16px horizontal
-  padding, 0.8125rem label weight (400). The background is the full-saturated brand signal.
-- **Hover:** Lightness steps up to `oklch(54% 0.28 264.18)` — slightly lighter, same saturation.
-  `transition-colors` at 150ms ease-out.
-- **Focus:** 2px ring at Platform Blue, 2px offset from the element edge.
-- **Ghost / Icon buttons:** Transparent background, secondary ink text, same radius. Hover
-  switches to Muted Surface background with Ink text. Used for secondary actions and toolbar
-  icons.
+- **Structural, not fluid type** (except the hero display clamp). Users view at consistent DPI.
+- **Top bar:** on small screens, collapse the centred tabs into a menu (sheet/drawer); keep brand +
+  search + theme. The FAB stays.
+- **Card grids:** `repeat(auto-fit, minmax(230px, 1fr))` — reflow without breakpoints.
+- **Tables:** allow horizontal scroll or collapse low-priority columns; keep identifier + status.
+- **The grid recedes** on narrow viewports (content fills the column); it's a wide-screen framing
+  device, not load-bearing.
+- Touch targets ≥40px. Respect `prefers-reduced-motion` (crossfade/instant fallback).
 
-### Navigation (TopBar)
+## 9. Agent Prompt Guide
 
-- **Container:** 56px tall, sticky, `border-b` Hairline Border, Canvas at 85% opacity with
-  `backdrop-blur-sm`. The blur provides elevation without a shadow.
-- **Brand mark:** 24×24px `rounded-[7px]` Platform Blue block with mono "A" in canvas-white.
-  A structural signal, not a logotype.
-- **Nav links:** 14px/medium, transparent background, secondary ink. Hover → Muted Surface
-  background + Ink text. Active → Brand Tint background + Platform Blue text + semibold.
-  Active state communicates current location without extra indicators.
-- **Mobile:** Sheet drawer from the left, identical link styles, triggered by hamburger icon.
+**Brand:** `#001AFF` (`oklch(46.28% 0.3059 264.18)`). Reference build:
+`prototype/atlas-design-system.html` (light = `#blueprint`, dark = `#blueprint-ink`).
 
-### Capability Cards
+Ready-to-use prompts:
+- "Build a service catalog page in the Atlas **Blueprint** system: faint 32px coordinate grid in
+  the negative space (masked behind text by same-colour plates), `#001AFF` for action/selection only,
+  Inter throughout, IBM Plex Mono for inline codes only. Cards have brand corner ticks; tables use
+  Inter + tabular figures (no mono columns); availability uses status dots."
+- "Add a dark mode (**Ink**): same structure, near-black surfaces, brand lifted to
+  `oklch(62% 0.26 264.18)`; grid alpha ~0.045."
+- "Top bar: 56px sticky opaque, brand left, tabs centred (active = brand underline), search + theme
+  icons right; 'Ask' is a brand FAB bottom-right."
 
-- **Container:** `rounded-default` (8px), Hairline Border, Surface White background, 16px padding.
-- **Hover:** Border shifts to Structural Border + shadow-sm. The state change is immediate;
-  hover communicates navigability.
-- **Structure (top to bottom):** Service icon + Title (700/14px) + 2-line truncated description
-  (Secondary Ink, 12px) + status chips row + owner / support channel footer (mono detail).
-- **Arrow icon:** Secondary Ink at rest; translates 2px right and shifts to Ink on hover.
-  The micro-movement confirms the entire card is interactive.
-- **Constraint:** No nested interactive ancestors. Cards that contain inline links must use
-  a non-interactive container (`<article>` or `<div>`) with standalone CTAs — not an outer
-  `<a>` wrapping inner `<a>` elements.
-
-### Inputs / Search Fields
-
-- **Container:** 44px height, `rounded-default` (8px), Hairline Border, Surface White background,
-  left-aligned search icon at 16px.
-- **Focus:** Border shifts to Platform Blue + `box-shadow: 0 0 0 3px color-mix(in srgb, Platform Blue 8%, transparent)`.
-  The 8% ring is a subtle glow, not a thick outline.
-- **Text:** 14px/400, Ink color. Placeholder in Secondary Ink.
-- **Max-width:** 600px. Search fields do not stretch full-width at large viewport sizes.
-
-- **Chips (Status / Availability)**
-
-- **Style:** Small rounded containers (4px radius), semantic color pairs (background tint +
-  darker foreground), system mono 0.75rem/600.
-- **Available:** Healthy Green tint background, darker green text.
-- **Planned:** Amber Alert tint background, darker amber text.
-- **Not available / no data:** Hairline Border background, Secondary Ink text.
-- **Purpose:** Regional availability indicators — density is intentional. Three chips per card
-  is the target; overflow is rendered as `+N` in mono.
-
-### Mono Category Label (Signature Component)
-
-Atlas's primary navigational anchor in catalog views. System monospace, 0.75rem, 600,
-uppercase, 0.05em tracking, Secondary Ink color. Followed by a count badge (rounded-full,
-Border background) and a full-width horizontal rule (Hairline Border). This pattern
-communicates section boundaries in dense grid views without adding visual hierarchy
-competition.
-
-## 6. Do's and Don'ts
-
-### Do:
-
-- **Do** use Platform Blue only for interactive and selected states. Keep its coverage to
-  ≤10% of any screen. Its signal value depends on rarity.
-- **Do** use system monospace uppercase (0.75rem, 600, 0.05em tracking) for platform vocabulary:
-  topic types, authority levels, category slugs, API codes, support channel names.
-- **Do** express depth through OKLCH lightness steps. Cards appear elevated because they
-  are lighter than the canvas surface, not because they cast a shadow.
-- **Do** wire freshness indicators ("Live", "Synced") to real data before showing them.
-  Remove or neutralize decorative freshness copy until the data is available.
-- **Do** keep body line length under 56ch for descriptive prose. The value is in the data,
-  not in paragraph length.
-- **Do** tint every neutral toward hue 264. A chroma of 0.005 is enough to anchor the system.
-- **Do** use `prefers-reduced-motion` to disable or minimize animations for users who have
-  enabled that OS preference. The theme-reveal and any `animate-ping` indicators must respect it.
-- **Do** expose broken anchors, stale sources, and unavailable services with their own semantic
-  chip / indicator — calmly, without alarm styling.
-
-### Don't:
-
-- **Don't** use cream backgrounds, purple gradients, glowing card effects, or AI-generated
-  SaaS aesthetics. Atlas is a tool, not a product landing page.
-- **Don't** reproduce legacy enterprise patterns: heavy blue-grey palettes, accordion-nested
-  tables, sidebar navigation buried three levels deep.
-- **Don't** use large hero sections, flashy scroll effects, or animation that compensates for
-  thin content. Visual spectacle is the anti-pattern.
-- **Don't** use `border-left` or `border-right` greater than 1px as a colored accent stripe on
-  cards, list items, or callouts. Rewrite with background tints, full borders, or nothing.
-- **Don't** use gradient text (`background-clip: text` with a gradient). Use a single solid
-  color; emphasis via weight or size.
-- **Don't** show "Live", "Synced just now", or any freshness indicator as decorative copy.
-  Remove it entirely until it is wired to a real data source. A false confidence signal corrodes
-  trust faster than silence.
-- **Don't** use `#000` or `#fff` anywhere. Every surface, text, and border is a tinted OKLCH value.
-- **Don't** add box-shadows to static surfaces. `shadow-sm` is a hover state, not ambient depth.
-- **Don't** use system monospace for conversational, decorative, or non-structured text. Mono
-  means "system value." If it would read naturally in a sentence, it is the wrong style.
-- **Don't** wrap interactive cards in an outer `<a>` tag that contains other `<a>` elements.
-  Nested anchor elements are invalid HTML and break screen readers.
+**Motion:** 150–250ms on colour/border transitions; ease-out; no bounce. Always provide a
+`prefers-reduced-motion` alternative.

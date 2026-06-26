@@ -148,7 +148,7 @@ export function FeedbackInlineForm({ target, className }: FeedbackInlineFormProp
             isSubmitting: state.isSubmitting,
           })}
         >
-          {({ canSubmit, isSubmitting }) => (
+          {({ canSubmit, isSubmitting }: { canSubmit: boolean; isSubmitting: boolean }) => (
             <Button
               type="submit"
               variant="default"

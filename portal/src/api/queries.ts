@@ -14,12 +14,35 @@ import {
   fetchSourceDiscovery,
   fetchTopicDiscovery,
 } from "@/api/server/contextApi";
+import { fetchReleaseNotes, type Release } from "@/api/server/releaseNotes";
+import { fetchAnnouncements, type Announcement } from "@/api/server/announcements";
+import { fetchGuidance } from "@/api/server/guidance";
+import type { Guidance } from "@/lib/guidance";
+
+export const releaseNotesQueryOptions = queryOptions<Release[]>({
+  queryKey: ["release-notes"] as const,
+  queryFn: () => fetchReleaseNotes(),
+  staleTime: 60_000,
+});
+
+export const announcementsQueryOptions = queryOptions<Announcement[]>({
+  queryKey: ["announcements"] as const,
+  queryFn: () => fetchAnnouncements(),
+  staleTime: 60_000,
+});
+
+export const guidanceQueryOptions = queryOptions<Guidance[]>({
+  queryKey: ["guidance"] as const,
+  queryFn: () => fetchGuidance(),
+  staleTime: Infinity,
+});
 
 export const availabilityQueryKey = ["availability"] as const;
 
 export const availabilityQueryOptions = queryOptions<AvailabilityResponse>({
   queryKey: availabilityQueryKey,
   queryFn: () => fetchAvailability(),
+  staleTime: Infinity,
 });
 
 export function topicDiscoveryQueryOptionsFor(request: TopicDiscoveryRequest = {}) {
@@ -46,5 +69,9 @@ export function contextBundleQueryOptions(request: ContextRequest) {
   return queryOptions<ContextBundleResponse>({
     queryKey: ["context-bundle", request] as const,
     queryFn: () => fetchContextBundle({ data: request }),
+    // 5 min: bundles are immutable per { topic_id, disclosure_level } within a
+    // session, so caching avoids re-resolving every cited anchor (the app's most
+    // expensive call) on re-nav. Not Infinity, so a long-lived tab still refreshes.
+    staleTime: 5 * 60_000,
   });
 }

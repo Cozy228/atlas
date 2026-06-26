@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { Anchor, Source } from "@atlas/schema";
-import { policyDocumentResolver } from "./policyDocumentResolver.js";
-import { createInMemorySourceContentProvider } from "./sourceContentProvider.js";
+import { policyDocumentResolver } from "./policyDocumentResolver";
+import { offlineResolutionContext } from "./resolverTypes";
+import { createInMemorySourceContentProvider } from "./sourceContentProvider";
 
 const source: Source = {
   id: "s3-policy-doc",
@@ -29,8 +30,9 @@ const anchor: Anchor = {
 };
 
 describe("policyDocumentResolver", () => {
-  it("resolves a registered policy clause", () => {
-    const result = policyDocumentResolver.resolve({
+  it("resolves a registered policy clause", async () => {
+    const result = await policyDocumentResolver.resolve({
+      ctx: offlineResolutionContext(),
       source,
       anchors: [anchor],
       anchorId: "public-access",
@@ -45,8 +47,9 @@ describe("policyDocumentResolver", () => {
     expect(result.warnings).toEqual([]);
   });
 
-  it("returns broken_anchor when the clause is absent", () => {
-    const result = policyDocumentResolver.resolve({
+  it("returns broken_anchor when the clause is absent", async () => {
+    const result = await policyDocumentResolver.resolve({
+      ctx: offlineResolutionContext(),
       source,
       anchors: [anchor],
       anchorId: "public-access",
@@ -58,8 +61,9 @@ describe("policyDocumentResolver", () => {
     expect(result.warnings[0]?.code).toBe("broken_anchor");
   });
 
-  it("returns source_unavailable when the document cannot be fetched", () => {
-    const result = policyDocumentResolver.resolve({
+  it("returns source_unavailable when the document cannot be fetched", async () => {
+    const result = await policyDocumentResolver.resolve({
+      ctx: offlineResolutionContext(),
       source,
       anchors: [anchor],
       anchorId: "public-access",
@@ -69,8 +73,9 @@ describe("policyDocumentResolver", () => {
     expect(result.warnings[0]?.code).toBe("source_unavailable");
   });
 
-  it("returns broken_anchor for malformed clause input", () => {
-    const result = policyDocumentResolver.resolve({
+  it("returns broken_anchor for malformed clause input", async () => {
+    const result = await policyDocumentResolver.resolve({
+      ctx: offlineResolutionContext(),
       source,
       anchors: [
         {

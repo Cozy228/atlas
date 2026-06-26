@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { serverContextApiClient } from "./inProcessContextApi.js";
+import { serverContextApiClient } from "./inProcessContextApi";
 
 describe("serverContextApiClient", () => {
   it("returns a parsed context bundle for a known topic", async () => {
@@ -42,7 +42,7 @@ describe("serverContextApiClient", () => {
     expect(response.topics.length).toBeGreaterThan(0);
     expect(
       response.topics.every((topic) =>
-        ["capability", "landing-zone", "guardrail-area"].includes(topic.topic_type),
+        ["service", "landing-zone", "security-policy"].includes(topic.topic_type),
       ),
     ).toBe(true);
   });

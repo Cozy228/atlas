@@ -14,7 +14,7 @@ Rules that AI must follow when implementing the Atlas design. Check every code c
 
 ## API Contract
 
-5. `context-layer` exposes a single API surface. Every capability (source registry, topic registry, context delivery) is accessed through this API. No direct DynamoDB access from `portal`.
+5. `context-layer` exposes a single API surface. Every function (source registry, topic registry, context delivery) is accessed through this API. No direct DynamoDB access from `portal`.
 
 6. API request and response types must be defined in a shared schema package (e.g., OpenAPI spec or shared TypeScript types). Both `context-layer` and `portal` reference this schema. Do not duplicate type definitions.
 
@@ -34,13 +34,13 @@ Rules that AI must follow when implementing the Atlas design. Check every code c
 
 13. `authority_level` is an enum with exactly these values: `authoritative`, `reference`, `example`, `draft`, `deprecated`. Do not add new levels without updating this constraint.
 
-14. `topic_type` is an enum with exactly these values: `capability`, `landing-zone`, `guardrail-area`. Do not add new types without updating this constraint.
+14. `topic_type` is an enum with exactly these values: `service`, `landing-zone`, `guardrail-area`. Do not add new types without updating this constraint.
 
 15. `source_class` is an enum with exactly these values in V1: `terraform-module`, `confluence-page`, `policy-document`. Adding a new source class requires a corresponding anchor strategy implementation. Do not add a source class enum value without implementing its anchor resolver.
 
 ## Source Access
 
-16. Source content is fetched at request time, not pre-ingested. Do not build background jobs, queues, or pipelines that pull and store source content. Atlas may store source metadata, anchor selectors, validation status, and optional fingerprints, but not a durable mirror of source content. If you need caching, use a TTL-based cache that is explicitly disposable — the system must function without it.
+16. Source content is fetched at request time, not durably mirrored. Atlas may run manifest validation, metadata fetch, lifecycle checks, and source health automation that store source metadata, anchor selectors, validation status, lifecycle state, and optional fingerprints. Do not build a pipeline that stores full source content as a durable Atlas copy. If you need caching, use a TTL-based cache that is explicitly disposable — the system must function without it.
 
 17. Each source class has its own fetcher and anchor resolver module. Fetchers and anchor resolvers are registered by source class, not hardcoded in a switch statement. Adding a new source class means adding a new fetcher or explicitly reusing an existing fetcher, adding a new resolver module, and registering them.
 
@@ -104,7 +104,7 @@ Rules that AI must follow when implementing the Atlas design. Check every code c
 
 42. Do not rely on snapshot tests alone for context bundles, citations, visibility signals, warnings, or AI answer validation. These behaviors require explicit assertions.
 
-43. Portal UI must not hardcode pilot source truth. Capability, landing zone, source badge, authority, freshness, and warning data must come from registry/API data or explicit seed data.
+43. Portal UI must not hardcode pilot source truth. Service, landing zone, source badge, authority, freshness, and warning data must come from registry/API data or explicit seed data.
 
 44. Bedrock or another approved model provider may be used for model invocation, but V1 must not use Bedrock Knowledge Bases, Kendra, OpenSearch, or another managed retrieval layer that bypasses Atlas Context Layer source selection and locator resolution.
 
@@ -120,7 +120,7 @@ Rules that AI must follow when implementing the Atlas design. Check every code c
 
 48. Do not build a general-purpose search engine. Source selection in V1 uses registry lookups and authority mapping, not full-text search or vector similarity.
 
-49. Do not build a background sync/ingest pipeline. V1 is request-time only.
+49. Do not build a durable content ingestion pipeline, crawler, or source-content mirror. Manifest-driven registry validation, metadata fetchers, lifecycle checks, and health automation are allowed when they store only metadata, selectors, fingerprints, lifecycle state, and warnings.
 
 50. Do not build user authentication, registration, SSO, or identity-based application access for V1. V1 is designed for a trusted internal operating environment. Source-system and model credentials still remain server-side and must not be exposed to browser code or committed files.
 

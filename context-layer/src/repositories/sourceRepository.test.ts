@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { Source } from "@atlas/schema";
-import { InMemorySourceRepository } from "./sourceRepository.js";
+import { InMemorySourceRepository } from "./sourceRepository";
 
 const source: Source = {
   id: "textract-module-readme",
   title: "Textract Terraform Module",
   source_class: "terraform-module",
-  location: "github.com/acme/terraform-aws-textract",
+  location: "example/textract/aws",
   steward: "cloud-platform",
   visibility: "internal",
   authority_scope: ["module-usage", "private-networking"],

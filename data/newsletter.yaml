@@ -1,0 +1,285 @@
+# Platform newsletter — the single source for What's New. One file, two entry
+# kinds: formal `releases:` (the change log, mirrored from the Confluence
+# release-notes page) and standalone `announcements:` (editorial notes not tied
+# to a release). Authored sample — public-safe and fictional: ticket keys
+# (PLAT-###) and change-request numbers are invented. At runtime the releases'
+# shape is also produced by `resolveReleaseNotes` (live Confluence) /
+# `parseReleaseNotes` (pasted page text). Releases land roughly twice a month.
+releases:
+  - id: rel-2026-05-09
+    month: May 2026
+    posted_at: "2026-05-09"
+    change_request: CHG0010001
+    link: https://confluence.example.com/display/CLOUD/Release+Notes+2026-05-09
+    jira_base: https://jira.example.com
+    support: AWSF Operations Team — awsf-ops@example.com
+    resources:
+      - label: Jira release
+        url: https://jira.example.com/projects/PLAT/versions/2026-05-09
+      - label: Change request (CHG0010001)
+        url: https://servicenow.example.com/nav_to.do?uri=change_request/CHG0010001
+      - label: Overall change DOP
+        url: https://confluence.example.com/display/CLOUD/DOP+2026-05-09
+      - label: Go / No-Go sheet
+        url: https://confluence.example.com/display/CLOUD/Go-No-Go+2026-05-09
+      - label: Viva Engage announcement
+        url: https://engage.example.com/main/feed/eyJ0eXBlIjoiY29udmVyc2F0aW9uIn0
+      - label: Release notes & details
+        url: https://confluence.example.com/display/CLOUD/Release+Notes+2026-05-09
+      - label: AWS Federated service availability
+        url: https://confluence.example.com/display/CLOUD/Service+Availability
+    items:
+      - category: Non-Compute
+        title: "SCP: Enable DMS in all OUs in PE Org and Fed LZ"
+        ticket: PLAT-101
+      - category: Non-Compute
+        title: "SCP: Enable API Gateway in all OUs in PE Org and Fed LZ"
+        ticket: PLAT-102
+      - category: Non-Compute
+        title: "Config: Data Sync hardening guidelines"
+        ticket: PLAT-103
+      - category: Non-Compute
+        title: Release 1.0.2 of Transfer Family service
+        ticket: PLAT-104
+      - category: Non-Compute
+        title: Resolve ElastiCache access issue in cluster-node mode
+        ticket: PLAT-105
+      - category: Non-Compute
+        title: Enhance security group module to not always force replacement
+        ticket: PLAT-106
+      - category: Non-Compute
+        title: Update OPA policy for the ENV_CLASS tag
+        ticket: PLAT-107
+      - category: Non-Compute
+        title: "Config: Autoscaling capacity rebalancing"
+        ticket: PLAT-108
+      - category: Non-Compute
+        title: "Config: Tag support for Autoscaling resources"
+        ticket: PLAT-109
+      - category: Non-Compute
+        title: Release 1.0.2 of MWAA Airflow service
+        ticket: PLAT-110
+      - category: Compute
+        title: EC2 patch-compliance report Lambda production deployment
+        ticket: PLAT-111
+      - category: Compute
+        title: CMDB failures reported through pipeline execution to the PE team
+        ticket: PLAT-112
+      - category: Compute
+        title: EC2 script-repo production deployment
+        ticket: PLAT-113
+  - id: rel-2026-05-23
+    month: May 2026
+    posted_at: "2026-05-23"
+    change_request: CHG0010002
+    link: https://confluence.example.com/display/CLOUD/Release+Notes+2026-05-23
+    jira_base: https://jira.example.com
+    support: AWSF Operations Team — awsf-ops@example.com
+    resources:
+      - label: Jira release
+        url: https://jira.example.com/projects/PLAT/versions/2026-05-23
+      - label: Change request (CHG0010002)
+        url: https://servicenow.example.com/nav_to.do?uri=change_request/CHG0010002
+      - label: Overall change DOP
+        url: https://confluence.example.com/display/CLOUD/DOP+2026-05-23
+      - label: Go / No-Go sheet
+        url: https://confluence.example.com/display/CLOUD/Go-No-Go+2026-05-23
+      - label: Viva Engage announcement
+        url: https://engage.example.com/main/feed/eyJ0eXBlIjoiY29udmVyc2F0aW9uMiJ9
+      - label: Release notes & details
+        url: https://confluence.example.com/display/CLOUD/Release+Notes+2026-05-23
+      - label: AWS Federated service availability
+        url: https://confluence.example.com/display/CLOUD/Service+Availability
+    items:
+      - category: Non-Compute
+        title: "Config: S3 access-log retention baseline"
+        ticket: PLAT-120
+      - category: Non-Compute
+        title: "SCP: Enable Step Functions in Fed LZ"
+        ticket: PLAT-121
+      - category: Compute
+        title: EC2 AMI hardening pipeline rollout
+        ticket: PLAT-122
+  - id: rel-2026-04-25
+    month: April 2026
+    posted_at: "2026-04-25"
+    change_request: CHG0009500
+    link: https://confluence.example.com/display/CLOUD/Release+Notes+2026-04-25
+    jira_base: https://jira.example.com
+    support: AWSF Operations Team — awsf-ops@example.com
+    resources:
+      - label: Jira release
+        url: https://jira.example.com/projects/PLAT/versions/2026-04-25
+      - label: Change request (CHG0009500)
+        url: https://servicenow.example.com/nav_to.do?uri=change_request/CHG0009500
+      - label: Overall change DOP
+        url: https://confluence.example.com/display/CLOUD/DOP+2026-04-25
+      - label: Go / No-Go sheet
+        url: https://confluence.example.com/display/CLOUD/Go-No-Go+2026-04-25
+      - label: Viva Engage announcement
+        url: https://engage.example.com/main/feed/eyJ0eXBlIjoiY29udmVyc2F0aW9uMyJ9
+      - label: Release notes & details
+        url: https://confluence.example.com/display/CLOUD/Release+Notes+2026-04-25
+      - label: AWS Federated service availability
+        url: https://confluence.example.com/display/CLOUD/Service+Availability
+    items:
+      - category: Non-Compute
+        title: "Config: KMS key rotation policy update"
+        ticket: PLAT-090
+      - category: Non-Compute
+        title: Release 2.1.0 of the Transit Gateway module
+        ticket: PLAT-091
+      - category: Compute
+        title: EC2 inspector findings export to the PE team
+        ticket: PLAT-092
+
+# Standalone announcements — the newsletter's editorial entries (not tied to a
+# release). Rendered as the What's New broadsheet, newest first. Public-safe,
+# fictional. `link.href` may be an internal path or an external URL.
+announcements:
+  - id: billing-retry-incident
+    posted_at: "2026-06-11T09:30"
+    kind: Incident
+    title: "SEV-2: elevated invoice retries on Billing API"
+    summary: >-
+      Duplicate line items on PSP retry pushed the invoice error rate above 1.5%
+      from 06:48 UTC. Rate limiting contained the storm; the hotfix is being
+      rebuilt after a failed CI run.
+    link: { label: Operations overview, href: /overview }
+  - id: billing-hotfix-failed
+    posted_at: "2026-06-11T09:24"
+    kind: Incident
+    title: Billing API hotfix 7.2.5 failed in CI
+    summary: >-
+      The invoice dedupe hotfix failed the pipeline's contract tests and did not
+      promote to prod. A rebuild is in flight; the SEV-2 stays in monitoring
+      until it lands.
+    link: { label: Operations overview, href: /overview }
+  - id: object-storage-tiering
+    posted_at: "2026-06-11T08:10"
+    kind: New
+    title: Object Storage lifecycle tiering is generally available
+    summary: >-
+      Buckets can now tier cold objects to archive storage on a per-prefix
+      schedule, with restore SLAs surfaced in the catalog entry.
+    link: { label: View in catalog, href: /catalog }
+  - id: checkout-rounding
+    posted_at: "2026-06-11T09:18"
+    kind: Updated
+    title: Checkout Web cart rounding fix promoted to staging
+    summary: >-
+      2026.6.11 corrects a half-cent rounding drift on multi-currency carts and
+      widens the PSP retry budget. Promotion to prod is queued behind smoke tests.
+  - id: webauthn-stepup
+    posted_at: "2026-06-11T07:40"
+    kind: Policy
+    title: WebAuthn step-up now required for admin scopes
+    summary: >-
+      Identity Gateway 4.18 enforces a hardware step-up before any admin-scoped
+      token is issued. Service accounts are exempt until July 1.
+    link: { label: Read the policy, href: /sources }
+  - id: harness-templates
+    posted_at: "2026-06-11T07:05"
+    kind: New
+    title: Harness pipeline templates published for the approved CI/CD path
+    summary: >-
+      Three starter templates (service, worker, static site) wire build, scan,
+      and dev to staging to prod promotion out of the box. Available from the
+      install bay.
+    link: { label: Browse skills, href: /skills }
+  - id: portal-clustering
+    posted_at: "2026-06-11T08:40"
+    kind: Updated
+    title: Availability map clustering shipped to Portal rc
+    summary: >-
+      2026.6.11-rc.2 clusters dense outpost markers at low zoom so the regions
+      map stays legible across the full estate.
+    link: { label: Availability map, href: /availability }
+  - id: search-restore
+    posted_at: "2026-06-11T06:30"
+    kind: Updated
+    title: Search Indexer shard-aware snapshot restore enabled in prod
+    summary: >-
+      Restores now rehydrate per-shard in parallel, cutting recovery time for
+      the largest indices from hours to minutes.
+  - id: media-previews-resolved
+    posted_at: "2026-06-11T05:55"
+    kind: Incident
+    title: "Resolved: slow media previews in EU outposts"
+    summary: >-
+      Edge cache eviction after the 5.0.6 rollout regenerated previews on demand.
+      A cache warm-up restored sub-800ms preview latency overnight.
+    link: { label: Operations overview, href: /overview }
+  - id: webhook-v1-deprecated
+    posted_at: "2026-06-11T05:00"
+    kind: Deprecated
+    title: Legacy webhook signing v1 enters its deprecation window
+    summary: >-
+      v1 HMAC signatures stop being accepted on September 1. The migration guide
+      covers rotating to v2 signing keys without dropping events.
+    link: { label: Connect a pipeline, href: /guidance }
+  - id: single-region-template-retired
+    posted_at: "2026-06-09"
+    kind: Deprecated
+    title: Legacy single-region pipeline template retired
+    summary: >-
+      The single-region deployment template is no longer offered. Existing
+      services keep running; new pipelines use the dev to staging to prod template.
+    link: { label: Connect a pipeline, href: /guidance }
+  - id: eu-west-latency
+    posted_at: "2026-06-07"
+    kind: Incident
+    title: "Resolved: elevated latency in EU-West provisioning"
+    summary: >-
+      Provisioning requests in EU-West queued for up to nine minutes between
+      09:10 and 10:40 UTC. A capacity rebalance cleared the backlog; no requests
+      were dropped.
+    link: { label: Operations overview, href: /overview }
+  - id: guardrail-cites
+    posted_at: "2026-06-05"
+    kind: Updated
+    title: Guardrail Check now cites each rule's policy source
+    summary: >-
+      Every rule result prints the policy it enforces, so a failing check links
+      straight to the authority behind it.
+    link: { label: Guardrail Check, href: /skills }
+  - id: object-storage-new
+    posted_at: "2026-06-04"
+    kind: New
+    title: Object Storage (S3-compatible) is generally available
+    summary: >-
+      Available in US-East-1 and DC16 with versioning and lifecycle rules. Added
+      to the catalog under the Storage domain.
+    link: { label: View in catalog, href: /catalog }
+  - id: gdc-approval
+    posted_at: "2026-06-02"
+    kind: Policy
+    title: Two-step approval now required for GDC deployments
+    summary: >-
+      All GDC landing-zone deployments need a second approver from the owning
+      team. The readiness checklist reflects the new gate.
+    link: { label: Read the policy, href: /sources }
+  - id: k8s-authority
+    posted_at: "2026-05-28"
+    kind: Updated
+    title: Kubernetes Platform authority source raised to L1
+    summary: >-
+      The authority source was refreshed from the platform CMDB; its level is
+      now L1, so guidance citing it no longer carries a freshness warning.
+    link: { label: Source registry, href: /sources }
+  - id: iam-v3
+    posted_at: "2026-05-12"
+    kind: Policy
+    title: IAM boundary policy v3 in effect
+    summary: >-
+      Wildcard administrative policies are now rejected at review. The security
+      review gate checks for them before sign-off.
+    link: { label: Source registry, href: /sources }
+  - id: document-store
+    posted_at: "2026-05-06"
+    kind: New
+    title: Managed Document store added to the catalog
+    summary: >-
+      A managed document database for flexible-schema workloads, available
+      alongside the managed relational and cache options.
+    link: { label: View in catalog, href: /catalog }
