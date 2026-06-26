@@ -116,7 +116,12 @@ export const pilotRegistrySeed = {
       description: "Managed foundation model access for approved workloads.",
       owner_team: "cloud-platform",
       support_channel: "#cloud-platform",
-      entry_tools: [{ label: "Module", url: "https://tfe.example.com/app/example/registry/modules/private/example/bedrock/aws" }],
+      entry_tools: [
+        {
+          label: "Module",
+          url: "https://tfe.example.com/app/example/registry/modules/private/example/bedrock/aws",
+        },
+      ],
     },
     {
       id: "serverless-compute",
@@ -127,7 +132,12 @@ export const pilotRegistrySeed = {
       description: "Lambda-based compute patterns for event-driven workloads.",
       owner_team: "cloud-platform",
       support_channel: "#serverless-support",
-      entry_tools: [{ label: "Module", url: "https://tfe.example.com/app/example/registry/modules/private/example/lambda/aws" }],
+      entry_tools: [
+        {
+          label: "Module",
+          url: "https://tfe.example.com/app/example/registry/modules/private/example/lambda/aws",
+        },
+      ],
     },
     {
       id: "central-landing-zone",
@@ -689,6 +699,16 @@ export const pilotRegistrySeed = {
       title: "Module version",
       selector: { field: "version" },
       citation_label: "Module version",
+      status: "valid",
+      last_validated_at: "2026-05-05T00:00:00.000Z",
+    },
+    {
+      id: "availability-textract-row",
+      source_id: "availability-matrix",
+      anchor_strategy: "availability-cell",
+      title: "Textract regional availability",
+      selector: { service: "Textract" },
+      citation_label: "Availability Matrix → Textract row",
       status: "valid",
       last_validated_at: "2026-05-05T00:00:00.000Z",
     },

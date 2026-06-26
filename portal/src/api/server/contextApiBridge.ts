@@ -8,6 +8,7 @@
  * Bearer token passes through unparsed (Bearer pipe, ADR 0001).
  */
 import { handleHttpRequest } from "@atlas/context-layer";
+import { resolvePortalOrigin } from "./portalOrigin";
 
 export async function bridgeContextApiRequest(request: Request): Promise<Response> {
   const url = new URL(request.url);
@@ -17,6 +18,9 @@ export async function bridgeContextApiRequest(request: Request): Promise<Respons
     query: Object.fromEntries(url.searchParams.entries()),
     headers: Object.fromEntries(request.headers.entries()),
     body: request.body ? await request.text() : undefined,
+    // Absolute self-referential URLs in resource responses, so a blind agent can
+    // follow `resourceUrl` / `markdownUrl` without resolving against the host.
+    origin: resolvePortalOrigin(request),
   });
   return new Response(response.body, {
     status: response.status,

@@ -10,10 +10,15 @@ const REAL_ROUTES = new Set([
   "/mcp",
   "/sitemap.xml",
   "/.well-known/api-catalog",
+  "/.well-known/ai-catalog.json",
   "/.well-known/agent-skills/index.json",
   "/catalog",
   "/sources",
   "/guidance",
+  // The agent resource surface (JSON via the /api bridge, Markdown via the
+  // /resources route); llms.txt cites Textract as the worked example.
+  "/api/resources/service/aws/textract",
+  "/resources/service/aws/textract.md",
 ]);
 
 function assertRealRoute(href: string) {

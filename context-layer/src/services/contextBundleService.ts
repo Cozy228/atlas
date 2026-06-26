@@ -8,6 +8,7 @@ import type {
   Topic,
   TopicDiscoveryRequest,
   TopicDiscoveryResponse,
+  ResourceProjectionRecord,
 } from "@atlas/schema";
 import { DynamoFeedbackRepository } from "../repositories/dynamoFeedbackRepository";
 import {
@@ -28,11 +29,15 @@ import { offlineResolutionContext, type ResolutionContext } from "../resolvers/r
 import type { SourceContentProvider } from "../resolvers/sourceContentProvider";
 import { terraformModuleResolver } from "../resolvers/terraformModuleResolver";
 import { createPilotSourceContentProvider } from "../sourceContent/pilotSourceContent";
+import { loadResources } from "../resources/loadResources";
+import { isStale } from "./freshness";
 
 export type ContextBundleService = {
   registry: PilotRegistry;
   resolvers: ResolverRegistry;
   contentProvider: SourceContentProvider;
+  /** Kind-first resource projection records (agent-facing resource surface). */
+  resources: ResourceProjectionRecord[];
   now: Date;
 };
 
@@ -41,15 +46,22 @@ export type ContextBundleServiceOptions = {
   feedbackRepository?: FeedbackRepository;
   /** Injection seam: override the manifest-loaded registry seed (tests). */
   registrySeed?: PilotRegistrySeed;
+  /** Injection seam: override the manifest-loaded resource records (tests). */
+  resources?: ResourceProjectionRecord[];
 };
 
 // The default registry now comes from the `data/*.yaml` manifest control plane.
 // The loader reads + validates the filesystem, so we memoize it: the routes
 // build a fresh service per request and must not re-read/parse YAML each time.
 let cachedRegistrySeed: PilotRegistrySeed | undefined;
+let cachedResources: ResourceProjectionRecord[] | undefined;
 
 function getDefaultRegistrySeed(): PilotRegistrySeed {
   return (cachedRegistrySeed ??= loadRegistryFromManifests(DATA_DIR));
+}
+
+function getDefaultResources(): ResourceProjectionRecord[] {
+  return (cachedResources ??= loadResources(DATA_DIR));
 }
 
 export function createDefaultContextBundleService(
@@ -69,6 +81,7 @@ export function createDefaultContextBundleService(
       availabilityMatrixResolver,
     ]),
     contentProvider: createPilotSourceContentProvider(),
+    resources: options.resources ?? getDefaultResources(),
     now: new Date(),
   };
 }
@@ -458,13 +471,4 @@ function authorityConflictWarnings(sources: Source[]): ContextBundleResponse["wa
   }
 
   return warnings;
-}
-
-function isStale(source: Source, now: Date): boolean {
-  const days = Number(source.review_frequency.match(/^P(\d+)D$/)?.[1] ?? "0");
-  if (days === 0) {
-    return false;
-  }
-  const reviewedAt = new Date(source.last_reviewed_at).getTime();
-  return reviewedAt + days * 24 * 60 * 60 * 1000 < now.getTime();
 }

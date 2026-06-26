@@ -6,6 +6,44 @@
  */
 import { DEFAULT_PORTAL_ORIGIN } from "./portalOrigin";
 
+/**
+ * `/.well-known/ai-catalog.json` (proposal §8): capability discovery as a single
+ * API entry — what Atlas can answer, with representative queries and tags — not
+ * one entry per Section. The `getAtlasCapabilityCatalog` agent operation serves
+ * it. Every `operationId` referenced here exists in the agent OpenAPI (§13.2).
+ */
+export function buildAiCatalog(origin: string = DEFAULT_PORTAL_ORIGIN) {
+  return {
+    name: "Atlas Context Layer",
+    description:
+      "Governed, live-resolved context for cloud platform resources, always with citations. Atlas identifies and projects resources; the calling agent synthesizes the answer.",
+    api: {
+      type: "openapi",
+      url: `${origin}/openapi.json`,
+      documentation: `${origin}/llms.txt`,
+      capabilities: [
+        {
+          id: "search-resources",
+          operationId: "searchResources",
+          description: "Resolve a product or service name to a canonical Atlas resource id.",
+          representativeQueries: ["Find the Atlas resource for AWS Textract"],
+        },
+        {
+          id: "resource-context",
+          operationId: "getResourceContext",
+          description:
+            "Live-resolve a known resource's sections (network, availability, security, …) with citations.",
+          representativeQueries: [
+            "Can AWS Textract be used in a private subnet?",
+            "Which regions support AWS Textract?",
+          ],
+        },
+      ],
+      tags: ["cloud", "platform", "governance", "availability", "networking", "security"],
+    },
+  };
+}
+
 export function buildApiCatalog(origin: string = DEFAULT_PORTAL_ORIGIN) {
   return {
     linkset: [
@@ -31,32 +69,47 @@ export function buildApiCatalog(origin: string = DEFAULT_PORTAL_ORIGIN) {
 
 /**
  * llms.txt is DevEx for engineers pointing AI-IDE agents at Atlas — not SEO.
- * It leads agents to the API surface first, pages second.
+ * It teaches the live-projection resource flow (searchResources →
+ * getResourceContext), not the internal Topic model, and is the plain-text
+ * counterpart of the agent OpenAPI. Every URL here must resolve (proposal §13.2).
  */
 export function buildLlmsTxt(origin: string = DEFAULT_PORTAL_ORIGIN): string {
   return `# Atlas
 
-> Atlas is a governed context layer: it registers, validates, and serves authoritative source excerpts with citations. Every Excerpt is paired with a Citation; warnings like \`restricted_source\` and \`stale_source\` must be relayed verbatim.
+> Atlas is a governed context layer for cloud platform resources. It live-resolves authoritative source excerpts with citations — it never stores or serves stale content, and it does not answer questions itself. You identify the resource and synthesize the answer from the returned facts + evidence.
 
-## API (start here)
+## Recommended procedure
 
-- [OpenAPI description](${origin}/openapi.json): the Context API contract — base path \`/api\`; topic/source discovery (\`GET /api/topics\`, \`GET /api/sources\`), the cited context bundle (\`GET /api/topics/{id}/context\`), per-source content (\`GET /api/sources/{id}/content\`), and feedback
-- [API catalog](${origin}/.well-known/api-catalog): linkset pointing at the API description, docs, and health
-- [MCP endpoint](${origin}/mcp): read-only MCP tools over the same Context API — service search, the context bundle, source lookup, and service/region availability (\`atlas_get_availability\`)
-- [Agent skills](${origin}/.well-known/agent-skills/index.json): the atlas-context-consumer skill teaches the bundle workflow
+1. If you already know the resource, call getResourceContext directly:
+   \`GET /api/resources/{kind}/{slug}?sections=...\`
+   e.g. \`GET /api/resources/service/aws/textract?sections=network,availability\`
+2. If you only have a name, resolve it first:
+   \`GET /api/resources?query=AWS%20Textract\` → returns the canonical \`{kind}/{slug}\`, a JSON \`resourceUrl\`, and a Markdown \`markdownUrl\`; then call \`resourceUrl\`.
+3. Read \`sections[].content\` and \`sections[].citations\`; relay every warning verbatim.
 
-## What you can ask
+## Section hints
 
-- **Service capabilities & config** — e.g. private-networking/subnet usage: resolve a topic, then read its cited context bundle.
-- **Regional / service availability** — which services are available, planned, or interim per region: the \`atlas_get_availability\` MCP tool, or the \`Regional Availability Matrix\` source via \`GET /api/sources/{id}/content\`.
-- **Guardrails, policies & landing zones** — registered as topics (e.g. S3 guardrails, IAM boundary, private networking) and policy/guide sources.
+- \`network\` — private subnet, VPC endpoint, PrivateLink, NAT, DNS, internet egress
+- \`availability\` — supported regions, partitions, GovCloud, regional feature availability
+- (the full per-kind \`sections\` vocabulary is in the OpenAPI \`sections\` enum)
 
-Typical flow: \`GET /api/topics?query=<terms>\` → \`GET /api/topics/{id}/context\` → answer only from the returned Excerpts, each with its Citation, relaying every \`warnings[]\` entry verbatim. The OpenAPI \`description\` and the agent-skill carry the full conduct rules.
+## Reading results (honesty)
+
+A missing or failed section is ABSENCE of data, never a negative answer:
+- \`missingSections[].code\` / \`sections[].warnings[].code\` use Atlas warning codes: \`no_registered_source\`, \`source_unavailable\`, \`broken_anchor\`, \`stale_source\`, \`availability_unavailable\`, \`restricted_source\`.
+- An "unsupported" conclusion is only valid when a resolved section's \`content\` cites source-backed evidence for it.
+
+## Machine interfaces
+
+- [Agent OpenAPI](${origin}/openapi.json): the four agent operations
+- [Capability catalog](${origin}/.well-known/ai-catalog.json): what Atlas can answer
+- [Resource JSON](${origin}/api/resources/service/aws/textract): a live projection grouped by section
+- [Resource Markdown](${origin}/resources/service/aws/textract.md): the same projection, agent-readable
 
 ## Pages
 
 - [Service catalog](${origin}/catalog): registered platform services, landing zones, and guardrail areas
-- [Sources](${origin}/sources): registered systems of record Atlas can cite — Confluence guides, policy documents, Terraform modules, and the regional availability matrix
+- [Sources](${origin}/sources): registered systems of record Atlas can cite
 - [Guidance](${origin}/guidance): evidence-backed platform guidance flows
 `;
 }
@@ -65,14 +118,17 @@ type SitemapInput = {
   topicIds: ReadonlyArray<string>;
   sourceIds: ReadonlyArray<string>;
   guidanceIds: ReadonlyArray<string>;
+  /** Canonical `{kind}/{slug}` ids for the agent-readable resource pages. */
+  resourceIds?: ReadonlyArray<string>;
 };
 
 /**
- * Canonical, crawlable pages only: catalog/source/guidance browsing. Mutation
- * flows and the Ask chat are deliberately excluded.
+ * Canonical, crawlable pages only: catalog/source/guidance browsing plus the
+ * agent-readable resource Markdown pages (proposal §12). Mutation flows, the Ask
+ * chat, and `/api/*` JSON endpoints are deliberately excluded.
  */
 export function buildSitemapXml(
-  { topicIds, sourceIds, guidanceIds }: SitemapInput,
+  { topicIds, sourceIds, guidanceIds, resourceIds = [] }: SitemapInput,
   origin: string = DEFAULT_PORTAL_ORIGIN,
 ): string {
   const paths = [
@@ -83,6 +139,9 @@ export function buildSitemapXml(
     ...topicIds.map((id) => `/catalog/${encodeURIComponent(id)}`),
     ...sourceIds.map((id) => `/sources/${encodeURIComponent(id)}`),
     ...guidanceIds.map((id) => `/guidance/${encodeURIComponent(id)}`),
+    // {kind}/{slug} ids are pre-encoded path segments; encode each segment, not
+    // the slashes, so /resources/service/aws/textract.md stays a real path.
+    ...resourceIds.map((id) => `/resources/${id.split("/").map(encodeURIComponent).join("/")}.md`),
   ];
   const urls = paths.map((path) => `  <url><loc>${origin}${path}</loc></url>`).join("\n");
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`;
@@ -130,6 +189,7 @@ export function buildHomeLinkHeader(origin: string = DEFAULT_PORTAL_ORIGIN): str
     ["/llms.txt", "llms-txt", "text/plain"],
     ["/openapi.json", "service-desc", "application/openapi+json"],
     ["/.well-known/api-catalog", "api-catalog", "application/linkset+json"],
+    ["/.well-known/ai-catalog.json", "ai-catalog", "application/json"],
     ["/.well-known/agent-skills/index.json", "agent-skills", "application/json"],
     ["/mcp", "mcp-server"],
     ["/sitemap.xml", "sitemap", "application/xml"],

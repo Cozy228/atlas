@@ -4,6 +4,14 @@ import type { SourceContentProvider } from "./sourceContentProvider";
 export type ResolvedExcerpt = {
   anchor_id?: string;
   text: string;
+  /**
+   * Provenance clock (ADR-0013 §6): the moment this excerpt was actually parsed
+   * from its Source. The live cache path stamps the original fetch time so a
+   * perf-cache hit returns it unchanged; offline/recorded resolution leaves it
+   * unset and callers fall back to the Source's `last_observed_at`. Kept separate
+   * from the staleness clock, which is recomputed per projection and never cached.
+   */
+  resolved_at?: string;
   citation: {
     source_id: string;
     anchor_id?: string;

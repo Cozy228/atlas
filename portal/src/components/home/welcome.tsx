@@ -57,8 +57,68 @@ export function HomeWelcome({ data }: { data: HomeLoaderData }) {
         <JourneyGrid />
       </section>
       <CatalogIndex serviceCount={data.serviceCount} domains={data.domains} />
+      <MachineAccess />
       <HelpCloser />
     </div>
+  );
+}
+
+/* ========================================================================== *
+ * Machine-readable access — the body-visible agent surface (proposal §10.1).
+ * A blind agent that reads only the rendered body (not <head> or the response
+ * `Link` header) still finds the machine entry points here, as real links with
+ * their literal paths shown. This is the first-hop discovery fix.
+ * ========================================================================== */
+
+function MachineAccess() {
+  const entries: ReadonlyArray<{ href: string; label: string; desc: string }> = [
+    { href: "/openapi.json", label: "OpenAPI", desc: "The agent API contract — four operations" },
+    { href: "/llms.txt", label: "llms.txt", desc: "How to discover and call Atlas" },
+    {
+      href: "/.well-known/ai-catalog.json",
+      label: "Capability catalog",
+      desc: "What Atlas can answer",
+    },
+    {
+      href: "/api/resources/service/aws/textract",
+      label: "Resource JSON",
+      desc: "A live projection, grouped by section",
+    },
+    {
+      href: "/resources/service/aws/textract.md",
+      label: "Resource Markdown",
+      desc: "The same projection, agent-readable",
+    },
+  ];
+  return (
+    <section>
+      <SectionHead
+        title="Machine-readable access"
+        description="Atlas is built for agents and tools. Start at the OpenAPI or llms.txt, then resolve a resource by name and read its sections."
+      />
+      <ul className="grid gap-x-10 sm:grid-cols-2">
+        {entries.map((entry) => (
+          <li key={entry.href} className="break-inside-avoid">
+            <a
+              href={entry.href}
+              className="group flex items-baseline justify-between gap-3 border-b border-border py-2.5"
+            >
+              <span className="flex min-w-0 flex-col">
+                <span className="bg-background text-[13.5px] font-semibold text-foreground group-hover:text-brand-ink">
+                  {entry.label}
+                </span>
+                <span className="truncate bg-background text-[11.5px] text-muted-foreground">
+                  {entry.desc}
+                </span>
+              </span>
+              <span className="shrink-0 self-center bg-background font-mono text-[11px] text-muted-foreground group-hover:text-brand-ink">
+                {entry.href}
+              </span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 

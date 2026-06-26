@@ -216,3 +216,15 @@
   citation_label: Module version
   status: valid
   last_validated_at: 2026-05-05T00:00:00.000Z
+# Textract availability projection (plan 011 §3) — net-new availability-cell row
+# anchor (service=Textract). The service resource's `availability` Section binds
+# here so the governed matrix is the single availability source for the agent face.
+- id: availability-textract-row
+  source_id: availability-matrix
+  anchor_strategy: availability-cell
+  title: Textract regional availability
+  selector:
+    service: Textract
+  citation_label: Availability Matrix → Textract row
+  status: valid
+  last_validated_at: 2026-05-05T00:00:00.000Z

@@ -1,3 +1,4 @@
+import { listResourceCanonicalIds } from "@atlas/context-layer";
 import { buildSitemapXml } from "@/api/server/agentDiscovery";
 import { handlerRequest, resolvePortalOrigin } from "@/api/server/portalOrigin";
 import { serverContextApiClient } from "@/api/server/serverContextApiClient";
@@ -13,6 +14,7 @@ export default async (event: unknown): Promise<Response> => {
       topicIds: topics.topics.map((topic) => topic.id),
       sourceIds: sources.sources.map((source) => source.id),
       guidanceIds: loadGuidance().map((guidance) => guidance.id),
+      resourceIds: listResourceCanonicalIds(),
     },
     resolvePortalOrigin(handlerRequest(event)),
   );
