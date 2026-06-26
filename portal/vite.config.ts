@@ -63,8 +63,12 @@ export default defineConfig({
         compressPublicAssets: { gzip: true, brotli: true },
       }),
     viteReact(),
-    // React Compiler: auto-memoizes components/values/callbacks so manual
-    // memo()/useMemo()/useCallback() are no longer load-bearing for re-render perf.
+    // React Compiler — official Babel route for React 19 + Vite 8 Rolldown: keep
+    // the Oxc/Rolldown main chain and run the compiler as a standalone
+    // `@rolldown/plugin-babel` pass. `reactCompilerPreset()` returns a
+    // RolldownBabelPreset the plugin consumes directly (preset + filter +
+    // client-only env hook + `react/compiler-runtime` optimizeDeps). React 19
+    // needs no `target`. Verify via React DevTools "Memo ✨" badges.
     babel({ presets: [reactCompilerPreset()] }),
     tailwindcss(),
   ],

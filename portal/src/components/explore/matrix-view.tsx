@@ -1,4 +1,4 @@
-import { Fragment, useMemo } from "react";
+import { useMemo } from "react";
 import {
   flexRender,
   getCoreRowModel,
@@ -26,7 +26,7 @@ type MatrixViewProps = {
   selectedServiceId: string | null;
   onSelect: (id: string) => void;
   activeLocationId: string | null;
-  onLocationSelect: (id: string | null) => void;
+  onLocationSelect: (id: string) => void;
 };
 
 export function MatrixView({
@@ -51,22 +51,15 @@ export function MatrixView({
       {
         id: "service",
         header: () => "Service",
-        cell: ({ row }) => (
-          <ServiceCell
-            provider={provider}
-            service={row.original.service}
-            selected={row.original.id === selectedServiceId}
-          />
-        ),
+        cell: ({ row }) => <ServiceCell provider={provider} service={row.original.service} />,
       },
       ...locations.map<ColumnDef<AvailabilityRow>>((location) => {
-        const isActive = location.id === activeLocationId;
         return {
           id: location.id,
           header: () => (
             <button
               type="button"
-              onClick={() => onLocationSelect(isActive ? null : location.id)}
+              onClick={() => onLocationSelect(location.id)}
               className="flex h-full w-full flex-col items-center justify-center gap-0.5 text-inherit transition-colors hover:text-foreground"
             >
               <span className="max-w-full font-sans text-xs font-semibold normal-case leading-tight tracking-normal text-foreground">
@@ -87,7 +80,10 @@ export function MatrixView({
         };
       }),
     ],
-    [activeLocationId, isWide, locations, onLocationSelect, provider, selectedServiceId],
+    // Selection/active-column state is intentionally NOT a dependency: baking it
+    // in rebuilt every column (all ~354 cells re-rendered) on each select. Those
+    // states are now CSS-driven (chevron) or applied at render time (active col).
+    [isWide, locations, onLocationSelect, provider],
   );
   const table = useReactTable({
     data: tableData,
@@ -179,41 +175,80 @@ function DomainRows({
           {domain}
         </TableCell>
       </TableRow>
-      {rows.map((row) => {
-        const { service } = row.original;
-        const isSelected = row.original.id === selectedServiceId;
-        return (
-          <Fragment key={row.original.id}>
-            <TableRow
-              onClick={() => onSelect(row.original.id)}
-              data-selected={isSelected ? "true" : undefined}
-              className={cn(
-                "group cursor-pointer border-b border-border last:border-b-0 transition-colors",
-                "hover:bg-muted/50",
-                "data-[selected=true]:bg-brand-tint",
-                // Skip layout/paint of off-screen rows so only visible icons paint on first
-                // open of each tab. intrinsic-size reserves height to keep the scrollbar stable.
-                "[content-visibility:auto] [contain-intrinsic-size:auto_44px]",
-              )}
-              aria-expanded={isSelected}
-            >
-              {row.getVisibleCells().map((cell) => (
-                <TableCell
-                  key={cell.id}
-                  className={matrixCellClass(cell.column.id, activeLocationId, isWide, hasActiveCol)}
-                >
-                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                </TableCell>
-              ))}
-            </TableRow>
-            <AnimatePresence initial={false}>
-              {isSelected ? (
-                <MatrixExpandRow service={service} locations={locations} totalCols={totalCols} />
-              ) : null}
-            </AnimatePresence>
-          </Fragment>
-        );
-      })}
+      {rows.map((row) => (
+        <MatrixRow
+          key={row.original.id}
+          row={row}
+          isSelected={row.original.id === selectedServiceId}
+          locations={locations}
+          onSelect={onSelect}
+          totalCols={totalCols}
+          isWide={isWide}
+          activeLocationId={activeLocationId}
+          hasActiveCol={hasActiveCol}
+        />
+      ))}
+    </>
+  );
+}
+
+/**
+ * A single service row + its expand panel, split into its own component so the
+ * React Compiler memoises it per-row: toggling one service only re-renders the
+ * rows whose `isSelected` actually flipped — the other ~50 rows (and their real
+ * service icons) stay untouched. This is the fix for the "one select re-renders
+ * all ~354 cells" storm, now that `columns` are static (the table never rebuilds
+ * its cell render fns).
+ */
+function MatrixRow({
+  row,
+  isSelected,
+  locations,
+  onSelect,
+  totalCols,
+  isWide,
+  activeLocationId,
+  hasActiveCol,
+}: {
+  row: Row<AvailabilityRow>;
+  isSelected: boolean;
+  locations: ReadonlyArray<Location>;
+  onSelect: (id: string) => void;
+  totalCols: number;
+  isWide: boolean;
+  activeLocationId: string | null;
+  hasActiveCol: boolean;
+}) {
+  const { service } = row.original;
+  return (
+    <>
+      <TableRow
+        onClick={() => onSelect(row.original.id)}
+        data-selected={isSelected ? "true" : undefined}
+        className={cn(
+          "group cursor-pointer border-b border-border last:border-b-0 transition-colors",
+          "hover:bg-muted/50",
+          "data-[selected=true]:bg-brand-tint",
+          // Skip layout/paint of off-screen rows so only visible icons paint on first
+          // open of each tab. intrinsic-size reserves height to keep the scrollbar stable.
+          "[content-visibility:auto] [contain-intrinsic-size:auto_44px]",
+        )}
+        aria-expanded={isSelected}
+      >
+        {row.getVisibleCells().map((cell) => (
+          <TableCell
+            key={cell.id}
+            className={matrixCellClass(cell.column.id, activeLocationId, isWide, hasActiveCol)}
+          >
+            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+          </TableCell>
+        ))}
+      </TableRow>
+      <AnimatePresence initial={false}>
+        {isSelected ? (
+          <MatrixExpandRow service={service} locations={locations} totalCols={totalCols} />
+        ) : null}
+      </AnimatePresence>
     </>
   );
 }
@@ -221,11 +256,9 @@ function DomainRows({
 function ServiceCell({
   provider,
   service,
-  selected,
 }: {
   provider: ServiceIconProvider;
   service: AvailabilityRecord;
-  selected: boolean;
 }) {
   return (
     <span className="flex w-full min-w-0 items-center gap-2">
@@ -237,7 +270,9 @@ function ServiceCell({
         aria-hidden
         className={cn(
           "size-3 shrink-0 text-muted-foreground transition-transform",
-          selected && "rotate-180 text-primary",
+          // Driven by the row's `data-selected` so toggling a service is pure CSS
+          // (no cell re-render). The row carries `group` + `data-selected`.
+          "group-data-[selected=true]:rotate-180 group-data-[selected=true]:text-primary",
         )}
       />
     </span>

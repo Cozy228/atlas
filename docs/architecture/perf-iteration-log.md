@@ -164,6 +164,141 @@ v9's `<table.Subscribe>`/atoms are the idiomatic fix for (3) but it's beta → d
 v8 with CSS now, track v9 for when it's stable; Virtual not first-choice (≤59 rows,
 table→grid restructure). Re-perf harness committed: `portal/scripts/perf/*.mjs`.
 
+### Iteration 7 — plan 013 Phase 1 (matrix client-render) ✅ landed + re-perf'd
+Implemented the P0/P1 fixes and re-ran the **same** harness (raw-CDP CPU 6×+Slow-4G;
+`agent-browser` React profiler) on this machine. **Headline: the throttled main-thread
+cost of the availability matrix is essentially eliminated.**
+
+| Client-render metric (throttled, same harness) | before | after |
+|---|---|---|
+| `/availability` cold **TBT** (long-tasks) | **446 ms** | **0 ms** ✅ |
+| tab-switch `/`→`/availability` main-thread **freeze** | **189 ms / 1 task** | **0 ms / 0 tasks** ✅ |
+| tab-switch time-to-matrix | 599 ms | 561 ms ✅ |
+| `/`→`/availability` **mounts** | **76,667** | **6,215 (−92%)** ✅ |
+| `/`→`/availability` re-renders | 33,837 | 630 ✅ |
+| FPS min / drops during nav | **3 / 3** | **40 / 0** ✅ |
+| single service-select: `ChevronDown` re-renders | **×3782** | **×1** ✅ |
+| single service-select: matrix `<table>` DOM | (re-render storm) | **NOT remounted (CDP node-identity verified)** ✅ |
+
+What landed (v8, no new deps): **P0-1** defer the matrix mount one paint past the
+shell (`useState` + double-`rAF` + `startTransition`, `MatrixSkeleton` placeholder)
+so the cold nav commit is no longer one long task; **P0-2** collapse the icon
+triple-mount — drop the per-icon `requestIdleCallback` gate in `MappedServiceIcon`
+(render the real SVG directly) and preload the active pack at the **route loader**
+so the lazy module is resolved before the deferred matrix mounts (1 mount/icon);
+**P0-3** static `columns` — selection out of the column defs (chevron is now pure
+CSS `group-data-[selected=true]:`), `selectedServiceId` dropped from the route's
+`rowModel` memo (it only fed an unused `selectedRow`), location-toggle moved into
+the reducer, and each row split into a `MatrixRow`; **P1-4** `<link rel=preload
+as=font>` for `inter-latin-wght-normal.woff2`; **P2** `StickyAside` RO→`setState`
+batched in `rAF`.
+
+**[❌ SUPERSEDED — see Iteration 9: this whole "compiler is OFF" finding was a VERIFICATION
+ERROR. The React Compiler IS running; the manual memo below was redundant and has been removed.
+Kept here only to show the (flawed) diagnostic path.]**
+
+**⚠️ Critical correction to Iteration 6's "React Compiler is ON":** it is **NOT**.
+Verified empirically — **zero** chunks import `react/compiler-runtime`, `useMemoCache`
+count is 0, and callbacks compile to raw inline arrows (`onSelect:e=>n({type:…})`).
+Root cause: `vite.config.ts` does `babel({ presets: [reactCompilerPreset()] })`, but
+`reactCompilerPreset()` returns a `{ preset, rolldown }` **wrapper object**, not a Babel
+preset, so `presets:` silently no-ops. A retry with the plugin applied directly
+(`plugins: [["babel-plugin-react-compiler", { target: "19" }]]`) **also** produced 0
+compiler-runtime imports → the `@vitejs/plugin-react` v6 ⇄ Vite-8-Rolldown ⇄
+`@rolldown/plugin-babel` integration needs the rolldown-specific
+`applyToEnvironmentHook`/`filter` from `reactCompilerPreset().rolldown` wired in (a
+separate, app-wide build-tooling fix — not attempted under 013's matrix scope).
+**Consequence:** the plan's "compiler handles memoisation → no manual memo" premise is
+false, so meeting DoD item 3 required a **scoped, documented exception**: `useCallback`
+on the two matrix handlers (so `columns` stays static — otherwise every cell REMOUNTS
+on select) + `React.memo(MatrixRow)` (so only the toggled rows re-render). These are
+labelled in-code as "remove once the compiler is wired" and revert cleanly.
+
+Honest notes: **(a)** `agent-browser`'s headless **rAF throttling** delays the
+deferred (P0-1) mount into whatever window next activates the page, inflating raw
+"mount" counts — so the no-remount claim is proven by a **raw-CDP DOM-identity check**
+(`remount-check.mjs`: tag the `<table>`/row nodes, click a row, confirm `===` identity
++ dataset tags survive) rather than the profiler's mount column. **(b)** **P1-4 font
+preload — A/B resolved: FCP-neutral, KEPT.** The earlier 3024 ms was a single cold-cache
+outlier; 3 fresh-browser cold samples WITH the preload read **2740 / 2688 / 2704 ms
+(≈ baseline 2724)** — the preload does **not** move `/` cold FCP, exactly as
+`font-display: swap` predicts (fallback paints at FCP; the brand font is off the critical
+path), and doesn't measurably hurt it either (entry JS/CSS dominates the ~2.7 s). Its only
+effect is faster brand-font swap-in at no measured FCP cost → kept. The DoD's "`/` FCP
+improved via font preload" was **misframed**: FCP is unchanged; the real first-paint lever
+is the entry chunk (A-1, iter 5). Behavior preservation CDP-verified too: map↔matrix toggle,
+service select + expand, region/column highlight, sticky aside (`position:sticky` at 1440px),
+real icons **61/61 (zero monogram fallbacks)**. Verify:
+lint 0, `pnpm build` 0, 5-route serve smoke all **200**. Portal suite ended **116/116
+passed** — mid-run it briefly showed one `openapiDocument` parity failure from the
+**concurrent plan-011 agent-discovery loop** editing `context-layer`'s `GET /resources`
+dispatch on the shared tree; that loop then documented the route and the suite went
+fully green (the 8 extra tests vs 013's start are plan-011's, not ours).
+**Pending:** Phase 2 v9/Virtual spikes (worktree), P1-5 View Transitions, the P1-4 A/B.
+
+### Iteration 8 — plan 013 Phase 2 spikes (TanStack Virtual + Table v9) ✅ evaluated
+Isolated worktree `atlas-p013-wt` (HEAD `1c37151` + Phase-1 files, builds clean). Full
+results + verdicts in **`plans/013` → "Phase 2 实测结果"**. Summary:
+- **Virtual (3.14.3, stable) — real integration + measured, NOT worth it.** `useWindowVirtualizer`
+  windowing cut realized rows **61→18 (−70%)** and matrix DOM nodes **1393→392 (−72%)**, but
+  throttled `/availability` TBT (**0→0 ms**) and tab-switch blocking (**0→0 ms**, t-t-matrix
+  561→561) **did not move** — Phase-1 v8 (defer-mount + `content-visibility` + static columns) is
+  already at the 0 ms floor, so windowing buys no measurable UX gain for ≤61 rows, at the cost of
+  dropping the semantic `<table>`/react-table/motion-expand/domain-groups/sticky-`<thead>` + the
+  locked tests. **DOM ≠ UX once the main thread is already idle.**
+- **Table v9 (9.0.0-beta.19, beta) — feasibility + friction assessed, do NOT adopt now.** Verified
+  it installs/coexists in this Vite-8-Rolldown/Start/React-19 stack and exposes the full idiomatic
+  API (`useTable(opts, selector)`, `tableFeatures`/`coreFeatures`, `flexRender`/`<FlexRender/>`,
+  `<Subscribe selector>`). Concrete friction (from real `.d.ts` signatures): v9's Subscribe isolates
+  **table state**, but the matrix's selection is a **route-reducer prop** → adopting it means
+  relocating selection into v9 `rowSelection` (inverting route→table flow), on a **beta** dep, for a
+  result **v8 already delivers**. Full migration+measurement intentionally not done (verdict is
+  predetermined: v9's Subscribe is **redundant** with stable v8 + the **working React Compiler**, which
+  already gives the same memo-free idiomatic selection isolation app-wide — see Iteration 9; the
+  earlier "repair the compiler" framing was based on the now-corrected false negative). Tracked for
+  when v9 is stable.
+
+### Iteration 9 — React Compiler "off" was a verification error; manual memo removed ✅
+**Correction to Iterations 7–8.** The claim that the React Compiler "is NOT running" was **wrong**.
+The compiler runs fine on the **official** config `babel({ presets: [reactCompilerPreset()] })`
+(React 19, no `target`) — the config never needed changing (the final `vite.config.ts` diff is
+comment-only).
+
+Why the earlier check was a **false negative**: (1) client chunks are **minified** (the compiler's
+`react/compiler-runtime` `c` import becomes a single-letter local), and (2) Rolldown **inlines**
+`react/compiler-runtime` into the shared `react-*` chunk — so `grep`-ing individual client chunks for
+the literal string returns 0 even though the compiler ran. (The `useMemoCache` grep was also wrong —
+that's the React-18.3 name; React 19 uses `c` from `react/compiler-runtime`.) Reliable signals: the
+**server bundle** `.output/server/_ssr/availability.index-*.mjs` **does** import
+`react/compiler-runtime`; and behaviourally — after **removing all the manual memo** (the
+`useCallback`s + `React.memo(MatrixRow)` I had added under the wrong premise) — a single service-select
+**still** does NOT remount the matrix (CDP node-identity: `sameTableRef` + dataset tags survive) and
+the profiler shows **cell/qt/Lt/icon re-renders = 0, `ChevronDown` ×1**. So the compiler memoises the
+route callbacks (→ static `columns`) and `MatrixRow` (per-row) on its own; the manual memo was
+redundant. (The "1371 mounts" the profiler shows on select is the known agent-browser rAF-throttling
+artifact — the deferred P0-1 mount firing in-window — not a real remount, per the CDP check.)
+**Action:** reverted `availability.index.tsx` to inline dispatch handlers, unwrapped `MatrixRow`,
+restored `vite.config.ts` to the official preset. Re-verified: lint 0, test **116/116**, build 0,
+5-route smoke 200, matrix select CDP-clean. **Net: the matrix meets DoD item 3 with zero manual memo**
+— honouring the plan's "compiler handles memoisation" constraint. Iter 7–8's "fix the compiler /
+v9-is-higher-leverage" framing is moot (nothing to fix; v9's Subscribe is redundant with working v8 +
+compiler). Lesson: verify compiler output via the **server bundle** or a behavioural/CDP test, never a
+literal grep of minified, runtime-inlined client chunks.
+
+**Definitive compiler proof (user-requested, `build.minify:false` + grep):** the unminified client
+matrix chunk contains **43 × `Symbol.for("react.memo_cache_sentinel")`** cache-slot checks — the React
+Compiler's signature pattern (`const $ = _c(N); if ($[k] === <sentinel>) { $[k] = … }`). (That
+`memo_cache_sentinel` string in fact survives minification too — the correct grep token all along; my
+original `react/compiler-runtime` / `useMemoCache` / `_c(` patterns were just wrong.) Compiler status
+is now beyond doubt; `vite.config.ts` `minify:false` reverted.
+
+**P1-5 View Transitions — measured + REJECTED (not deferred).** Enabling `defaultViewTransition: true`
+re-adds **~158 ms** of main-thread blocking to the throttled `/`→`/availability` switch (warm,
+reproduced two runs; **0 ms** without it), and a longer freeze on the cold first nav — the snapshot
+capture + cross-fade on a CPU-6× device, even with the matrix mount deferred (P0-1). It undoes this
+plan's headline tab-switch win, so it stays **off** on the slow-device lens. Reverted; `router.tsx`
+documents the rationale inline. (Visual cross-fade quality is moot if it costs the perf win.)
+
 ## Considered & rejected (with evidence — do not re-run)
 
 - **Plan 010 / finding C-3 ("`/`, `/catalog`, `/catalog/$id` ship the full
