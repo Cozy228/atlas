@@ -11,7 +11,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parse } from "yaml";
-import { ResourceProjectionRecordSchema, type ResourceProjectionRecord } from "@atlas/schema";
+import { ResourceContextRecordSchema, type ResourceContextRecord } from "@atlas/schema";
 import { resolveDataDir } from "../dataDir";
 
 export const RESOURCES_FILE = "resources.yaml";
@@ -21,14 +21,14 @@ export const RESOURCES_FILE = "resources.yaml";
  * actionable message (index + reason) on a malformed record, and rejects
  * duplicate canonical `{kind}/{slug}` ids (proposal §13 consistency).
  */
-export function loadResources(dir: string = resolveDataDir()): ResourceProjectionRecord[] {
+export function loadResources(dir: string = resolveDataDir()): ResourceContextRecord[] {
   const raw = parse(readFileSync(join(dir, RESOURCES_FILE), "utf8"));
   if (!Array.isArray(raw)) {
     throw new Error(`Invalid ${RESOURCES_FILE}: expected a top-level list of resource records.`);
   }
 
   const records = raw.map((entry, index) => {
-    const result = ResourceProjectionRecordSchema.safeParse(entry);
+    const result = ResourceContextRecordSchema.safeParse(entry);
     if (!result.success) {
       throw new Error(
         `Invalid resource record at index ${index} in ${RESOURCES_FILE}: ${result.error.message}`,
@@ -46,7 +46,7 @@ export function listResourceCanonicalIds(dir?: string): string[] {
   return loadResources(dir).map((record) => `${record.kind}/${record.slug}`);
 }
 
-function assertUniqueCanonicalIds(records: ResourceProjectionRecord[]): void {
+function assertUniqueCanonicalIds(records: ResourceContextRecord[]): void {
   const seen = new Set<string>();
   for (const record of records) {
     const id = `${record.kind}/${record.slug}`;

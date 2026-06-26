@@ -134,7 +134,7 @@ export const SKILLS: ReadonlyArray<Skill> = [
     maintainer: "Platform Operations",
     updatedAt: "2026-04-18",
     whatItDoes: [
-      "Reads the service's current availability projection per region.",
+      "Reads the service's current regional availability.",
       "Generates a phased promotion plan (wave order, ETAs, sign-off owners).",
       "Emits the plan as a reviewable file for the availability map to track.",
     ],

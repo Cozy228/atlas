@@ -7,7 +7,7 @@ export const sourceClasses = [
   "availability-matrix",
 ] as const;
 
-export const topicTypes = ["service", "landing-zone", "guardrail-area"] as const;
+export const topicTypes = ["service", "landing-zone", "security-policy"] as const;
 
 export const authorityLevels = [
   "authoritative",
@@ -405,7 +405,7 @@ export const GuidanceSchema = z
       .object({
         services: z.array(z.string().min(1)).optional(),
         landing_zones: z.array(z.string().min(1)).optional(),
-        guardrails: z.array(z.string().min(1)).optional(),
+        security_policies: z.array(z.string().min(1)).optional(),
       })
       .strict()
       .optional(),
@@ -601,7 +601,7 @@ export const ResourceSectionBindingSchema = z
   })
   .strict();
 
-export const ResourceProjectionRecordSchema = z
+export const ResourceContextRecordSchema = z
   .object({
     kind: ResourceKindSchema,
     slug: z.string().min(1),
@@ -625,7 +625,7 @@ export type ResourceSearchItem = z.infer<typeof ResourceSearchItemSchema>;
 export type ResourceSearchResponse = z.infer<typeof ResourceSearchResponseSchema>;
 export type ResourceContextResponse = z.infer<typeof ResourceContextResponseSchema>;
 export type ResourceSectionBinding = z.infer<typeof ResourceSectionBindingSchema>;
-export type ResourceProjectionRecord = z.infer<typeof ResourceProjectionRecordSchema>;
+export type ResourceContextRecord = z.infer<typeof ResourceContextRecordSchema>;
 
 export {
   validateGuidanceDocument,

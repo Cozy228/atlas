@@ -54,7 +54,7 @@ Vocabulary:
 
 const AGENT_INTRO = `Machine-readable access to approved Atlas resources, their context, and supporting evidence.
 
-Atlas is a read-only data service. It does not interpret or answer arbitrary natural-language questions: the calling agent identifies the relevant resource, retrieves its available context, and synthesizes the final answer from the returned facts and evidence.
+Atlas is a read-only data service. It does not interpret or answer arbitrary natural-language questions: the calling agent identifies the relevant resource, retrieves its available context, and answers from the returned facts and evidence.
 
 Recommended flow: if you do not know the canonical resource id, call \`searchResources\` to resolve a name (e.g. "AWS Textract") to \`{kind}/{slug}\`; then call \`getResourceContext\` to live-resolve its Sections. A missing or failed Section is absence of data, never a negative answer.`;
 
@@ -231,16 +231,46 @@ function kindSectionNote(): string {
 }
 
 /* -------------------------------------------------------------------------- *
+ * Read-face tags (ADR-0014): the surface is split by what is read, not by who
+ * reads it. Three faces map to two OpenAPI documents; `searchResources` is the
+ * agent-facing "Discovery read" subset of Registry/Explore.
+ * -------------------------------------------------------------------------- */
+
+const READ_FACE = {
+  context: "Resource Context Read",
+  registry: "Registry / Explore Read",
+  management: "Management",
+} as const;
+
+const READ_FACE_TAGS = [
+  {
+    name: READ_FACE.context,
+    description:
+      "Live-resolve one resource/topic/Source's content from its registered Sources — every fact source-cited, never materialized.",
+  },
+  {
+    name: READ_FACE.registry,
+    description:
+      "Query or browse Atlas's own registry: resolve a name to a canonical id, discover topics/Sources, list capabilities. Identity and index, not content. `searchResources` is the agent-facing Discovery-read subset.",
+  },
+  {
+    name: READ_FACE.management,
+    description: "Mutate or configure Atlas — the single `POST /feedback` mutation today.",
+  },
+];
+
+/* -------------------------------------------------------------------------- *
  * Operation objects, shared between the agent and internal documents.
  * -------------------------------------------------------------------------- */
 
 function searchResourcesOperation() {
   return {
     get: {
+      tags: [READ_FACE.registry],
       operationId: "searchResources",
       summary: "Find the canonical Atlas resource for a product or service",
       description:
-        'Use this operation only when the canonical `{kind}/{slug}` is unknown. Searching for a name (e.g. "AWS Textract") returns the canonical resource id (`service/aws/textract`), a JSON resource URL, and a Markdown resource URL. It answers no product questions — after selecting the correct result, call getResourceContext. An unmatched query returns an empty `items[]` (not an error).',
+        'Use this operation only when the canonical `{kind}/{slug}` is unknown. Searching for a name (e.g. "AWS Textract") returns the canonical resource id (`service/aws/textract`), a JSON resource URL, and a Markdown resource URL. It answers no product questions — after selecting the correct result, call getResourceContext. An unmatched query returns an empty `items[]` (not an error). This is a Discovery read — the agent-facing subset of the Registry/Explore face: it resolves identity (name → id), not content.',
       parameters: [
         {
           name: "query",
@@ -265,6 +295,7 @@ function searchResourcesOperation() {
 function getResourceContextOperation() {
   return {
     get: {
+      tags: [READ_FACE.context],
       operationId: "getResourceContext",
       summary: "Live-resolve the registered Sources for a known resource's Sections",
       description: [
@@ -274,7 +305,7 @@ function getResourceContextOperation() {
         "",
         "The response may contain partial results and per-Section warnings. A missing or failed Section MUST NOT be read as a negative answer (see `missingSections[].code` and `sections[].warnings[].code`). A negative conclusion is only valid when source-backed evidence inside a resolved Section's `content` states it.",
         "",
-        'Example request: "Can AWS Textract be used in a private subnet, and which regions is it available in?"',
+        "Example: resolve a service name, then read its network + availability Sections together.",
         "Recommended call: GET /api/resources/service/aws/textract?sections=network,availability",
         "",
         "If the canonical `{kind}/{slug}` is unknown, call searchResources first.",
@@ -333,8 +364,9 @@ function internalPaths() {
   return {
     "/topics": {
       get: {
+        tags: [READ_FACE.registry],
         operationId: "discoverTopics",
-        summary: "Discover topics (services, landing zones, guardrail areas)",
+        summary: "Discover topics (services, landing zones, security policies)",
         description:
           "Search the registered topics. Internal discovery; agents use searchResources instead.",
         parameters: [
@@ -356,6 +388,7 @@ function internalPaths() {
     },
     "/topics/{topic_id}": {
       get: {
+        tags: [READ_FACE.registry],
         operationId: "getTopic",
         summary: "Get one topic's registry record",
         parameters: [topicIdParam()],
@@ -367,6 +400,7 @@ function internalPaths() {
     },
     "/topics/{topic_id}/context": {
       get: {
+        tags: [READ_FACE.context],
         operationId: "getTopicContextBundle",
         summary: "Get the governed context bundle for a topic",
         description:
@@ -384,6 +418,7 @@ function internalPaths() {
     },
     "/sources": {
       get: {
+        tags: [READ_FACE.registry],
         operationId: "discoverSources",
         summary: "Discover registered Sources",
         parameters: [
@@ -405,6 +440,7 @@ function internalPaths() {
     },
     "/sources/{source_id}": {
       get: {
+        tags: [READ_FACE.registry],
         operationId: "getSource",
         summary: "Get one Source's registry record",
         parameters: [sourceIdParam()],
@@ -416,6 +452,7 @@ function internalPaths() {
     },
     "/sources/{source_id}/content": {
       get: {
+        tags: [READ_FACE.context],
         operationId: "getSourceContextBundle",
         summary: "Get the context bundle scoped to one Source",
         description:
@@ -438,6 +475,7 @@ function internalPaths() {
     },
     "/context": {
       get: {
+        tags: [READ_FACE.context],
         operationId: "getContextBundle",
         summary: "Get a context bundle from a free-text query",
         parameters: [...contextQueryParams],
@@ -455,6 +493,7 @@ function internalPaths() {
     "/resources/{kind}/{slug}": getResourceContextOperation(),
     "/context-bundle": {
       post: {
+        tags: [READ_FACE.context],
         operationId: "postContextBundle",
         summary: "Get a context bundle (request body form)",
         description:
@@ -485,6 +524,7 @@ function internalPaths() {
     },
     "/feedback": {
       post: {
+        tags: [READ_FACE.management],
         operationId: "submitFeedback",
         summary: "Submit feedback about a topic, Source, or Anchor",
         description:
@@ -519,7 +559,7 @@ function resourceSchemas() {
     ResourceSearchResponse: toJsonSchema(ResourceSearchResponseSchema),
     ResourceContextResponse: {
       ...toJsonSchema(ResourceContextResponseSchema),
-      description: `One live projection grouped by Section (ADR-0013). Two orthogonal axes: each Section's \`status\` (available/partial/unresolved) and its \`warnings[].code\`. A missing or failed Section is absence of data, never a negative answer.\n\n${WARNING_GLOSSARY}`,
+      description: `The resource's Sections, live-resolved with citations and grouped by Section (ADR-0013). Two orthogonal axes: each Section's \`status\` (available/partial/unresolved) and its \`warnings[].code\`. A missing or failed Section is absence of data, never a negative answer.\n\n${WARNING_GLOSSARY}`,
     },
     ResourceSummary: toJsonSchema(ResourceSummarySchema),
     ContextSection: toJsonSchema(ContextSectionSchema),
@@ -547,9 +587,13 @@ export function buildAgentOpenApiDocument(origin: string = DEFAULT_PORTAL_ORIGIN
     },
     servers: [{ url: origin, description: "Atlas Portal origin" }],
     security: [{ bearerPipe: [] }, {}],
+    // Agent doc spans two faces: Resource Context Read + the Discovery subset of
+    // Registry/Explore. No Management face — the agent contract is read-only.
+    tags: READ_FACE_TAGS.filter((tag) => tag.name !== READ_FACE.management),
     paths: {
       "/llms.txt": {
         get: {
+          tags: [READ_FACE.registry],
           operationId: "getAtlasInstructions",
           summary: "Read concise instructions for discovering and using Atlas",
           description:
@@ -564,6 +608,7 @@ export function buildAgentOpenApiDocument(origin: string = DEFAULT_PORTAL_ORIGIN
       },
       "/.well-known/ai-catalog.json": {
         get: {
+          tags: [READ_FACE.registry],
           operationId: "getAtlasCapabilityCatalog",
           summary: "Discover Atlas machine-readable capabilities",
           description:
@@ -599,10 +644,11 @@ export function buildInternalOpenApiDocument(origin: string = DEFAULT_PORTAL_ORI
     info: {
       title: "Atlas Internal API",
       version: "1.0.0",
-      description: `${VOCABULARY}\n\n${WARNING_GLOSSARY}\n\n${BEARER_PIPE}\n\nThe complete internal contract: topic/source discovery, context bundles, the kind-first resource projection, and feedback. Not advertised to blind agents — the slim agent contract is at \`/openapi.json\`. Every route is read-only except \`POST /feedback\`, the single mutation endpoint.`,
+      description: `${VOCABULARY}\n\n${WARNING_GLOSSARY}\n\n${BEARER_PIPE}\n\nThe complete internal contract: topic/source discovery, context bundles, the kind-first resource API, and feedback. Not advertised to blind agents — the slim agent contract is at \`/openapi.json\`. Every route is read-only except \`POST /feedback\`, the single mutation endpoint.`,
     },
     servers: [{ url: `${origin}/api`, description: "Atlas Portal origin" }],
     security: [{ bearerPipe: [] }, {}],
+    tags: READ_FACE_TAGS,
     paths: internalPaths(),
     components: {
       securitySchemes: bearerSecurityScheme,

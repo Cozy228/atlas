@@ -5,7 +5,7 @@ import {
   type ResourceCitation,
   type ResourceContextResponse,
   type ResourceKind,
-  type ResourceProjectionRecord,
+  type ResourceContextRecord,
   type ResourceSearchResponse,
   type ResourceSectionBinding,
   type ResourceSummary,
@@ -35,8 +35,8 @@ import { getResourceKindDef } from "./resourceKindRegistry";
  * structurally so this module does not import the service (and cannot form an
  * import cycle); `ContextBundleService` satisfies it.
  */
-export type ResourceProjectionDeps = {
-  resources: ResourceProjectionRecord[];
+export type ResourceContextDeps = {
+  resources: ResourceContextRecord[];
   registry: {
     sources: { getById(id: string): import("@atlas/schema").Source | undefined };
     anchors: { findBySourceId(sourceId: string): import("@atlas/schema").Anchor[] };
@@ -64,7 +64,7 @@ export type SearchResourcesOptions = { baseUrl?: string };
  * the URLs to read them.
  */
 export function searchResources(
-  deps: ResourceProjectionDeps,
+  deps: ResourceContextDeps,
   query: string,
   options: SearchResourcesOptions = {},
 ): ResourceSearchResponse {
@@ -74,7 +74,7 @@ export function searchResources(
   const scored = deps.resources
     .map((record) => ({ record, match: scoreMatch(record, trimmed, tokens) }))
     .filter(
-      (entry): entry is { record: ResourceProjectionRecord; match: MatchScore } =>
+      (entry): entry is { record: ResourceContextRecord; match: MatchScore } =>
         entry.match !== null,
     )
     .sort((a, b) => b.match.score - a.match.score);
@@ -103,7 +103,7 @@ export type GetResourceContextParams = {
  * to resolve is returned with `status: unresolved` + warnings — never stale data.
  */
 export async function getResourceContext(
-  deps: ResourceProjectionDeps,
+  deps: ResourceContextDeps,
   params: GetResourceContextParams,
   ctx: ResolutionContext = offlineResolutionContext(),
 ): Promise<ResourceContextResponse | null> {
@@ -143,7 +143,7 @@ export async function getResourceContext(
 
 /** Resolve one Section by live-resolving each of its ordered bindings. */
 async function resolveSection(
-  deps: ResourceProjectionDeps,
+  deps: ResourceContextDeps,
   bindings: ResourceSectionBinding[],
   ctx: ResolutionContext,
 ): Promise<ContextSection> {
@@ -246,7 +246,7 @@ function excerptResolvedAt(excerpt: { resolved_at?: string }, lastObservedAt: st
 }
 
 function resolveRequestedSections(
-  record: ResourceProjectionRecord,
+  record: ResourceContextRecord,
   requested: string[] | undefined,
 ): string[] {
   const kindDef = getResourceKindDef(record.kind);
@@ -269,15 +269,61 @@ function resolveRequestedSections(
   return Array.from(new Set(requested));
 }
 
+/**
+ * Resolve a requested `{kind, slug}` to a registered record. Exact canonical
+ * `{kind}/{slug}` is the fast path; on a miss we normalize the requested slug
+ * and resolve it to a SINGLE same-kind candidate by its name/alias/slug keys, so
+ * a caller that only guessed a name ("textract", "AWS Textract", "aws-textract")
+ * still lands the canonical resource without a prior searchResources round-trip.
+ * Ambiguous (>1) or no match returns `undefined` — the caller still gets the 404
+ * that points at searchResources, and the response always carries the canonical
+ * id (toResourceSummary uses `record.slug`, never the requested spelling).
+ */
 function findRecord(
-  records: ResourceProjectionRecord[],
+  records: ResourceContextRecord[],
   kind: string,
   slug: string,
-): ResourceProjectionRecord | undefined {
-  return records.find((record) => record.kind === kind && record.slug === slug);
+): ResourceContextRecord | undefined {
+  const exact = records.find((record) => record.kind === kind && record.slug === slug);
+  if (exact) {
+    return exact;
+  }
+
+  const key = normalizeLookupKey(slug);
+  if (!key) {
+    return undefined;
+  }
+  const candidates = records.filter(
+    (record) => record.kind === kind && recordLookupKeys(record).has(key),
+  );
+  return candidates.length === 1 ? candidates[0] : undefined;
 }
 
-function toResourceSummary(record: ResourceProjectionRecord, baseUrl?: string): ResourceSummary {
+/** Collapse a name/slug to one canonical, comparable form (slug separators,
+ * casing, and punctuation are all normalized to single hyphens). */
+function normalizeLookupKey(value: string): string {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .replace(/-+/g, "-");
+}
+
+/** The set of normalized keys a record answers to: its slug, the slug tail, the
+ * `provider-tail` form, its name, and every alias. */
+function recordLookupKeys(record: ResourceContextRecord): Set<string> {
+  const tail = record.slug.includes("/")
+    ? record.slug.slice(record.slug.lastIndexOf("/") + 1)
+    : record.slug;
+  const raw = [record.slug, tail, record.name, ...record.aliases];
+  if (record.provider) {
+    raw.push(`${record.provider}-${tail}`);
+  }
+  return new Set(raw.map(normalizeLookupKey).filter((value) => value.length > 0));
+}
+
+function toResourceSummary(record: ResourceContextRecord, baseUrl?: string): ResourceSummary {
   const id = `${record.kind}/${record.slug}`;
   const base = baseUrl ?? "";
   return {
@@ -295,7 +341,7 @@ function toResourceSummary(record: ResourceProjectionRecord, baseUrl?: string): 
 type MatchScore = { score: number; reason: string };
 
 function scoreMatch(
-  record: ResourceProjectionRecord,
+  record: ResourceContextRecord,
   trimmedQuery: string,
   tokens: string[],
 ): MatchScore | null {

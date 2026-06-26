@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { ResourceProjectionRecord } from "@atlas/schema";
+import type { ResourceContextRecord } from "@atlas/schema";
 import {
   createDefaultContextBundleService,
   type ContextBundleService,
@@ -9,7 +9,7 @@ import {
   getResourceContext,
   InvalidResourceRequestError,
   searchResources,
-} from "./resourceProjectionService";
+} from "./resourceContextService";
 
 // Pin `now` so freshness is deterministic regardless of the wall clock: the
 // pilot Textract sources are within review at this instant.
@@ -120,7 +120,7 @@ describe("getResourceContext — honesty axes", () => {
 
   it("returns unresolved + warning + null content (never stale data) when the source fails", async () => {
     // platform-reference-guide has no offline content → source_unavailable.
-    const resources: ResourceProjectionRecord[] = [
+    const resources: ResourceContextRecord[] = [
       {
         kind: "service",
         slug: "aws/textract",
@@ -148,7 +148,7 @@ describe("getResourceContext — honesty axes", () => {
   });
 
   it("returns partial when one of two bindings resolves and the other fails", async () => {
-    const resources: ResourceProjectionRecord[] = [
+    const resources: ResourceContextRecord[] = [
       {
         kind: "service",
         slug: "aws/textract",
@@ -188,6 +188,64 @@ describe("getResourceContext — honesty axes", () => {
       slug: "aws/nonexistent",
     });
     expect(response).toBeNull();
+  });
+});
+
+describe("getResourceContext — name normalization (single-candidate fallback)", () => {
+  it.each(["textract", "Textract", "aws-textract", "AWS Textract", "Amazon Textract"])(
+    "resolves the non-canonical slug %j to the canonical resource",
+    async (slug) => {
+      const response = await getResourceContext(pilotService(), {
+        kind: "service",
+        slug,
+        sections: ["network"],
+      });
+      // The response always carries the canonical id, never the requested spelling.
+      expect(response?.resource.id).toBe("service/aws/textract");
+      expect(response?.resource.slug).toBe("aws/textract");
+      expect(response?.sections.network?.status).toBe("available");
+    },
+  );
+
+  it("still returns null for a name that matches no record", async () => {
+    expect(
+      await getResourceContext(pilotService(), { kind: "service", slug: "nonexistent" }),
+    ).toBeNull();
+  });
+
+  it("returns null (never a wrong guess) when a name is ambiguous across records", async () => {
+    const resources: ResourceContextRecord[] = [
+      {
+        kind: "service",
+        slug: "aws/alpha",
+        provider: "aws",
+        name: "Alpha",
+        aliases: ["Shared Service"],
+        sections: {
+          network: [
+            { source_id: "textract-module-readme", anchor_id: "private-subnet-usage", order: 10 },
+          ],
+        },
+      },
+      {
+        kind: "service",
+        slug: "aws/beta",
+        provider: "aws",
+        name: "Beta",
+        aliases: ["Shared Service"],
+        sections: {
+          network: [
+            { source_id: "textract-module-readme", anchor_id: "private-subnet-usage", order: 10 },
+          ],
+        },
+      },
+    ];
+    expect(
+      await getResourceContext(pilotService({ resources }), {
+        kind: "service",
+        slug: "shared service",
+      }),
+    ).toBeNull();
   });
 });
 

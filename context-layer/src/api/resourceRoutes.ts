@@ -10,7 +10,7 @@ import {
   getResourceContext,
   InvalidResourceRequestError,
   searchResources,
-} from "../resources/resourceProjectionService";
+} from "../resources/resourceContextService";
 import type { ResolutionContext } from "../resolvers/resolverTypes";
 import { errorResponse, type ApiResponse } from "./routeTypes";
 
