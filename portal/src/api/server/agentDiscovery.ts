@@ -16,7 +16,7 @@ export function buildAiCatalog(origin: string = DEFAULT_PORTAL_ORIGIN) {
   return {
     name: "Atlas Context Layer",
     description:
-      "Governed, live-resolved context for cloud platform resources, always with citations. Atlas identifies and projects resources; the calling agent synthesizes the answer.",
+      "Governed, live-resolved context for cloud platform resources, always with citations. Atlas resolves the resource and returns source-cited facts and evidence; the calling agent reads them to answer.",
     api: {
       type: "openapi",
       url: `${origin}/openapi.json`,
@@ -25,17 +25,23 @@ export function buildAiCatalog(origin: string = DEFAULT_PORTAL_ORIGIN) {
         {
           id: "search-resources",
           operationId: "searchResources",
+          // Read-face (ADR-0014): Discovery read — the agent-facing subset of the
+          // Registry/Explore face. Resolves identity (name → id), not content.
+          readFace: "Registry / Explore Read",
           description: "Resolve a product or service name to a canonical Atlas resource id.",
-          representativeQueries: ["Find the Atlas resource for AWS Textract"],
+          representativeQueries: ["Resolve a service or product name to its Atlas resource id"],
         },
         {
           id: "resource-context",
           operationId: "getResourceContext",
+          readFace: "Resource Context Read",
           description:
             "Live-resolve a known resource's sections (network, availability, security, …) with citations.",
           representativeQueries: [
-            "Can AWS Textract be used in a private subnet?",
-            "Which regions support AWS Textract?",
+            "Can this service run in a private subnet or via PrivateLink?",
+            "Which regions and partitions support this service?",
+            "How is data encrypted, and does it support customer-managed keys?",
+            "Is there an approved Terraform module or starter example?",
           ],
         },
       ],
@@ -76,7 +82,7 @@ export function buildApiCatalog(origin: string = DEFAULT_PORTAL_ORIGIN) {
 export function buildLlmsTxt(origin: string = DEFAULT_PORTAL_ORIGIN): string {
   return `# Atlas
 
-> Atlas is a governed context layer for cloud platform resources. It live-resolves authoritative source excerpts with citations — it never stores or serves stale content, and it does not answer questions itself. You identify the resource and synthesize the answer from the returned facts + evidence.
+> Atlas is a governed context layer for cloud platform resources. It live-resolves authoritative source excerpts with citations — it never stores or serves stale content, and it does not answer questions itself. You identify the resource and answer from the returned facts + evidence.
 
 ## Recommended procedure
 
@@ -103,12 +109,12 @@ A missing or failed section is ABSENCE of data, never a negative answer:
 
 - [Agent OpenAPI](${origin}/openapi.json): the four agent operations
 - [Capability catalog](${origin}/.well-known/ai-catalog.json): what Atlas can answer
-- [Resource JSON](${origin}/api/resources/service/aws/textract): a live projection grouped by section
-- [Resource Markdown](${origin}/resources/service/aws/textract.md): the same projection, agent-readable
+- [Resource JSON](${origin}/api/resources/service/aws/textract): a resource's Sections, live-resolved with citations
+- [Resource Markdown](${origin}/resources/service/aws/textract.md): the same, as agent-readable Markdown
 
 ## Pages
 
-- [Service catalog](${origin}/catalog): registered platform services, landing zones, and guardrail areas
+- [Service catalog](${origin}/catalog): registered platform services, landing zones, and security policies
 - [Sources](${origin}/sources): registered systems of record Atlas can cite
 - [Guidance](${origin}/guidance): evidence-backed platform guidance flows
 `;
@@ -161,7 +167,7 @@ Allow: /sources/
 Allow: /guidance/
 Allow: /llms.txt
 Allow: /.well-known/
-Disallow: /ask
+Disallow: /support
 Disallow: /api/
 
 Content-Signal: ai-train=no, search=no, ai-input=yes

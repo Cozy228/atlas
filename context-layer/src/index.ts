@@ -16,7 +16,7 @@ export {
   getResourceContext,
   searchResources,
   InvalidResourceRequestError,
-} from "./resources/resourceProjectionService";
+} from "./resources/resourceContextService";
 export {
   getResourceKindDef,
   listResourceKinds,

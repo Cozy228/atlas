@@ -8,7 +8,7 @@ import type {
   Topic,
   TopicDiscoveryRequest,
   TopicDiscoveryResponse,
-  ResourceProjectionRecord,
+  ResourceContextRecord,
 } from "@atlas/schema";
 import { DynamoFeedbackRepository } from "../repositories/dynamoFeedbackRepository";
 import {
@@ -37,7 +37,7 @@ export type ContextBundleService = {
   resolvers: ResolverRegistry;
   contentProvider: SourceContentProvider;
   /** Kind-first resource projection records (agent-facing resource surface). */
-  resources: ResourceProjectionRecord[];
+  resources: ResourceContextRecord[];
   now: Date;
 };
 
@@ -47,20 +47,20 @@ export type ContextBundleServiceOptions = {
   /** Injection seam: override the manifest-loaded registry seed (tests). */
   registrySeed?: PilotRegistrySeed;
   /** Injection seam: override the manifest-loaded resource records (tests). */
-  resources?: ResourceProjectionRecord[];
+  resources?: ResourceContextRecord[];
 };
 
 // The default registry now comes from the `data/*.yaml` manifest control plane.
 // The loader reads + validates the filesystem, so we memoize it: the routes
 // build a fresh service per request and must not re-read/parse YAML each time.
 let cachedRegistrySeed: PilotRegistrySeed | undefined;
-let cachedResources: ResourceProjectionRecord[] | undefined;
+let cachedResources: ResourceContextRecord[] | undefined;
 
 function getDefaultRegistrySeed(): PilotRegistrySeed {
   return (cachedRegistrySeed ??= loadRegistryFromManifests(DATA_DIR));
 }
 
-function getDefaultResources(): ResourceProjectionRecord[] {
+function getDefaultResources(): ResourceContextRecord[] {
   return (cachedResources ??= loadResources(DATA_DIR));
 }
 
