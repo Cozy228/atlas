@@ -11,7 +11,6 @@ import { topicTypes, type ContextBundleResponse } from "@atlas/schema";
 
 import type { ContextApiClient } from "../../contextApiClient";
 import { ContextApiError } from "../../contextApiError";
-import { availabilityProjection } from "../availability";
 
 const ResponseFormatSchema = z
   .enum(["CONCISE", "DETAILED"])
@@ -153,11 +152,12 @@ export const mcpTools: McpToolDefinition[] = [
     description:
       "Check which platform services are available, planned, or interim per region/outpost in the AWS and Azure landing zones.",
     inputSchema: toInputSchema(GetAvailabilityInput),
-    async run(args) {
+    async run(args, client) {
       const input = GetAvailabilityInput.parse(args ?? {});
-      const zones = availabilityProjection.zones.filter(
-        (zone) => !input.zone || zone.id === input.zone,
-      );
+      // One cited Context Layer read backs the whole grid (plan 014): the
+      // Citation and any freshness warnings are relayed alongside the matches.
+      const { zones: allZones, citation, warnings } = await client.getAvailability();
+      const zones = allZones.filter((zone) => !input.zone || zone.id === input.zone);
       const matches = zones.flatMap((zone) =>
         zone.services
           .filter(
@@ -185,6 +185,8 @@ export const mcpTools: McpToolDefinition[] = [
         returned: page.length,
         ...(matches.length > input.offset + page.length ? { hint: NARROW_HINT } : {}),
         services: page,
+        citation,
+        ...(warnings.length > 0 ? { warnings } : {}),
       };
     },
   },

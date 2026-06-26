@@ -1,4 +1,5 @@
 import type { ApiErrorResponse, ContextRequest, ResourceContextResponse } from "@atlas/schema";
+import { handleAvailabilityRequest } from "./availabilityRoute";
 import { handleContextRequest } from "./contextRoute";
 import { handleFeedbackRequest } from "./feedbackRoute";
 import { handleResourceContextRequest, handleResourceSearchRequest } from "./resourceRoutes";
@@ -79,6 +80,10 @@ export async function handleHttpRequest(request: HttpRequest): Promise<HttpRespo
         ctx,
       ),
     );
+  }
+
+  if (method === "GET" && path === "/availability") {
+    return jsonResponse(handleAvailabilityRequest());
   }
 
   if (method === "GET" && path === "/resources") {

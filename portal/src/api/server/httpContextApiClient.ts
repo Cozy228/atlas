@@ -1,5 +1,6 @@
 import {
   ApiErrorResponseSchema,
+  AvailabilityReadResponseSchema,
   ContextBundleResponseSchema,
   FeedbackResponseSchema,
   SourceDiscoveryResponseSchema,
@@ -104,6 +105,13 @@ export function createFetchContextApiClient(input: {
         schema: ContextBundleResponseSchema,
         url: `${baseUrl}/context-bundle`,
         init: jsonPost(request),
+      });
+    },
+    async getAvailability() {
+      return requestJson({
+        fetch: fetchImpl,
+        schema: AvailabilityReadResponseSchema,
+        url: `${baseUrl}/availability`,
       });
     },
     async discoverSources(request: SourceDiscoveryRequest = {}) {

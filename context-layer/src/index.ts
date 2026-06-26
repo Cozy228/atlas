@@ -1,3 +1,4 @@
+export { handleAvailabilityRequest } from "./api/availabilityRoute";
 export { handleContextRequest } from "./api/contextRoute";
 export { handleFeedbackRequest } from "./api/feedbackRoute";
 export { handleHttpRequest } from "./api/httpRoute";

@@ -7,6 +7,7 @@
  * the same `ContextApiClient` interface so route loaders do not change.
  */
 import {
+  handleAvailabilityRequest,
   handleContextRequest,
   handleFeedbackRequest,
   handleSourceDiscoveryRequest,
@@ -16,12 +17,14 @@ import {
 } from "@atlas/context-layer";
 import {
   ApiErrorResponseSchema,
+  AvailabilityReadResponseSchema,
   ContextBundleResponseSchema,
   FeedbackResponseSchema,
   SourceDiscoveryResponseSchema,
   SourceResponseSchema,
   TopicDiscoveryResponseSchema,
   TopicResponseSchema,
+  type AvailabilityReadResponse,
   type ContextBundleResponse,
   type ContextRequest,
   type FeedbackResponse,
@@ -66,6 +69,9 @@ export const serverContextApiClient: ContextApiClient = {
   },
   async getContextBundle(request: ContextRequest): Promise<ContextBundleResponse> {
     return unwrap(await handleContextRequest(request), ContextBundleResponseSchema);
+  },
+  async getAvailability(): Promise<AvailabilityReadResponse> {
+    return unwrap(handleAvailabilityRequest(), AvailabilityReadResponseSchema);
   },
   async discoverSources(request: SourceDiscoveryRequest = {}): Promise<SourceDiscoveryResponse> {
     return unwrap(handleSourceDiscoveryRequest(request), SourceDiscoveryResponseSchema);

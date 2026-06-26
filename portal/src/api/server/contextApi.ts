@@ -12,6 +12,7 @@ import {
   ContextRequestSchema,
   SourceDiscoveryRequestSchema,
   TopicDiscoveryRequestSchema,
+  type AvailabilityResponse,
   type ContextRequest,
   type SourceDiscoveryRequest,
   type TopicDiscoveryRequest,
@@ -72,6 +73,22 @@ export const fetchContextBundle = createServerFn(SERVER_FN_OPTIONS)
     if (import.meta.env.DEV) await new Promise((resolve) => setTimeout(resolve, 2000));
     return contextApiForRequest().getContextBundle(data);
   });
+
+/**
+ * The Explore availability grid, read through the one cited Context Layer
+ * availability read (plan 014). Drops the read's citation/warnings and returns
+ * just the `{ zones }` wire shape the Explore + catalog consumers depend on.
+ */
+export const fetchAvailability = createServerFn(SERVER_FN_OPTIONS).handler(
+  async (): Promise<AvailabilityResponse> => {
+    // Simulate the read's real live Confluence fetch + parse so the deferred
+    // Explore skeletons stay visible in dev. Dev-only: dropped from prod builds
+    // and moot once the read reaches the real external page.
+    if (import.meta.env.DEV) await new Promise((resolve) => setTimeout(resolve, 2000));
+    const { zones } = await contextApiForRequest().getAvailability();
+    return { zones };
+  },
+);
 
 export const fetchTopicDiscovery = createServerFn(SERVER_FN_OPTIONS)
   .validator(

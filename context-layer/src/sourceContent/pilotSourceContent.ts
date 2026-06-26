@@ -1,4 +1,5 @@
 import { createInMemorySourceContentProvider } from "../resolvers/sourceContentProvider";
+import { toAvailabilityMatrixMarkdown } from "./availabilityFixture";
 
 export function createPilotSourceContentProvider() {
   return createInMemorySourceContentProvider({
@@ -59,14 +60,10 @@ export function createPilotSourceContentProvider() {
         "Declare the bucket through the module: it enforces block-public-access, default KMS encryption, and versioning, and emits the bucket name and ARN as outputs.",
     },
     // The governed region × Service availability table the matrix resolver parses
-    // (ADR-0009). Region codes are public AWS identifiers; the grid is fictional.
+    // (ADR-0009). Projected out of the single availability dataset (plan 014) so
+    // the matrix facts are never authored a second time; the grid is fictional.
     "availability-matrix": {
-      "availability-matrix":
-        "| Service | us-east-1 | ca-central-1 |\n" +
-        "| --- | --- | --- |\n" +
-        "| S3 | available | available |\n" +
-        "| API Gateway | available | planned |\n" +
-        "| Textract | available | available |",
+      "availability-matrix": toAvailabilityMatrixMarkdown(),
     },
   });
 }
