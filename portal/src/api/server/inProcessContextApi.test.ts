@@ -42,7 +42,7 @@ describe("serverContextApiClient", () => {
     expect(response.topics.length).toBeGreaterThan(0);
     expect(
       response.topics.every((topic) =>
-        ["service", "landing-zone", "guardrail-area"].includes(topic.topic_type),
+        ["service", "landing-zone", "security-policy"].includes(topic.topic_type),
       ),
     ).toBe(true);
   });

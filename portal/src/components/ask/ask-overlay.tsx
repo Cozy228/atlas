@@ -103,11 +103,9 @@ export function AskOverlay({
               </ClientOnly>
             </div>
             <div className="flex shrink-0 items-center justify-between gap-3 border-t border-border bg-muted/40 px-4 py-2.5">
-              <span className="text-[12px] text-muted-foreground">
-                Rather ask a person? Every source names its steward.
-              </span>
+              <span className="text-[12px] text-muted-foreground">Rather ask a person?</span>
               <Link
-                to="/ask"
+                to="/support"
                 onClick={() => onOpenChange(false)}
                 className="shrink-0 text-[12px] font-semibold text-brand-ink hover:underline"
               >

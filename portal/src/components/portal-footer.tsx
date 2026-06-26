@@ -1,7 +1,19 @@
 import { cn } from "@/lib/utils";
 
-// Placeholder legal links — wire to real destinations when available.
-const LEGAL_LINKS: ReadonlyArray<{ href: string; label: string }> = [
+/**
+ * Footer links. The machine-readable entry points (OpenAPI, llms.txt, capability
+ * catalog, a resource example) sit here as plain links alongside the legal ones —
+ * body-visible so a crawling / blind agent still discovers them via their href,
+ * without a dedicated section competing with the page content. The two resource
+ * links are EXAMPLES of the generic `/api/resources/{kind}/{slug}` route (resolve
+ * a name via searchResources), not fixed routes — hence the "(example)" label.
+ */
+const FOOTER_LINKS: ReadonlyArray<{ href: string; label: string }> = [
+  { href: "/openapi.json", label: "OpenAPI" },
+  { href: "/llms.txt", label: "llms.txt" },
+  { href: "/.well-known/ai-catalog.json", label: "Capability catalog" },
+  { href: "/api/resources/service/aws/textract", label: "Resource JSON (example)" },
+  { href: "/resources/service/aws/textract.md", label: "Resource Markdown (example)" },
   { href: "#", label: "Terms of use" },
   { href: "#", label: "Privacy policy" },
 ];
@@ -18,8 +30,8 @@ export function PortalFooter() {
         )}
       >
         <p>© {year} Atlas. All rights reserved.</p>
-        <nav aria-label="Legal" className="flex items-center gap-4">
-          {LEGAL_LINKS.map((link) => (
+        <nav aria-label="Footer" className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          {FOOTER_LINKS.map((link) => (
             <a
               key={link.label}
               href={link.href}

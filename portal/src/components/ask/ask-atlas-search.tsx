@@ -9,6 +9,7 @@ import {
   IconDatabase,
   IconHome,
   IconLayoutGrid,
+  IconLifebuoy,
   IconMapPin,
   IconSearch,
 } from "@tabler/icons-react";
@@ -61,6 +62,20 @@ const STATIC_NAV: ReadonlyArray<SearchResult> = [
   },
 ];
 
+/**
+ * Shown when a query matches nothing — the same "reach a person" affordance the
+ * Ask tab carries in its footer, rendered as a normal selectable result so ↵
+ * routes to the Ask page instead of leaving a dead "no results" screen.
+ */
+const CONTACT_SUPPORT: SearchResult = {
+  id: "contact-support",
+  label: "Contact support",
+  description: "Rather ask a person?",
+  to: "/support",
+  icon: IconLifebuoy,
+  category: "Help",
+};
+
 const TOPIC_ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   service: IconLayoutGrid,
   "landing-zone": IconMapPin,
@@ -107,8 +122,8 @@ export function AskAtlasSearch({ onOpenChange, onSwitchToAsk }: AskAtlasSearchPr
           category:
             topic.topic_type === "landing-zone"
               ? "Landing Zones"
-              : topic.topic_type === "guardrail-area"
-                ? "Guardrails"
+              : topic.topic_type === "security-policy"
+                ? "Security policies"
                 : "Services",
         });
       }
@@ -146,17 +161,25 @@ export function AskAtlasSearch({ onOpenChange, onSwitchToAsk }: AskAtlasSearchPr
     return fuse.search(q).map((r) => r.item);
   }, [deferredQuery, fuse]);
 
+  // A typed query that matches nothing still offers one actionable item —
+  // contact support — so ↵ goes somewhere useful instead of a dead end. (An empty
+  // query shows STATIC_NAV, so this only fires on a real no-match.)
+  const items = useMemo<ReadonlyArray<SearchResult>>(
+    () => (deferredQuery.trim().length > 0 && filtered.length === 0 ? [CONTACT_SUPPORT] : filtered),
+    [deferredQuery, filtered],
+  );
+
   const grouped = useMemo(() => {
     const map = new Map<string, SearchResult[]>();
-    for (const item of filtered) {
+    for (const item of items) {
       const list = map.get(item.category);
       if (list) list.push(item);
       else map.set(item.category, [item]);
     }
     return [...map.entries()];
-  }, [filtered]);
+  }, [items]);
 
-  const flatItems = filtered;
+  const flatItems = items;
   const isLoading = topicsLoading || sourcesLoading;
 
   function go(to: string) {
@@ -173,7 +196,7 @@ export function AskAtlasSearch({ onOpenChange, onSwitchToAsk }: AskAtlasSearchPr
       setSelectedIndex((i) => getNextSearchIndex(i, flatItems.length, "previous"));
     } else if (event.key === "Enter" && flatItems.length > 0) {
       event.preventDefault();
-      go(flatItems[selectedIndex].to);
+      go((flatItems[selectedIndex] ?? flatItems[0]).to);
     }
   }
 
@@ -219,31 +242,22 @@ export function AskAtlasSearch({ onOpenChange, onSwitchToAsk }: AskAtlasSearchPr
       </div>
 
       <div className="max-h-80 overflow-y-auto p-2">
-        {flatItems.length === 0 ? (
-          <div className="flex flex-col items-center gap-2 py-8 text-center">
-            <p className="text-sm font-medium text-foreground">No matches found</p>
-            <p className="text-xs text-muted-foreground">
-              Try a different search or start a conversation.
-            </p>
-          </div>
-        ) : (
-          grouped.map(([category, items]) => (
-            <SearchGroup key={category} label={category}>
-              {items.map((result) => {
-                const globalIndex = flatItems.indexOf(result);
-                return (
-                  <SearchItem
-                    key={result.id}
-                    result={result}
-                    selected={globalIndex === selectedIndex}
-                    onSelect={() => go(result.to)}
-                    onHover={() => setSelectedIndex(globalIndex)}
-                  />
-                );
-              })}
-            </SearchGroup>
-          ))
-        )}
+        {grouped.map(([category, groupItems]) => (
+          <SearchGroup key={category} label={category}>
+            {groupItems.map((result) => {
+              const globalIndex = flatItems.indexOf(result);
+              return (
+                <SearchItem
+                  key={result.id}
+                  result={result}
+                  selected={globalIndex === selectedIndex}
+                  onSelect={() => go(result.to)}
+                  onHover={() => setSelectedIndex(globalIndex)}
+                />
+              );
+            })}
+          </SearchGroup>
+        ))}
       </div>
 
       <footer className="border-t border-border px-5 py-2.5">

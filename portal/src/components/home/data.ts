@@ -13,7 +13,7 @@ export type MainlineRoute =
   | "/sources"
   | "/overview"
   | "/whatsnew"
-  | "/ask"
+  | "/support"
   | "/availability";
 
 export type DomainService = {
@@ -92,7 +92,7 @@ export const INTENTS: ReadonlyArray<Intent> = [
   },
   {
     verb: "Verify",
-    title: "Check policy and guardrails",
+    title: "Check security policies",
     description: "Confirm what's required, and cite it, before you ship.",
     to: "/sources",
     lands: "Source registry",
@@ -136,7 +136,7 @@ export const LIFECYCLE: ReadonlyArray<LifecyclePhase> = [
   },
   {
     phase: "Validate",
-    title: "Check guardrails",
+    title: "Check security policies",
     links: [{ label: "Sources", to: "/sources" }],
   },
   {

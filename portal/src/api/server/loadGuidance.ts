@@ -30,7 +30,7 @@ const ORDER = ["new-app-onboarding", "api-gateway-adoption", "s3-adoption", "tex
 /** Map a validated snake_case manifest to the portal's camelCase Guidance. */
 function toGuidance(raw: Record<string, unknown>): Guidance {
   const applies = raw.applies_to as
-    | { services?: string[]; landing_zones?: string[]; guardrails?: string[] }
+    | { services?: string[]; landing_zones?: string[]; security_policies?: string[] }
     | undefined;
   return {
     id: raw.id as string,
@@ -51,7 +51,7 @@ function toGuidance(raw: Record<string, unknown>): Guidance {
           appliesTo: {
             ...(applies.services ? { services: applies.services } : {}),
             ...(applies.landing_zones ? { landingZones: applies.landing_zones } : {}),
-            ...(applies.guardrails ? { guardrails: applies.guardrails } : {}),
+            ...(applies.security_policies ? { securityPolicies: applies.security_policies } : {}),
           },
         }
       : {}),

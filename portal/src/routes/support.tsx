@@ -1,5 +1,5 @@
 /**
- * Reach a team · route `/ask`
+ * Reach a team · route `/support`
  * ===================================================================
  * The reference behind the Ask Atlas overlay, reframed around its real job:
  * when Atlas can't answer, find the human who can — fast. The CENTRE of the
@@ -32,7 +32,7 @@ import { SeedBadge } from "@/components/seed-badge";
 
 type Domain = { domain: string; team: string; channel: string; areas: number };
 
-export const Route = createFileRoute("/ask")({
+export const Route = createFileRoute("/support")({
   loader: async ({ context }) => {
     const [topicsResp, sourcesResp] = await Promise.all([
       context.queryClient.ensureQueryData(
@@ -60,14 +60,14 @@ export const Route = createFileRoute("/ask")({
       domains,
       serviceCount: topics.filter((topic) => topic.topic_type === "service").length,
       landingZoneCount: topics.filter((topic) => topic.topic_type === "landing-zone").length,
-      guardrailCount: topics.filter((topic) => topic.topic_type === "guardrail-area").length,
+      policyCount: topics.filter((topic) => topic.topic_type === "security-policy").length,
       sourceCount: sourcesResp.sources.length,
       authoritativeCount: sourcesResp.sources.filter(
         (source) => source.authority_level === "authoritative",
       ).length,
     };
   },
-  component: AskTeamsRoute,
+  component: SupportRoute,
 });
 
 const RULES: ReadonlyArray<{ icon: Icon; title: string; copy: string }> = [
@@ -88,7 +88,7 @@ const RULES: ReadonlyArray<{ icon: Icon; title: string; copy: string }> = [
   },
 ];
 
-function AskTeamsRoute() {
+function SupportRoute() {
   const data = Route.useLoaderData();
   const [query, setQuery] = useState("");
 
@@ -238,7 +238,7 @@ function GroundingLine({
   data: {
     serviceCount: number;
     landingZoneCount: number;
-    guardrailCount: number;
+    policyCount: number;
     sourceCount: number;
     authoritativeCount: number;
   };
@@ -246,7 +246,7 @@ function GroundingLine({
   const facts: ReadonlyArray<{ value: number; label: string }> = [
     { value: data.serviceCount, label: "services" },
     { value: data.landingZoneCount, label: "landing zones" },
-    { value: data.guardrailCount, label: "guardrail areas" },
+    { value: data.policyCount, label: "security policies" },
     { value: data.sourceCount, label: `sources (${data.authoritativeCount} authoritative)` },
   ];
   return (

@@ -55,7 +55,18 @@ export const Route = createFileRoute("/sources/$sourceId")({
     const bundle = context.queryClient
       .ensureQueryData(contextBundleQueryOptions({ source_id: source.id, disclosure_level: 2 }))
       .catch((error: unknown): ContextBundleResponse | null => {
-        if (error instanceof ContextApiError) return null;
+        // A restricted source (403) renders as the dossier's metadata-only state,
+        // and an absent bundle (404) is simply "no documents" — both are expected
+        // empties. Everything else (a 503 live-fetch failure, a broken anchor) is
+        // a real error and must surface in place, not hide as an empty result.
+        if (
+          error instanceof ContextApiError &&
+          (error.code === "access_denied" ||
+            error.code === "source_not_found" ||
+            error.code === "topic_not_found")
+        ) {
+          return null;
+        }
         throw error;
       });
     return { source, bundle, related };

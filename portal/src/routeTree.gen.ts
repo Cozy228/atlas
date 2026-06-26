@@ -10,12 +10,12 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WhatsnewRouteImport } from './routes/whatsnew'
+import { Route as SupportRouteImport } from './routes/support'
 import { Route as SourcesRouteImport } from './routes/sources'
 import { Route as OverviewRouteImport } from './routes/overview'
 import { Route as GuidanceRouteImport } from './routes/guidance'
 import { Route as CatalogRouteImport } from './routes/catalog'
 import { Route as AvailabilityRouteImport } from './routes/availability'
-import { Route as AskRouteImport } from './routes/ask'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SourcesIndexRouteImport } from './routes/sources.index'
 import { Route as SkillsIndexRouteImport } from './routes/skills.index'
@@ -24,13 +24,18 @@ import { Route as CatalogIndexRouteImport } from './routes/catalog.index'
 import { Route as AvailabilityIndexRouteImport } from './routes/availability.index'
 import { Route as SourcesSourceIdRouteImport } from './routes/sources.$sourceId'
 import { Route as ReleasesReleaseIdRouteImport } from './routes/releases.$releaseId'
+import { Route as PoliciesPolicyIdRouteImport } from './routes/policies.$policyId'
 import { Route as GuidanceGuidanceIdRouteImport } from './routes/guidance.$guidanceId'
-import { Route as GuardrailsGuardrailIdRouteImport } from './routes/guardrails.$guardrailId'
 import { Route as CatalogTopicIdRouteImport } from './routes/catalog.$topicId'
 
 const WhatsnewRoute = WhatsnewRouteImport.update({
   id: '/whatsnew',
   path: '/whatsnew',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SupportRoute = SupportRouteImport.update({
+  id: '/support',
+  path: '/support',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SourcesRoute = SourcesRouteImport.update({
@@ -56,11 +61,6 @@ const CatalogRoute = CatalogRouteImport.update({
 const AvailabilityRoute = AvailabilityRouteImport.update({
   id: '/availability',
   path: '/availability',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AskRoute = AskRouteImport.update({
-  id: '/ask',
-  path: '/ask',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -103,15 +103,15 @@ const ReleasesReleaseIdRoute = ReleasesReleaseIdRouteImport.update({
   path: '/releases/$releaseId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PoliciesPolicyIdRoute = PoliciesPolicyIdRouteImport.update({
+  id: '/policies/$policyId',
+  path: '/policies/$policyId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const GuidanceGuidanceIdRoute = GuidanceGuidanceIdRouteImport.update({
   id: '/$guidanceId',
   path: '/$guidanceId',
   getParentRoute: () => GuidanceRoute,
-} as any)
-const GuardrailsGuardrailIdRoute = GuardrailsGuardrailIdRouteImport.update({
-  id: '/guardrails/$guardrailId',
-  path: '/guardrails/$guardrailId',
-  getParentRoute: () => rootRouteImport,
 } as any)
 const CatalogTopicIdRoute = CatalogTopicIdRouteImport.update({
   id: '/$topicId',
@@ -121,16 +121,16 @@ const CatalogTopicIdRoute = CatalogTopicIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/ask': typeof AskRoute
   '/availability': typeof AvailabilityRouteWithChildren
   '/catalog': typeof CatalogRouteWithChildren
   '/guidance': typeof GuidanceRouteWithChildren
   '/overview': typeof OverviewRoute
   '/sources': typeof SourcesRouteWithChildren
+  '/support': typeof SupportRoute
   '/whatsnew': typeof WhatsnewRoute
   '/catalog/$topicId': typeof CatalogTopicIdRoute
-  '/guardrails/$guardrailId': typeof GuardrailsGuardrailIdRoute
   '/guidance/$guidanceId': typeof GuidanceGuidanceIdRoute
+  '/policies/$policyId': typeof PoliciesPolicyIdRoute
   '/releases/$releaseId': typeof ReleasesReleaseIdRoute
   '/sources/$sourceId': typeof SourcesSourceIdRoute
   '/availability/': typeof AvailabilityIndexRoute
@@ -141,12 +141,12 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/ask': typeof AskRoute
   '/overview': typeof OverviewRoute
+  '/support': typeof SupportRoute
   '/whatsnew': typeof WhatsnewRoute
   '/catalog/$topicId': typeof CatalogTopicIdRoute
-  '/guardrails/$guardrailId': typeof GuardrailsGuardrailIdRoute
   '/guidance/$guidanceId': typeof GuidanceGuidanceIdRoute
+  '/policies/$policyId': typeof PoliciesPolicyIdRoute
   '/releases/$releaseId': typeof ReleasesReleaseIdRoute
   '/sources/$sourceId': typeof SourcesSourceIdRoute
   '/availability': typeof AvailabilityIndexRoute
@@ -158,16 +158,16 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/ask': typeof AskRoute
   '/availability': typeof AvailabilityRouteWithChildren
   '/catalog': typeof CatalogRouteWithChildren
   '/guidance': typeof GuidanceRouteWithChildren
   '/overview': typeof OverviewRoute
   '/sources': typeof SourcesRouteWithChildren
+  '/support': typeof SupportRoute
   '/whatsnew': typeof WhatsnewRoute
   '/catalog/$topicId': typeof CatalogTopicIdRoute
-  '/guardrails/$guardrailId': typeof GuardrailsGuardrailIdRoute
   '/guidance/$guidanceId': typeof GuidanceGuidanceIdRoute
+  '/policies/$policyId': typeof PoliciesPolicyIdRoute
   '/releases/$releaseId': typeof ReleasesReleaseIdRoute
   '/sources/$sourceId': typeof SourcesSourceIdRoute
   '/availability/': typeof AvailabilityIndexRoute
@@ -180,16 +180,16 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/ask'
     | '/availability'
     | '/catalog'
     | '/guidance'
     | '/overview'
     | '/sources'
+    | '/support'
     | '/whatsnew'
     | '/catalog/$topicId'
-    | '/guardrails/$guardrailId'
     | '/guidance/$guidanceId'
+    | '/policies/$policyId'
     | '/releases/$releaseId'
     | '/sources/$sourceId'
     | '/availability/'
@@ -200,12 +200,12 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/ask'
     | '/overview'
+    | '/support'
     | '/whatsnew'
     | '/catalog/$topicId'
-    | '/guardrails/$guardrailId'
     | '/guidance/$guidanceId'
+    | '/policies/$policyId'
     | '/releases/$releaseId'
     | '/sources/$sourceId'
     | '/availability'
@@ -216,16 +216,16 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
-    | '/ask'
     | '/availability'
     | '/catalog'
     | '/guidance'
     | '/overview'
     | '/sources'
+    | '/support'
     | '/whatsnew'
     | '/catalog/$topicId'
-    | '/guardrails/$guardrailId'
     | '/guidance/$guidanceId'
+    | '/policies/$policyId'
     | '/releases/$releaseId'
     | '/sources/$sourceId'
     | '/availability/'
@@ -237,14 +237,14 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AskRoute: typeof AskRoute
   AvailabilityRoute: typeof AvailabilityRouteWithChildren
   CatalogRoute: typeof CatalogRouteWithChildren
   GuidanceRoute: typeof GuidanceRouteWithChildren
   OverviewRoute: typeof OverviewRoute
   SourcesRoute: typeof SourcesRouteWithChildren
+  SupportRoute: typeof SupportRoute
   WhatsnewRoute: typeof WhatsnewRoute
-  GuardrailsGuardrailIdRoute: typeof GuardrailsGuardrailIdRoute
+  PoliciesPolicyIdRoute: typeof PoliciesPolicyIdRoute
   ReleasesReleaseIdRoute: typeof ReleasesReleaseIdRoute
   SkillsIndexRoute: typeof SkillsIndexRoute
 }
@@ -256,6 +256,13 @@ declare module '@tanstack/react-router' {
       path: '/whatsnew'
       fullPath: '/whatsnew'
       preLoaderRoute: typeof WhatsnewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/support': {
+      id: '/support'
+      path: '/support'
+      fullPath: '/support'
+      preLoaderRoute: typeof SupportRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sources': {
@@ -291,13 +298,6 @@ declare module '@tanstack/react-router' {
       path: '/availability'
       fullPath: '/availability'
       preLoaderRoute: typeof AvailabilityRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/ask': {
-      id: '/ask'
-      path: '/ask'
-      fullPath: '/ask'
-      preLoaderRoute: typeof AskRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -356,19 +356,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReleasesReleaseIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/policies/$policyId': {
+      id: '/policies/$policyId'
+      path: '/policies/$policyId'
+      fullPath: '/policies/$policyId'
+      preLoaderRoute: typeof PoliciesPolicyIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/guidance/$guidanceId': {
       id: '/guidance/$guidanceId'
       path: '/$guidanceId'
       fullPath: '/guidance/$guidanceId'
       preLoaderRoute: typeof GuidanceGuidanceIdRouteImport
       parentRoute: typeof GuidanceRoute
-    }
-    '/guardrails/$guardrailId': {
-      id: '/guardrails/$guardrailId'
-      path: '/guardrails/$guardrailId'
-      fullPath: '/guardrails/$guardrailId'
-      preLoaderRoute: typeof GuardrailsGuardrailIdRouteImport
-      parentRoute: typeof rootRouteImport
     }
     '/catalog/$topicId': {
       id: '/catalog/$topicId'
@@ -434,14 +434,14 @@ const SourcesRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AskRoute: AskRoute,
   AvailabilityRoute: AvailabilityRouteWithChildren,
   CatalogRoute: CatalogRouteWithChildren,
   GuidanceRoute: GuidanceRouteWithChildren,
   OverviewRoute: OverviewRoute,
   SourcesRoute: SourcesRouteWithChildren,
+  SupportRoute: SupportRoute,
   WhatsnewRoute: WhatsnewRoute,
-  GuardrailsGuardrailIdRoute: GuardrailsGuardrailIdRoute,
+  PoliciesPolicyIdRoute: PoliciesPolicyIdRoute,
   ReleasesReleaseIdRoute: ReleasesReleaseIdRoute,
   SkillsIndexRoute: SkillsIndexRoute,
 }

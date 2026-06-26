@@ -10,7 +10,7 @@
  * may be absent — handled gracefully). Evidence badges are reused read-only
  * from the mainline; the layout is this surface's own.
  */
-import { Await, Link } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { IconArrowLeft, IconExternalLink, IconLock } from "@tabler/icons-react";
 import type { AnchorReference, ContextBundleResponse, Source } from "@atlas/schema";
 
@@ -21,6 +21,7 @@ import {
   VisibilityBadge,
 } from "@/components/evidence/badges";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DeferredRegion } from "@/components/deferred-region";
 import { classifyFreshness, parseDurationToMs, type FreshnessState } from "@/lib/evidence";
 import { cn } from "@/lib/utils";
 
@@ -233,7 +234,12 @@ export function SourceDossier({
             </ul>
           </section>
 
-          <Await promise={bundle} fallback={<EvidenceSkeleton />}>
+          <DeferredRegion
+            promise={bundle}
+            fallback={<EvidenceSkeleton />}
+            label="the evidence"
+            retry
+          >
             {(resolved) => {
               const excerpts = excerptsFor(source, resolved);
               const anchors = anchorsFor(source, resolved);
@@ -294,7 +300,7 @@ export function SourceDossier({
                 </>
               );
             }}
-          </Await>
+          </DeferredRegion>
 
           {related.length > 0 ? (
             <section className="flex flex-col gap-2.5">
@@ -337,7 +343,7 @@ export function SourceDossier({
 
         <aside className="flex min-w-0 flex-col gap-2.5">
           <SectionLabel>Record</SectionLabel>
-          <Await promise={bundle} fallback={<RecordSkeleton />}>
+          <DeferredRegion promise={bundle} fallback={<RecordSkeleton />} label="the record">
             {(resolved) => (
               <>
                 <dl className="flex flex-col rounded-[4px] border border-border bg-card px-4 py-1.5">
@@ -376,7 +382,7 @@ export function SourceDossier({
                 </p>
               </>
             )}
-          </Await>
+          </DeferredRegion>
         </aside>
       </div>
     </div>

@@ -10,12 +10,12 @@
  * single primary action in view.
  *
  * Generalised over every catalog topic type (service · landing-zone ·
- * guardrail-area) from real loader data: the topic, its context bundle (sources,
+ * security-policy) from real loader data: the topic, its context bundle (sources,
  * excerpts, warnings — typed-error tolerant), availability record, and related
  * topics. `useRecordRecent` keeps the topic in the Home "recently viewed" trail.
  */
 import type { ReactNode } from "react";
-import { Await, Link, createFileRoute, notFound } from "@tanstack/react-router";
+import { Link, createFileRoute, notFound } from "@tanstack/react-router";
 import { IconArrowLeft, IconArrowUpRight, IconInfoCircle, IconRoute } from "@tabler/icons-react";
 import type { ContextBundleResponse, Topic, TopicDiscoveryResponse } from "@atlas/schema";
 
@@ -34,6 +34,7 @@ import { ServiceIconFallback } from "@/components/explore/service-icon-frame";
 import { useRecordRecent, type RecentItem } from "@/components/home/recently-viewed";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DeferredRegion } from "@/components/deferred-region";
 import { findAvailabilityServiceForTopic } from "@/lib/availability-service";
 import { relatedGuidanceForTopic, type Guidance } from "@/lib/guidance";
 import { cn } from "@/lib/utils";
@@ -49,7 +50,7 @@ type LoaderData = {
 const TYPE_LABEL: Record<Topic["topic_type"], string> = {
   service: "Service",
   "landing-zone": "Landing zone",
-  "guardrail-area": "Guardrail area",
+  "security-policy": "Security policy",
 };
 
 export const Route = createFileRoute("/catalog/$topicId")({
@@ -137,7 +138,7 @@ function CatalogDetailRoute() {
 
   const isService = topic.topic_type === "service";
   // locations / service / live / planned / availability spec rows all derive from
-  // the deferred `zone` — computed inside the <Await> blocks below so the shell
+  // the deferred `zone` — computed inside the DeferredRegion blocks below so the shell
   // (identity band, get-started, application notes) paints without waiting on it.
 
   // Numbered main-column sections — only the ones that apply, in order.
@@ -145,11 +146,13 @@ function CatalogDetailRoute() {
     {
       title: "Specifications",
       node: (
-        <Await
+        <DeferredRegion
           promise={zone}
           fallback={
             <SpecsSkeleton rows={isService || topic.topic_type === "landing-zone" ? 8 : 5} />
           }
+          label="the specifications"
+          retry
         >
           {({ defaultZone, totalZones }) => {
             const locations = defaultZone.locations;
@@ -213,7 +216,7 @@ function CatalogDetailRoute() {
               </dl>
             );
           }}
-        </Await>
+        </DeferredRegion>
       ),
     },
     ...(isService
@@ -221,14 +224,18 @@ function CatalogDetailRoute() {
           {
             title: "Where it runs",
             node: (
-              <Await promise={zone} fallback={<WhereItRunsSkeleton />}>
+              <DeferredRegion
+                promise={zone}
+                fallback={<WhereItRunsSkeleton />}
+                label="where it runs"
+              >
                 {({ defaultZone }) => (
                   <WhereItRuns
                     service={findAvailabilityServiceForTopic(topic, defaultZone.services)}
                     locations={defaultZone.locations}
                   />
                 )}
-              </Await>
+              </DeferredRegion>
             ),
           },
         ]
@@ -237,11 +244,15 @@ function CatalogDetailRoute() {
             {
               title: "Catalog scope",
               node: (
-                <Await promise={zone} fallback={<WhereItRunsSkeleton />}>
+                <DeferredRegion
+                  promise={zone}
+                  fallback={<WhereItRunsSkeleton />}
+                  label="the catalog scope"
+                >
                   {({ defaultZone, totalZones }) => (
                     <CatalogScope zone={defaultZone} totalZones={totalZones} />
                   )}
-                </Await>
+                </DeferredRegion>
               ),
             },
           ]
@@ -266,9 +277,14 @@ function CatalogDetailRoute() {
     {
       title: "References",
       node: (
-        <Await promise={bundle} fallback={<ReferencesSkeleton />}>
+        <DeferredRegion
+          promise={bundle}
+          fallback={<ReferencesSkeleton />}
+          label="the references"
+          retry
+        >
           {(resolved) => <References sources={resolved?.sources ?? []} />}
-        </Await>
+        </DeferredRegion>
       ),
     },
     ...(related.length > 0
@@ -298,9 +314,10 @@ function CatalogDetailRoute() {
             className="flex size-14 shrink-0 items-center justify-center rounded-lg bg-brand-tint"
           >
             {isService ? (
-              <Await
+              <DeferredRegion
                 promise={zone}
                 fallback={<ServiceIconFallback serviceId={topic.id} size="lg" />}
+                errorFallback={<ServiceIconFallback serviceId={topic.id} size="lg" />}
               >
                 {({ defaultZone }) => {
                   const service = findAvailabilityServiceForTopic(topic, defaultZone.services);
@@ -310,7 +327,7 @@ function CatalogDetailRoute() {
                     <ServiceIconFallback serviceId={topic.id} size="lg" />
                   );
                 }}
-              </Await>
+              </DeferredRegion>
             ) : (
               <ServiceIconFallback serviceId={topic.id} size="lg" />
             )}
@@ -341,7 +358,7 @@ function CatalogDetailRoute() {
           <Sep />
           <code className="font-mono text-[11px]">{topic.support_channel}</code>
           <Sep />
-          <Await
+          <DeferredRegion
             promise={bundle}
             fallback={
               <span
@@ -349,6 +366,7 @@ function CatalogDetailRoute() {
                 className="inline-block h-3 w-24 animate-pulse rounded bg-accent align-middle"
               />
             }
+            errorFallback={null}
           >
             {(resolved) => {
               const sources = resolved?.sources ?? [];
@@ -370,7 +388,7 @@ function CatalogDetailRoute() {
                 </>
               );
             }}
-          </Await>
+          </DeferredRegion>
         </p>
       </header>
 
@@ -417,7 +435,11 @@ function CatalogDetailRoute() {
             <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
               Evidence health
             </span>
-            <Await promise={bundle} fallback={<EvidenceHealthSkeleton />}>
+            <DeferredRegion
+              promise={bundle}
+              fallback={<EvidenceHealthSkeleton />}
+              label="evidence health"
+            >
               {(resolved) => {
                 const sources = resolved?.sources ?? [];
                 const warnings = resolved?.warnings ?? [];
@@ -441,7 +463,7 @@ function CatalogDetailRoute() {
                   </>
                 );
               }}
-            </Await>
+            </DeferredRegion>
           </div>
         </aside>
       </div>
@@ -624,13 +646,9 @@ function RelatedInDomain({ topics }: { topics: ReadonlyArray<Topic> }) {
       {topics.map((entry) => (
         <Link
           key={entry.id}
-          to={
-            entry.topic_type === "guardrail-area" ? "/guardrails/$guardrailId" : "/catalog/$topicId"
-          }
+          to={entry.topic_type === "security-policy" ? "/policies/$policyId" : "/catalog/$topicId"}
           params={
-            entry.topic_type === "guardrail-area"
-              ? { guardrailId: entry.id }
-              : { topicId: entry.id }
+            entry.topic_type === "security-policy" ? { policyId: entry.id } : { topicId: entry.id }
           }
           className="group flex flex-col gap-1 rounded-[4px] border border-border bg-card p-4 transition-[border-color,box-shadow] hover:border-border-strong hover:shadow-[0_1px_2px_oklch(40%_0.05_264.18/0.05),0_6px_16px_oklch(40%_0.05_264.18/0.08)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >

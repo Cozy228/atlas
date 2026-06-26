@@ -1,4 +1,4 @@
-import { Await, Link, createFileRoute, notFound } from "@tanstack/react-router";
+import { Link, createFileRoute, notFound } from "@tanstack/react-router";
 import { IconArrowLeft, IconArrowUpRight, IconLink } from "@tabler/icons-react";
 import type { ContextBundleResponse, Topic } from "@atlas/schema";
 
@@ -13,27 +13,27 @@ import {
 import { EntryToolsGrid } from "@/components/detail/entry-tools-grid";
 import { EvidenceSection } from "@/components/detail/evidence-section";
 import { RelatedColumn } from "@/components/detail/related-column";
+import { DeferredRegion } from "@/components/deferred-region";
 import { FeedbackInlineForm } from "@/components/evidence/feedback-inline-form";
 import { PageBody } from "@/components/page-section";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getGuardrailRules, type GuardrailRule } from "@/lib/guardrail-rules";
 import { cn } from "@/lib/utils";
 
 type LoaderData = {
   topic: Topic;
   bundle: Promise<ContextBundleResponse | null>;
   relatedServices: ReadonlyArray<Topic>;
-  relatedGuardrails: ReadonlyArray<Topic>;
+  relatedPolicies: ReadonlyArray<Topic>;
   relatedLandingZones: ReadonlyArray<Topic>;
 };
 
-export const Route = createFileRoute("/guardrails/$guardrailId")({
+export const Route = createFileRoute("/policies/$policyId")({
   loader: async ({ context, params }): Promise<LoaderData> => {
     const topicsResp = await context.queryClient.ensureQueryData(topicDiscoveryQueryOptions);
 
     const topic = topicsResp.topics.find(
-      (entry) => entry.id === params.guardrailId && entry.topic_type === "guardrail-area",
+      (entry) => entry.id === params.policyId && entry.topic_type === "security-policy",
     );
     if (!topic) {
       throw notFound();
@@ -41,7 +41,7 @@ export const Route = createFileRoute("/guardrails/$guardrailId")({
 
     // Slow: the live context bundle resolves every cited anchor through the
     // resolver/parser. Defer it (no await) so navigation is instant and the
-    // "Sources cited" block renders a skeleton until it lands.
+    // "Policy documents" block renders a skeleton until it lands.
     const bundle = context.queryClient
       .ensureQueryData(contextBundleQueryOptions({ topic_id: topic.id }))
       .catch((error: unknown): ContextBundleResponse | null => {
@@ -62,38 +62,37 @@ export const Route = createFileRoute("/guardrails/$guardrailId")({
       topic,
       bundle,
       relatedServices: related.filter((entry) => entry.topic_type === "service"),
-      relatedGuardrails: related.filter((entry) => entry.topic_type === "guardrail-area"),
+      relatedPolicies: related.filter((entry) => entry.topic_type === "security-policy"),
       relatedLandingZones: related.filter((entry) => entry.topic_type === "landing-zone"),
     };
   },
-  component: GuardrailDetailRoute,
+  component: PolicyDetailRoute,
 });
 
-function GuardrailDetailRoute() {
-  const { topic, bundle, relatedServices, relatedGuardrails, relatedLandingZones } =
+function PolicyDetailRoute() {
+  const { topic, bundle, relatedServices, relatedPolicies, relatedLandingZones } =
     Route.useLoaderData();
 
-  const rules = getGuardrailRules(topic.id);
   const primaryTool = topic.entry_tools[0];
   const hasRelationships =
-    relatedServices.length > 0 || relatedGuardrails.length > 0 || relatedLandingZones.length > 0;
+    relatedServices.length > 0 || relatedPolicies.length > 0 || relatedLandingZones.length > 0;
 
   return (
     <PageBody width="comfortable" gap="compact">
-      {/* Back link returns to the catalog's guardrails tab. */}
+      {/* Back link returns to the catalog's security-policies tab. */}
       <Link
         to="/catalog"
-        search={{ tab: "guardrails" }}
+        search={{ tab: "policies" }}
         className={cn(
           "inline-flex w-fit items-center gap-1.5 rounded-sm text-xs font-medium text-muted-foreground transition-colors",
           "hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         )}
       >
-        <IconArrowLeft className="size-3.5" aria-hidden /> Back to guardrails
+        <IconArrowLeft className="size-3.5" aria-hidden /> Back to security policies
       </Link>
 
       <DetailHeader
-        eyebrow={`Guardrail area · ${topic.category}`}
+        eyebrow={`Security policy · ${topic.category}`}
         title={topic.name}
         description={topic.description}
         badges={<StatusBadge status={topic.status} />}
@@ -108,27 +107,14 @@ function GuardrailDetailRoute() {
               </DetailSection>
             ) : null}
 
-            {rules.length > 0 ? (
-              <DetailSection
-                title="Rules"
-                description="What this guardrail enforces and how each rule is applied."
-              >
-                <ul className="flex flex-col divide-y divide-border overflow-hidden rounded-lg border border-border bg-card">
-                  {rules.map((rule) => (
-                    <RuleRow key={rule.id} rule={rule} />
-                  ))}
-                </ul>
-              </DetailSection>
-            ) : null}
-
             {hasRelationships ? (
               <DetailSection title="Related catalog">
                 <div className="grid gap-3 sm:grid-cols-2">
                   {relatedServices.length > 0 ? (
                     <RelatedColumn title="Services" topics={relatedServices} />
                   ) : null}
-                  {relatedGuardrails.length > 0 ? (
-                    <RelatedColumn title="Guardrail areas" topics={relatedGuardrails} />
+                  {relatedPolicies.length > 0 ? (
+                    <RelatedColumn title="Security policies" topics={relatedPolicies} />
                   ) : null}
                   {relatedLandingZones.length > 0 ? (
                     <RelatedColumn title="Landing zones" topics={relatedLandingZones} />
@@ -137,18 +123,26 @@ function GuardrailDetailRoute() {
               </DetailSection>
             ) : null}
 
-            <DetailSection title="Sources cited">
-              <Await promise={bundle} fallback={<EvidenceSkeleton />}>
+            {/* The authoritative content of a security policy is its registered
+             * policy document(s), resolved live and cited here — no parallel
+             * hand-maintained rule list to drift from the source of record. */}
+            <DetailSection title="Policy documents">
+              <DeferredRegion
+                promise={bundle}
+                fallback={<EvidenceSkeleton />}
+                label="the policy documents"
+                retry
+              >
                 {(resolved) =>
                   resolved ? (
                     <EvidenceSection bundle={resolved} />
                   ) : (
                     <div className="rounded-lg border border-dashed border-border bg-card p-3.5 text-xs text-muted-foreground">
-                      No registered sources resolved. Use feedback below to suggest one.
+                      No registered policy documents resolved. Use feedback below to suggest one.
                     </div>
                   )
                 }
-              </Await>
+              </DeferredRegion>
             </DetailSection>
 
             <DetailSection title="Help Atlas stay accurate">
@@ -157,7 +151,7 @@ function GuardrailDetailRoute() {
           </>
         }
         side={
-          <Await promise={bundle} fallback={<MetaCardSkeleton />}>
+          <DeferredRegion promise={bundle} fallback={<MetaCardSkeleton />} label="the details">
             {() => (
               <DetailMetaCard
                 items={[
@@ -204,55 +198,10 @@ function GuardrailDetailRoute() {
                 }
               />
             )}
-          </Await>
+          </DeferredRegion>
         }
       />
     </PageBody>
-  );
-}
-
-const SEVERITY_VARIANT: Record<
-  GuardrailRule["severity"],
-  React.ComponentProps<typeof Badge>["variant"]
-> = {
-  critical: "critical",
-  high: "warning",
-  medium: "neutral",
-};
-
-const STATUS_VARIANT: Record<
-  GuardrailRule["status"],
-  React.ComponentProps<typeof Badge>["variant"]
-> = {
-  enforced: "success",
-  monitor: "info",
-  disabled: "neutral",
-};
-
-const STATUS_LABEL: Record<GuardrailRule["status"], string> = {
-  enforced: "Enforced",
-  monitor: "Monitor",
-  disabled: "Disabled",
-};
-
-function RuleRow({ rule }: { rule: GuardrailRule }) {
-  return (
-    <li className="flex flex-col gap-1.5 p-3.5">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex min-w-0 flex-col">
-          <p className="text-sm font-semibold text-foreground">{rule.title}</p>
-          <p className="truncate font-mono type-caption text-muted-foreground">{rule.id}</p>
-        </div>
-        <div className="flex shrink-0 items-center gap-1.5">
-          <Badge variant={SEVERITY_VARIANT[rule.severity]}>{rule.severity}</Badge>
-          <Badge variant={STATUS_VARIANT[rule.status]}>
-            <span aria-hidden className="size-[5px] rounded-full bg-current" />
-            {STATUS_LABEL[rule.status]}
-          </Badge>
-        </div>
-      </div>
-      <p className="text-[13px] leading-[1.5] text-muted-foreground">{rule.description}</p>
-    </li>
   );
 }
 
@@ -262,7 +211,7 @@ function StatusBadge({ status }: { status: Topic["status"] }) {
   return <Badge variant={variant}>{status}</Badge>;
 }
 
-/** Placeholder for the deferred "Sources cited" block — mirrors the collapsed
+/** Placeholder for the deferred "Policy documents" block — mirrors the collapsed
  * EvidenceSection trigger card so the layout doesn't shift when the bundle lands. */
 function EvidenceSkeleton() {
   return (

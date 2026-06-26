@@ -6,12 +6,13 @@
  * description and Jira ticket), and a rail of references — Jira release, change
  * request, DOP, Go/No-Go, Viva Engage — plus who to contact.
  */
-import { Await, Link, createFileRoute, notFound } from "@tanstack/react-router";
+import { Link, createFileRoute, notFound } from "@tanstack/react-router";
 
 import { releaseNotesQueryOptions } from "@/api/queries";
 import { categoryCounts } from "@/components/whatsnew/releases";
 import { Skeleton } from "@/components/ui/skeleton";
 import { withDevLatency } from "@/lib/dev-latency";
+import { DeferredRegion } from "@/components/deferred-region";
 
 const MONTHS = [
   "January",
@@ -79,7 +80,12 @@ function ReleaseDetailRoute() {
 
       <div className="grid gap-x-12 gap-y-10 lg:grid-cols-[minmax(0,1fr)_240px]">
         <main className="flex min-w-0 flex-col gap-7">
-          <Await promise={rail} fallback={<ReleaseMainSkeleton />}>
+          <DeferredRegion
+            promise={rail}
+            fallback={<ReleaseMainSkeleton />}
+            label="the release scope"
+            retry
+          >
             {(r) =>
               categoryCounts(r.items).map((c) => (
                 <section key={c.category}>
@@ -122,11 +128,11 @@ function ReleaseDetailRoute() {
                 </section>
               ))
             }
-          </Await>
+          </DeferredRegion>
         </main>
 
         <aside className="flex min-w-0 flex-col gap-8 lg:border-l lg:border-border lg:pl-7">
-          <Await promise={rail} fallback={<ReleaseRailSkeleton />}>
+          <DeferredRegion promise={rail} fallback={<ReleaseRailSkeleton />} label="the references">
             {(rail) => (
               <>
                 {rail.resources && rail.resources.length > 0 ? (
@@ -185,7 +191,7 @@ function ReleaseDetailRoute() {
                 ) : null}
               </>
             )}
-          </Await>
+          </DeferredRegion>
         </aside>
       </div>
     </div>

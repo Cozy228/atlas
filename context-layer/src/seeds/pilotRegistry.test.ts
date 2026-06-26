@@ -13,12 +13,12 @@ describe("pilot registry seed", () => {
     expect(registry.mappings.list().length).toBeGreaterThan(12);
   });
 
-  it("supports service, landing-zone, and guardrail-area scenarios", () => {
+  it("supports service, landing-zone, and security-policy scenarios", () => {
     const registry = loadPilotRegistry(pilotRegistrySeed);
 
     expect(registry.topics.findByType("service").length).toBeGreaterThan(0);
     expect(registry.topics.findByType("landing-zone").length).toBeGreaterThan(0);
-    expect(registry.topics.findByType("guardrail-area").length).toBeGreaterThan(0);
+    expect(registry.topics.findByType("security-policy").length).toBeGreaterThan(0);
   });
 
   it("includes stale, deprecated, restricted, and broken-anchor examples", () => {

@@ -174,8 +174,8 @@ export const pilotRegistrySeed = {
     },
     {
       id: "s3-guardrails",
-      name: "S3 Guardrails",
-      topic_type: "guardrail-area",
+      name: "S3 Security",
+      topic_type: "security-policy",
       category: "security",
       status: "active",
       description: "Storage encryption, public access, and lifecycle controls.",
@@ -186,7 +186,7 @@ export const pilotRegistrySeed = {
     {
       id: "private-networking",
       name: "Private Networking",
-      topic_type: "guardrail-area",
+      topic_type: "security-policy",
       category: "network",
       status: "active",
       description: "VPC endpoint and private subnet connectivity guidance.",
@@ -197,7 +197,7 @@ export const pilotRegistrySeed = {
     {
       id: "iam-boundary",
       name: "IAM Boundary",
-      topic_type: "guardrail-area",
+      topic_type: "security-policy",
       category: "security",
       status: "active",
       description: "Permission boundary and role delegation requirements.",
@@ -208,7 +208,7 @@ export const pilotRegistrySeed = {
     {
       id: "logging-monitoring",
       name: "Logging and Monitoring",
-      topic_type: "guardrail-area",
+      topic_type: "security-policy",
       category: "operations",
       status: "active",
       description: "Baseline telemetry requirements for platform workloads.",

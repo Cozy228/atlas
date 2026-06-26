@@ -3,7 +3,7 @@
  * ==========================
  * Facet rail, type tabs, and a Cards ↔ Table toggle over the real topic +
  * availability projection. Services and landing zones open the datasheet at
- * `/catalog/$topicId`; guardrail areas keep their `/guardrails/$guardrailId`
+ * `/catalog/$topicId`; security policies keep their `/policies/$policyId`
  * route. Sources are their own surface at `/sources`.
  */
 import { createFileRoute } from "@tanstack/react-router";
