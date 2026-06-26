@@ -95,19 +95,24 @@ describe("mcp tools against the pilot fixtures", () => {
     expect(data.source.authority_level).toBe("authoritative");
   });
 
-  it("atlas_get_availability filters by zone and service", async () => {
+  it("atlas_get_availability filters by zone and service, carrying its Citation", async () => {
     const result = await callTool("atlas_get_availability", {
       zone: "aws",
       service_query: "textract",
     });
     const data = result.structuredContent as {
       services: { zone: string; service_id: string; availability: Record<string, unknown> }[];
+      citation: { source_id: string; label: string; location: string };
     };
     expect(data.services.length).toBeGreaterThan(0);
     for (const service of data.services) {
       expect(service.zone).toBe("aws");
       expect(service.availability).toBeTypeOf("object");
     }
+    // The grid reads through the one cited source of record (plan 014).
+    expect(data.citation.source_id).toBe("availability-matrix");
+    expect(data.citation.label.length).toBeGreaterThan(0);
+    expect(data.citation.location).toContain("Regional+Availability+Matrix");
   });
 
   it("atlas_get_context_bundle returns the same governed bundle the Portal gets, with Citations", async () => {

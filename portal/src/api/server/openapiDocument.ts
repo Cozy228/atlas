@@ -16,6 +16,7 @@
 import { z } from "zod";
 import {
   ApiErrorResponseSchema,
+  AvailabilityReadResponseSchema,
   ContextBundleResponseSchema,
   ContextRequestSchema,
   ContextSectionSchema,
@@ -489,6 +490,25 @@ function internalPaths() {
         },
       },
     },
+    "/availability": {
+      get: {
+        tags: [READ_FACE.registry],
+        operationId: "getAvailability",
+        summary: "Read the regional service availability grid",
+        description:
+          "The single availability read (plan 014): the AWS + Azure landing-zone grid of services × locations, paired with the governing Citation and any freshness warnings. One cited source of record behind the Portal Explore surface and the MCP availability tool.",
+        responses: {
+          "200": {
+            description:
+              "The availability grid with its Citation. Relay every `warnings[]` entry verbatim.",
+            content: jsonContent("AvailabilityReadResponse"),
+          },
+          "404": errorResponse(
+            "`source_not_found` — the availability matrix source is not registered.",
+          ),
+        },
+      },
+    },
     "/resources": searchResourcesOperation(),
     "/resources/{kind}/{slug}": getResourceContextOperation(),
     "/context-bundle": {
@@ -662,6 +682,7 @@ export function buildInternalOpenApiDocument(origin: string = DEFAULT_PORTAL_ORI
           ...toJsonSchema(ContextBundleResponseSchema),
           description: `The governed bundle. Every Excerpt carries its Citation — never present one without the other.\n\n${WARNING_GLOSSARY}`,
         },
+        AvailabilityReadResponse: toJsonSchema(AvailabilityReadResponseSchema),
         FeedbackSubmission: toJsonSchema(FeedbackSubmissionSchema),
         FeedbackResponse: toJsonSchema(FeedbackResponseSchema),
         ApiErrorResponse: toJsonSchema(ApiErrorResponseSchema),

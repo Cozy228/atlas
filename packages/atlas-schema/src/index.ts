@@ -627,6 +627,87 @@ export type ResourceContextResponse = z.infer<typeof ResourceContextResponseSche
 export type ResourceSectionBinding = z.infer<typeof ResourceSectionBindingSchema>;
 export type ResourceContextRecord = z.infer<typeof ResourceContextRecordSchema>;
 
+/* -------------------------------------------------------------------------- *
+ * Regional availability (plan 014)
+ *
+ * The single availability read's wire shape. `AvailabilityResponse` is the grid
+ * the Portal Explore surface and the MCP `atlas_get_availability` tool render
+ * (zones -> services -> {location -> status}); `AvailabilityReadResponse` wraps
+ * it with the governing Citation + warnings so every consumer reads ONE cited
+ * source of record (ADR-0014). Coordinates/labels/iconKey are presentation that
+ * rides along the same wire, keeping the grid self-contained for consumers.
+ * -------------------------------------------------------------------------- */
+export const locationKinds = ["region", "outpost"] as const;
+export const locationStatuses = ["available", "planned", "interim", "not-planned"] as const;
+export const landingZoneIds = ["aws", "azure"] as const;
+
+export const LocationKindSchema = z.enum(locationKinds);
+export const LocationStatusSchema = z.enum(locationStatuses);
+export const LandingZoneIdSchema = z.enum(landingZoneIds);
+
+export const LocationSchema = z
+  .object({
+    id: z.string().min(1),
+    label: z.string().min(1),
+    sub: z.string(),
+    kind: LocationKindSchema,
+    /** [longitude, latitude] in degrees, used to place the location on the map. */
+    coordinates: z.tuple([z.number(), z.number()]).optional(),
+  })
+  .strict();
+
+export const LocationAvailabilitySchema = z
+  .object({
+    status: LocationStatusSchema,
+    /** ETA label for planned, interim caveat note, etc. */
+    note: z.string().min(1).optional(),
+  })
+  .strict();
+
+export const AvailabilityRecordSchema = z
+  .object({
+    id: z.string().min(1),
+    name: z.string().min(1),
+    iconKey: z.string().min(1),
+    domain: z.string().min(1),
+    /** location id -> availability. A missing entry means `not-planned`. */
+    availability: z.record(z.string(), LocationAvailabilitySchema).readonly(),
+  })
+  .strict();
+
+export const LandingZoneDataSchema = z
+  .object({
+    id: LandingZoneIdSchema,
+    name: z.string().min(1),
+    locations: z.array(LocationSchema).readonly(),
+    services: z.array(AvailabilityRecordSchema).readonly(),
+  })
+  .strict();
+
+export const AvailabilityResponseSchema = z
+  .object({
+    zones: z.array(LandingZoneDataSchema).readonly(),
+  })
+  .strict();
+
+export const AvailabilityReadResponseSchema = z
+  .object({
+    zones: z.array(LandingZoneDataSchema).readonly(),
+    citation: CitationSchema,
+    warnings: z.array(WarningSchema),
+  })
+  .strict();
+
+export type LocationKind = z.infer<typeof LocationKindSchema>;
+export type LocationStatus = z.infer<typeof LocationStatusSchema>;
+export type LandingZoneId = z.infer<typeof LandingZoneIdSchema>;
+export type Location = z.infer<typeof LocationSchema>;
+export type LocationAvailability = z.infer<typeof LocationAvailabilitySchema>;
+export type AvailabilityRecord = z.infer<typeof AvailabilityRecordSchema>;
+export type LandingZoneData = z.infer<typeof LandingZoneDataSchema>;
+export type AvailabilityResponse = z.infer<typeof AvailabilityResponseSchema>;
+export type AvailabilityReadResponse = z.infer<typeof AvailabilityReadResponseSchema>;
+
 export {
   validateGuidanceDocument,
   validateGuidanceManifest,
