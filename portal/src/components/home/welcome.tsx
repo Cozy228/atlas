@@ -10,8 +10,9 @@
  *   - Service catalog → a typographic BOOK INDEX (columned link lines)
  *   - What changed   → a DATE-LED TIMELINE with recency hierarchy
  */
-import { useEffect, useRef, useState } from "react";
-import { Await, Link } from "@tanstack/react-router";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { Await, CatchBoundary, Link } from "@tanstack/react-router";
+import { toast } from "sonner";
 import { IconArrowLeft, IconArrowRight, IconMessageCircle } from "@tabler/icons-react";
 import { AnimatePresence, LazyMotion, MotionConfig, m, type Variants } from "motion/react";
 
@@ -38,6 +39,39 @@ import {
 // home page's first paint — it loads when the catalog swap first animates.
 const loadDomAnimation = () => import("motion/react").then((mod) => mod.domAnimation);
 
+/* Home defers its live data (availability stats, the What's-new feed). Unlike the
+ * detail surfaces, a home failure must NOT take over the page or offer an in-place
+ * retry — the page stays welcoming. A failed region simply drops out (renders
+ * nothing) and a single deduped toast notes that some live figures are missing. */
+function HomeDeferred<T>({
+  promise,
+  fallback,
+  children,
+}: {
+  promise: Promise<T>;
+  fallback: ReactNode;
+  children: (value: T) => ReactNode;
+}) {
+  return (
+    <CatchBoundary getResetKey={() => "home"} errorComponent={() => <HomeDeferredFallback />}>
+      <Await promise={promise} fallback={fallback}>
+        {children}
+      </Await>
+    </CatchBoundary>
+  );
+}
+
+function HomeDeferredFallback() {
+  useEffect(() => {
+    toast.error("Some live data couldn’t load", {
+      // Shared id: several home regions may fail at once, but the user sees one toast.
+      id: "home-live-data",
+      description: "The page is still usable — live figures will return shortly.",
+    });
+  }, []);
+  return null;
+}
+
 export function HomeWelcome({ data }: { data: HomeLoaderData }) {
   return (
     <div className="flex flex-col gap-16">
@@ -53,71 +87,11 @@ export function HomeWelcome({ data }: { data: HomeLoaderData }) {
         />
         <JourneyGrid />
       </section>
-      <Await promise={data.stats} fallback={<CatalogIndexSkeleton />}>
+      <HomeDeferred promise={data.stats} fallback={<CatalogIndexSkeleton />}>
         {(stats) => <CatalogIndex serviceCount={stats.serviceCount} domains={stats.domains} />}
-      </Await>
-      <MachineAccess />
+      </HomeDeferred>
       <HelpCloser />
     </div>
-  );
-}
-
-/* ========================================================================== *
- * Machine-readable access — the body-visible agent surface (proposal §10.1).
- * A blind agent that reads only the rendered body (not <head> or the response
- * `Link` header) still finds the machine entry points here, as real links with
- * their literal paths shown. This is the first-hop discovery fix.
- * ========================================================================== */
-
-function MachineAccess() {
-  const entries: ReadonlyArray<{ href: string; label: string; desc: string }> = [
-    { href: "/openapi.json", label: "OpenAPI", desc: "The agent API contract — four operations" },
-    { href: "/llms.txt", label: "llms.txt", desc: "How to discover and call Atlas" },
-    {
-      href: "/.well-known/ai-catalog.json",
-      label: "Capability catalog",
-      desc: "What Atlas can answer",
-    },
-    {
-      href: "/api/resources/service/aws/textract",
-      label: "Resource JSON",
-      desc: "A live projection, grouped by section",
-    },
-    {
-      href: "/resources/service/aws/textract.md",
-      label: "Resource Markdown",
-      desc: "The same projection, agent-readable",
-    },
-  ];
-  return (
-    <section>
-      <SectionHead
-        title="Machine-readable access"
-        description="Atlas is built for agents and tools. Start at the OpenAPI or llms.txt, then resolve a resource by name and read its sections."
-      />
-      <ul className="grid gap-x-10 sm:grid-cols-2">
-        {entries.map((entry) => (
-          <li key={entry.href} className="break-inside-avoid">
-            <a
-              href={entry.href}
-              className="group flex items-baseline justify-between gap-3 border-b border-border py-2.5"
-            >
-              <span className="flex min-w-0 flex-col">
-                <span className="bg-background text-[13.5px] font-semibold text-foreground group-hover:text-brand-ink">
-                  {entry.label}
-                </span>
-                <span className="truncate bg-background text-[11.5px] text-muted-foreground">
-                  {entry.desc}
-                </span>
-              </span>
-              <span className="shrink-0 self-center bg-background font-mono text-[11px] text-muted-foreground group-hover:text-brand-ink">
-                {entry.href}
-              </span>
-            </a>
-          </li>
-        ))}
-      </ul>
-    </section>
   );
 }
 
@@ -242,9 +216,9 @@ function Hero({
     <section className="flex flex-col items-center gap-5 text-center">
       {/* The What's-new ticker stands in for the eyebrow: the platform's pulse
           above the welcome, not a static label. */}
-      <Await promise={announcements} fallback={<TickerSkeleton />}>
+      <HomeDeferred promise={announcements} fallback={<TickerSkeleton />}>
         {(announcements) => <WhatsNewTicker announcements={announcements} />}
-      </Await>
+      </HomeDeferred>
       <h1 className="w-fit max-w-[18ch] bg-background text-[2.5rem] font-bold leading-[1.05] tracking-[-0.035em] text-balance text-foreground">
         Welcome to Atlas Portal
       </h1>
@@ -268,7 +242,7 @@ function Hero({
         </div>
       </div>
       <dl className="flex flex-wrap justify-center gap-x-7 gap-y-2 pt-1">
-        <Await promise={stats} fallback={<StatsSkeleton />}>
+        <HomeDeferred promise={stats} fallback={<StatsSkeleton />}>
           {(s) => (
             <>
               <Stat value={s.serviceCount} label="services" />
@@ -276,7 +250,7 @@ function Hero({
               <Stat value={s.regionCount} label="regions & outposts" />
             </>
           )}
-        </Await>
+        </HomeDeferred>
       </dl>
     </section>
   );
@@ -346,77 +320,40 @@ function IntentDoors() {
 }
 
 function IntentFocus() {
-  const [hovered, setHovered] = useState<number | null>(null);
-  const active = hovered ?? 0;
+  // Pure-CSS focus (see `.intent-list` in globals.css): default-open first row,
+  // hover opens another. No React state, so it works before hydration — a slow
+  // deferred-data load can never block the animation.
   return (
-    <ol className="flex flex-col" onMouseLeave={() => setHovered(null)}>
-      {INTENTS.map((intent, i) => {
-        const open = i === active;
-        return (
-          <li
-            key={intent.title}
-            onMouseEnter={() => setHovered(i)}
-            className={cn(i > 0 && "border-t border-border")}
+    <ol className="intent-list flex flex-col">
+      {INTENTS.map((intent, i) => (
+        <li key={intent.title} className={cn("intent-row", i > 0 && "border-t border-border")}>
+          <Link
+            to={intent.to}
+            className="group/row grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-6 py-3.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            <Link
-              to={intent.to}
-              className="group grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-6 py-3.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <div className="flex min-w-0 flex-col">
-                <span
-                  className={cn(
-                    // Smooth focus animation: transition the exact props that change
-                    // (no transition-all bleed). The layout cost is bounded — only the
-                    // entering + leaving row animate, on hover, for 200ms.
-                    "w-fit bg-background font-mono font-semibold uppercase tracking-[0.14em] transition-[font-size,opacity,color,margin] duration-200",
-                    open
-                      ? "mb-1 text-[10px] text-muted-foreground group-hover:text-brand-ink"
-                      : "mb-0 text-[0px] opacity-0",
-                  )}
-                >
-                  {intent.verb}
-                </span>
-                <span
-                  className={cn(
-                    // Smooth title scale-up on focus — transition font-size + color
-                    // explicitly so the size grows fluidly rather than snapping.
-                    "w-fit bg-background font-bold tracking-[-0.02em] transition-[font-size,color] duration-200 group-hover:text-brand-ink",
-                    open
-                      ? "text-[1.125rem] leading-[1.2] text-foreground"
-                      : "text-[0.9375rem] text-foreground/55",
-                  )}
-                >
-                  {intent.title}
-                </span>
-                <div
-                  className={cn(
-                    // Scope the transition to the reveal props only (no transition-all
-                    // bleed onto layout-affecting properties).
-                    "grid transition-[grid-template-rows,opacity] duration-200",
-                    open ? "mt-1 grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0",
-                  )}
-                >
-                  <p className="w-fit max-w-[54ch] overflow-hidden bg-background text-[13px] leading-[1.5] text-muted-foreground">
-                    {intent.description}
-                  </p>
-                </div>
-              </div>
-              <span
-                className={cn(
-                  "flex items-center gap-1.5 self-center bg-background font-mono text-[10px] uppercase tracking-[0.06em] transition-colors duration-200 group-hover:text-brand-ink",
-                  open ? "text-muted-foreground" : "text-muted-foreground/50",
-                )}
-              >
-                {intent.lands}
-                <IconArrowRight
-                  aria-hidden
-                  className="size-3.5 transition-transform group-hover:translate-x-0.5"
-                />
+            <div className="flex min-w-0 flex-col">
+              <span className="intent-eyebrow w-fit bg-background font-mono font-semibold uppercase tracking-[0.14em] transition-[font-size,opacity,color,margin] duration-200 group-hover/row:text-brand-ink">
+                {intent.verb}
               </span>
-            </Link>
-          </li>
-        );
-      })}
+              <span className="intent-title w-fit bg-background font-bold tracking-[-0.02em] transition-[font-size,color] duration-200 group-hover/row:text-brand-ink">
+                {intent.title}
+              </span>
+              <div className="intent-reveal grid transition-[grid-template-rows,opacity] duration-200">
+                <p className="w-fit max-w-[54ch] overflow-hidden bg-background text-[13px] leading-[1.5] text-muted-foreground">
+                  {intent.description}
+                </p>
+              </div>
+            </div>
+            <span className="intent-lands flex items-center gap-1.5 self-center bg-background font-mono text-[10px] uppercase tracking-[0.06em] transition-colors duration-200 group-hover/row:text-brand-ink">
+              {intent.lands}
+              <IconArrowRight
+                aria-hidden
+                className="size-3.5 transition-transform group-hover/row:translate-x-0.5"
+              />
+            </span>
+          </Link>
+        </li>
+      ))}
     </ol>
   );
 }

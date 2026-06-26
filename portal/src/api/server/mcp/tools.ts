@@ -98,7 +98,7 @@ export const mcpTools: McpToolDefinition[] = [
   {
     name: "atlas_search_service",
     description:
-      "Search Atlas's registered topics (services, landing zones, guardrail areas) by free text. Start here to resolve a question to a topic_id, then call atlas_get_context_bundle.",
+      "Search Atlas's registered topics (services, landing zones, security policies) by free text. Start here to resolve a question to a topic_id, then call atlas_get_context_bundle.",
     inputSchema: toInputSchema(SearchServiceInput),
     async run(args, client) {
       const input = SearchServiceInput.parse(args ?? {});

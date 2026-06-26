@@ -12,16 +12,16 @@ describe("robots.txt", () => {
     expect(robots).toContain("Content-Signal: ai-train=no, search=no, ai-input=yes");
   });
 
-  it("allows the browse surfaces and disallows the chat and mutation paths", () => {
+  it("allows the browse surfaces and disallows the support page and mutation paths", () => {
     for (const path of ["/catalog/", "/sources/", "/guidance/", "/llms.txt", "/.well-known/"]) {
       expect(robots).toContain(`Allow: ${path}`);
     }
-    expect(robots).toContain("Disallow: /ask");
+    expect(robots).toContain("Disallow: /support");
   });
 });
 
 describe("sitemap.xml", () => {
-  it("is a valid urlset of canonical pages, excluding mutation flows and the Ask chat", async () => {
+  it("is a valid urlset of canonical pages, excluding mutation flows and the support page", async () => {
     const [topics, sources] = await Promise.all([
       serverContextApiClient.discoverTopics(),
       serverContextApiClient.discoverSources(),
@@ -41,7 +41,7 @@ describe("sitemap.xml", () => {
     expect(locs.length).toBeGreaterThan(10);
     for (const loc of locs) {
       expect(loc.startsWith("https://portal.example.com/")).toBe(true);
-      expect(loc).not.toContain("/ask");
+      expect(loc).not.toContain("/support");
       expect(loc).not.toContain("/api/");
       expect(loc).not.toContain("/feedback");
     }

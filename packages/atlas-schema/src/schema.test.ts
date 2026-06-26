@@ -73,7 +73,7 @@ describe("contract enums", () => {
   });
 
   it("matches the V1 topic types exactly", () => {
-    expect(topicTypes).toEqual(["service", "landing-zone", "guardrail-area"]);
+    expect(topicTypes).toEqual(["service", "landing-zone", "security-policy"]);
   });
 
   it("matches the V1 authority levels exactly", () => {
@@ -93,6 +93,7 @@ describe("contract enums", () => {
       "source_unavailable",
       "access_denied",
       "topic_not_found",
+      "resource_not_found",
       "invalid_request",
     ]);
   });

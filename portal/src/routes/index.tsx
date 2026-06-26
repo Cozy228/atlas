@@ -97,7 +97,10 @@ export const Route = createFileRoute("/")({
         };
       });
 
-    return { announcements, stats };
+    // withDevLatency on stats too (like announcements): the public-safe mock
+    // resolves instantly, which hides the hero-stat + service-catalog skeletons in
+    // dev; the real adapter's availability fetch is genuinely slow.
+    return { announcements, stats: withDevLatency(stats) };
   },
   component: HomeRoute,
 });

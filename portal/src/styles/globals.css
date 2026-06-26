@@ -349,3 +349,53 @@
     transform: translateX(-50%);
   }
 }
+
+/* Home "Browse by intent" focus list — pure CSS so the open/close animation
+   needs no JS: it is interactive before hydration, so a slow deferred-data load
+   can never block it (was previously driven by React state). Default: the first
+   row is open; hovering any row opens it and closes the rest. Transitions live
+   on the elements (Tailwind classes); these rules only toggle the target values.
+   Hover colour (brand-ink) stays a utility class on the element and wins via the
+   later `utilities` cascade layer. */
+@layer components {
+  .intent-eyebrow {
+    margin-bottom: 0;
+    font-size: 0;
+    opacity: 0;
+  }
+  .intent-title {
+    font-size: 0.9375rem;
+    color: color-mix(in oklab, var(--color-foreground) 55%, transparent);
+  }
+  .intent-reveal {
+    grid-template-rows: 0fr;
+    opacity: 0;
+  }
+  .intent-lands {
+    color: color-mix(in oklab, var(--color-muted-foreground) 50%, transparent);
+  }
+
+  .intent-row:hover .intent-eyebrow,
+  .intent-list:not(:has(a:hover)) .intent-row:first-child .intent-eyebrow {
+    margin-bottom: 0.25rem;
+    font-size: 10px;
+    opacity: 1;
+    color: var(--color-muted-foreground);
+  }
+  .intent-row:hover .intent-title,
+  .intent-list:not(:has(a:hover)) .intent-row:first-child .intent-title {
+    font-size: 1.125rem;
+    line-height: 1.2;
+    color: var(--color-foreground);
+  }
+  .intent-row:hover .intent-reveal,
+  .intent-list:not(:has(a:hover)) .intent-row:first-child .intent-reveal {
+    margin-top: 0.25rem;
+    grid-template-rows: 1fr;
+    opacity: 1;
+  }
+  .intent-row:hover .intent-lands,
+  .intent-list:not(:has(a:hover)) .intent-row:first-child .intent-lands {
+    color: var(--color-muted-foreground);
+  }
+}

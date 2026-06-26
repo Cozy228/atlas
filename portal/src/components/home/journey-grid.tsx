@@ -36,9 +36,9 @@ const STEPS: ReadonlyArray<JourneyStep> = [
   },
   {
     phase: "Validate",
-    title: "Check guardrails",
+    title: "Check security policies",
     description:
-      "Review applicable guardrails before deploy. Authoritative source citations are inline on each surface.",
+      "Review applicable security policies before deploy. Authoritative source citations are inline on each surface.",
     links: [{ label: "Sources", to: "/sources" }],
   },
   {

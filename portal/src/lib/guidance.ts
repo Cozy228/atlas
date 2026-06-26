@@ -85,7 +85,7 @@ export type Guidance = {
   appliesTo?: {
     services?: ReadonlyArray<string>;
     landingZones?: ReadonlyArray<string>;
-    guardrails?: ReadonlyArray<string>;
+    securityPolicies?: ReadonlyArray<string>;
   };
   sources?: ReadonlyArray<string>;
   steps: ReadonlyArray<GuidanceStep>;
@@ -131,7 +131,7 @@ export function relatedGuidanceForTopic(
     return (
       (applies.services?.includes(topicId) ?? false) ||
       (applies.landingZones?.includes(topicId) ?? false) ||
-      (applies.guardrails?.includes(topicId) ?? false)
+      (applies.securityPolicies?.includes(topicId) ?? false)
     );
   });
 }

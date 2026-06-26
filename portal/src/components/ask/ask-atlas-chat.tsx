@@ -46,7 +46,7 @@ const DEFAULT_SUGGESTIONS = [
     prompt: "How do I provision a sandbox EKS cluster?",
   },
   {
-    category: "Guardrails",
+    category: "Security policies",
     prompt: "What policies apply to data exports out of GDC?",
   },
 ] as const;
@@ -224,8 +224,8 @@ function EmptyGreeting({
         <div className="flex flex-col gap-1.5">
           <p className="text-sm font-semibold text-foreground">Hi!</p>
           <p className="type-detail leading-relaxed text-foreground">
-            I'm an AI assistant trained on platform documentation, runbooks,
-            and source registry data. Ask me anything about{" "}
+            I'm an AI assistant trained on platform documentation, runbooks, and source registry
+            data. Ask me anything about{" "}
             <span className="rounded bg-muted px-1.5 py-0.5 font-semibold">Atlas Platform</span>.
           </p>
         </div>

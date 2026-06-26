@@ -9,12 +9,12 @@
  * here because the mainline route keeps them private — the mainline file is
  * not modified.
  *
- * Services, landing zones, and guardrail areas all link to their detail
- * routes (`/catalog/$topicId`, `/guardrails/$guardrailId`). Sources are their
+ * Services, landing zones, and security policies all link to their detail
+ * routes (`/catalog/$topicId`, `/policies/$policyId`). Sources are their
  * own surface at `/sources`, so the catalog carries no Sources tab.
  */
 import { useCallback, useDeferredValue, useMemo, useState, type MouseEvent } from "react";
-import { Await, Link, useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import {
   IconArrowRight,
   IconArrowUpRight,
@@ -45,10 +45,11 @@ import {
 } from "@/components/ui/popover";
 import { findAvailabilityServiceForTopic } from "@/lib/availability-service";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DeferredRegion } from "@/components/deferred-region";
 import { cn } from "@/lib/utils";
 
 type ViewMode = "cards" | "table";
-type AdoptedTab = "services" | "landing-zones" | "guardrails";
+type AdoptedTab = "services" | "landing-zones" | "policies";
 
 export function CatalogAdopted({
   topics,
@@ -63,7 +64,7 @@ export function CatalogAdopted({
 
   const serviceTopics = topics.filter((topic) => topic.topic_type === "service");
   const landingZones = topics.filter((topic) => topic.topic_type === "landing-zone");
-  const guardrails = topics.filter((topic) => topic.topic_type === "guardrail-area");
+  const securityPolicies = topics.filter((topic) => topic.topic_type === "security-policy");
 
   return (
     <div className="flex flex-col gap-6">
@@ -73,14 +74,14 @@ export function CatalogAdopted({
             Catalog
           </h1>
           <p className="w-fit max-w-[60ch] bg-background text-[13.5px] leading-[1.55] text-muted-foreground">
-            Approved services, landing zones, and guardrail areas, with where they run and the
+            Approved services, landing zones, and security policies, with where they run and the
             authoritative sources behind them.
           </p>
         </header>
         <CatalogSearchField
           value={query}
           onChange={setQuery}
-          placeholder="Filter services, zones, guardrails…"
+          placeholder="Filter services, zones, policies…"
           className="h-10 w-full rounded-md shadow-none sm:max-w-[420px]"
         />
       </div>
@@ -100,10 +101,10 @@ export function CatalogAdopted({
             onSelect={() => setTab("landing-zones")}
           />
           <TypeTab
-            label="Guardrails"
-            count={guardrails.length}
-            active={tab === "guardrails"}
-            onSelect={() => setTab("guardrails")}
+            label="Security policies"
+            count={securityPolicies.length}
+            active={tab === "policies"}
+            onSelect={() => setTab("policies")}
           />
         </div>
         <div className="hidden shrink-0 pb-1 sm:block">
@@ -128,7 +129,7 @@ export function CatalogAdopted({
       </div>
 
       <div key={tab}>
-        <Await promise={zone} fallback={<WorkspaceSkeleton />}>
+        <DeferredRegion promise={zone} fallback={<WorkspaceSkeleton />} label="the catalog" retry>
           {(resolvedZone) => (
             <>
               {tab === "services" ? (
@@ -149,10 +150,10 @@ export function CatalogAdopted({
                   view={view}
                 />
               ) : null}
-              {tab === "guardrails" ? (
+              {tab === "policies" ? (
                 <TopicWorkspace
-                  type="guardrail-area"
-                  topics={guardrails}
+                  type="security-policy"
+                  topics={securityPolicies}
                   zone={resolvedZone}
                   query={query}
                   view={view}
@@ -160,7 +161,7 @@ export function CatalogAdopted({
               ) : null}
             </>
           )}
-        </Await>
+        </DeferredRegion>
       </div>
     </div>
   );
@@ -253,13 +254,13 @@ function capAvailStatus(
 const TYPE_NOUN: Record<Topic["topic_type"], string> = {
   service: "services",
   "landing-zone": "landing zones",
-  "guardrail-area": "guardrail areas",
+  "security-policy": "security policies",
 };
 
 const TYPE_COLUMN: Record<Topic["topic_type"], string> = {
   service: "Service",
   "landing-zone": "Landing zone",
-  "guardrail-area": "Guardrail area",
+  "security-policy": "Security policy",
 };
 
 const TOPIC_STATUS_LABEL: Record<Topic["status"], string> = {
@@ -605,8 +606,8 @@ function TableView({
 }) {
   const navigate = useNavigate();
   const open = (topicId: string) => {
-    if (type === "guardrail-area") {
-      void navigate({ to: "/guardrails/$guardrailId", params: { guardrailId: topicId } });
+    if (type === "security-policy") {
+      void navigate({ to: "/policies/$policyId", params: { policyId: topicId } });
     } else {
       void navigate({ to: "/catalog/$topicId", params: { topicId } });
     }
@@ -674,11 +675,11 @@ function TopicNameLink({ topic, type }: { topic: Topic; type: Topic["topic_type"
   const className =
     "truncate font-semibold text-foreground focus-visible:underline focus-visible:outline-none";
   const stop = (event: MouseEvent<HTMLAnchorElement>) => event.stopPropagation();
-  if (type === "guardrail-area") {
+  if (type === "security-policy") {
     return (
       <Link
-        to="/guardrails/$guardrailId"
-        params={{ guardrailId: topic.id }}
+        to="/policies/$policyId"
+        params={{ policyId: topic.id }}
         onClick={stop}
         className={className}
       >
@@ -1038,9 +1039,9 @@ function TopicCard({ topic }: { topic: Topic }) {
     </>
   );
 
-  if (topic.topic_type === "guardrail-area") {
+  if (topic.topic_type === "security-policy") {
     return (
-      <Link to="/guardrails/$guardrailId" params={{ guardrailId: topic.id }} className={CARD_BASE}>
+      <Link to="/policies/$policyId" params={{ policyId: topic.id }} className={CARD_BASE}>
         {content}
       </Link>
     );

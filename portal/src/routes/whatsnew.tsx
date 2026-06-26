@@ -12,7 +12,7 @@
  * Data: fictional, public-safe fixtures in `proto/whatsnew/data.ts`. Home's
  * "What changed" section links here; the freshest slice are Home's announcements.
  */
-import { Await, createFileRoute } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 
 import {
   changesFromAnnouncements,
@@ -26,6 +26,7 @@ import {
 import { announcementsQueryOptions, releaseNotesQueryOptions } from "@/api/queries";
 import { ReleasesSection } from "@/components/whatsnew/releases";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DeferredRegion } from "@/components/deferred-region";
 import { withDevLatency } from "@/lib/dev-latency";
 import { cn } from "@/lib/utils";
 
@@ -51,7 +52,12 @@ function WhatsNewRoute() {
   return (
     <div className="mx-auto flex w-full max-w-[1180px] flex-col gap-8 px-6 py-8 sm:px-8">
       <Masthead />
-      <Await promise={announcements} fallback={<WhatsNewBodySkeleton />}>
+      <DeferredRegion
+        promise={announcements}
+        fallback={<WhatsNewBodySkeleton />}
+        label="the dispatch"
+        retry
+      >
         {(announcements) => {
           const changes = changesFromAnnouncements(announcements);
           const lead = changes[0];
@@ -78,9 +84,14 @@ function WhatsNewRoute() {
 
                 {today.length > 0 ? <TodayDispatch items={today} /> : null}
 
-                <Await promise={releases} fallback={<ReleasesSkeleton />}>
+                <DeferredRegion
+                  promise={releases}
+                  fallback={<ReleasesSkeleton />}
+                  label="the release notes"
+                  retry
+                >
                   {(releases) => <ReleasesSection releases={releases} />}
-                </Await>
+                </DeferredRegion>
 
                 {earlierMonths.map(({ month, items }) => (
                   <section key={month} id={monthAnchor(month)} className="mt-8 scroll-mt-20">
@@ -105,7 +116,7 @@ function WhatsNewRoute() {
             </div>
           );
         }}
-      </Await>
+      </DeferredRegion>
     </div>
   );
 }
