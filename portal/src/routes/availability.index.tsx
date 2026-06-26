@@ -20,7 +20,7 @@ import {
 } from "react";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { IconMap, IconMapPin, IconTable } from "@tabler/icons-react";
+import { IconMapPin } from "@tabler/icons-react";
 
 import { availabilityQueryOptions } from "@/api/queries";
 import type { LandingZoneId, Location, LocationStatus } from "@/api/server/availability";
@@ -35,6 +35,7 @@ import {
   preloadAwsServiceIcons,
   preloadAzureServiceIcons,
 } from "@/components/explore/service-icon";
+import { LastFetchChip } from "@/components/last-fetch-chip";
 import { PageBody, PageHeader } from "@/components/page-section";
 import {
   Select,
@@ -44,7 +45,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { buildAvailabilityRowModel } from "@/lib/availability-row-model";
 import { cn } from "@/lib/utils";
 
@@ -62,8 +62,6 @@ export const Route = createFileRoute("/availability/")({
   },
   component: RegionsRoute,
 });
-
-type ViewMode = "map" | "matrix";
 
 const STATUS_OPTIONS: ReadonlyArray<{ value: LocationStatus | "all"; label: string }> = [
   { value: "all", label: "All statuses" },
@@ -98,7 +96,6 @@ type State = {
   zone: LandingZoneId;
   selectedLocationId: string | null;
   selectedServiceId: string | null;
-  view: ViewMode;
   statusFilter: LocationStatus | "all";
   domainFilter: string;
   serviceFilter: string;
@@ -109,7 +106,6 @@ type Action =
   | { type: "selectLocation"; value: string | null }
   | { type: "toggleLocation"; id: string }
   | { type: "toggleService"; id: string }
-  | { type: "setView"; value: ViewMode }
   | { type: "setStatus"; value: LocationStatus | "all" }
   | { type: "setDomain"; value: string }
   | { type: "setService"; value: string };
@@ -137,8 +133,6 @@ function reducer(state: State, action: Action): State {
         ...state,
         selectedServiceId: state.selectedServiceId === action.id ? null : action.id,
       };
-    case "setView":
-      return { ...state, view: action.value };
     case "setStatus":
       return { ...state, statusFilter: action.value, selectedServiceId: null };
     case "setDomain":
@@ -162,13 +156,13 @@ function RegionsRoute() {
 function RegionsContent() {
   const {
     data: { zones },
+    dataUpdatedAt,
   } = useSuspenseQuery(availabilityQueryOptions);
 
   const [state, dispatch] = useReducer(reducer, {
     zone: "aws",
     selectedLocationId: null,
     selectedServiceId: null,
-    view: "map",
     statusFilter: "all",
     domainFilter: "all",
     serviceFilter: "all",
@@ -254,7 +248,6 @@ function RegionsContent() {
     };
   }, [locations, services, state.statusFilter, state.domainFilter, state.serviceFilter]);
 
-  const selectLocation = (id: string | null) => dispatch({ type: "selectLocation", value: id });
   // Map / list / matrix-header clicks toggle: clicking the active region clears it.
   // Toggling lives in the reducer so the React Compiler keeps this handler
   // referentially stable — the matrix columns depend on it and must not rebuild
@@ -262,64 +255,52 @@ function RegionsContent() {
   const toggleLocation = (id: string) => dispatch({ type: "toggleLocation", id });
 
   return (
-    <PageBody width="wide" gap="compact" className="py-9">
+    <PageBody width="wide" gap="compact">
       <PageHeader
-        eyebrow="Availability"
-        title="Regions"
+        title="Availability"
         description="See where services run and check per-region operational status across your landing zones."
         actions={
-          <ZoneSwitcher
-            active={state.zone}
-            onChange={(value) => dispatch({ type: "setZone", value })}
-          />
+          <div className="flex flex-col items-end gap-1.5">
+            <LastFetchChip updatedAt={dataUpdatedAt} />
+            <ZoneSwitcher
+              active={state.zone}
+              onChange={(value) => dispatch({ type: "setZone", value })}
+            />
+          </div>
         }
-      />
-
-      <Controls
-        statusFilter={state.statusFilter}
-        onStatusChange={(value) => dispatch({ type: "setStatus", value })}
-        domainFilter={state.domainFilter}
-        onDomainChange={(value) => dispatch({ type: "setDomain", value })}
-        domainOptions={rowModel.domainOptions}
-        serviceFilter={state.serviceFilter}
-        onServiceChange={(value) => dispatch({ type: "setService", value })}
-        serviceOptions={services}
-        view={state.view}
-        onViewChange={(value) => dispatch({ type: "setView", value })}
       />
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px] xl:items-start">
         <div className="flex min-w-0 flex-col gap-4">
-          {state.view === "map" ? (
-            <section className="overflow-hidden rounded-xl border border-border bg-card">
-              <RegionGroups
-                locations={locations}
-                selectedId={state.selectedLocationId}
-                onSelect={toggleLocation}
-                healthById={healthById}
-              />
-              <RegionMap
-                className="rounded-none border-0"
-                locations={locations}
-                selectedId={state.selectedLocationId}
-                onSelect={toggleLocation}
-                healthById={healthById}
-                zoneName={zone.name}
-              />
-            </section>
-          ) : null}
+          <RegionGroups
+            locations={locations}
+            selectedId={state.selectedLocationId}
+            onSelect={toggleLocation}
+            healthById={healthById}
+          />
+          <section className="overflow-hidden rounded-xl border border-border bg-card">
+            <RegionMap
+              className="rounded-none border-0"
+              locations={locations}
+              selectedId={state.selectedLocationId}
+              onSelect={toggleLocation}
+              healthById={healthById}
+              zoneName={zone.name}
+            />
+          </section>
+
+          <Controls
+            statusFilter={state.statusFilter}
+            onStatusChange={(value) => dispatch({ type: "setStatus", value })}
+            domainFilter={state.domainFilter}
+            onDomainChange={(value) => dispatch({ type: "setDomain", value })}
+            domainOptions={rowModel.domainOptions}
+            serviceFilter={state.serviceFilter}
+            onServiceChange={(value) => dispatch({ type: "setService", value })}
+            serviceOptions={services}
+          />
 
           <section className="flex flex-col gap-3">
-            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-              <h2 className="text-lg font-bold tracking-[-0.02em] text-foreground">
-                Service availability
-              </h2>
-              <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                <LegendItem dotClass="bg-success" label="Available" />
-                <LegendItem dotClass="bg-warning" label="Limited" />
-                <LegendItem dotClass="bg-muted-foreground/30" label="Not available" />
-              </div>
-            </div>
             {matrixMounted ? (
               <MatrixView
                 provider={state.zone}
@@ -351,7 +332,6 @@ function RegionsContent() {
                 }
               }
               maintenance={MAINTENANCE[selected.id] ?? null}
-              onViewAll={() => selectLocation(null)}
             />
           ) : (
             <RegionDetailEmpty />
@@ -417,8 +397,6 @@ function Controls({
   serviceFilter,
   onServiceChange,
   serviceOptions,
-  view,
-  onViewChange,
 }: {
   statusFilter: LocationStatus | "all";
   onStatusChange: (value: LocationStatus | "all") => void;
@@ -428,8 +406,6 @@ function Controls({
   serviceFilter: string;
   onServiceChange: (value: string) => void;
   serviceOptions: ReadonlyArray<{ id: string; name: string }>;
-  view: ViewMode;
-  onViewChange: (view: ViewMode) => void;
 }) {
   return (
     <div className="flex flex-wrap items-end gap-x-4 gap-y-2 rounded-xl border border-border bg-card p-4">
@@ -438,7 +414,7 @@ function Controls({
           value={statusFilter}
           onValueChange={(value) => onStatusChange(value as LocationStatus | "all")}
         >
-          <SelectTrigger aria-label="Status" className="w-full min-w-[140px] text-xs">
+          <SelectTrigger aria-label="Status" className="w-full min-w-[120px] text-xs">
             <SelectValue>
               {(value: LocationStatus | "all") =>
                 STATUS_OPTIONS.find((option) => option.value === value)?.label ?? value
@@ -457,7 +433,7 @@ function Controls({
 
       <Field label="Domain" className="flex-1">
         <Select value={domainFilter} onValueChange={(value) => value && onDomainChange(value)}>
-          <SelectTrigger aria-label="Domain" className="w-full min-w-[140px] text-xs">
+          <SelectTrigger aria-label="Domain" className="w-full min-w-[120px] text-xs">
             <SelectValue>
               {(value: string) => (value === "all" ? "All domains" : value)}
             </SelectValue>
@@ -474,7 +450,7 @@ function Controls({
 
       <Field label="Service" className="flex-1">
         <Select value={serviceFilter} onValueChange={(value) => value && onServiceChange(value)}>
-          <SelectTrigger aria-label="Service" className="w-full min-w-[150px] text-xs">
+          <SelectTrigger aria-label="Service" className="w-full min-w-[130px] text-xs">
             <SelectValue>
               {(value: string) =>
                 value === "all"
@@ -493,37 +469,6 @@ function Controls({
           </SelectContent>
         </Select>
       </Field>
-
-      <div className="ml-auto">
-        <Field label="View">
-          <ToggleGroup
-            type="single"
-            value={view}
-            onValueChange={(value) => {
-              if (value === "map" || value === "matrix") onViewChange(value);
-            }}
-            size="sm"
-            spacing={1}
-            aria-label="View mode"
-            className="gap-0.5 rounded-lg bg-muted p-0.5"
-          >
-            <ToggleGroupItem
-              value="map"
-              className="rounded-md border-0 bg-transparent text-xs font-semibold aria-pressed:bg-background aria-pressed:shadow-sm"
-            >
-              <IconMap className="size-3.5" data-icon="inline-start" />
-              Map
-            </ToggleGroupItem>
-            <ToggleGroupItem
-              value="matrix"
-              className="rounded-md border-0 bg-transparent text-xs font-semibold aria-pressed:bg-background aria-pressed:shadow-sm"
-            >
-              <IconTable className="size-3.5" data-icon="inline-start" />
-              Matrix
-            </ToggleGroupItem>
-          </ToggleGroup>
-        </Field>
-      </div>
     </div>
   );
 }
@@ -586,20 +531,25 @@ function StickyAside({ children }: { children: React.ReactNode }) {
   );
 }
 
+// Macro-geographies (the AWS/Azure/GCP top-level grouping). Labelled by region,
+// not continent, so a South-American region never reads as "North America" nor a
+// Middle-East one as "Europe" — the bands span more than their namesake continent.
 const GROUP_BANDS: ReadonlyArray<{ label: string; min: number; max: number }> = [
-  { label: "North America", min: -180, max: -30 },
-  { label: "Europe", min: -30, max: 60 },
+  { label: "Americas", min: -180, max: -30 },
+  { label: "EMEA", min: -30, max: 60 },
   { label: "Asia Pacific", min: 60, max: 200 },
 ];
 
-const CARD_PIN: Record<RegionHealth, string> = {
-  operational: "text-success",
-  maintenance: "text-warning",
-  degraded: "text-critical",
-  expanding: "text-brand",
+// Health → chip dot colour (bg tokens, matching the Source-registry facet chips).
+const CHIP_DOT: Record<RegionHealth, string> = {
+  operational: "bg-success",
+  maintenance: "bg-warning",
+  degraded: "bg-critical",
+  expanding: "bg-brand",
 };
 
-/** Grouped region selector cards — the band at the top of the map frame. */
+/** Grouped region selector — labelled facet rows of region chips, styled after
+ *  the Source-registry Authority filter. */
 function RegionGroups({
   locations,
   selectedId,
@@ -618,41 +568,31 @@ function RegionGroups({
     ),
   })).filter((g) => g.regions.length > 0);
 
-  // Column widths follow each band's longitude span so the group headers sit
-  // roughly above their territory on the equirectangular map below.
-  const bandTemplate = groups
-    .map((g) => `${Math.min(g.max, 180) - Math.max(g.min, -180)}fr`)
-    .join(" ");
-
+  // One labelled facet row per macro-geography, chips packed left — sits on the
+  // transparent page grid (no card), mirroring the Source-registry facet filters.
   return (
-    <div
-      className="grid border-b border-border max-lg:divide-y max-lg:divide-border lg:[grid-template-columns:var(--bands)] lg:divide-x lg:divide-border"
-      style={{ "--bands": bandTemplate } as React.CSSProperties}
-    >
+    <div className="flex flex-col gap-1.5">
       {groups.map((group) => (
-        <div key={group.label} className="flex flex-col gap-2.5 px-3 py-3">
-          <h3 className="text-center text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+        <div key={group.label} className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
+          <span className="w-[88px] shrink-0 font-mono text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
             {group.label}
-          </h3>
-          {/* auto-fill keeps lone cards at track width instead of full-bleed. */}
-          <div className="grid gap-2 [grid-template-columns:repeat(auto-fill,minmax(132px,1fr))]">
-            {group.regions.map((region) => (
-              <RegionCard
-                key={region.id}
-                region={region}
-                health={healthById.get(region.id) ?? "operational"}
-                selected={region.id === selectedId}
-                onSelect={() => onSelect(region.id)}
-              />
-            ))}
-          </div>
+          </span>
+          {group.regions.map((region) => (
+            <RegionChip
+              key={region.id}
+              region={region}
+              health={healthById.get(region.id) ?? "operational"}
+              selected={region.id === selectedId}
+              onSelect={() => onSelect(region.id)}
+            />
+          ))}
         </div>
       ))}
     </div>
   );
 }
 
-function RegionCard({
+function RegionChip({
   region,
   health,
   selected,
@@ -668,39 +608,18 @@ function RegionCard({
       type="button"
       onClick={onSelect}
       aria-pressed={selected}
+      title={region.id}
       className={cn(
-        "flex items-start gap-2 rounded-lg border p-3 text-left transition-colors",
+        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[12px] transition-colors",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         selected
-          ? "border-primary bg-brand-tint/40"
-          : "border-border bg-card hover:border-border-strong",
+          ? "border-brand-ink/30 bg-brand-tint/60 font-semibold text-brand-ink"
+          : "border-border text-muted-foreground hover:border-border-strong hover:text-foreground",
       )}
     >
-      <IconMapPin
-        className={cn("mt-px size-4 shrink-0", selected ? "text-primary" : CARD_PIN[health])}
-        fill="currentColor"
-        stroke="var(--color-card)"
-        strokeWidth={1.5}
-        aria-hidden
-      />
-      <span className="min-w-0">
-        <span className="block text-[13px] font-semibold leading-tight text-foreground">
-          {regionLabel(region)}
-        </span>
-        <span className="mt-0.5 block font-mono text-[11px] text-muted-foreground">
-          {region.id}
-        </span>
-      </span>
+      <span aria-hidden className={cn("size-2 shrink-0 rounded-full", CHIP_DOT[health])} />
+      {regionLabel(region)}
     </button>
-  );
-}
-
-function LegendItem({ dotClass, label }: { dotClass: string; label: string }) {
-  return (
-    <span className="inline-flex items-center gap-1.5">
-      <span aria-hidden className={cn("size-2 rounded-full", dotClass)} />
-      {label}
-    </span>
   );
 }
 
@@ -724,18 +643,18 @@ function MatrixSkeleton() {
  */
 function AvailabilitySkeleton() {
   return (
-    <PageBody width="wide" gap="compact" className="py-9">
+    <PageBody width="wide" gap="compact">
       <PageHeader
-        eyebrow="Availability"
-        title="Regions"
+        title="Availability"
         description="See where services run and check per-region operational status across your landing zones."
         actions={<Skeleton className="h-9 w-[132px] rounded-lg" />}
       />
       <div aria-busy aria-label="Loading availability" className="flex flex-col gap-4">
-        <Skeleton className="h-9 w-full max-w-lg rounded-lg" />
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px] xl:items-start">
           <div className="flex min-w-0 flex-col gap-4">
+            <Skeleton className="h-[72px] w-full rounded-lg" />
             <Skeleton className="h-[260px] w-full rounded-xl" />
+            <Skeleton className="h-[84px] w-full rounded-xl" />
             <Skeleton className="min-h-[480px] w-full rounded-lg" />
           </div>
           <Skeleton className="min-h-[320px] w-full rounded-xl" />

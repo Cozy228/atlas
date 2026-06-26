@@ -19,10 +19,10 @@ export function ReleasesSection({ releases }: { releases: ReadonlyArray<Release>
   return (
     <section className="mt-8 flex flex-col gap-5 border-t-2 border-border-strong pt-6">
       <h2 className="flex items-baseline gap-3">
-        <span className="bg-background font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-foreground">
+        <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-foreground">
           Platform releases
         </span>
-        <span className="bg-background font-mono text-[10px] uppercase tracking-[0.06em] text-muted-foreground">
+        <span className="font-mono text-[10px] uppercase tracking-[0.06em] text-muted-foreground">
           From Confluence release notes
         </span>
       </h2>
@@ -54,14 +54,14 @@ function ReleaseBrief({ release }: { release: Release }) {
     <li className="flex flex-col gap-1 border-t border-border py-3 first:border-t-0 sm:first:border-t">
       <span className="flex items-center gap-2">
         <span aria-hidden className={cn("size-1.5 rounded-full", TONE_DOT.info)} />
-        <span className="bg-background font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
+        <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
           Release
         </span>
       </span>
-      <h4 className="w-fit bg-background text-[13.5px] font-bold tracking-[-0.01em] text-foreground">
+      <h4 className="w-fit text-[13.5px] font-bold tracking-[-0.01em] text-foreground">
         {friendlyDate(release.postedAt) ?? release.month ?? "Release"}
       </h4>
-      <p className="w-fit max-w-[44ch] bg-background text-[12px] leading-[1.5] text-muted-foreground">
+      <p className="w-fit max-w-[44ch] text-[12px] leading-[1.5] text-muted-foreground">
         {release.items.length} {release.items.length === 1 ? "change" : "changes"}
         {counts.length > 0
           ? ` · ${counts.map((c) => `${c.count} ${c.category.toLowerCase()}`).join(" · ")}`
@@ -70,7 +70,7 @@ function ReleaseBrief({ release }: { release: Release }) {
       <Link
         to="/releases/$releaseId"
         params={{ releaseId: release.id }}
-        className="flex w-fit items-center gap-1 bg-background text-[12.5px] font-semibold text-brand-ink hover:underline"
+        className="flex w-fit items-center gap-1 text-[12.5px] font-semibold text-brand-ink hover:underline"
       >
         View release
         <span aria-hidden>→</span>

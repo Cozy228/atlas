@@ -100,14 +100,14 @@ export function ProgressStrip({
           style={{ width: `${pct}%` }}
         />
       </div>
-      <span className="bg-background font-mono text-[11px] tabular-nums text-muted-foreground">
+      <span className="font-mono text-[11px] tabular-nums text-muted-foreground">
         {done} / {steps.length} steps
       </span>
       {done > 0 ? (
         <button
           type="button"
           onClick={progress.reset}
-          className="rounded-sm bg-background font-mono text-[10.5px] uppercase tracking-[0.05em] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="rounded-sm font-mono text-[10.5px] uppercase tracking-[0.05em] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           Reset
         </button>

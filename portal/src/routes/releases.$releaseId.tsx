@@ -7,7 +7,9 @@
  * request, DOP, Go/No-Go, Viva Engage — plus who to contact.
  */
 import { Link, createFileRoute, notFound } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 
+import { LastFetchChip } from "@/components/last-fetch-chip";
 import { releaseNotesQueryOptions } from "@/api/queries";
 import { categoryCounts } from "@/components/whatsnew/releases";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -49,13 +51,14 @@ export const Route = createFileRoute("/releases/$releaseId")({
 
 function ReleaseDetailRoute() {
   const { release, rail } = Route.useLoaderData();
+  const { dataUpdatedAt } = useQuery(releaseNotesQueryOptions);
   const categories = categoryCounts(release.items);
 
   return (
     <div className="mx-auto flex w-full max-w-[1180px] flex-col gap-8 px-6 py-8 sm:px-8">
       <Link
         to="/whatsnew"
-        className="w-fit bg-background font-mono text-[11px] uppercase tracking-[0.08em] text-muted-foreground hover:text-brand-ink"
+        className="w-fit font-mono text-[11px] uppercase tracking-[0.08em] text-muted-foreground hover:text-brand-ink"
       >
         ← What&rsquo;s New
       </Link>
@@ -64,13 +67,18 @@ function ReleaseDetailRoute() {
         <div className="flex items-center justify-between gap-4 border-b border-border pb-2 font-mono text-[10.5px] uppercase tracking-[0.14em] text-muted-foreground">
           <span className="tabular-nums">{release.postedAt ?? release.month}</span>
           <span className="hidden tracking-[0.2em] sm:inline">Platform release</span>
-          <span>{release.changeRequest ?? "Release"}</span>
+          <span className="flex items-center gap-3">
+            {dataUpdatedAt ? (
+              <LastFetchChip updatedAt={dataUpdatedAt} className="tracking-normal" />
+            ) : null}
+            <span>{release.changeRequest ?? "Release"}</span>
+          </span>
         </div>
         <div className="flex flex-col gap-1.5">
-          <h1 className="w-fit bg-background text-[2.75rem] font-bold leading-[0.95] tracking-[-0.04em] text-foreground">
+          <h1 className="w-fit text-[2.75rem] font-bold leading-[0.95] tracking-[-0.04em] text-foreground">
             {friendlyDate(release.postedAt) ?? release.month ?? "Release"}
           </h1>
-          <p className="w-fit max-w-[60ch] bg-background text-[13px] italic leading-[1.5] text-muted-foreground">
+          <p className="w-fit max-w-[60ch] text-[13px] italic leading-[1.5] text-muted-foreground">
             {release.items.length} {release.items.length === 1 ? "change" : "changes"} across{" "}
             {categories.map((c) => c.category.toLowerCase()).join(" and ")}
             {release.changeRequest ? `, change ${release.changeRequest}` : ""}.
@@ -105,7 +113,7 @@ function ReleaseDetailRoute() {
                           key={`${item.ticket ?? item.title}-${i}`}
                           className="flex items-baseline justify-between gap-4 border-t border-border py-2.5 first:border-t-0"
                         >
-                          <span className="bg-background text-[13px] leading-[1.5] text-foreground">
+                          <span className="text-[13px] leading-[1.5] text-foreground">
                             {item.title}
                           </span>
                           {item.ticket && r.jiraBase ? (
@@ -113,12 +121,12 @@ function ReleaseDetailRoute() {
                               href={`${r.jiraBase}/browse/${item.ticket}`}
                               target="_blank"
                               rel="noreferrer"
-                              className="shrink-0 bg-background font-mono text-[10.5px] tabular-nums text-brand-ink hover:underline"
+                              className="shrink-0 font-mono text-[10.5px] tabular-nums text-brand-ink hover:underline"
                             >
                               {item.ticket}
                             </a>
                           ) : item.ticket ? (
-                            <span className="shrink-0 bg-background font-mono text-[10.5px] tabular-nums text-muted-foreground">
+                            <span className="shrink-0 font-mono text-[10.5px] tabular-nums text-muted-foreground">
                               {item.ticket}
                             </span>
                           ) : null}
@@ -150,7 +158,7 @@ function ReleaseDetailRoute() {
                               rel="noreferrer"
                               className="group flex items-baseline justify-between gap-3 py-2"
                             >
-                              <span className="bg-background text-[12.5px] text-foreground group-hover:text-brand-ink">
+                              <span className="text-[12.5px] text-foreground group-hover:text-brand-ink">
                                 {resource.label}
                               </span>
                               <span
@@ -173,7 +181,7 @@ function ReleaseDetailRoute() {
 
                 {rail.support ? (
                   <RailModule label="Questions">
-                    <p className="bg-background text-[12px] leading-[1.6] text-muted-foreground">
+                    <p className="text-[12px] leading-[1.6] text-muted-foreground">
                       For questions or follow-up, reach the {rail.support}.
                     </p>
                   </RailModule>
@@ -184,7 +192,7 @@ function ReleaseDetailRoute() {
                     href={rail.link}
                     target="_blank"
                     rel="noreferrer"
-                    className="w-fit bg-background text-[12.5px] font-semibold text-brand-ink hover:underline"
+                    className="w-fit text-[12.5px] font-semibold text-brand-ink hover:underline"
                   >
                     Open release notes ↗
                   </a>
@@ -201,7 +209,7 @@ function ReleaseDetailRoute() {
 function RailModule({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <section className="flex flex-col gap-2.5">
-      <h2 className="w-fit border-b-2 border-border-strong bg-background pb-1.5 font-mono text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+      <h2 className="w-fit border-b-2 border-border-strong pb-1.5 font-mono text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
         {label}
       </h2>
       {children}

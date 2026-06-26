@@ -1,12 +1,8 @@
 import {
-  IconArrowRight,
-  IconBook2,
+  IconArrowUpRight,
   IconCalendarClock,
-  IconChevronRight,
   IconCircleCheck,
   IconMapPin,
-  IconShieldLock,
-  type Icon,
 } from "@tabler/icons-react";
 
 import type { Location } from "@/api/server/availability";
@@ -35,25 +31,16 @@ type RegionDetailProps = {
   health: RegionHealth;
   stats: RegionStats;
   maintenance?: RegionMaintenance | null;
-  /** "View all regions" — clears the selection so the full network shows again. */
-  onViewAll?: () => void;
   className?: string;
 };
 
-export function RegionDetail({
-  region,
-  health,
-  stats,
-  maintenance,
-  onViewAll,
-  className,
-}: RegionDetailProps) {
+export function RegionDetail({ region, health, stats, maintenance, className }: RegionDetailProps) {
   const profile = regionProfile(region.id);
   const share = stats.total > 0 ? Math.round((stats.available / stats.total) * 100) : 0;
 
   return (
     <aside
-      className={cn("flex flex-col gap-5 rounded-xl border border-border bg-card p-5", className)}
+      className={cn("flex flex-col gap-4 rounded-xl border border-border bg-card p-5", className)}
     >
       <header className="flex flex-col gap-3">
         <div className="flex items-center justify-between gap-2">
@@ -75,22 +62,22 @@ export function RegionDetail({
             </h3>
             <p className="font-mono text-xs text-muted-foreground">{region.id}</p>
           </div>
-        </div>
-        <div className="flex flex-col gap-0.5">
-          <span className="inline-flex items-center gap-2 text-[13px] font-semibold text-foreground">
-            <span aria-hidden className={cn("size-2 rounded-full", HEALTH_DOT[health])} />
-            {HEALTH_LABEL[health]}
-          </span>
-          <span className="pl-4 text-xs text-muted-foreground">
-            {HEALTH_STATEMENT[health]} · {profile.uptime}% uptime (30d)
-          </span>
+          {/* Status beside the title, with uptime as a quiet second line below it. */}
+          <div className="flex shrink-0 flex-col items-end gap-0.5">
+            <span className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-foreground">
+              <span aria-hidden className={cn("size-2 rounded-full", HEALTH_DOT[health])} />
+              {HEALTH_LABEL[health]}
+            </span>
+            <span className="text-[11px] tabular-nums text-muted-foreground">
+              {profile.uptime}% uptime
+            </span>
+          </div>
         </div>
       </header>
 
-      <section className="border-t border-border pt-4">
+      <section className="border-t border-border pt-3.5">
         <h4 className="text-[13px] font-bold tracking-[-0.01em] text-foreground">Region details</h4>
         <dl className="mt-3 flex flex-col gap-2">
-          <InfoRow label="Region code" value={region.id} mono />
           <InfoRow label="Location" value={region.sub} />
           <InfoRow
             label="Type"
@@ -101,7 +88,7 @@ export function RegionDetail({
         </dl>
       </section>
 
-      <section className="border-t border-border pt-4">
+      <section className="border-t border-border pt-3.5">
         <div className="flex items-baseline justify-between">
           <h4 className="text-[13px] font-bold tracking-[-0.01em] text-foreground">
             Available services
@@ -122,14 +109,14 @@ export function RegionDetail({
         </div>
       </section>
 
-      <section className="border-t border-border pt-4">
+      <section className="border-t border-border pt-3.5">
         <h4 className="text-[13px] font-bold tracking-[-0.01em] text-foreground">
           Scheduled maintenance
         </h4>
         {maintenance ? (
-          <div className="mt-3 flex gap-3 rounded-lg border border-warning/30 bg-warning/8 p-3">
+          <div className="mt-2.5 flex gap-2.5 rounded-lg border border-warning/30 bg-warning/8 p-2.5">
             <IconCalendarClock
-              className="size-4 shrink-0 text-warning-ink"
+              className="mt-px size-4 shrink-0 text-warning-ink"
               stroke={1.75}
               aria-hidden
             />
@@ -143,7 +130,7 @@ export function RegionDetail({
             </div>
           </div>
         ) : (
-          <div className="mt-3 flex items-center gap-2.5 rounded-lg border border-border bg-muted/40 p-3">
+          <div className="mt-2.5 flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-2.5 py-2">
             <IconCircleCheck
               className="size-4 shrink-0 text-success-ink"
               stroke={1.75}
@@ -154,76 +141,32 @@ export function RegionDetail({
         )}
       </section>
 
-      <section className="border-t border-border pt-4">
+      <section className="border-t border-border pt-3.5">
         <h4 className="text-[13px] font-bold tracking-[-0.01em] text-foreground">Helpful links</h4>
-        <ul className="mt-3 flex flex-col gap-2">
-          <HelpfulLink
-            icon={IconBook2}
-            title="Region guide"
-            description="Learn about endpoints and features."
-          />
-          <HelpfulLink
-            icon={IconShieldLock}
-            title="Data residency"
-            description="Understand data location and compliance."
-          />
+        <ul className="mt-2 flex flex-col gap-1.5">
+          <HelpfulLink title="Region guide" />
+          <HelpfulLink title="Data residency" />
         </ul>
-      </section>
-
-      <section className="border-t border-border pt-4">
-        <button
-          type="button"
-          onClick={onViewAll}
-          className={cn(
-            "inline-flex items-center gap-1.5 text-[13px] font-semibold text-primary transition-colors",
-            "hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-          )}
-        >
-          View all regions
-          <IconArrowRight className="size-3.5" stroke={2} aria-hidden />
-        </button>
       </section>
     </aside>
   );
 }
 
 /** Placeholder destination — the row is wired to a real guide later. */
-function HelpfulLink({
-  icon: LinkIcon,
-  title,
-  description,
-}: {
-  icon: Icon;
-  title: string;
-  description: string;
-}) {
+function HelpfulLink({ title }: { title: string }) {
   return (
     <li>
       <button
         type="button"
         className={cn(
-          "group flex w-full items-center gap-3 rounded-lg border border-border p-3 text-left transition-colors",
-          "hover:border-border-strong hover:bg-muted/40",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          "group inline-flex items-center gap-1 text-[13px] font-medium text-primary transition-colors",
+          "hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         )}
       >
-        <span
+        {title}
+        <IconArrowUpRight
           aria-hidden
-          className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand-tint text-brand-ink"
-        >
-          <LinkIcon className="size-4" stroke={1.75} />
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block text-[13px] font-semibold leading-tight text-foreground">
-            {title}
-          </span>
-          <span className="mt-0.5 block text-xs leading-[1.4] text-muted-foreground">
-            {description}
-          </span>
-        </span>
-        <IconChevronRight
-          aria-hidden
-          className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5"
+          className="size-3.5 shrink-0 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
         />
       </button>
     </li>
@@ -237,20 +180,11 @@ const HEALTH_DOT: Record<RegionHealth, string> = {
   expanding: "bg-brand",
 };
 
-const HEALTH_STATEMENT: Record<RegionHealth, string> = {
-  operational: "All systems operational",
-  maintenance: "Maintenance in progress",
-  degraded: "Degraded performance",
-  expanding: "Capacity expanding",
-};
-
-function InfoRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+function InfoRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-baseline justify-between gap-3 text-[13px]">
       <dt className="text-muted-foreground">{label}</dt>
-      <dd className={cn("text-right font-medium text-foreground", mono && "font-mono text-xs")}>
-        {value}
-      </dd>
+      <dd className="text-right font-medium text-foreground">{value}</dd>
     </div>
   );
 }

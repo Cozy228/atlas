@@ -31,7 +31,7 @@ export function CommandBlock({ command, label }: { command: string; label?: stri
   return (
     <div className="flex flex-col gap-1.5">
       {label ? (
-        <span className="w-fit bg-background font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+        <span className="w-fit font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
           {label}
         </span>
       ) : null}

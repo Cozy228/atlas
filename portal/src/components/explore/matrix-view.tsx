@@ -168,7 +168,7 @@ function DomainRows({
         <TableCell
           colSpan={totalCols}
           className={cn(
-            "border-b border-border bg-background px-3 py-2.5",
+            "border-b border-border px-3 py-2.5",
             "font-mono text-xs font-bold uppercase tracking-[0.04em] text-muted-foreground",
           )}
         >

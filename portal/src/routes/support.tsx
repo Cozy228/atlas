@@ -106,13 +106,13 @@ function SupportRoute() {
   return (
     <div className="mx-auto flex w-full max-w-[1180px] flex-col gap-8 px-6 py-12 sm:px-8">
       <header className="flex flex-col gap-2.5">
-        <span className="w-fit bg-background font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+        <span className="w-fit font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
           Reach a team
         </span>
-        <h1 className="w-fit max-w-[22ch] bg-background text-[2rem] font-bold leading-[1.1] tracking-[-0.03em] text-foreground">
+        <h1 className="w-fit max-w-[22ch] text-[2rem] font-bold leading-[1.1] tracking-[-0.03em] text-foreground">
           Find the team that owns it
         </h1>
-        <p className="w-fit max-w-[58ch] bg-background text-[14px] leading-[1.55] text-muted-foreground">
+        <p className="w-fit max-w-[58ch] text-[14px] leading-[1.55] text-muted-foreground">
           Ask Atlas answers most questions with citations — when you need a human, here&rsquo;s who
           owns each part of the platform and how to reach them.
         </p>
@@ -155,7 +155,7 @@ function SupportRoute() {
         aria-label="How Ask Atlas behaves"
         className="flex flex-col gap-4 border-t border-border pt-6"
       >
-        <h2 className="w-fit bg-background font-mono text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+        <h2 className="w-fit font-mono text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
           How Ask Atlas behaves
         </h2>
         <div className="grid gap-5 sm:grid-cols-3">
@@ -165,11 +165,9 @@ function SupportRoute() {
               <div key={rule.title} className="flex flex-col gap-1.5">
                 <span className="flex items-center gap-2">
                   <RuleIcon aria-hidden className="size-4 shrink-0 text-muted-foreground" />
-                  <span className="bg-background text-[13px] font-bold text-foreground">
-                    {rule.title}
-                  </span>
+                  <span className="text-[13px] font-bold text-foreground">{rule.title}</span>
                 </span>
-                <p className="w-fit bg-background text-[12.5px] leading-[1.5] text-muted-foreground">
+                <p className="w-fit text-[12.5px] leading-[1.5] text-muted-foreground">
                   {rule.copy}
                 </p>
               </div>

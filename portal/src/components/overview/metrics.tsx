@@ -197,10 +197,8 @@ export function DashHeader({ lede }: { lede: string }) {
   return (
     <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
       <div className="flex flex-col gap-1.5">
-        <h1 className="w-fit bg-background text-2xl font-bold tracking-[-0.02em] text-foreground">
-          Operations
-        </h1>
-        <p className="w-fit max-w-[60ch] bg-background text-[13.5px] leading-[1.55] text-muted-foreground">
+        <h1 className="w-fit text-2xl font-bold tracking-[-0.02em] text-foreground">Operations</h1>
+        <p className="w-fit max-w-[60ch] text-[13.5px] leading-[1.55] text-muted-foreground">
           {lede}
         </p>
       </div>

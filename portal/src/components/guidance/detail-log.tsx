@@ -72,7 +72,7 @@ export function GuidanceDetailLog({
     <div className="mx-auto flex w-full max-w-[860px] flex-col gap-8">
       <Link
         to="/guidance"
-        className="inline-flex w-fit items-center gap-1.5 bg-background text-[13px] font-semibold text-muted-foreground hover:text-brand-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="inline-flex w-fit items-center gap-1.5 text-[13px] font-semibold text-muted-foreground hover:text-brand-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <IconArrowLeft aria-hidden className="size-3.5" />
         All guidance
@@ -80,7 +80,7 @@ export function GuidanceDetailLog({
 
       <header className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="bg-background font-mono text-[11px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">
+          <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">
             {guidance.scenario.replace(/_/g, " ")}
           </span>
           <span className="rounded-[2px] border border-border-strong px-1.5 py-0.5 font-mono text-[10.5px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">
@@ -88,10 +88,10 @@ export function GuidanceDetailLog({
           </span>
           <GuidanceStatusBadge status={guidance.status} />
         </div>
-        <h1 className="w-fit bg-background text-[1.75rem] font-bold leading-[1.15] tracking-[-0.025em] text-foreground">
+        <h1 className="w-fit text-[1.75rem] font-bold leading-[1.15] tracking-[-0.025em] text-foreground">
           {guidance.title}
         </h1>
-        <p className="w-fit max-w-[64ch] bg-background text-[14px] leading-[1.6] text-muted-foreground">
+        <p className="w-fit max-w-[64ch] text-[14px] leading-[1.6] text-muted-foreground">
           {guidance.objective}
         </p>
         <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
@@ -198,19 +198,19 @@ function Station({
         ) : (
           <>
             <div className="flex flex-col gap-1.5 pt-0.5">
-              <span className="bg-background font-mono text-[10.5px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">
+              <span className="font-mono text-[10.5px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">
                 {step.marker ? step.marker.replace("_", " ") : step.kind}
               </span>
-              <h2 className="w-fit bg-background text-[1.0625rem] font-bold tracking-[-0.015em] text-foreground">
+              <h2 className="w-fit text-[1.0625rem] font-bold tracking-[-0.015em] text-foreground">
                 {step.title}
               </h2>
               {step.description ? (
-                <p className="w-fit max-w-[62ch] bg-background text-[13.5px] leading-[1.55] text-muted-foreground">
+                <p className="w-fit max-w-[62ch] text-[13.5px] leading-[1.55] text-muted-foreground">
                   {step.description}
                 </p>
               ) : null}
               {step.why ? (
-                <p className="w-fit max-w-[62ch] bg-background text-[12.5px] leading-[1.55] text-muted-foreground">
+                <p className="w-fit max-w-[62ch] text-[12.5px] leading-[1.55] text-muted-foreground">
                   <span className="font-semibold text-foreground/80">Why it matters: </span>
                   {step.why}
                 </p>

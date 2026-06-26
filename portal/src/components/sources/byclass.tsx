@@ -206,14 +206,14 @@ export function SourcesByClass({ sources }: { sources: ReadonlyArray<Source> }) 
               ) : null}
               <h2
                 className={cn(
-                  "bg-background text-[1.0625rem] font-bold tracking-[-0.015em] text-foreground",
+                  "text-[1.0625rem] font-bold tracking-[-0.015em] text-foreground",
                   axis === "authority" && "capitalize",
                   axis === "steward" && "font-mono text-[15px]",
                 )}
               >
                 {group.label}
               </h2>
-              <span className="ml-auto bg-background font-mono text-[11px] tabular-nums text-muted-foreground">
+              <span className="ml-auto font-mono text-[11px] tabular-nums text-muted-foreground">
                 {group.count}
               </span>
             </div>
@@ -234,10 +234,8 @@ function SubGroup({ label, items }: { label: string; items: ReadonlyArray<Source
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-baseline gap-2 border-b border-border pb-1.5">
-        <h3 className="bg-background text-[12.5px] font-semibold tracking-[-0.005em] text-foreground">
-          {label}
-        </h3>
-        <span className="ml-auto bg-background font-mono text-[10px] tabular-nums text-muted-foreground">
+        <h3 className="text-[12.5px] font-semibold tracking-[-0.005em] text-foreground">{label}</h3>
+        <span className="ml-auto font-mono text-[10px] tabular-nums text-muted-foreground">
           {items.length}
         </span>
       </div>
