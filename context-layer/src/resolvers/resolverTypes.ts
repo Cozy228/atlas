@@ -67,7 +67,7 @@ export type ResolutionContext = {
 /**
  * Default context for callers that do not supply one (existing in-process
  * callers and tests). No token means the live providers defer to the offline
- * pilot map; `globalThis.fetch` is only used when a live provider is reached.
+ * in-memory map; `globalThis.fetch` is only used when a live provider is reached.
  */
 export function offlineResolutionContext(): ResolutionContext {
   const runtime = globalThis as typeof globalThis & { fetch?: FetchLike };

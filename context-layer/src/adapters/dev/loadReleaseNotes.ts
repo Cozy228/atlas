@@ -1,9 +1,9 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parse } from "yaml";
 
-import { resolveDataDir } from "../dataDir";
-import type { Release, ReleaseItem, ReleaseResource } from "./parseReleaseNotes";
+import { resolveDataDir } from "./dataDir";
+import type { Release, ReleaseItem, ReleaseResource } from "../../releaseNotes/parseReleaseNotes";
 
 /**
  * Load the releases from the newsletter manifest (`data/newsletter.yaml`) into
@@ -36,6 +36,10 @@ type RawRelease = {
 };
 
 export function loadReleaseNotes(dir: string = RELEASE_NOTES_DATA_DIR): Release[] {
+  // Honest-gap: no newsletter manifest present → no releases, rather than a crash.
+  if (!existsSync(join(dir, "newsletter.yaml"))) {
+    return [];
+  }
   const parsed = parse(readFileSync(join(dir, "newsletter.yaml"), "utf8")) as {
     releases?: RawRelease[];
   };

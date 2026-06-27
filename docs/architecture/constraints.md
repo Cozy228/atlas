@@ -34,7 +34,7 @@ Rules that AI must follow when implementing the Atlas design. Check every code c
 
 13. `authority_level` is an enum with exactly these values: `authoritative`, `reference`, `example`, `draft`, `deprecated`. Do not add new levels without updating this constraint.
 
-14. `topic_type` is an enum with exactly these values: `service`, `landing-zone`, `guardrail-area`. Do not add new types without updating this constraint.
+14. `topic_type` is an enum with exactly these values: `service`, `landing-zone`, `security-policy`. Do not add new types without updating this constraint.
 
 15. `source_class` is an enum with exactly these values in V1: `terraform-module`, `confluence-page`, `policy-document`. Adding a new source class requires a corresponding anchor strategy implementation. Do not add a source class enum value without implementing its anchor resolver.
 

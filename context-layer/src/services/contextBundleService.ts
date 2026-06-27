@@ -10,32 +10,19 @@ import type {
   TopicDiscoveryResponse,
   ResourceContextRecord,
 } from "@atlas/schema";
-import { DynamoFeedbackRepository } from "../repositories/dynamoFeedbackRepository";
-import {
-  InMemoryFeedbackRepository,
-  type FeedbackRepository,
-} from "../repositories/feedbackRepository";
-import {
-  loadPilotRegistry,
-  type PilotRegistry,
-  type PilotRegistrySeed,
-} from "../seeds/pilotRegistry";
-import { DATA_DIR, loadRegistryFromManifests } from "../seeds/loadRegistryFromManifests";
-import { availabilityMatrixResolver } from "../resolvers/availabilityMatrixResolver";
-import { confluencePageResolver } from "../resolvers/confluencePageResolver";
-import { policyDocumentResolver } from "../resolvers/policyDocumentResolver";
-import { createResolverRegistry, type ResolverRegistry } from "../resolvers/resolverRegistry";
+import type { FeedbackRepository } from "../repositories/feedbackRepository";
+import type { Registry } from "../registry/registry";
+import type { ResolverRegistry } from "../resolvers/resolverRegistry";
 import { offlineResolutionContext, type ResolutionContext } from "../resolvers/resolverTypes";
 import type { SourceContentProvider } from "../resolvers/sourceContentProvider";
-import { terraformModuleResolver } from "../resolvers/terraformModuleResolver";
-import { createPilotSourceContentProvider } from "../sourceContent/pilotSourceContent";
-import { loadResources } from "../resources/loadResources";
+import type { AvailabilityProvider } from "./availabilityProvider";
 import { isStale } from "./freshness";
 
 export type ContextBundleService = {
-  registry: PilotRegistry;
+  registry: Registry;
   resolvers: ResolverRegistry;
   contentProvider: SourceContentProvider;
+  availabilityProvider: AvailabilityProvider;
   /** Kind-first resource projection records (agent-facing resource surface). */
   resources: ResourceContextRecord[];
   now: Date;
@@ -44,65 +31,15 @@ export type ContextBundleService = {
 export type ContextBundleServiceOptions = {
   env?: Record<string, string | undefined>;
   feedbackRepository?: FeedbackRepository;
-  /** Injection seam: override the manifest-loaded registry seed (tests). */
-  registrySeed?: PilotRegistrySeed;
+  /** Injection seam: supply an assembled registry port (tests / adapters). */
+  registry?: Registry;
+  /** Injection seam: supply a source-content provider port (tests / adapters). */
+  contentProvider?: SourceContentProvider;
+  /** Injection seam: supply an availability provider port (tests / adapters). */
+  availabilityProvider?: AvailabilityProvider;
   /** Injection seam: override the manifest-loaded resource records (tests). */
   resources?: ResourceContextRecord[];
 };
-
-// The default registry now comes from the `data/*.yaml` manifest control plane.
-// The loader reads + validates the filesystem, so we memoize it: the routes
-// build a fresh service per request and must not re-read/parse YAML each time.
-let cachedRegistrySeed: PilotRegistrySeed | undefined;
-let cachedResources: ResourceContextRecord[] | undefined;
-
-function getDefaultRegistrySeed(): PilotRegistrySeed {
-  return (cachedRegistrySeed ??= loadRegistryFromManifests(DATA_DIR));
-}
-
-function getDefaultResources(): ResourceContextRecord[] {
-  return (cachedResources ??= loadResources(DATA_DIR));
-}
-
-export function createDefaultContextBundleService(
-  options: ContextBundleServiceOptions = {},
-): ContextBundleService {
-  const seed = options.registrySeed ?? getDefaultRegistrySeed();
-  const feedbackRepository =
-    options.feedbackRepository ??
-    createFeedbackRepository(options.env ?? readProcessEnv(), seed.feedback);
-
-  return {
-    registry: loadPilotRegistry(seed, { feedback: feedbackRepository }),
-    resolvers: createResolverRegistry([
-      terraformModuleResolver,
-      confluencePageResolver,
-      policyDocumentResolver,
-      availabilityMatrixResolver,
-    ]),
-    contentProvider: createPilotSourceContentProvider(),
-    resources: options.resources ?? getDefaultResources(),
-    now: new Date(),
-  };
-}
-
-export function createFeedbackRepository(
-  env: Record<string, string | undefined>,
-  feedback?: PilotRegistrySeed["feedback"],
-): FeedbackRepository {
-  const tableName = env.ATLAS_FEEDBACK_TABLE;
-  if (tableName) {
-    return new DynamoFeedbackRepository({ tableName });
-  }
-  return new InMemoryFeedbackRepository(feedback ?? getDefaultRegistrySeed().feedback);
-}
-
-function readProcessEnv(): Record<string, string | undefined> {
-  const processLike = globalThis as typeof globalThis & {
-    process?: { env?: Record<string, string | undefined> };
-  };
-  return processLike.process?.env ?? {};
-}
 
 export async function buildContextBundle(
   service: ContextBundleService,

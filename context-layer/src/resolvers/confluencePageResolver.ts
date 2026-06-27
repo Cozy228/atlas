@@ -6,7 +6,7 @@ export const confluencePageResolver: AnchorResolver = {
   sourceClass: "confluence-page",
   async resolve(request) {
     // Live/offline branch lives here. Token order: caller's Bearer, else the
-    // narrow-scoped service token, else defer to the offline pilot provider.
+    // narrow-scoped service token, else defer to the offline in-memory provider.
     const env = readProcessEnv();
     const token = request.ctx.token ?? env.ATLAS_CONFLUENCE_TOKEN;
     const baseUrl = env.ATLAS_CONFLUENCE_BASE_URL;

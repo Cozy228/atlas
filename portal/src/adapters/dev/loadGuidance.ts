@@ -10,10 +10,10 @@
  *
  * Kept free of `@tanstack/react-start` so cross-package consumers (e.g.
  * @atlas/acceptance) can load guidance through the package barrel without
- * pulling the server-fn runtime; the `fetchGuidance` server fn in `./guidance`
- * wraps this.
+ * pulling the server-fn runtime; the `fetchGuidance` server fn in
+ * `../../api/server/guidance` wraps this.
  */
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parse } from "yaml";
 import { resolveDataDir } from "@atlas/context-layer";
@@ -61,6 +61,10 @@ function toGuidance(raw: Record<string, unknown>): Guidance {
 
 /** Read + validate every guidance manifest, in the display-order contract. */
 export function loadGuidance(dir: string = join(resolveDataDir(), "guidance")): Guidance[] {
+  // Honest-gap: no guidance dir present → no guidance, rather than a crash.
+  if (!existsSync(dir)) {
+    return [];
+  }
   const byId = new Map<string, Guidance>(
     readdirSync(dir)
       .filter((file) => file.endsWith(".yaml"))

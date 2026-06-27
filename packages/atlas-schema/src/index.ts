@@ -482,7 +482,7 @@ export type GuidanceResponse = z.infer<typeof GuidanceResponseSchema>;
  *   axis 2 — reasons via warnings[].code / missingSections[].code (warningCodes)
  * -------------------------------------------------------------------------- */
 
-export const resourceKinds = ["service", "guardrail"] as const;
+export const resourceKinds = ["service", "guardrail", "landing-zone"] as const;
 export const sectionStatuses = ["available", "partial", "unresolved"] as const;
 
 // Coarse, stable Section vocabulary (proposal §5.2.1). The union spans every
@@ -505,6 +505,10 @@ export const sectionIds = [
   "scope",
   "enforced-controls",
   "exceptions",
+  // landing-zone kind — environment/account baseline (its other sections reuse ids above)
+  "environments",
+  "baseline-controls",
+  "lifecycle",
 ] as const;
 
 export const ResourceKindSchema = z.enum(resourceKinds);
@@ -608,6 +612,20 @@ export const ResourceContextRecordSchema = z
     provider: z.string().min(1).optional(),
     name: z.string().min(1),
     aliases: z.array(z.string().min(1)),
+    // Identity / presentation metadata absorbed onto the Resource (ADR-0015 §2),
+    // migrated off the Topic (these fields reuse TopicSchema's shapes). Optional
+    // during migration; 15a tightens them to required once every Topic's metadata
+    // has moved across. A Facet-only Topic has no Resource, so it never needs them.
+    category: z.string().min(1).optional(),
+    status: TopicStatusSchema.optional(),
+    description: z.string().min(1).optional(),
+    owner_team: z.string().min(1).optional(),
+    support_channel: z.string().min(1).optional(),
+    entry_tools: z.array(EntryToolSchema).optional(),
+    // Facet tags — which Topics (now facets) this Resource belongs to, by id
+    // reference only (ADR-0015 §3). The facet's labeled metadata stays on the
+    // Topic record; the Resource just points at it.
+    topics: z.array(z.string().min(1)).optional(),
     sections: z.record(z.string(), z.array(ResourceSectionBindingSchema).min(1)),
   })
   .strict();

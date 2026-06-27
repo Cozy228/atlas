@@ -2,8 +2,8 @@
  * What's New broadsheet model.
  *
  * The broadsheet renders the newsletter's standalone **announcements** (the
- * single source — `data/newsletter.yaml`, loaded via the announcements
- * feed), mapped here into the `Change` view-model the layout reads. Formal
+ * single newsletter source, loaded via the announcements feed), mapped here
+ * into the `Change` view-model the layout reads. Formal
  * releases are rendered separately by `ReleasesSection`. No fixtures live here
  * anymore; `changesFromAnnouncements` is the only producer.
  */

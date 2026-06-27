@@ -116,6 +116,61 @@ const GUARDRAIL_SECTIONS: SectionDef[] = [
   },
 ];
 
+const LANDING_ZONE_SECTIONS: SectionDef[] = [
+  {
+    id: "overview",
+    description: "What this landing zone is and the workloads it is intended for.",
+    exampleQuestions: ["What is this landing zone for?", "Which workloads belong here?"],
+  },
+  {
+    id: "scope",
+    description: "Which teams and workloads should use this landing zone, and its boundaries.",
+    exampleQuestions: [
+      "Should my workload use this landing zone?",
+      "What is in scope for this zone?",
+    ],
+  },
+  {
+    id: "environments",
+    description:
+      "The account and environment structure this zone provisions (e.g. dev/staging/prod, account layout).",
+    exampleQuestions: ["What environments does this zone provide?", "How are accounts structured?"],
+  },
+  {
+    id: "baseline-controls",
+    description: "The guardrails and controls built into this zone by default.",
+    exampleQuestions: [
+      "What controls are enforced in this zone?",
+      "What guardrails come built in?",
+    ],
+  },
+  {
+    id: "network",
+    description: "The zone's network topology and private-connectivity baseline.",
+    exampleQuestions: ["What is the network setup?", "How is private connectivity handled?"],
+  },
+  {
+    id: "compliance",
+    description: "Compliance scope and regulated-workload posture of this zone.",
+    exampleQuestions: ["Is this zone approved for regulated workloads?"],
+  },
+  {
+    id: "lifecycle",
+    description: "How to request or provision the zone, and any expiration or teardown policy.",
+    exampleQuestions: ["How do I get a landing zone?", "Does this zone expire?"],
+  },
+  {
+    id: "guidance",
+    description: "Adoption guidance and recommended patterns for this zone.",
+    exampleQuestions: ["How should my team onboard to this zone?"],
+  },
+  {
+    id: "sources",
+    description: "The registered Sources Atlas projects this zone from.",
+    exampleQuestions: ["Where does this information come from?"],
+  },
+];
+
 export const resourceKindRegistry: Record<ResourceKind, ResourceKindDef> = {
   service: {
     kind: "service",
@@ -129,6 +184,13 @@ export const resourceKindRegistry: Record<ResourceKind, ResourceKindDef> = {
     label: "Guardrail",
     description: "A governance guardrail enforcing controls across workloads.",
     sections: GUARDRAIL_SECTIONS,
+  },
+  "landing-zone": {
+    kind: "landing-zone",
+    label: "Landing zone",
+    description:
+      "A pre-configured, governed cloud environment baseline (e.g. landing-zone/central): account structure, baseline controls, and network.",
+    sections: LANDING_ZONE_SECTIONS,
   },
 };
 

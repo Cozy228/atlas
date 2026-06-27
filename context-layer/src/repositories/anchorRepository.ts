@@ -1,6 +1,12 @@
 import { AnchorSchema, type Anchor } from "@atlas/schema";
 
-export class InMemoryAnchorRepository {
+export type AnchorRepository = {
+  getById(id: string): Anchor | undefined;
+  list(): Anchor[];
+  findBySourceId(sourceId: string): Anchor[];
+};
+
+export class InMemoryAnchorRepository implements AnchorRepository {
   private readonly anchors = new Map<string, Anchor>();
 
   constructor(anchors: unknown[] = []) {

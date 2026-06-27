@@ -124,7 +124,7 @@ A Topic is what users look for — a service, a landing zone, or a guardrail are
 |---|---|---|
 | id | string | Stable unique identifier |
 | name | string | Display name (e.g. "AWS Textract", "Central Landing Zone") |
-| topic_type | enum | `service` / `landing-zone` / `guardrail-area` |
+| topic_type | enum | `service` / `landing-zone` / `security-policy` |
 | category | string | Domain classification (e.g. `ai-ml`, `compute`, `network`, `security`) |
 | status | enum | `active` / `deprecated` / `planned` |
 | description | string | One-line summary |
@@ -181,7 +181,7 @@ Topic: AWS Textract (service)
   ├── Source: textract-security-policy  (authority: security-guardrail, level: authoritative)
   └── Source: textract-arch-guidance    (authority: reference-guidance, level: reference)
 
-Topic: S3 Guardrails (guardrail-area)
+Topic: S3 Guardrails (security-policy)
   ├── Source: s3-policy-doc             (authority: security-guardrail, level: authoritative)
   ├── Source: textract-security-policy  (authority: security-guardrail, level: authoritative)  ← shared
   └── Source: s3-module-readme          (authority: module-usage, level: authoritative)

@@ -1,9 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { ResourceContextRecord } from "@atlas/schema";
-import {
-  createDefaultContextBundleService,
-  type ContextBundleService,
-} from "../services/contextBundleService";
+import { createDefaultContextBundleService } from "../composition";
+import type { ContextBundleService } from "../services/contextBundleService";
 import { resourceKindRegistry } from "./resourceKindRegistry";
 import {
   getResourceContext,

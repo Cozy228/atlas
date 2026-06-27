@@ -2,8 +2,8 @@
  * Newsletter announcements projection for What's New / Home.
  *
  * Server-only: reads the standalone announcements from the same newsletter
- * manifest as the releases (`data/newsletter.yaml`) through the Context
- * Layer loader — one source, two entry kinds (releases + announcements).
+ * manifest as the releases, through the Context Layer loader — one source, two
+ * entry kinds (releases + announcements).
  */
 import { createServerFn } from "@tanstack/react-start";
 import { loadAnnouncements, type Announcement } from "@atlas/context-layer";

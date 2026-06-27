@@ -2,11 +2,9 @@ import { describe, expect, it } from "vitest";
 import { ContextBundleResponseSchema } from "@atlas/schema";
 import { DynamoFeedbackRepository } from "../repositories/dynamoFeedbackRepository";
 import { InMemoryFeedbackRepository } from "../repositories/feedbackRepository";
-import {
-  buildContextBundle,
-  createDefaultContextBundleService,
-  createFeedbackRepository,
-} from "./contextBundleService";
+import { buildContextBundle } from "./contextBundleService";
+import { createDefaultContextBundleService } from "../composition";
+import { createFeedbackRepository } from "../repositories/feedbackRepositoryFactory";
 
 describe("context bundle service", () => {
   it("builds a schema-compatible context bundle for a known topic", async () => {
@@ -111,16 +109,6 @@ describe("context bundle service", () => {
 
   it("uses disclosure level 2 to include adjacent anchors from the selected source", async () => {
     const service = createDefaultContextBundleService();
-    service.registry.anchors.put({
-      id: "textract-adjacent-anchor",
-      source_id: "textract-module-readme",
-      anchor_strategy: "markdown-heading",
-      title: "Adjacent Textract guidance",
-      selector: { locator: "#private-subnet-usage" },
-      citation_label: "textract-module-readme#adjacent",
-      status: "valid",
-      last_validated_at: "2026-05-06T00:00:00.000Z",
-    });
 
     const levelOne = await buildContextBundle(service, {
       source_id: "textract-module-readme",
@@ -131,11 +119,11 @@ describe("context bundle service", () => {
       disclosure_level: 2,
     });
 
-    // textract-module-readme now carries three seed anchors (private-subnet-usage,
-    // terraform-starter, module-version); the test adds one more, so disclosure 2
-    // resolves four.
+    // textract-module-readme carries three seed anchors (private-subnet-usage,
+    // terraform-starter, module-version): disclosure 1 resolves the primary
+    // anchor, disclosure 2 resolves all three.
     expect(levelOne.sources[0]?.excerpts).toHaveLength(1);
-    expect(levelTwo.sources[0]?.excerpts).toHaveLength(4);
+    expect(levelTwo.sources[0]?.excerpts).toHaveLength(3);
   });
 
   it("uses disclosure level 3 to include related sources from shared topics", async () => {

@@ -8,8 +8,8 @@ export const policyDocumentResolver: AnchorResolver = {
     // Governance policies are published in Confluence too: when a Confluence
     // channel is configured, resolve the policy page live (caller's Bearer
     // first, else the service token) — same seam as the confluence-page
-    // resolver. Without it, fall back to the offline pilot provider, which
-    // serves the clause-anchored S3 markdown fixtures.
+    // resolver. Without it, fall back to the offline in-memory provider, which
+    // serves the clause-anchored S3 markdown content.
     const env = readProcessEnv();
     const token = request.ctx.token ?? env.ATLAS_CONFLUENCE_TOKEN;
     const baseUrl = env.ATLAS_CONFLUENCE_BASE_URL;

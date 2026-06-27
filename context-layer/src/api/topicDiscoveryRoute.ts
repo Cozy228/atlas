@@ -3,10 +3,8 @@ import {
   type ApiErrorResponse,
   type TopicDiscoveryResponse,
 } from "@atlas/schema";
-import {
-  createDefaultContextBundleService,
-  discoverTopics,
-} from "../services/contextBundleService";
+import { discoverTopics } from "../services/contextBundleService";
+import { createDefaultContextBundleService } from "../composition";
 import type { ApiResponse } from "./routeTypes";
 import { errorResponse } from "./routeTypes";
 

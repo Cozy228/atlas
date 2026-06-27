@@ -4,7 +4,7 @@ import type {
   ResourceKind,
   ResourceSearchResponse,
 } from "@atlas/schema";
-import { createDefaultContextBundleService } from "../services/contextBundleService";
+import { createDefaultContextBundleService } from "../composition";
 import { getResourceKindDef } from "../resources/resourceKindRegistry";
 import {
   getResourceContext,

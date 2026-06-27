@@ -1,7 +1,7 @@
-import { createInMemorySourceContentProvider } from "../resolvers/sourceContentProvider";
-import { toAvailabilityMatrixMarkdown } from "./availabilityFixture";
+import { createInMemorySourceContentProvider } from "../../resolvers/sourceContentProvider";
+import { toAvailabilityMatrixMarkdown } from "./availability";
 
-export function createPilotSourceContentProvider() {
+export function createDevSourceContentProvider() {
   return createInMemorySourceContentProvider({
     "textract-module-readme": {
       "#private-subnet-usage":

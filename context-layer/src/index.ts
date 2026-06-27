@@ -12,7 +12,7 @@ export {
   type ResourceContextRouteParams,
 } from "./api/resourceRoutes";
 export { renderResourceMarkdown } from "./resources/renderResourceMarkdown";
-export { listResourceCanonicalIds } from "./resources/loadResources";
+export { listResourceCanonicalIds } from "./adapters/dev/loadResources";
 export {
   getResourceContext,
   searchResources,
@@ -26,10 +26,10 @@ export {
   type ResourceKindDef,
   type SectionDef,
 } from "./resources/resourceKindRegistry";
-export { loadReleaseNotes } from "./releaseNotes/loadReleaseNotes";
-export { loadAnnouncements } from "./releaseNotes/loadAnnouncements";
-export type { Announcement } from "./releaseNotes/loadAnnouncements";
+export { loadReleaseNotes } from "./adapters/dev/loadReleaseNotes";
+export { loadAnnouncements } from "./adapters/dev/loadAnnouncements";
+export type { Announcement } from "./adapters/dev/loadAnnouncements";
 export { resolveReleaseNotes } from "./releaseNotes/resolveReleaseNotes";
 export { cachedResolutionContext } from "./sourceContent/sourceContentCache";
-export { resolveDataDir } from "./dataDir";
+export { resolveDataDir } from "./adapters/dev/dataDir";
 export type { Release, ReleaseItem } from "./releaseNotes/parseReleaseNotes";

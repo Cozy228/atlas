@@ -210,7 +210,7 @@ export function cacheTtlSeconds(env: Record<string, string | undefined>): number
 }
 
 // One shared cache across every entry point — it is useless if rebuilt per
-// request, so memoize it at module scope like the registry seed.
+// request, so memoize it at module scope like the default registry.
 let sharedCachePromise: Promise<SourceContentCache> | undefined;
 
 function sharedCache(env: Record<string, string | undefined>): Promise<SourceContentCache> {

@@ -2,8 +2,8 @@
  * Atlas Guidance — local route-guidance model and helpers.
  *
  * Mirrors the V1 design in `docs/product/guidance_design.md`: Guidance -> steps -> tasks,
- * rendered as a vertical stepper. The guidance definitions live in
- * `data/guidance/*.yaml` (the single source of truth, validated by
+ * rendered as a vertical stepper. The guidance definitions live in the seeded
+ * `data/guidance` manifests (the single source of truth, validated by
  * `pnpm validate:guidance`) and are loaded at runtime via `loadGuidance`
  * (server) -> `guidanceQueryOptions` -> route loaders, which pass the resolved
  * array into these helpers. No user progress is tracked; step status is computed

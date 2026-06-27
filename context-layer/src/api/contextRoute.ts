@@ -4,10 +4,8 @@ import {
   type ContextBundleResponse,
   type ContextRequest,
 } from "@atlas/schema";
-import {
-  buildContextBundle,
-  createDefaultContextBundleService,
-} from "../services/contextBundleService";
+import { buildContextBundle } from "../services/contextBundleService";
+import { createDefaultContextBundleService } from "../composition";
 import type { ResolutionContext } from "../resolvers/resolverTypes";
 import { cachedResolutionContext } from "../sourceContent/sourceContentCache";
 import type { ApiResponse } from "./routeTypes";

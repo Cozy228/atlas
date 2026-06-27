@@ -4,15 +4,15 @@
  * `@atlas/schema` gate. A record holds only identity + a Section Projection Plan
  * (references to existing Sources/Anchors), never Section content (ADR-0013 §2).
  *
- * Resources load independently of the Topic/Source registry seed, so the
- * registry equivalence oracle is untouched; reference integrity (every binding
- * points at a real Source/Anchor) is asserted by a dedicated wiring test.
+ * Resources load independently of the Topic/Source registry, so the registry
+ * loader is untouched; reference integrity (every binding points at a real
+ * Source/Anchor) is asserted by a dedicated wiring test.
  */
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parse } from "yaml";
 import { ResourceContextRecordSchema, type ResourceContextRecord } from "@atlas/schema";
-import { resolveDataDir } from "../dataDir";
+import { resolveDataDir } from "./dataDir";
 
 export const RESOURCES_FILE = "resources.yaml";
 
@@ -22,6 +22,10 @@ export const RESOURCES_FILE = "resources.yaml";
  * duplicate canonical `{kind}/{slug}` ids (proposal §13 consistency).
  */
 export function loadResources(dir: string = resolveDataDir()): ResourceContextRecord[] {
+  // Honest-gap: no manifest present → no resources, rather than a crash.
+  if (!existsSync(join(dir, RESOURCES_FILE))) {
+    return [];
+  }
   const raw = parse(readFileSync(join(dir, RESOURCES_FILE), "utf8"));
   if (!Array.isArray(raw)) {
     throw new Error(`Invalid ${RESOURCES_FILE}: expected a top-level list of resource records.`);

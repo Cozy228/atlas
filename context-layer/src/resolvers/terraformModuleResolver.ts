@@ -13,7 +13,7 @@ export const terraformModuleResolver: AnchorResolver = {
 
     // Token order mirrors Confluence: the caller's Bearer first (so the request
     // resolves under the caller's own TFC/TFE identity), else the service token,
-    // else defer to the offline pilot provider. baseUrl is the registry host
+    // else defer to the offline in-memory provider. baseUrl is the registry host
     // (deployment config); the public registry is only the default placeholder.
     const env = readProcessEnv();
     const token = request.ctx.token ?? env.ATLAS_TERRAFORM_TOKEN;
@@ -25,7 +25,11 @@ export const terraformModuleResolver: AnchorResolver = {
     // governed offline metadata map.
     if (anchor?.anchor_strategy === "module-field") {
       if (token) {
-        return resolveTerraformModuleFieldLive(request, { token, baseUrl }, stringSelector(anchor, "field"));
+        return resolveTerraformModuleFieldLive(
+          request,
+          { token, baseUrl },
+          stringSelector(anchor, "field"),
+        );
       }
       return resolveModuleField(request, anchor);
     }

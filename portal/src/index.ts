@@ -18,4 +18,4 @@ export {
 } from "./views/portalViews";
 export { createStaticContextApiClient, type ContextApiClient } from "./api/contextApiClient";
 export { listGuidance, getGuidance, relatedGuidanceForTopic, type Guidance } from "./lib/guidance";
-export { loadGuidance } from "./api/server/loadGuidance";
+export { loadGuidance } from "./adapters/dev/loadGuidance";

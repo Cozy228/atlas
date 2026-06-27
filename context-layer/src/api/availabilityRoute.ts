@@ -1,6 +1,5 @@
 import { type ApiErrorResponse, type AvailabilityReadResponse } from "@atlas/schema";
-import { createDefaultContextBundleService } from "../services/contextBundleService";
-import { availabilityZones } from "../sourceContent/availabilityFixture";
+import { createDefaultContextBundleService } from "../composition";
 import { isStale } from "../services/freshness";
 import type { ApiResponse } from "./routeTypes";
 import { errorResponse } from "./routeTypes";
@@ -17,9 +16,10 @@ const AVAILABILITY_SOURCE_ID = "availability-matrix";
  * `atlas_get_availability` tool, and the agent resource `availability` section
  * all read THIS one cited source of record, so they can never diverge.
  *
- * Dev returns the relocated fixture; prod would live-fetch the same Confluence
- * page the matrix resolver hits (boundary TODO). A missing Source 404s rather
- * than serving an uncited grid — honesty over resilience (ADR-0009 §4).
+ * The grid comes from the injected `AvailabilityProvider` port: dev serves an
+ * in-memory dataset, prod would live-fetch the same Confluence page the matrix
+ * resolver hits (boundary TODO). A missing Source 404s rather than serving an
+ * uncited grid — honesty over resilience (ADR-0009 §4).
  */
 export function handleAvailabilityRequest(): ApiResponse<
   ApiErrorResponse | AvailabilityReadResponse
@@ -53,7 +53,7 @@ export function handleAvailabilityRequest(): ApiResponse<
   return {
     status: 200,
     body: {
-      zones: availabilityZones,
+      zones: service.availabilityProvider.getZones(),
       citation: {
         source_id: source.id,
         label: source.title,

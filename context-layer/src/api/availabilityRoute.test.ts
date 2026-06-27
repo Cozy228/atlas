@@ -2,10 +2,8 @@ import { describe, expect, it } from "vitest";
 import { AvailabilityReadResponseSchema } from "@atlas/schema";
 import { handleAvailabilityRequest } from "./availabilityRoute";
 import { handleHttpRequest } from "./httpRoute";
-import {
-  buildContextBundle,
-  createDefaultContextBundleService,
-} from "../services/contextBundleService";
+import { buildContextBundle } from "../services/contextBundleService";
+import { createDefaultContextBundleService } from "../composition";
 
 /**
  * The single availability read (plan 014): one cited Context Layer read backs

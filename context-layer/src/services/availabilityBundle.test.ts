@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { buildContextBundle, createDefaultContextBundleService } from "./contextBundleService";
+import { buildContextBundle } from "./contextBundleService";
+import { createDefaultContextBundleService } from "../composition";
 
 /**
  * Availability as Evidence (ADR-0009): the region × Service matrix resolves

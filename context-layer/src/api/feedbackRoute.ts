@@ -5,7 +5,7 @@ import {
   type FeedbackResponse,
   type FeedbackSubmission,
 } from "@atlas/schema";
-import { createDefaultContextBundleService } from "../services/contextBundleService";
+import { createDefaultContextBundleService } from "../composition";
 import type { ContextBundleService } from "../services/contextBundleService";
 import type { ApiResponse } from "./routeTypes";
 import { errorResponse } from "./routeTypes";

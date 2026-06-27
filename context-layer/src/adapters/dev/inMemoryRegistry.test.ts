@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { InMemoryFeedbackRepository } from "../repositories/feedbackRepository";
-import { loadPilotRegistry, pilotRegistrySeed } from "./pilotRegistry";
+import { InMemoryFeedbackRepository } from "../../repositories/feedbackRepository";
+import { createInMemoryRegistry } from "./inMemoryRegistry";
+import { loadRegistryFromManifests } from "./loadRegistryFromManifests";
 
-describe("pilot registry seed", () => {
-  it("loads validated repositories for V1 pilot topics and governed sources", async () => {
-    const registry = loadPilotRegistry(pilotRegistrySeed);
+describe("in-memory registry adapter", () => {
+  it("loads validated repositories for the governed topics and sources", async () => {
+    const registry = createInMemoryRegistry(loadRegistryFromManifests());
 
     expect(registry.topics.list()).toHaveLength(12);
     expect(registry.sources.list()).toHaveLength(16);
@@ -14,7 +15,7 @@ describe("pilot registry seed", () => {
   });
 
   it("supports service, landing-zone, and security-policy scenarios", () => {
-    const registry = loadPilotRegistry(pilotRegistrySeed);
+    const registry = createInMemoryRegistry(loadRegistryFromManifests());
 
     expect(registry.topics.findByType("service").length).toBeGreaterThan(0);
     expect(registry.topics.findByType("landing-zone").length).toBeGreaterThan(0);
@@ -22,7 +23,7 @@ describe("pilot registry seed", () => {
   });
 
   it("includes stale, deprecated, restricted, and broken-anchor examples", () => {
-    const registry = loadPilotRegistry(pilotRegistrySeed);
+    const registry = createInMemoryRegistry(loadRegistryFromManifests());
     const sources = registry.sources.list();
 
     expect(sources.some((source) => source.id === "legacy-s3-policy")).toBe(true);
@@ -34,22 +35,18 @@ describe("pilot registry seed", () => {
   });
 
   it("rejects malformed seed records before repositories are created", () => {
+    const seed = loadRegistryFromManifests();
     expect(() =>
-      loadPilotRegistry({
-        ...pilotRegistrySeed,
-        topics: [
-          {
-            ...pilotRegistrySeed.topics[0],
-            owner_team: null,
-          },
-        ],
+      createInMemoryRegistry({
+        ...seed,
+        topics: [{ ...(seed.topics[0] as Record<string, unknown>), owner_team: null }],
       }),
     ).toThrow();
   });
 
   it("can use an injected feedback repository for runtime persistence", () => {
     const feedback = new InMemoryFeedbackRepository();
-    const registry = loadPilotRegistry(pilotRegistrySeed, { feedback });
+    const registry = createInMemoryRegistry(loadRegistryFromManifests(), { feedback });
 
     expect(registry.feedback).toBe(feedback);
     expect(registry.feedback.list()).toEqual([]);

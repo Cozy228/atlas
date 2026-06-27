@@ -1,9 +1,13 @@
-import {
-  SourceTopicMappingSchema,
-  type SourceTopicMapping,
-} from "@atlas/schema";
+import { SourceTopicMappingSchema, type SourceTopicMapping } from "@atlas/schema";
 
-export class InMemorySourceTopicMappingRepository {
+export type SourceTopicMappingRepository = {
+  getById(id: string): SourceTopicMapping | undefined;
+  list(): SourceTopicMapping[];
+  findByTopicId(topicId: string): SourceTopicMapping[];
+  findBySourceId(sourceId: string): SourceTopicMapping[];
+};
+
+export class InMemorySourceTopicMappingRepository implements SourceTopicMappingRepository {
   private readonly mappings = new Map<string, SourceTopicMapping>();
 
   constructor(mappings: unknown[] = []) {

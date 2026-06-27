@@ -134,13 +134,45 @@ private-subnet configuration**: the module README (module owner) ⟷ a platform 
 runbook (platform team), both current, disagreeing.
 _Avoid_: Disagreement, ambiguity; calling current-vs-legacy a conflict.
 
+**Resource**:
+The canonical governed *thing*, addressed `{kind}/{slug}` (e.g. `service/aws/textract`,
+`guardrail/s3-public-access`). It owns **both** its Sections (each Section → [[Source]]/[[Anchor]]
+bindings) **and** its identity/presentation metadata (owner, status, version, entry tools). The
+accepted primary content object of the Portal per
+[ADR-0015](docs/adr/0015-portal-resource-first-ia.md); one canonical address
+shared by Portal and Agent.
+_Avoid_: Projection (the materialized-view connotation 0013/0014 retired), object, entity.
+
+**Topic**:
+The catalog's *current* organizing unit and today's schema core type (`topic_type`: service /
+landing-zone / security-policy). Per [ADR-0015](docs/adr/0015-portal-resource-first-ia.md)
+(accepted) a Topic resolves to exactly one disposition — a [[Resource]], a [[Facet]], or
+a [[Decompose|decomposition]] — and stops being a content object of its own.
+_Avoid_: Treating Topic as the post-migration content object; Category (a Topic attribute, not the
+Topic itself).
+
+**Facet**:
+A cross-cutting label/view (e.g. `private-networking`, `logging-monitoring`) that **aggregates
+other [[Resource]]s' Sections rather than owning any**. Rendered as a filtered [[Resource]] list
+plus an optional **bounded-concurrency** aggregate of members' Sections — server-orchestrated,
+each block keeping its Resource boundary and [[Citation]]
+([ADR-0014](docs/adr/0014-resource-read-one-core-many-views.md) §2); never a content object or
+endpoint of its own.
+_Avoid_: Area, theme page, topic page (when you mean the page-less cross-cutting filter).
+
+**Decompose**:
+The disposition for an *umbrella* [[Topic]] that is really a **set** (e.g. `serverless-compute`,
+`s3-guardrails`): the Topic itself demotes to a [[Facet]] while its real [[Resource]]s (Lambda; a
+specific guardrail) are split out as their own `{kind}/{slug}` objects.
+_Avoid_: Group, grouping (drags in materialized-view baggage and hides the split-out step).
+
 **Service**:
 A catalog entry for an AWS service Atlas governs (S3, API Gateway, Textract). A presentation
 facet of a [[Topic]] — the schema core type stays `Topic`; "Service" is the catalog's word
 for the AWS-service subset, carried as the `topic_type` value **`service`** (renamed from the
 former `capability`; goal `goal_prompt_capability_to_service_rename.md`). Landing Zones,
 [[Guardrail]]s, and [[Availability]] are **their own surfaces** — sibling `topic_type` values
-`landing-zone` / `guardrail-area`, never labeled Services. The hero slice governs three
+`landing-zone` / `security-policy`, never labeled Services. The hero slice governs three
 Services deep (S3, API Gateway, Textract) in the Federated Landing Zone.
 _Avoid_: **Capability** anywhere — the word is purged from live code, schema, and UI; the
 `topic_type` value is `service`, and the schema type itself is `Topic`. Do not call a Landing

@@ -1,5 +1,5 @@
 import { type ApiErrorResponse, type SourceResponse } from "@atlas/schema";
-import { createDefaultContextBundleService } from "../services/contextBundleService";
+import { createDefaultContextBundleService } from "../composition";
 import type { ApiResponse } from "./routeTypes";
 import { errorResponse } from "./routeTypes";
 

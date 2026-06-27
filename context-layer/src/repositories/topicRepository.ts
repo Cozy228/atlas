@@ -1,6 +1,13 @@
 import { TopicSchema, type Topic, type TopicType } from "@atlas/schema";
 
-export class InMemoryTopicRepository {
+export type TopicRepository = {
+  getById(id: string): Topic | undefined;
+  list(): Topic[];
+  findByType(topicType: TopicType): Topic[];
+  findByCategory(category: string): Topic[];
+};
+
+export class InMemoryTopicRepository implements TopicRepository {
   private readonly topics = new Map<string, Topic>();
 
   constructor(topics: unknown[] = []) {

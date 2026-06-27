@@ -3,7 +3,7 @@
  *
  * Server-only. Live Confluence drives releases when configured
  * (`ATLAS_RELEASE_NOTES_PAGE_ID` + the Confluence env); otherwise it falls back
- * to the offline newsletter fixture (`data/newsletter.yaml`). Both produce the
+ * to the offline newsletter fixture via the Context Layer loader. Both produce the
  * same `Release[]` shape. (Standalone announcements stay git-authored — see
  * `announcements.ts`.)
  */

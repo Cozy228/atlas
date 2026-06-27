@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { loadGuidance } from "./loadGuidance";
+import { loadGuidance } from "../../adapters/dev/loadGuidance";
 import { buildOauthProtectedResource, buildRobotsTxt, buildSitemapXml } from "./agentDiscovery";
 import { serverContextApiClient } from "./serverContextApiClient";
 
