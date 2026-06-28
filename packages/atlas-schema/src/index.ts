@@ -583,12 +583,89 @@ export const ResourceSearchResponseSchema = z
   .object({ items: z.array(ResourceSearchItemSchema) })
   .strict();
 
+/* -------------------------------------------------------------------------- *
+ * Convention-driven Confluence reference discovery (plan 017, ADR-0016)
+ *
+ * A NEW narrow surface that lives ALONGSIDE the governed Registry, never inside
+ * it (decision #1): the strict `SourceSchema` stays reference-unaware. A
+ * `DiscoveredReference` is a reference-only document link — the agent learns a
+ * page EXISTS, never that its body was obtained (`content_mode: "reference_only"`,
+ * `agent_accessible: false`). `ServiceIdentity` is the availability-spine tuple
+ * normalized into a canonical `{provider}/{id}` key plus the two alias tiers the
+ * discovery pipeline keys on: wide `recallAliases` (CQL search only) and narrow
+ * `admissionAliases` (the gate that re-filters fuzzy recall, B8/B9).
+ * -------------------------------------------------------------------------- */
+export const docTypes = ["design", "user-guide", "policy"] as const;
+export const resourceGovernanceStates = ["configured", "unconfigured"] as const;
+
+export const DocTypeSchema = z.enum(docTypes);
+export const ResourceGovernanceSchema = z.enum(resourceGovernanceStates);
+
+export const ServiceIdentitySchema = z
+  .object({
+    provider: z.string().min(1),
+    id: z.string().min(1),
+    name: z.string().min(1),
+    // `${provider}/${id}` — exactly the service-kind `slug` under ADR-0015's
+    // `{kind}/{slug}` addressing. Formed from the spine tuple alone; the
+    // `resources.yaml` overlay is never required to produce it (decision #3).
+    key: z.string().min(1),
+    // Search-only: aliases handed to CQL `title ~` for wide recall (the bare
+    // machine slug is recall-eligible here).
+    recallAliases: z.array(z.string().min(1)),
+    // Gate-only: stable human product names + explicit abbreviations. The bare
+    // machine slug is NEVER admission-eligible (B8). After recall, a candidate
+    // title must contain a complete admissionAlias token-sequence to be admitted.
+    admissionAliases: z.array(z.string().min(1)),
+  })
+  .strict();
+
+export const DiscoveredReferenceSchema = z
+  .object({
+    title: z.string().min(1),
+    url: z.string().min(1), // page webui url
+    doc_type: DocTypeSchema,
+    last_observed_at: z.string().datetime(), // ISO — when the link was last observed
+    // Honesty fields (decision #1, §Honesty): a reference is a link, not content.
+    content_mode: z.literal("reference_only"),
+    access_mode: z.literal("service_credentials"),
+    agent_accessible: z.literal(false),
+    confidence: z.number().min(0).max(1).optional(), // unset in the Preview phase
+  })
+  .strict();
+
+// Reference-discovery cache/freshness state (decision #5, B12). Surfaced on the
+// response so a consumer can NEVER mistake an empty list for a healthy "no docs"
+// answer: `unavailable` (past max-staleness, cache dead) and `incomplete`
+// (recall truncated at the cap) are explicit, never a silent stale link list.
+export const referenceDiscoveryStatuses = ["fresh", "stale", "unavailable"] as const;
+export const ReferenceDiscoveryStatusSchema = z.enum(referenceDiscoveryStatuses);
+
+export const ReferenceDiscoveryStateSchema = z
+  .object({
+    status: ReferenceDiscoveryStatusSchema,
+    last_observed_at: z.string().datetime().nullable(),
+    incomplete: z.boolean(),
+  })
+  .strict();
+
 export const ResourceContextResponseSchema = z
   .object({
     resource: ResourceSummarySchema,
+    // Resource-level governance (B6): whether a `resources.yaml` overlay exists.
+    // "unconfigured" is a property of the resource (no overlay), semantically
+    // distinct from a per-section `no_registered_source` — one clear UI signal.
+    governance: ResourceGovernanceSchema,
     requestedSections: z.array(z.string().min(1)),
     sections: z.record(z.string(), ContextSectionSchema),
     missingSections: z.array(MissingSectionSchema),
+    // Reference-only document links discovered ALONGSIDE governed sources (B5).
+    // Flat; each carries its own `doc_type` — the UI groups, the schema does not.
+    references: z.array(DiscoveredReferenceSchema),
+    // Discovery cache/freshness state for `references`; `null` when no discovery
+    // ran (non-service kinds, or no discovery adapter wired). Lets a consumer
+    // distinguish "fresh, no docs" from "unavailable" / "incomplete" (§Honesty).
+    referenceDiscovery: ReferenceDiscoveryStateSchema.nullable(),
     // Top-level: the moment THIS live projection ran (ADR-0013 §3), distinct
     // from each citation's resolvedAt (the excerpt's own parse time).
     resolvedAt: z.string().datetime(),
@@ -641,6 +718,12 @@ export type MissingSection = z.infer<typeof MissingSectionSchema>;
 export type ResourceSummary = z.infer<typeof ResourceSummarySchema>;
 export type ResourceSearchItem = z.infer<typeof ResourceSearchItemSchema>;
 export type ResourceSearchResponse = z.infer<typeof ResourceSearchResponseSchema>;
+export type DocType = z.infer<typeof DocTypeSchema>;
+export type ResourceGovernance = z.infer<typeof ResourceGovernanceSchema>;
+export type ServiceIdentity = z.infer<typeof ServiceIdentitySchema>;
+export type DiscoveredReference = z.infer<typeof DiscoveredReferenceSchema>;
+export type ReferenceDiscoveryStatus = z.infer<typeof ReferenceDiscoveryStatusSchema>;
+export type ReferenceDiscoveryState = z.infer<typeof ReferenceDiscoveryStateSchema>;
 export type ResourceContextResponse = z.infer<typeof ResourceContextResponseSchema>;
 export type ResourceSectionBinding = z.infer<typeof ResourceSectionBindingSchema>;
 export type ResourceContextRecord = z.infer<typeof ResourceContextRecordSchema>;

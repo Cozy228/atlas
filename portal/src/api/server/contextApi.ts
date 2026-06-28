@@ -90,6 +90,18 @@ export const fetchAvailability = createServerFn(SERVER_FN_OPTIONS).handler(
   },
 );
 
+const resourceRefSchema = z.object({ kind: z.string().min(1), slug: z.string().min(1) });
+
+export const fetchResourceContext = createServerFn(SERVER_FN_OPTIONS)
+  .validator((input: unknown) => resourceRefSchema.parse(input))
+  .handler(async ({ data }) => {
+    // Live resource projection (plan 017): governed sections + reference-only
+    // discovery links. Deferred behind a dev delay like the other live reads so
+    // the detail-page reference block shows its skeleton in dev.
+    if (import.meta.env.DEV) await new Promise((resolve) => setTimeout(resolve, 2000));
+    return contextApiForRequest().getResourceContext(data.kind, data.slug);
+  });
+
 export const fetchTopicDiscovery = createServerFn(SERVER_FN_OPTIONS)
   .validator(
     (input: unknown): TopicDiscoveryRequest => TopicDiscoveryRequestSchema.parse(input ?? {}),

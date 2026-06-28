@@ -2,6 +2,7 @@ import { queryOptions } from "@tanstack/react-query";
 import type {
   ContextRequest,
   ContextBundleResponse,
+  ResourceContextResponse,
   SourceDiscoveryRequest,
   SourceDiscoveryResponse,
   TopicDiscoveryRequest,
@@ -11,6 +12,7 @@ import type {
 import { fetchAvailability, type AvailabilityResponse } from "@/api/server/availability";
 import {
   fetchContextBundle,
+  fetchResourceContext,
   fetchSourceDiscovery,
   fetchTopicDiscovery,
 } from "@/api/server/contextApi";
@@ -72,6 +74,16 @@ export function contextBundleQueryOptions(request: ContextRequest) {
     // 5 min: bundles are immutable per { topic_id, disclosure_level } within a
     // session, so caching avoids re-resolving every cited anchor (the app's most
     // expensive call) on re-nav. Not Infinity, so a long-lived tab still refreshes.
+    staleTime: 5 * 60_000,
+  });
+}
+
+export function resourceContextQueryOptions(ref: { kind: string; slug: string }) {
+  return queryOptions<ResourceContextResponse>({
+    queryKey: ["resource-context", ref] as const,
+    queryFn: () => fetchResourceContext({ data: ref }),
+    // Reference discovery is cached per Resource key on the server (plan 017 SWR);
+    // a short client staleTime avoids re-fetching on intra-session re-nav.
     staleTime: 5 * 60_000,
   });
 }

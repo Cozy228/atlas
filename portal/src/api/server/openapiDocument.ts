@@ -188,6 +188,10 @@ const RESOURCE_CONTEXT_EXAMPLE = {
     resourceUrl: "https://portal.example.com/api/resources/service/aws/textract",
     markdownUrl: "https://portal.example.com/resources/service/aws/textract.md",
   },
+  // Resource-level governance (plan 017 B6): a governed overlay exists for this
+  // service, so its Sections are projected. A spine-only service (no overlay)
+  // would carry "unconfigured" with empty Sections.
+  governance: "configured",
   requestedSections: ["network", "availability"],
   sections: {
     network: {
@@ -221,6 +225,27 @@ const RESOURCE_CONTEXT_EXAMPLE = {
     },
   },
   missingSections: [],
+  // Reference-only discovered document links (plan 017 B5), surfaced ALONGSIDE
+  // the governed Sections above and clearly distinguished: the agent learns a
+  // page EXISTS, never that its body was obtained (content_mode: reference_only,
+  // agent_accessible: false). Confluence bodies are unreadable without user creds.
+  references: [
+    {
+      title: "Textract — service design",
+      url: "https://confluence.example.com/display/CLOUD/Textract+Service+Design",
+      doc_type: "design",
+      last_observed_at: "2026-06-26T10:30:00.000Z",
+      content_mode: "reference_only",
+      access_mode: "service_credentials",
+      agent_accessible: false,
+    },
+  ],
+  // Discovery cache/freshness state for the references above (plan 017 B12).
+  referenceDiscovery: {
+    status: "fresh",
+    last_observed_at: "2026-06-26T10:30:00.000Z",
+    incomplete: false,
+  },
   resolvedAt: "2026-06-26T10:30:00.000Z",
 };
 

@@ -10,6 +10,7 @@ import {
   handleAvailabilityRequest,
   handleContextRequest,
   handleFeedbackRequest,
+  handleResourceContextRequest,
   handleSourceDiscoveryRequest,
   handleSourceRequest,
   handleTopicDiscoveryRequest,
@@ -20,6 +21,7 @@ import {
   AvailabilityReadResponseSchema,
   ContextBundleResponseSchema,
   FeedbackResponseSchema,
+  ResourceContextResponseSchema,
   SourceDiscoveryResponseSchema,
   SourceResponseSchema,
   TopicDiscoveryResponseSchema,
@@ -29,6 +31,7 @@ import {
   type ContextRequest,
   type FeedbackResponse,
   type FeedbackSubmission,
+  type ResourceContextResponse,
   type SourceDiscoveryRequest,
   type SourceDiscoveryResponse,
   type SourceResponse,
@@ -72,6 +75,12 @@ export const serverContextApiClient: ContextApiClient = {
   },
   async getAvailability(): Promise<AvailabilityReadResponse> {
     return unwrap(handleAvailabilityRequest(), AvailabilityReadResponseSchema);
+  },
+  async getResourceContext(kind: string, slug: string): Promise<ResourceContextResponse> {
+    return unwrap(
+      await handleResourceContextRequest({ kind, slug }),
+      ResourceContextResponseSchema,
+    );
   },
   async discoverSources(request: SourceDiscoveryRequest = {}): Promise<SourceDiscoveryResponse> {
     return unwrap(handleSourceDiscoveryRequest(request), SourceDiscoveryResponseSchema);

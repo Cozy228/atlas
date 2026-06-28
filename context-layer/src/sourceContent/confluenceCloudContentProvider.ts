@@ -224,9 +224,10 @@ export async function fetchConfluenceStorageHtml(
 /**
  * Confluence Cloud auth scheme. A personal API token authenticates with Basic
  * (email:token); an OAuth/PAT-style credential uses Bearer. Email presence
- * (ATLAS_CONFLUENCE_EMAIL) selects Basic.
+ * (ATLAS_CONFLUENCE_EMAIL) selects Basic. Exported so the reference-discovery
+ * CQL adapter authenticates identically to these v2 content reads (plan 017).
  */
-function confluenceAuthorization(config: ConfluenceLiveConfig): string {
+export function confluenceAuthorization(config: ConfluenceLiveConfig): string {
   if (config.email) {
     const basic = Buffer.from(`${config.email}:${config.token}`).toString("base64");
     return `Basic ${basic}`;

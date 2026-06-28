@@ -247,6 +247,94 @@ describe("getResourceContext — name normalization (single-candidate fallback)"
   });
 });
 
+describe("getResourceContext — identity-first spine (plan 017 B4/B6)", () => {
+  it("renders a spine-only service (in the grid, no overlay) as governance:unconfigured, not 404", async () => {
+    // aws/s3 is in the availability spine but has no resources.yaml service record.
+    const response = await getResourceContext(pilotService(), {
+      kind: "service",
+      slug: "aws/s3",
+    });
+
+    expect(response).not.toBeNull();
+    expect(response?.governance).toBe("unconfigured");
+    expect(response?.resource.id).toBe("service/aws/s3");
+    expect(response?.resource.slug).toBe("aws/s3");
+    expect(response?.resource.provider).toBe("aws");
+    // Spine-only: empty Sections, NO faked per-section missing entries (B4).
+    expect(response?.sections).toEqual({});
+    expect(response?.missingSections).toEqual([]);
+    expect(response?.requestedSections).toEqual([]);
+    // Reference-only discovery still runs for a spine-only service (B4): the dev
+    // fixture surfaces aws/s3 links alongside the empty governed Sections.
+    expect(response?.references.length ?? 0).toBeGreaterThan(0);
+    expect(response?.referenceDiscovery?.status).toBe("fresh");
+  });
+
+  it("marks an overlay-backed service as governance:configured", async () => {
+    const response = await getResourceContext(pilotService(), {
+      kind: "service",
+      slug: "aws/textract",
+      sections: ["network"],
+    });
+    expect(response?.governance).toBe("configured");
+    expect(response?.sections.network?.status).toBe("available");
+  });
+
+  it("marks a non-service overlay kind as governance:configured (no spine)", async () => {
+    const response = await getResourceContext(pilotService(), {
+      kind: "guardrail",
+      slug: "s3-public-access",
+    });
+    expect(response?.governance).toBe("configured");
+  });
+
+  it("still 404s a service that is neither in the spine nor overlaid", async () => {
+    expect(
+      await getResourceContext(pilotService(), { kind: "service", slug: "aws/not-a-real-service" }),
+    ).toBeNull();
+  });
+});
+
+describe("getResourceContext — reference discovery merge (plan 017 B4)", () => {
+  it("merges reference-only links alongside a configured service's governed sections", async () => {
+    const response = await getResourceContext(pilotService(), {
+      kind: "service",
+      slug: "aws/textract",
+      sections: ["network"],
+    });
+
+    // Governed content AND reference-only links coexist, clearly distinguished.
+    expect(response?.governance).toBe("configured");
+    expect(response?.sections.network?.status).toBe("available");
+    expect(response?.references.length).toBeGreaterThan(0);
+    expect(response?.referenceDiscovery?.status).toBe("fresh");
+    // Every merged reference stays honestly reference-only.
+    for (const reference of response?.references ?? []) {
+      expect(reference.content_mode).toBe("reference_only");
+      expect(reference.agent_accessible).toBe(false);
+    }
+  });
+
+  it("runs no discovery for a non-service kind: empty references, null discovery state", async () => {
+    const response = await getResourceContext(pilotService(), {
+      kind: "guardrail",
+      slug: "s3-public-access",
+    });
+    expect(response?.references).toEqual([]);
+    expect(response?.referenceDiscovery).toBeNull();
+  });
+
+  it("omits discovery entirely when no port is wired (honest absence)", async () => {
+    const response = await getResourceContext(pilotService({ referenceDiscovery: undefined }), {
+      kind: "service",
+      slug: "aws/s3",
+    });
+    expect(response?.governance).toBe("unconfigured");
+    expect(response?.references).toEqual([]);
+    expect(response?.referenceDiscovery).toBeNull();
+  });
+});
+
 describe("getResourceContext — multi-kind (guardrail) extensibility", () => {
   it("projects a non-service kind, surfacing a stale_source warning on live content", async () => {
     const response = await getResourceContext(pilotService(), {

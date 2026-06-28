@@ -2,6 +2,7 @@ import {
   AvailabilityReadResponseSchema,
   ContextBundleResponseSchema,
   FeedbackResponseSchema,
+  ResourceContextResponseSchema,
   SourceDiscoveryResponseSchema,
   SourceResponseSchema,
   TopicDiscoveryResponseSchema,
@@ -11,6 +12,7 @@ import {
   type ContextRequest,
   type FeedbackResponse,
   type FeedbackSubmission,
+  type ResourceContextResponse,
   type SourceDiscoveryRequest,
   type SourceDiscoveryResponse,
   type SourceResponse,
@@ -24,6 +26,9 @@ export type ContextApiClient = {
   getSource(id: string): Promise<SourceResponse>;
   getContextBundle(request: ContextRequest): Promise<ContextBundleResponse>;
   getAvailability(): Promise<AvailabilityReadResponse>;
+  /** Live resource projection (plan 017): governed sections + reference-only
+   *  discovery links + governance state for a canonical `{kind}/{slug}`. */
+  getResourceContext(kind: string, slug: string): Promise<ResourceContextResponse>;
   discoverSources(request?: SourceDiscoveryRequest): Promise<SourceDiscoveryResponse>;
   discoverTopics(request?: TopicDiscoveryRequest): Promise<TopicDiscoveryResponse>;
   submitFeedback(request: FeedbackSubmission): Promise<FeedbackResponse>;
@@ -35,6 +40,8 @@ type StaticContextApiClientInput = {
   topicDiscovery: unknown;
   /** Optional availability grid; defaults to an empty, cited response. */
   availability?: unknown;
+  /** Optional resource projections keyed by canonical `{kind}/{slug}`. */
+  resourceContexts?: Record<string, unknown>;
 };
 
 /** A valid-but-empty availability read for static clients that don't seed one. */
@@ -53,6 +60,7 @@ export function createStaticContextApiClient({
   sourceDiscovery,
   topicDiscovery,
   availability,
+  resourceContexts,
 }: StaticContextApiClientInput): ContextApiClient {
   return {
     async getTopic(id: string): Promise<TopicResponse> {
@@ -73,6 +81,11 @@ export function createStaticContextApiClient({
     },
     async getAvailability(): Promise<AvailabilityReadResponse> {
       return AvailabilityReadResponseSchema.parse(availability ?? EMPTY_AVAILABILITY);
+    },
+    async getResourceContext(kind: string, slug: string): Promise<ResourceContextResponse> {
+      const projection = resourceContexts?.[`${kind}/${slug}`];
+      if (!projection) throw new Error(`Resource not found: ${kind}/${slug}`);
+      return ResourceContextResponseSchema.parse(projection);
     },
     async discoverSources(): Promise<SourceDiscoveryResponse> {
       return SourceDiscoveryResponseSchema.parse(sourceDiscovery);

@@ -16,6 +16,7 @@ import type { ResolverRegistry } from "../resolvers/resolverRegistry";
 import { offlineResolutionContext, type ResolutionContext } from "../resolvers/resolverTypes";
 import type { SourceContentProvider } from "../resolvers/sourceContentProvider";
 import type { AvailabilityProvider } from "./availabilityProvider";
+import type { ResourceReferenceDiscovery } from "./resourceReferenceDiscovery";
 import { isStale } from "./freshness";
 
 export type ContextBundleService = {
@@ -23,6 +24,9 @@ export type ContextBundleService = {
   resolvers: ResolverRegistry;
   contentProvider: SourceContentProvider;
   availabilityProvider: AvailabilityProvider;
+  /** Reference-only Confluence discovery port (plan 017). Optional: when unset,
+   *  resource reads carry an empty `references` list + `null` discovery state. */
+  referenceDiscovery?: ResourceReferenceDiscovery;
   /** Kind-first resource projection records (agent-facing resource surface). */
   resources: ResourceContextRecord[];
   now: Date;
@@ -37,6 +41,8 @@ export type ContextBundleServiceOptions = {
   contentProvider?: SourceContentProvider;
   /** Injection seam: supply an availability provider port (tests / adapters). */
   availabilityProvider?: AvailabilityProvider;
+  /** Injection seam: supply a reference-discovery port (tests / live adapter). */
+  referenceDiscovery?: ResourceReferenceDiscovery;
   /** Injection seam: override the manifest-loaded resource records (tests). */
   resources?: ResourceContextRecord[];
 };

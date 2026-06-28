@@ -1,4 +1,4 @@
-import type { LandingZoneData } from "@atlas/schema";
+import type { LandingZoneData, ServiceIdentity } from "@atlas/schema";
 
 /**
  * Port for the single availability read (plan 014). The core exposes the cited
@@ -10,4 +10,12 @@ import type { LandingZoneData } from "@atlas/schema";
  */
 export type AvailabilityProvider = {
   getZones(): LandingZoneData[];
+  /**
+   * The authoritative spine of WHICH services exist (plan 017 decision #2, B2):
+   * the availability grid flattened into normalized `ServiceIdentity`s, deduped
+   * by canonical `{provider}/{id}` key across zones. `provider` is the zone id —
+   * structural config metadata, never parsed from a markdown cell (B3). Discovery
+   * iterates whatever this returns; N is data, not a design knob.
+   */
+  listServices(): ServiceIdentity[];
 };

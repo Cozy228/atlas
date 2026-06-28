@@ -17,8 +17,22 @@
 import type { ReactNode } from "react";
 import { Link, createFileRoute, notFound } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { IconArrowLeft, IconArrowUpRight, IconInfoCircle, IconRoute } from "@tabler/icons-react";
-import type { ContextBundleResponse, Topic, TopicDiscoveryResponse } from "@atlas/schema";
+import {
+  IconArrowLeft,
+  IconArrowUpRight,
+  IconExternalLink,
+  IconFileText,
+  IconInfoCircle,
+  IconLock,
+  IconRoute,
+} from "@tabler/icons-react";
+import type {
+  ContextBundleResponse,
+  DiscoveredReference,
+  ResourceContextResponse,
+  Topic,
+  TopicDiscoveryResponse,
+} from "@atlas/schema";
 
 import { LastFetchChip } from "@/components/last-fetch-chip";
 
@@ -26,6 +40,7 @@ import {
   availabilityQueryOptions,
   contextBundleQueryOptions,
   guidanceQueryOptions,
+  resourceContextQueryOptions,
   topicDiscoveryQueryOptions,
 } from "@/api/queries";
 import type { LandingZoneData } from "@/api/server/availability";
@@ -48,6 +63,9 @@ type LoaderData = {
   guidance: ReadonlyArray<Guidance>;
   bundle: Promise<ContextBundleResponse | null>;
   zone: Promise<{ defaultZone: LandingZoneData; totalZones: number }>;
+  /** Service-only: the live resource projection (governance + reference-only
+   *  discovery links). `null` for non-service kinds / unmapped services. */
+  referenceDoc: Promise<ResourceContextResponse | null>;
 };
 
 const TYPE_LABEL: Record<Topic["topic_type"], string> = {
@@ -94,6 +112,26 @@ export const Route = createFileRoute("/catalog/$topicId")({
         totalZones: availability.zones.length,
       }));
 
+    // Slow + service-only: the resource projection's canonical slug is
+    // `{provider}/{service id}`, derived from the availability spine — so chain it
+    // off `zone`. Reference discovery is reference-only (never the page's claims),
+    // so a failure degrades to null and the block shows an honest gap.
+    const referenceDoc: Promise<ResourceContextResponse | null> =
+      topic.topic_type === "service"
+        ? zone.then(({ defaultZone }) => {
+            const service = findAvailabilityServiceForTopic(topic, defaultZone.services);
+            if (!service) return null;
+            return context.queryClient
+              .ensureQueryData(
+                resourceContextQueryOptions({
+                  kind: "service",
+                  slug: `${defaultZone.id}/${service.id}`,
+                }),
+              )
+              .catch(() => null);
+          })
+        : Promise.resolve(null);
+
     return {
       topic,
       related: topicsResp.topics.filter(
@@ -102,6 +140,7 @@ export const Route = createFileRoute("/catalog/$topicId")({
       guidance: relatedGuidanceForTopic(guidances, topic.id),
       bundle,
       zone,
+      referenceDoc,
     };
   },
   component: CatalogDetailRoute,
@@ -129,7 +168,7 @@ function formatDate(iso: string): string {
  * ========================================================================== */
 
 function CatalogDetailRoute() {
-  const { topic, related, guidance, bundle, zone } = Route.useLoaderData();
+  const { topic, related, guidance, bundle, zone, referenceDoc } = Route.useLoaderData();
   const { dataUpdatedAt } = useQuery(
     contextBundleQueryOptions({ topic_id: topic.id, disclosure_level: 2 }),
   );
@@ -280,19 +319,37 @@ function CatalogDetailRoute() {
           },
         ]
       : []),
-    {
-      title: "References",
-      node: (
-        <DeferredRegion
-          promise={bundle}
-          fallback={<ReferencesSkeleton />}
-          label="the references"
-          retry
-        >
-          {(resolved) => <References sources={resolved?.sources ?? []} />}
-        </DeferredRegion>
-      ),
-    },
+    // Service topics: the reference-only discovery block (plan 017) REPLACES the
+    // governed Document-Sources panel here — the source health still lives in the
+    // evidence rail. Non-service kinds have no discovery spine, so they keep the
+    // governed References panel.
+    isService
+      ? {
+          title: "Reference documents",
+          node: (
+            <DeferredRegion
+              promise={referenceDoc}
+              fallback={<ReferencesSkeleton />}
+              label="the reference documents"
+              retry
+            >
+              {(projection) => <ReferenceDocs projection={projection} />}
+            </DeferredRegion>
+          ),
+        }
+      : {
+          title: "References",
+          node: (
+            <DeferredRegion
+              promise={bundle}
+              fallback={<ReferencesSkeleton />}
+              label="the references"
+              retry
+            >
+              {(resolved) => <References sources={resolved?.sources ?? []} />}
+            </DeferredRegion>
+          ),
+        },
     ...(related.length > 0
       ? [{ title: "Related in domain", node: <RelatedInDomain topics={related} /> }]
       : []),
@@ -647,6 +704,154 @@ function References({ sources }: { sources: ContextBundleResponse["sources"] }) 
         </article>
       ))}
     </div>
+  );
+}
+
+const DOC_TYPE_META: Record<
+  DiscoveredReference["doc_type"],
+  { label: string; order: number; variant: "info" | "neutral" | "outline" }
+> = {
+  design: { label: "Design", order: 0, variant: "info" },
+  "user-guide": { label: "User guide", order: 1, variant: "neutral" },
+  policy: { label: "Policy", order: 2, variant: "outline" },
+};
+
+function lastChecked(iso: string | null | undefined): string {
+  return iso ? ` (last checked ${formatDate(iso)})` : "";
+}
+
+/**
+ * Reference-only discovery block (plan 017). Surfaces the Confluence pages
+ * discovered for a service as doc-type-categorized links, clearly labeled
+ * reference-only (Atlas links them but cannot read their bodies). Honest about
+ * governance (unconfigured) and discovery state (stale / unavailable / partial)
+ * — never a silent stale link list.
+ */
+function ReferenceDocs({ projection }: { projection: ResourceContextResponse | null }) {
+  if (!projection) {
+    return (
+      <p className="rounded-[4px] border border-dashed border-border bg-card px-4 py-5 text-[13px] text-muted-foreground">
+        No reference documents are discoverable for this service yet.
+      </p>
+    );
+  }
+
+  const { references, referenceDiscovery, governance } = projection;
+  const status = referenceDiscovery?.status ?? null;
+
+  const notices: ReactNode[] = [];
+  if (governance === "unconfigured") {
+    notices.push(
+      <ReferenceNotice key="governance" tone="info">
+        No governed sources are configured for this service yet. The links below are reference-only
+        — discovered by convention, not curated evidence.
+      </ReferenceNotice>,
+    );
+  }
+  if (status === "unavailable") {
+    notices.push(
+      <ReferenceNotice key="unavailable" tone="warning">
+        Reference discovery is unavailable right now
+        {lastChecked(referenceDiscovery?.last_observed_at)}. Atlas shows no links rather than serve
+        stale ones.
+      </ReferenceNotice>,
+    );
+  } else if (status === "stale") {
+    notices.push(
+      <ReferenceNotice key="stale" tone="warning">
+        These links may be out of date{lastChecked(referenceDiscovery?.last_observed_at)} — a
+        refresh is in progress.
+      </ReferenceNotice>,
+    );
+  }
+  if (referenceDiscovery?.incomplete) {
+    notices.push(
+      <ReferenceNotice key="incomplete" tone="warning">
+        Too many matches to list them all — this is a partial set.
+      </ReferenceNotice>,
+    );
+  }
+
+  const ordered = [...references].sort(
+    (a, b) => DOC_TYPE_META[a.doc_type].order - DOC_TYPE_META[b.doc_type].order,
+  );
+
+  return (
+    <div className="flex flex-col gap-3">
+      {notices}
+      {ordered.length === 0 ? (
+        <p className="rounded-[4px] border border-dashed border-border bg-card px-4 py-5 text-[13px] text-muted-foreground">
+          {status === "unavailable"
+            ? "Discovery could not run, so Atlas shows no links rather than fabricate them."
+            : "No documentation pages matched this service by convention yet."}
+        </p>
+      ) : (
+        <>
+          <p className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
+            <IconLock aria-hidden className="size-3.5 shrink-0" />
+            Reference-only — Atlas links these pages but cannot read their contents (your Confluence
+            credentials govern access).
+          </p>
+          <div className="overflow-hidden rounded-[4px] border border-border bg-card">
+            {ordered.map((reference, i) => (
+              <ReferenceDocRow key={reference.url} reference={reference} divider={i > 0} />
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function ReferenceNotice({ tone, children }: { tone: "info" | "warning"; children: ReactNode }) {
+  return (
+    <p
+      className={cn(
+        "flex items-start gap-2 rounded-[4px] border px-3.5 py-2.5 text-[12.5px] leading-[1.5]",
+        tone === "warning"
+          ? "border-warning/50 bg-warning-tint text-warning-ink"
+          : "border-border bg-muted/40 text-muted-foreground",
+      )}
+    >
+      <IconInfoCircle aria-hidden className="mt-0.5 size-3.5 shrink-0" />
+      <span>{children}</span>
+    </p>
+  );
+}
+
+function ReferenceDocRow({
+  reference,
+  divider,
+}: {
+  reference: DiscoveredReference;
+  divider: boolean;
+}) {
+  const meta = DOC_TYPE_META[reference.doc_type];
+  return (
+    <a
+      href={reference.url}
+      target="_blank"
+      rel="noreferrer"
+      className={cn(
+        "group flex items-center gap-3.5 px-4 py-3 transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+        divider && "border-t border-border",
+      )}
+    >
+      <IconFileText aria-hidden className="size-4 shrink-0 text-muted-foreground" />
+      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <span className="truncate text-[13.5px] font-semibold text-foreground group-hover:text-brand-ink">
+          {reference.title}
+        </span>
+        <span className="truncate font-mono text-[10.5px] text-muted-foreground">
+          {reference.url}
+        </span>
+      </span>
+      <Badge variant={meta.variant}>{meta.label}</Badge>
+      <IconExternalLink
+        aria-hidden
+        className="size-3.5 shrink-0 text-muted-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-brand-ink"
+      />
+    </a>
   );
 }
 

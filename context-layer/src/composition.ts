@@ -8,6 +8,7 @@
 import type { ResourceContextRecord } from "@atlas/schema";
 import {
   createDevAvailabilityProvider,
+  createDevReferenceDiscovery,
   createDevRegistry,
   createDevSourceContentProvider,
 } from "./adapters/dev";
@@ -51,6 +52,7 @@ export function createDefaultContextBundleService(
     ]),
     contentProvider: options.contentProvider ?? createDevSourceContentProvider(),
     availabilityProvider: options.availabilityProvider ?? createDevAvailabilityProvider(),
+    referenceDiscovery: options.referenceDiscovery ?? createDevReferenceDiscovery(),
     resources: options.resources ?? getDefaultResources(),
     now: new Date(),
   };

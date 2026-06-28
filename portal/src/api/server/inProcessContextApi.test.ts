@@ -64,4 +64,31 @@ describe("serverContextApiClient", () => {
     expect(response.feedback.target_id).toBe("aws-textract");
     expect(response.feedback.id).toMatch(/^feedback-/);
   });
+
+  it("projects a configured service with governance + reference-only links (plan 017)", async () => {
+    const projection = await serverContextApiClient.getResourceContext("service", "aws/textract");
+
+    expect(projection.resource.id).toBe("service/aws/textract");
+    expect(projection.governance).toBe("configured");
+    expect(projection.references.length).toBeGreaterThan(0);
+    // Every link is honestly reference-only — the agent/UI never reads the body.
+    for (const reference of projection.references) {
+      expect(reference.content_mode).toBe("reference_only");
+      expect(reference.agent_accessible).toBe(false);
+    }
+  });
+
+  it("projects a spine-only service as governance:unconfigured, not a 404", async () => {
+    const projection = await serverContextApiClient.getResourceContext("service", "aws/s3");
+
+    expect(projection.governance).toBe("unconfigured");
+    expect(projection.sections).toEqual({});
+    expect(projection.referenceDiscovery?.status).toBe("fresh");
+  });
+
+  it("throws resource_not_found for a service that is neither spined nor overlaid", async () => {
+    await expect(
+      serverContextApiClient.getResourceContext("service", "aws/not-a-real-service"),
+    ).rejects.toMatchObject({ name: "ContextApiError", code: "resource_not_found", status: 404 });
+  });
 });

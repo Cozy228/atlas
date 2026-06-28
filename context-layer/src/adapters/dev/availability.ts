@@ -21,8 +21,10 @@ import type {
   LandingZoneData,
   Location,
   LocationAvailability,
+  ServiceIdentity,
 } from "@atlas/schema";
 import type { AvailabilityProvider } from "../../services/availabilityProvider";
+import { normalizeServiceIdentity } from "../../services/serviceIdentityNormalizer";
 
 const av = (note?: string): LocationAvailability => ({ status: "available", note });
 const pl = (eta: string): LocationAvailability => ({ status: "planned", note: eta });
@@ -334,9 +336,38 @@ export const availabilityZones: LandingZoneData[] = [
   { id: "azure", name: "Azure", locations: AZURE_LOCATIONS, services: AZURE_SERVICES },
 ];
 
+/**
+ * Flatten the full availability grid into the discovery spine (plan 017 B2): one
+ * normalized `ServiceIdentity` per service, `provider` = the zone id, deduped by
+ * canonical `{provider}/{id}` key across zones (first occurrence wins). This is
+ * the WHOLE grid — the spine, not the small governed matrix; in prod the same
+ * port would back this with the live availability source (decision #2).
+ */
+export function listAvailabilityServices(
+  zones: LandingZoneData[] = availabilityZones,
+): ServiceIdentity[] {
+  const byKey = new Map<string, ServiceIdentity>();
+  for (const zone of zones) {
+    for (const service of zone.services) {
+      const identity = normalizeServiceIdentity({
+        provider: zone.id,
+        id: service.id,
+        name: service.name,
+      });
+      if (!byKey.has(identity.key)) {
+        byKey.set(identity.key, identity);
+      }
+    }
+  }
+  return Array.from(byKey.values());
+}
+
 /** Dev adapter: serves the in-memory grid as the seed-agnostic availability port. */
 export function createDevAvailabilityProvider(): AvailabilityProvider {
-  return { getZones: () => availabilityZones };
+  return {
+    getZones: () => availabilityZones,
+    listServices: () => listAvailabilityServices(),
+  };
 }
 
 /**

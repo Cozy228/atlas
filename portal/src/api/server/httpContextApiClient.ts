@@ -3,6 +3,7 @@ import {
   AvailabilityReadResponseSchema,
   ContextBundleResponseSchema,
   FeedbackResponseSchema,
+  ResourceContextResponseSchema,
   SourceDiscoveryResponseSchema,
   SourceResponseSchema,
   TopicDiscoveryResponseSchema,
@@ -112,6 +113,19 @@ export function createFetchContextApiClient(input: {
         fetch: fetchImpl,
         schema: AvailabilityReadResponseSchema,
         url: `${baseUrl}/availability`,
+      });
+    },
+    async getResourceContext(kind: string, slug: string) {
+      // slug may carry path separators (service slug = "{provider}/{id}"): encode
+      // each segment but keep the separators as real path segments.
+      const slugPath = slug
+        .split("/")
+        .map((segment) => encodeURIComponent(segment))
+        .join("/");
+      return requestJson({
+        fetch: fetchImpl,
+        schema: ResourceContextResponseSchema,
+        url: `${baseUrl}/resources/${encodeURIComponent(kind)}/${slugPath}`,
       });
     },
     async discoverSources(request: SourceDiscoveryRequest = {}) {
