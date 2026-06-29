@@ -85,9 +85,11 @@ describe("availabilityMatrixResolver (single live path)", () => {
   });
 
   it("reports not-planned for a service present in the grid but absent in a region", async () => {
-    const result = await resolve({ service: "CloudFront", region: "us-east-1" });
+    const result = await resolve({ service: "ELB", region: "us-east-1" });
 
-    expect(result.excerpts[0]?.text).toBe("CloudFront is not-planned in us-east-1.");
+    expect(result.excerpts[0]?.text).toBe(
+      "Elastic Load Balancing (ELB) is not-planned in us-east-1.",
+    );
   });
 
   it("flags a broken selector when the pinned service is not in the matrix", async () => {

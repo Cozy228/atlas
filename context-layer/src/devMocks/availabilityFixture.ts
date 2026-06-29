@@ -54,18 +54,15 @@ export const AWSF_LOCATIONS: Location[] = [
   { id: "mt10", label: "MT10", sub: "Future DR", kind: "outpost", coordinates: [103.8, 1.3] },
 ];
 
-/** The `awsf` landing zone's service availability grid (fictional). */
+/** The `awsf` landing zone's service availability grid (fictional). A coherent
+ *  ~18-service set spanning domains; every service here has a Terraform module in
+ *  the registry fixture, so discovery binds a resource (no empty service shells). */
 export const AWSF_SERVICES: AvailabilityServiceFixture[] = [
   svc("s3", "Amazon S3", "Storage", "S3", { "us-east-1": av(), "ca-central-1": av() }),
   svc("efs", "Elastic File System (EFS)", "Storage", "EFS", {
     "us-east-1": av(),
     "ca-central-1": av(),
   }),
-  svc("ebs", "Elastic Block Storage (EBS)", "Storage", "EBS", {
-    "us-east-1": av(),
-    "ca-central-1": av(),
-  }),
-  svc("backup", "AWS Backup", "Storage", "BAK", { "us-east-1": av(), "ca-central-1": av() }),
   svc("ec2", "EC2", "Compute", "EC2", {
     "us-east-1": av(),
     "ca-central-1": av(),
@@ -74,31 +71,20 @@ export const AWSF_SERVICES: AvailabilityServiceFixture[] = [
     mt10: pl("TBD"),
   }),
   svc("lambda", "AWS Lambda", "Compute", "LAM", { "us-east-1": av(), "ca-central-1": av() }),
-  svc("ecs-fargate", "ECS Fargate", "Containers", "ECS", {
-    "us-east-1": av(),
-    "ca-central-1": av(),
-  }),
-  svc("ecr", "Elastic Container Registry", "Containers", "ECR", {
-    "us-east-1": av(),
-    "ca-central-1": av(),
-  }),
   svc("eks", "Elastic Kubernetes Service (EKS)", "Containers", "EKS", {
     "us-east-1": av(),
     "ca-central-1": av(),
   }),
-  svc("ecs-ec2", "ECS on EC2", "Containers", "EC2", {
-    gdc: pl("06/30/2026"),
-    dc16: pl("07/31/2026"),
-    mt10: pl("TBD"),
+  svc("ecs-fargate", "ECS Fargate", "Containers", "ECS", {
+    "us-east-1": av(),
+    "ca-central-1": av(),
   }),
   svc("aurora", "Aurora Serverless v2 (PostgreSQL)", "Database", "PG", {
     "us-east-1": av(),
     "ca-central-1": av(),
   }),
-  svc("elasticache", "ElastiCache", "Database", "EC", { "us-east-1": av(), "ca-central-1": av() }),
+  svc("dynamodb", "DynamoDB", "Database", "DDB", {}),
   svc("kinesis", "Kinesis", "Analytics", "KIN", { "us-east-1": av(), "ca-central-1": av() }),
-  svc("glue", "AWS Glue", "Analytics", "GLU", { "us-east-1": av(), "ca-central-1": av() }),
-  svc("athena", "Athena", "Analytics", "ATH", { "us-east-1": av(), "ca-central-1": av() }),
   svc("sqs", "Simple Queue Service (SQS)", "App Integration", "SQS", {
     "us-east-1": av(),
     "ca-central-1": av(),
@@ -107,31 +93,15 @@ export const AWSF_SERVICES: AvailabilityServiceFixture[] = [
     "us-east-1": av(),
     "ca-central-1": av(),
   }),
+  svc("api-gateway", "API Gateway", "App Integration", "APG", {
+    "us-east-1": av(),
+    "ca-central-1": av(),
+  }),
   svc("eventbridge", "EventBridge", "App Integration", "EVB", {
     "us-east-1": av(),
     "ca-central-1": av(),
   }),
-  svc("airflow", "Managed Apache Airflow", "App Integration", "MWA", {
-    "us-east-1": av(),
-    "ca-central-1": av(),
-  }),
-  svc("step-functions", "Step Functions", "App Integration", "SFN", {
-    "us-east-1": av(),
-    "ca-central-1": av(),
-  }),
-  svc("transfer", "Transfer Family", "Migration & Transfer", "TRN", {
-    "us-east-1": av(),
-    "ca-central-1": av(),
-  }),
-  svc("dms", "Database Migration Service", "Migration & Transfer", "DMS", {
-    "us-east-1": pl("05/30/2026"),
-    "ca-central-1": pl("05/30/2026"),
-  }),
   svc("bedrock", "Amazon Bedrock", "AI Services", "BDR", {
-    "us-east-1": av(),
-    "ca-central-1": av(),
-  }),
-  svc("agentcore", "Bedrock AgentCore", "AI Services", "AGC", {
     "us-east-1": av(),
     "ca-central-1": av(),
   }),
@@ -144,43 +114,11 @@ export const AWSF_SERVICES: AvailabilityServiceFixture[] = [
     dc16: pl("06/30/2026"),
     mt10: pl("TBD"),
   }),
-  svc("cloudfront", "CloudFront", "Networking", "CF", {}),
-  svc("route53", "Route 53", "Networking", "R53", {}),
-  svc("api-gateway", "API Gateway", "App Integration", "APG", {
+  svc("cloudwatch", "CloudWatch", "Operations", "CW", {
     "us-east-1": av(),
     "ca-central-1": av(),
   }),
-  svc("cloudwatch", "CloudWatch", "Operations", "CW", {}),
-  svc("dynamodb", "DynamoDB", "Database", "DDB", {}),
-  svc("rds", "Relational Database Service (RDS)", "Database", "RDS", {}),
-  svc("documentdb", "DocumentDB", "Database", "DDB", {}),
-  svc("neptune", "Neptune", "Database", "NEP", {}),
-  svc("opensearch", "OpenSearch Service", "Analytics", "OSS", {}),
-  svc("redshift", "Redshift", "Analytics", "RSH", {}),
-  svc("emr", "EMR", "Analytics", "EMR", {}),
-  svc("msk", "Managed Streaming for Apache Kafka", "Analytics", "MSK", {}),
-  svc("mq", "Amazon MQ", "App Integration", "MQ", {}),
-  svc("cognito", "Cognito", "Security", "COG", {}),
-  svc("appsync", "AppSync", "App Integration", "APS", {}),
-  svc("sagemaker", "SageMaker", "AI Services", "SM", {}),
-  svc("rekognition", "Rekognition", "AI Services", "REK", {}),
-  svc("comprehend", "Comprehend", "AI Services", "CMP", {}),
-  svc("translate", "Translate", "AI Services", "TRS", {}),
-  svc("transcribe", "Transcribe", "AI Services", "TRC", {}),
-  svc("polly", "Polly", "AI Services", "POL", {}),
-  svc("connect", "Connect", "Customer Engagement", "CON", {}),
-  svc("iam-identity-center", "IAM Identity Center", "Security", "IAM", {}),
   svc("kms", "Key Management Service", "Security", "KMS", {}),
-  svc("secrets-manager", "Secrets Manager", "Security", "SEC", {}),
-  svc("cloudformation", "CloudFormation", "Operations", "CFN", {}),
-  svc("cloudtrail", "CloudTrail", "Operations", "CTR", {}),
-  svc("config", "Config", "Operations", "CFG", {}),
-  svc("systems-manager", "Systems Manager", "Operations", "SSM", {}),
-  svc("guardduty", "GuardDuty", "Security", "GDT", {}),
-  svc("security-hub", "Security Hub", "Security", "SH", {}),
-  svc("waf", "WAF", "Security", "WAF", {}),
-  svc("direct-connect", "Direct Connect", "Networking", "DCX", {}),
-  svc("privatelink", "PrivateLink", "Networking", "PL", {}),
 ];
 
 /** The fictional Confluence page id the `awsf` availability page is served at. */

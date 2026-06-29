@@ -5,11 +5,14 @@
  * `discoverServiceSources` → `deriveServiceResources` over the WHOLE availability
  * spine and asserts the derived resources/sections/citations.
  *
- * All services are 平权 (no privileged "textract gate"): the content-level golden
- * set below pins three representative shapes (module with a network heading, module
- * without one, module-less), and a uniform invariant holds over every derived
- * record (generic over N) — every service derives `availability`, and every record
- * validates against `ResourceContextRecordSchema`.
+ * All services are 平权 (no privileged "textract gate"): the trimmed `awsf` spine
+ * is now coherent — every spine service has a Terraform module whose README carries
+ * both a network-matching and an examples-matching heading (plan 018 G5 prep, no
+ * empty service shells). The content-level golden set below spot-checks three
+ * representative services (textract / s3 / api-gateway) for network + examples +
+ * availability section-binding, and a uniform invariant holds over every derived
+ * record (generic over N) — every service derives network, examples, AND
+ * availability, and every record validates against `ResourceContextRecordSchema`.
  */
 import { beforeAll, describe, expect, it } from "vitest";
 import {
@@ -86,9 +89,17 @@ describe("service discovery → resource derivation (golden)", () => {
     ]);
   });
 
-  it("derives examples + availability but omits network when the module has no network heading (s3)", () => {
+  it("derives network + examples + availability for s3 (network heading 'VPC endpoint access')", () => {
     const s3 = recordsById.get("service/aws/s3");
     expect(s3).toBeDefined();
+    expect(s3!.sections.network).toEqual([
+      {
+        source_id: "s3-module-readme",
+        heading: "VPC endpoint access",
+        citation_label: "VPC endpoint access",
+        order: 10,
+      },
+    ]);
     expect(s3!.sections.examples).toEqual([
       {
         source_id: "s3-module-readme",
@@ -98,19 +109,32 @@ describe("service discovery → resource derivation (golden)", () => {
       },
     ]);
     expect(s3!.sections.availability).toBeDefined();
-    // Honest gap, not an empty section: the key is absent entirely.
-    expect(s3!.sections.network).toBeUndefined();
   });
 
-  it("derives only availability for a module-less service (cloudwatch)", () => {
-    const cloudwatch = recordsById.get("service/aws/cloudwatch");
-    expect(cloudwatch).toBeDefined();
-    expect(Object.keys(cloudwatch!.sections)).toEqual(["availability"]);
-    expect(cloudwatch!.sections.availability).toEqual([
+  it("derives network + examples + availability for api-gateway (rekeyed example/api-gateway/aws)", () => {
+    const apiGateway = recordsById.get("service/aws/api-gateway");
+    expect(apiGateway).toBeDefined();
+    expect(apiGateway!.sections.network).toEqual([
+      {
+        source_id: "api-gateway-module-readme",
+        heading: "Private API networking",
+        citation_label: "Private API networking",
+        order: 10,
+      },
+    ]);
+    expect(apiGateway!.sections.examples).toEqual([
+      {
+        source_id: "api-gateway-module-readme",
+        heading: "Terraform starter",
+        citation_label: "Terraform starter",
+        order: 10,
+      },
+    ]);
+    expect(apiGateway!.sections.availability).toEqual([
       {
         source_id: "availability-matrix",
-        selector: { service: "CloudWatch" },
-        citation_label: "CloudWatch regional availability",
+        selector: { service: "API Gateway" },
+        citation_label: "API Gateway regional availability",
         order: 10,
       },
     ]);
@@ -119,21 +143,33 @@ describe("service discovery → resource derivation (golden)", () => {
   it("emits a Source per discovered module plus the synthetic availability-matrix source", () => {
     const ids = sources.map((source) => source.id);
     expect(ids).toContain("textract-module-readme");
+    expect(ids).toContain("api-gateway-module-readme");
     expect(ids).toContain("availability-matrix");
 
     const moduleSource = sources.find((source) => source.id === "textract-module-readme");
     expect(moduleSource?.source_class).toBe("terraform-module");
     expect(moduleSource?.location).toBe("example/textract/aws");
 
+    // The rekeyed address is discovered at example/api-gateway/aws (not apigateway).
+    const apiGatewaySource = sources.find((source) => source.id === "api-gateway-module-readme");
+    expect(apiGatewaySource?.location).toBe("example/api-gateway/aws");
+
     const availabilitySource = sources.find((source) => source.id === "availability-matrix");
     expect(availabilitySource?.source_class).toBe("availability-matrix");
     expect(availabilitySource?.location).toBe("availability");
+
+    // Coherent spine: a Source per service module + the one availability matrix.
+    expect(sources.length).toBe(records.length + 1);
   });
 
-  it("derives availability uniformly over N and validates every record against the schema", () => {
+  it("derives network + examples + availability uniformly over N and validates every record", () => {
     expect(records.length).toBeGreaterThan(1);
     for (const record of records) {
       expect(record.kind).toBe("service");
+      // Coherent fixture: every service has a module with both headings → no empty
+      // shells, every record carries network + examples sections.
+      expect(record.sections.network).toBeDefined();
+      expect(record.sections.examples).toBeDefined();
       // Uniform: every service derives availability from the matrix source.
       expect(record.sections.availability).toEqual([
         {
