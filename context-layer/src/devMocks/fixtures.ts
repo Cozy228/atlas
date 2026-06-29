@@ -23,6 +23,13 @@ export const DEV_CONFLUENCE_BASE_URL = "https://atlas-dev.example.atlassian.net"
 export const DEV_CONFLUENCE_SPACE_KEYS = ["CLOUD"];
 
 /**
+ * Fictional security-policy Confluence space key (plan 018 G5). Guardrails are
+ * discovered by crawling THIS space — the security-policy analog of the service
+ * spine — and every guardrail page lives under it (webui `/spaces/SECPOL/...`).
+ */
+export const DEV_CONFLUENCE_SECURITY_SPACE_KEY = "SECPOL";
+
+/**
  * Fictional page id of the federated-platform "What's New" Confluence page. The
  * dev runtime points `ATLAS_RELEASE_NOTES_PAGE_ID` here so `resolveReleaseNotes`
  * fetches it through the same v2 channel as every other page and extracts both
@@ -145,6 +152,78 @@ export const CONFLUENCE_PAGES: Record<string, ConfluencePageFixture> = {
       },
     },
     _links: { webui: "/spaces/CLOUD/pages/300002/Legacy+S3+Policy" },
+  },
+  // Cross-cutting security-policy pages (plan 018 G5) under the SECPOL space —
+  // the guardrail discovery corpus. Each carries an enforced-controls-matching
+  // heading AND an exceptions-matching heading so both sections derive; webui
+  // sits under `/spaces/SECPOL/` so the space-listing handler recalls them.
+  "310001": {
+    id: "310001",
+    title: "Data Encryption Standard",
+    version: { number: 6, createdAt: "2026-05-02T09:00:00.000Z" },
+    body: {
+      storage: {
+        value: [
+          "<h1>Data Encryption Standard</h1>",
+          "<h2>Encryption controls</h2>",
+          "<p>Data at rest must use customer-managed KMS keys with rotation enabled; data in transit requires TLS 1.2 or higher.</p>",
+          "<h2>Legacy exceptions</h2>",
+          "<p>Ephemeral scratch volumes may use provider-managed keys until the next review window.</p>",
+        ].join("\n"),
+      },
+    },
+    _links: { webui: "/spaces/SECPOL/pages/310001/Data+Encryption+Standard" },
+  },
+  "310002": {
+    id: "310002",
+    title: "Public Access Controls",
+    version: { number: 9, createdAt: "2026-05-18T09:00:00.000Z" },
+    body: {
+      storage: {
+        value: [
+          "<h1>Public Access Controls</h1>",
+          "<h2>Public access controls</h2>",
+          "<p>Storage buckets and managed databases must block public access at the account level; exposure requires an approved review.</p>",
+          "<h2>Legacy bucket waivers</h2>",
+          "<p>A small set of legacy buckets retain a documented waiver and are tracked for migration.</p>",
+        ].join("\n"),
+      },
+    },
+    _links: { webui: "/spaces/SECPOL/pages/310002/Public+Access+Controls" },
+  },
+  "310003": {
+    id: "310003",
+    title: "Private Networking Baseline",
+    version: { number: 4, createdAt: "2026-04-22T09:00:00.000Z" },
+    body: {
+      storage: {
+        value: [
+          "<h1>Private Networking Baseline</h1>",
+          "<h2>Baseline controls</h2>",
+          "<p>Workload subnets are private by default; egress flows through the shared inspection path and inbound exposure is gated.</p>",
+          "<h2>Deprecated allowances</h2>",
+          "<p>Direct public subnet placement is deprecated and retained only for migrating legacy edge workloads.</p>",
+        ].join("\n"),
+      },
+    },
+    _links: { webui: "/spaces/SECPOL/pages/310003/Private+Networking+Baseline" },
+  },
+  "310004": {
+    id: "310004",
+    title: "IAM Permission Boundary",
+    version: { number: 7, createdAt: "2026-06-03T09:00:00.000Z" },
+    body: {
+      storage: {
+        value: [
+          "<h1>IAM Permission Boundary</h1>",
+          "<h2>Mandatory boundaries</h2>",
+          "<p>Every workload role must attach the standard permission boundary; wildcard administrative actions are denied.</p>",
+          "<h2>Waiver process</h2>",
+          "<p>Break-glass roles obtain a time-boxed waiver approved by the security team and revoked automatically.</p>",
+        ].join("\n"),
+      },
+    },
+    _links: { webui: "/spaces/SECPOL/pages/310004/IAM+Permission+Boundary" },
   },
   [DEV_RELEASE_NOTES_PAGE_ID]: {
     id: DEV_RELEASE_NOTES_PAGE_ID,

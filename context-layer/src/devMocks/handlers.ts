@@ -16,6 +16,18 @@ import {
   TERRAFORM_MODULES,
 } from "./fixtures";
 
+/**
+ * Space-only listing recall (plan 018 G5): all pages under a space, used by
+ * guardrail discovery's `space = SECPOL AND type = page` crawl. Sourced from the
+ * page fixtures themselves (single source of truth) — every page whose webui sits
+ * under `/spaces/<spaceKey>/` is returned in the CQL search result shape.
+ */
+function listSpacePages(spaceKey: string) {
+  return Object.values(CONFLUENCE_PAGES)
+    .filter((page) => page._links.webui.includes(`/spaces/${spaceKey}/`))
+    .map((page) => ({ title: page.title, _links: { webui: page._links.webui } }));
+}
+
 /** Configurable injected latency (ms) so dev render shows real loading states. */
 export function devMockLatencyMs(): number {
   const raw = readEnv().ATLAS_DEV_MOCK_LATENCY_MS;
@@ -58,6 +70,16 @@ const cqlSearchHandlers = [
     const aliases = [...cql.matchAll(/title\s*~\s*"([^"]*)"/g)].map((m) =>
       m[1].toLowerCase().trim(),
     );
+
+    // Space-only listing (no `title ~` clause): a `space = <KEY>` crawl returns
+    // every page in that space — the guardrail-discovery recall path (G5). The
+    // title-recall path (any `title ~`) keeps its exact prior behaviour.
+    if (aliases.length === 0) {
+      const spaceKey = cql.match(/space\s*=\s*"?([A-Za-z0-9_-]+)"?/)?.[1];
+      const results = spaceKey ? listSpacePages(spaceKey) : [];
+      return HttpResponse.json({ results, totalSize: results.length, _links: {} });
+    }
+
     const results = CQL_REFERENCE_CORPUS.filter((candidate) => {
       const title = candidate.title.toLowerCase();
       return aliases.some((alias) => alias.length > 0 && title.includes(alias));

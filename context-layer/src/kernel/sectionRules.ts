@@ -22,10 +22,14 @@ import type { ResourceKind, SectionId } from "@atlas/schema";
  *    text matches `headingPattern` (heading-pattern default + raw-TOC).
  *  - `availability-matrix`: bound to the synthetic availability source by a
  *    `{ service }` selector — every service, no heading.
+ *  - `policy-document`: located in a security-policy Confluence page by the first
+ *    heading whose text matches `headingPattern` — the guardrail analog of the
+ *    `terraform-module` rule (heading-pattern default + storage-HTML TOC).
  */
 export type SectionRule =
   | { from: "terraform-module"; headingPattern: RegExp }
-  | { from: "availability-matrix" };
+  | { from: "availability-matrix" }
+  | { from: "policy-document"; headingPattern: RegExp };
 
 export const SECTION_RULES: Record<ResourceKind, Partial<Record<SectionId, SectionRule>>> = {
   service: {
@@ -39,6 +43,16 @@ export const SECTION_RULES: Record<ResourceKind, Partial<Record<SectionId, Secti
     },
     availability: { from: "availability-matrix" },
   },
-  guardrail: {},
+  guardrail: {
+    "enforced-controls": {
+      from: "policy-document",
+      headingPattern:
+        /\b(enforced|control|require|public access|baseline|encryption|standard|mandatory)\b/i,
+    },
+    exceptions: {
+      from: "policy-document",
+      headingPattern: /\b(exception|legacy|allowance|waiver|deprecated)\b/i,
+    },
+  },
   "landing-zone": {},
 };
