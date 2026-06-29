@@ -19,6 +19,7 @@
  *    synthetic availability source by a `{ service }` selector.
  */
 import type {
+  EntryTool,
   ResourceContextRecord,
   ResourceSectionBinding,
   SectionId,
@@ -83,12 +84,19 @@ function deriveServiceRecord(service: DiscoveredService): ResourceContextRecord 
     sections[sectionId] = [
       {
         source_id: AVAILABILITY_MATRIX_SOURCE_ID,
-        selector: { service: service.identity.name },
+        // The matrix resolver matches a service by its machine id, not its name.
+        selector: { service: service.identity.id },
         citation_label: `${service.identity.name} regional availability`,
         order: 10,
       },
     ];
   }
+
+  // Presentation metadata (plan 018 G5): only what discovery can honestly back —
+  // `category` from the availability domain, a default `status`, and (when a module
+  // was found) ONE entry tool. `owner_team`/`support_channel`/`description` are not
+  // discoverable, so they stay unset (honest gap, never fabricated).
+  const entryTools = service.module ? [moduleEntryTool(service.module.address)] : undefined;
 
   return {
     kind: "service",
@@ -96,7 +104,22 @@ function deriveServiceRecord(service: DiscoveredService): ResourceContextRecord 
     provider: service.identity.provider,
     name: service.identity.name,
     aliases: service.identity.admissionAliases,
+    category: service.domain,
+    status: "active",
+    ...(entryTools ? { entry_tools: entryTools } : {}),
     sections,
+  };
+}
+
+/**
+ * The single entry tool a module-backed service exposes: a link to its Terraform
+ * module on the registry. The URL is a public-safe, fictional registry address
+ * built from the host-less module address (`example/<id>/<provider>`).
+ */
+function moduleEntryTool(address: string): EntryTool {
+  return {
+    label: "Terraform module",
+    url: `https://app.terraform.io/example/registry/modules/${address}`,
   };
 }
 

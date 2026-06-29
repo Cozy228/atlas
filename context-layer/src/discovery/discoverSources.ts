@@ -12,6 +12,7 @@
  */
 import type { ServiceIdentity } from "@atlas/schema";
 import type { AvailabilityProvider } from "../services/availabilityProvider";
+import { normalizeServiceIdentity } from "../services/serviceIdentityNormalizer";
 import type { ResolutionContext } from "../resolvers/resolverTypes";
 import { discoverTerraformModule } from "../sourceContent/terraformModuleContentProvider";
 
@@ -30,6 +31,8 @@ export type DiscoveredModule = {
 /** One service's discovery result: its identity + whichever sources were found. */
 export type DiscoveredService = {
   identity: ServiceIdentity;
+  /** The service's availability domain (e.g. "Storage") — its presentation category. */
+  domain: string;
   module: DiscoveredModule | null;
 };
 
@@ -42,11 +45,17 @@ export type DiscoverServiceSourcesDeps = {
   terraform: { baseUrl: string; token: string };
 };
 
+/** A spine service paired with the availability domain it carries (presentation). */
+type SpineService = { identity: ServiceIdentity; domain: string };
+
 /**
- * Probe every spine service for a Terraform module. The module address follows
+ * Probe every spine service for a Terraform module. The spine is the wired
+ * landing zones' availability grids flattened: each `AvailabilityRecord` carries
+ * `{id, name, domain}`, normalized to a canonical `ServiceIdentity` (provider =
+ * the LZ's cloud) and deduped by `identity.key` (first occurrence wins) — the
+ * `domain` is captured for presentation (`category`). The module address follows
  * the `example/<id>/<provider>` convention; a service with no published module
- * yields `module: null`. Probes run concurrently — one registry fetch per
- * service, deduped upstream by the spine's canonical key.
+ * yields `module: null`. Probes run concurrently — one registry fetch per service.
  */
 export async function discoverServiceSources(
   deps: DiscoverServiceSourcesDeps,
@@ -54,9 +63,9 @@ export async function discoverServiceSources(
   const { availabilityProvider, ctx, terraform } = deps;
   const config = { baseUrl: terraform.baseUrl, token: terraform.token };
 
-  const identities = await availabilityProvider.listServices();
+  const spine = flattenSpine(await availabilityProvider.getZones());
   return Promise.all(
-    identities.map(async (identity) => {
+    spine.map(async ({ identity, domain }) => {
       const address = `example/${identity.id}/${identity.provider}`;
       const found = await discoverTerraformModule(ctx, config, address);
       const module: DiscoveredModule | null = found
@@ -67,7 +76,32 @@ export async function discoverServiceSources(
             version: found.version,
           }
         : null;
-      return { identity, module };
+      return { identity, domain, module };
     }),
   );
+}
+
+/**
+ * Flatten the wired zones' services into the discovery spine: one normalized
+ * `ServiceIdentity` per service (provider = the LZ's cloud, the LZ id never enters
+ * the address), deduped by canonical key (first wins). The service's `domain` is
+ * captured alongside for presentation. Unwired zones carry no services → nothing.
+ */
+function flattenSpine(
+  zones: Awaited<ReturnType<AvailabilityProvider["getZones"]>>,
+): SpineService[] {
+  const byKey = new Map<string, SpineService>();
+  for (const zone of zones) {
+    for (const service of zone.services) {
+      const identity = normalizeServiceIdentity({
+        provider: zone.cloud,
+        id: service.id,
+        name: service.name,
+      });
+      if (!byKey.has(identity.key)) {
+        byKey.set(identity.key, { identity, domain: service.domain });
+      }
+    }
+  }
+  return Array.from(byKey.values());
 }

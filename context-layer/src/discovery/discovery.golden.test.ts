@@ -82,11 +82,25 @@ describe("service discovery → resource derivation (golden)", () => {
     expect(textract!.sections.availability).toEqual([
       {
         source_id: "availability-matrix",
-        selector: { service: "Amazon Textract" },
+        // Selector is the machine id (what the matrix resolver matches on), not the name.
+        selector: { service: "textract" },
         citation_label: "Amazon Textract regional availability",
         order: 10,
       },
     ]);
+    // Presentation metadata: category = availability domain, default status, one
+    // Terraform-module entry tool. Non-discoverable fields stay unset (honest gap).
+    expect(textract!.category).toBe("AI Services");
+    expect(textract!.status).toBe("active");
+    expect(textract!.entry_tools).toEqual([
+      {
+        label: "Terraform module",
+        url: "https://app.terraform.io/example/registry/modules/example/textract/aws",
+      },
+    ]);
+    expect(textract!.owner_team).toBeUndefined();
+    expect(textract!.support_channel).toBeUndefined();
+    expect(textract!.description).toBeUndefined();
   });
 
   it("derives network + examples + availability for s3 (network heading 'VPC endpoint access')", () => {
@@ -108,7 +122,16 @@ describe("service discovery → resource derivation (golden)", () => {
         order: 10,
       },
     ]);
-    expect(s3!.sections.availability).toBeDefined();
+    expect(s3!.sections.availability).toEqual([
+      {
+        source_id: "availability-matrix",
+        selector: { service: "s3" },
+        citation_label: "Amazon S3 regional availability",
+        order: 10,
+      },
+    ]);
+    expect(s3!.category).toBe("Storage");
+    expect(s3!.status).toBe("active");
   });
 
   it("derives network + examples + availability for api-gateway (rekeyed example/api-gateway/aws)", () => {
@@ -133,9 +156,16 @@ describe("service discovery → resource derivation (golden)", () => {
     expect(apiGateway!.sections.availability).toEqual([
       {
         source_id: "availability-matrix",
-        selector: { service: "API Gateway" },
+        selector: { service: "api-gateway" },
         citation_label: "API Gateway regional availability",
         order: 10,
+      },
+    ]);
+    expect(apiGateway!.category).toBe("App Integration");
+    expect(apiGateway!.entry_tools).toEqual([
+      {
+        label: "Terraform module",
+        url: "https://app.terraform.io/example/registry/modules/example/api-gateway/aws",
       },
     ]);
   });
@@ -170,15 +200,31 @@ describe("service discovery → resource derivation (golden)", () => {
       // shells, every record carries network + examples sections.
       expect(record.sections.network).toBeDefined();
       expect(record.sections.examples).toBeDefined();
-      // Uniform: every service derives availability from the matrix source.
+      // Uniform: every service derives availability from the matrix source, keyed by
+      // its machine id (slug = `${provider}/${id}`) — what the resolver matches on.
+      const serviceId = record.slug.split("/")[1];
       expect(record.sections.availability).toEqual([
         {
           source_id: "availability-matrix",
-          selector: { service: record.name },
+          selector: { service: serviceId },
           citation_label: `${record.name} regional availability`,
           order: 10,
         },
       ]);
+      // Uniform presentation: every record carries a category (= availability domain)
+      // + default status, one Terraform-module entry tool (the fixture spine is fully
+      // module-backed), and NO fabricated owner/support/description.
+      expect(record.category).toBeTruthy();
+      expect(record.status).toBe("active");
+      expect(record.entry_tools).toEqual([
+        {
+          label: "Terraform module",
+          url: `https://app.terraform.io/example/registry/modules/example/${serviceId}/${record.provider}`,
+        },
+      ]);
+      expect(record.owner_team).toBeUndefined();
+      expect(record.support_channel).toBeUndefined();
+      expect(record.description).toBeUndefined();
       // Content-level golden: the derived record is schema-valid (no empty sections).
       expect(() => ResourceContextRecordSchema.parse(record)).not.toThrow();
     }
