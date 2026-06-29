@@ -59,12 +59,8 @@ export const Route = createFileRoute("/support")({
     return {
       domains,
       serviceCount: topics.filter((topic) => topic.topic_type === "service").length,
-      landingZoneCount: topics.filter((topic) => topic.topic_type === "landing-zone").length,
       policyCount: topics.filter((topic) => topic.topic_type === "security-policy").length,
       sourceCount: sourcesResp.sources.length,
-      authoritativeCount: sourcesResp.sources.filter(
-        (source) => source.authority_level === "authoritative",
-      ).length,
     };
   },
   component: SupportRoute,
@@ -235,17 +231,14 @@ function GroundingLine({
 }: {
   data: {
     serviceCount: number;
-    landingZoneCount: number;
     policyCount: number;
     sourceCount: number;
-    authoritativeCount: number;
   };
 }) {
   const facts: ReadonlyArray<{ value: number; label: string }> = [
     { value: data.serviceCount, label: "services" },
-    { value: data.landingZoneCount, label: "landing zones" },
     { value: data.policyCount, label: "security policies" },
-    { value: data.sourceCount, label: `sources (${data.authoritativeCount} authoritative)` },
+    { value: data.sourceCount, label: "sources" },
   ];
   return (
     <p className="flex flex-wrap items-baseline gap-x-2 gap-y-1 border-t border-border pt-4 text-[12px] text-muted-foreground">

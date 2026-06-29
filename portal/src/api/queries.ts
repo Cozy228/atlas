@@ -1,8 +1,7 @@
 import { queryOptions } from "@tanstack/react-query";
 import type {
-  ContextRequest,
-  ContextBundleResponse,
   ResourceContextResponse,
+  ResourceRecordResponse,
   SourceDiscoveryRequest,
   SourceDiscoveryResponse,
   TopicDiscoveryRequest,
@@ -11,8 +10,8 @@ import type {
 
 import { fetchAvailability, type AvailabilityResponse } from "@/api/server/availability";
 import {
-  fetchContextBundle,
   fetchResourceContext,
+  fetchResourceRecord,
   fetchSourceDiscovery,
   fetchTopicDiscovery,
 } from "@/api/server/contextApi";
@@ -67,13 +66,11 @@ export function sourceDiscoveryQueryOptionsFor(request: SourceDiscoveryRequest =
 
 export const sourceDiscoveryQueryOptions = sourceDiscoveryQueryOptionsFor();
 
-export function contextBundleQueryOptions(request: ContextRequest) {
-  return queryOptions<ContextBundleResponse>({
-    queryKey: ["context-bundle", request] as const,
-    queryFn: () => fetchContextBundle({ data: request }),
-    // 5 min: bundles are immutable per { topic_id, disclosure_level } within a
-    // session, so caching avoids re-resolving every cited anchor (the app's most
-    // expensive call) on re-nav. Not Infinity, so a long-lived tab still refreshes.
+export function resourceRecordQueryOptions(ref: { kind: string; slug: string }) {
+  return queryOptions<ResourceRecordResponse>({
+    queryKey: ["resource-record", ref] as const,
+    queryFn: () => fetchResourceRecord({ data: ref }),
+    // Durable presentation metadata (ADR-0015 §2) — long-lived like the topic read.
     staleTime: 5 * 60_000,
   });
 }

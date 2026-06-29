@@ -1,13 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Source, Warning } from "@atlas/schema";
 
-import {
-  authorityRank,
-  classifyFreshness,
-  compareByAuthority,
-  highestPriorityWarning,
-  parseDurationToMs,
-} from "./evidence";
+import { classifyFreshness, highestPriorityWarning, parseDurationToMs } from "./evidence";
 
 const sourceFixture: Source = {
   id: "test-source",
@@ -22,26 +16,6 @@ const sourceFixture: Source = {
   last_reviewed_at: "2026-04-01T00:00:00.000Z",
   review_frequency: "P90D",
 };
-
-describe("authority ranking", () => {
-  it("orders authority_level from authoritative to deprecated", () => {
-    expect(authorityRank("authoritative")).toBe(0);
-    expect(authorityRank("reference")).toBe(1);
-    expect(authorityRank("example")).toBe(2);
-    expect(authorityRank("draft")).toBe(3);
-    expect(authorityRank("deprecated")).toBe(4);
-  });
-
-  it("compareByAuthority sorts authoritative ahead of deprecated", () => {
-    const sources: Source[] = [
-      { ...sourceFixture, id: "a", authority_level: "deprecated" },
-      { ...sourceFixture, id: "b", authority_level: "authoritative" },
-      { ...sourceFixture, id: "c", authority_level: "reference" },
-    ];
-    sources.sort(compareByAuthority);
-    expect(sources.map((source) => source.id)).toEqual(["b", "c", "a"]);
-  });
-});
 
 describe("freshness classification", () => {
   const baseSource = {

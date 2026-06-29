@@ -6,29 +6,11 @@ import {
   IconShieldCheckFilled,
   IconShieldHalf,
   IconShieldX,
-  IconStar,
 } from "@tabler/icons-react";
 
 import { Badge } from "@/components/ui/badge";
 import { classifyFreshness, type FreshnessState } from "@/lib/evidence";
-import type { AnchorStatus, AuthorityLevel, Source, Visibility } from "@atlas/schema";
-
-const AUTHORITY_VARIANT: Record<AuthorityLevel, React.ComponentProps<typeof Badge>["variant"]> = {
-  authoritative: "brand",
-  reference: "info",
-  example: "neutral",
-  draft: "warning",
-  deprecated: "critical",
-};
-
-export function AuthorityBadge({ level }: { level: AuthorityLevel }) {
-  return (
-    <Badge variant={AUTHORITY_VARIANT[level]}>
-      <IconStar className="size-3" aria-hidden />
-      {level}
-    </Badge>
-  );
-}
+import type { AnchorStatus, Source, Visibility } from "@atlas/schema";
 
 const VISIBILITY_VARIANT: Record<Visibility, React.ComponentProps<typeof Badge>["variant"]> = {
   internal: "neutral",

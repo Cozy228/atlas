@@ -3,8 +3,8 @@ import {
   type ApiErrorResponse,
   type SourceDiscoveryResponse,
 } from "@atlas/schema";
-import { discoverSources } from "../services/contextBundleService";
-import { createDefaultContextBundleService } from "../composition";
+import { discoverSources } from "../services/contextService";
+import { createDefaultContextService } from "../composition";
 import type { ApiResponse } from "./routeTypes";
 import { errorResponse } from "./routeTypes";
 
@@ -18,6 +18,6 @@ export function handleSourceDiscoveryRequest(
 
   return {
     status: 200,
-    body: discoverSources(createDefaultContextBundleService(), parsed.data),
+    body: discoverSources(createDefaultContextService(), parsed.data),
   };
 }

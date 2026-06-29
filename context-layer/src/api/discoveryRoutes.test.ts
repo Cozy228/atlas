@@ -15,10 +15,10 @@ describe("discovery routes", () => {
 
   it("discovers topics by type through the shared response schema", () => {
     const response = handleTopicDiscoveryRequest({
-      topic_type: "landing-zone",
+      topic_type: "security-policy",
     });
 
     expect(response.status).toBe(200);
-    expect(TopicDiscoveryResponseSchema.parse(response.body).topics.length).toBe(3);
+    expect(TopicDiscoveryResponseSchema.parse(response.body).topics.length).toBe(4);
   });
 });

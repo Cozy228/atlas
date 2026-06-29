@@ -6,6 +6,7 @@ import {
   type ResourceContextResponse,
   type ResourceKind,
   type ResourceContextRecord,
+  type ResourceRecordResponse,
   type ResourceSearchResponse,
   type ResourceSectionBinding,
   type ResourceSummary,
@@ -38,9 +39,9 @@ import { getResourceKindDef } from "./resourceKindRegistry";
  */
 
 /**
- * The slice of a ContextBundleService the projection facade needs. Declared
+ * The slice of a ContextService the projection facade needs. Declared
  * structurally so this module does not import the service (and cannot form an
- * import cycle); `ContextBundleService` satisfies it.
+ * import cycle); `ContextService` satisfies it.
  */
 export type ResourceContextDeps = {
   resources: ResourceContextRecord[];
@@ -150,6 +151,57 @@ export async function getResourceContext(
     return null;
   }
   return projectSpineOnly(deps, identity, params);
+}
+
+/**
+ * Read a resource's presentation metadata (plan 020 15d, ADR-0015 §1/§2): the
+ * Portal-facing identity/owner/entry fields migrated off the Topic. This is NOT
+ * content — `getResourceContext` stays content-only; the resource-first page
+ * composes this metadata read + that content read. Overlay-backed → the migrated
+ * metadata + `governance: "configured"`; a spine-only service → identity-only +
+ * `"unconfigured"` (no curated metadata yet); a genuine miss → `null` (404).
+ * Synchronous: no Source resolution, no discovery.
+ */
+export function getResourceRecord(
+  deps: Pick<ResourceContextDeps, "resources" | "availabilityProvider">,
+  params: { kind: ResourceKind; slug: string },
+): ResourceRecordResponse | null {
+  const overlay = findRecord(deps.resources, params.kind, params.slug);
+  if (overlay) {
+    return {
+      kind: overlay.kind,
+      id: `${overlay.kind}/${overlay.slug}`,
+      slug: overlay.slug,
+      ...(overlay.provider ? { provider: overlay.provider } : {}),
+      name: overlay.name,
+      aliases: overlay.aliases,
+      governance: "configured",
+      ...(overlay.category ? { category: overlay.category } : {}),
+      ...(overlay.status ? { status: overlay.status } : {}),
+      ...(overlay.description ? { description: overlay.description } : {}),
+      ...(overlay.owner_team ? { owner_team: overlay.owner_team } : {}),
+      ...(overlay.support_channel ? { support_channel: overlay.support_channel } : {}),
+      ...(overlay.entry_tools ? { entry_tools: overlay.entry_tools } : {}),
+      ...(overlay.topics ? { topics: overlay.topics } : {}),
+    };
+  }
+
+  if (params.kind !== "service") {
+    return null;
+  }
+  const identity = findServiceIdentity(deps.availabilityProvider, params.slug);
+  if (!identity) {
+    return null;
+  }
+  return {
+    kind: "service",
+    id: `service/${identity.key}`,
+    slug: identity.key,
+    provider: identity.provider,
+    name: identity.name,
+    aliases: identity.admissionAliases,
+    governance: "unconfigured",
+  };
 }
 
 /** Project a governed (overlay-backed) resource: resolve its Section Plan. */

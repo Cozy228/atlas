@@ -1,14 +1,14 @@
 import {
   ApiErrorResponseSchema,
   AvailabilityReadResponseSchema,
-  ContextBundleResponseSchema,
   FeedbackResponseSchema,
   ResourceContextResponseSchema,
+  ResourceRecordResponseSchema,
+  ResourceSearchResponseSchema,
   SourceDiscoveryResponseSchema,
   SourceResponseSchema,
   TopicDiscoveryResponseSchema,
   TopicResponseSchema,
-  type ContextRequest,
   type FeedbackSubmission,
   type SourceDiscoveryRequest,
   type TopicDiscoveryRequest,
@@ -78,36 +78,6 @@ export function createFetchContextApiClient(input: {
         url: `${baseUrl}/sources/${encodeURIComponent(id)}`,
       });
     },
-    async getContextBundle(request: ContextRequest) {
-      if (request.topic_id) {
-        return requestJson({
-          fetch: fetchImpl,
-          schema: ContextBundleResponseSchema,
-          url: withQuery(`${baseUrl}/topics/${encodeURIComponent(request.topic_id)}/context`, {
-            anchor_id: request.anchor_id,
-            disclosure_level: request.disclosure_level?.toString(),
-          }),
-        });
-      }
-
-      if (request.source_id) {
-        return requestJson({
-          fetch: fetchImpl,
-          schema: ContextBundleResponseSchema,
-          url: withQuery(`${baseUrl}/sources/${encodeURIComponent(request.source_id)}/content`, {
-            anchor_id: request.anchor_id,
-            disclosure_level: request.disclosure_level?.toString(),
-          }),
-        });
-      }
-
-      return requestJson({
-        fetch: fetchImpl,
-        schema: ContextBundleResponseSchema,
-        url: `${baseUrl}/context-bundle`,
-        init: jsonPost(request),
-      });
-    },
     async getAvailability() {
       return requestJson({
         fetch: fetchImpl,
@@ -126,6 +96,24 @@ export function createFetchContextApiClient(input: {
         fetch: fetchImpl,
         schema: ResourceContextResponseSchema,
         url: `${baseUrl}/resources/${encodeURIComponent(kind)}/${slugPath}`,
+      });
+    },
+    async getResourceRecord(kind: string, slug: string) {
+      const slugPath = slug
+        .split("/")
+        .map((segment) => encodeURIComponent(segment))
+        .join("/");
+      return requestJson({
+        fetch: fetchImpl,
+        schema: ResourceRecordResponseSchema,
+        url: `${baseUrl}/resources/${encodeURIComponent(kind)}/${slugPath}/record`,
+      });
+    },
+    async searchResources(query: string) {
+      return requestJson({
+        fetch: fetchImpl,
+        schema: ResourceSearchResponseSchema,
+        url: withQuery(`${baseUrl}/resources`, { query }),
       });
     },
     async discoverSources(request: SourceDiscoveryRequest = {}) {

@@ -1,22 +1,29 @@
 import { describe, expect, it } from "vitest";
-import { ContextBundleResponseSchema } from "@atlas/schema";
+import { ResourceContextResponseSchema } from "@atlas/schema";
 
 describe("context layer contract boundary", () => {
-  it("consumes the shared context bundle schema", () => {
-    const bundle = ContextBundleResponseSchema.parse({
-      bundle_id: "empty-context-layer-bundle",
-      request: {
-        topic_id: "unknown-topic",
+  it("consumes the shared resource projection schema", () => {
+    const projection = ResourceContextResponseSchema.parse({
+      resource: {
+        kind: "service",
+        id: "service/aws/textract",
+        slug: "aws/textract",
+        name: "Amazon Textract",
+        aliases: [],
+        resourceUrl: "/api/resources/service/aws/textract",
+        markdownUrl: "/resources/service/aws/textract.md",
       },
-      sources: [],
-      anchor_references: [],
-      warnings: [],
-      expansion_paths: [],
+      governance: "unconfigured",
+      requestedSections: [],
+      sections: {},
+      missingSections: [],
+      references: [],
+      referenceDiscovery: null,
+      resolvedAt: "2026-01-01T00:00:00.000Z",
     });
 
-    expect(bundle.sources).toEqual([]);
-    expect(bundle.anchor_references).toEqual([]);
-    expect(bundle.warnings).toEqual([]);
-    expect(bundle.expansion_paths).toEqual([]);
+    expect(projection.sections).toEqual({});
+    expect(projection.missingSections).toEqual([]);
+    expect(projection.governance).toBe("unconfigured");
   });
 });

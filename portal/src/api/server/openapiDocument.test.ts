@@ -57,8 +57,7 @@ describe("openapi document validity", () => {
 
   it("keeps the single mutation endpoint on internal and none on agent", () => {
     expect(mutationsOf(agent)).toEqual([]);
-    // POST /context-bundle is read-only despite the verb (body-carrying read).
-    expect(mutationsOf(internal).sort()).toEqual(["POST /context-bundle", "POST /feedback"]);
+    expect(mutationsOf(internal).sort()).toEqual(["POST /feedback"]);
   });
 
   it("uses the bare origin for the agent server and the /api base for internal", () => {
@@ -178,7 +177,7 @@ describe("openapi route parity", () => {
         dispatched.add(`${match[1]} ${template}`);
       }
     }
-    expect(dispatched.size).toBeGreaterThanOrEqual(11);
+    expect(dispatched.size).toBeGreaterThanOrEqual(7);
 
     const documented = new Set(
       Object.entries(internal.paths).flatMap(([path, methods]) =>

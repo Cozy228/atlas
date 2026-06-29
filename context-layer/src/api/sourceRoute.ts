@@ -1,12 +1,12 @@
 import { type ApiErrorResponse, type SourceResponse } from "@atlas/schema";
-import { createDefaultContextBundleService } from "../composition";
+import { createDefaultContextService } from "../composition";
 import type { ApiResponse } from "./routeTypes";
 import { errorResponse } from "./routeTypes";
 
 export function handleSourceRequest(
   sourceId: string,
 ): ApiResponse<ApiErrorResponse | SourceResponse> {
-  const service = createDefaultContextBundleService();
+  const service = createDefaultContextService();
   const source = service.registry.sources.getById(sourceId);
 
   if (!source) {

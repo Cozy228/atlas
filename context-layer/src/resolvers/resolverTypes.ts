@@ -55,8 +55,8 @@ export type ResolutionContext = {
   token?: string;
   fetch: FetchLike;
   /**
-   * Request-scoped fetch+parse memo, keyed by resource URL. Created per bundle
-   * in `buildContextBundle` and never shared across requests/identities, so N
+   * Request-scoped fetch+parse memo, keyed by resource URL. Created per resource
+   * projection and never shared across requests/identities, so N
    * anchors on the same live page/module share one fetch + one parse. Optional:
    * a caller that does not thread one keeps today's fetch-per-anchor behaviour
    * (the memo is a pure optimisation, never a correctness dependency).

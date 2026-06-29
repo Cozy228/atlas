@@ -1,5 +1,5 @@
 import { type ApiErrorResponse, type AvailabilityReadResponse } from "@atlas/schema";
-import { createDefaultContextBundleService } from "../composition";
+import { createDefaultContextService } from "../composition";
 import { isStale } from "../services/freshness";
 import type { ApiResponse } from "./routeTypes";
 import { errorResponse } from "./routeTypes";
@@ -24,7 +24,7 @@ const AVAILABILITY_SOURCE_ID = "availability-matrix";
 export function handleAvailabilityRequest(): ApiResponse<
   ApiErrorResponse | AvailabilityReadResponse
 > {
-  const service = createDefaultContextBundleService();
+  const service = createDefaultContextService();
   const source = service.registry.sources.getById(AVAILABILITY_SOURCE_ID);
   if (!source) {
     return errorResponse(

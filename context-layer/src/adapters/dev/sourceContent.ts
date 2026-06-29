@@ -17,16 +17,6 @@ export function createDevSourceContentProvider() {
     "lambda-module-readme": {
       "#event-sources": "Lambda workloads must declare event sources through module inputs.",
     },
-    "central-lz-confluence": {
-      "environment-matrix":
-        "Central Landing Zone separates production and non-production accounts.",
-    },
-    "regulated-lz-confluence": {
-      "regulated-controls": "Regulated workloads require restricted control review.",
-    },
-    "sandbox-lz-confluence": {
-      "expiration-policy": "Sandbox accounts expire after the approved trial period.",
-    },
     "s3-policy-doc": {
       "clause-2.1": "S3 buckets must block public access and enforce encryption.",
     },

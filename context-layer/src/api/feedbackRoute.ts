@@ -5,8 +5,8 @@ import {
   type FeedbackResponse,
   type FeedbackSubmission,
 } from "@atlas/schema";
-import { createDefaultContextBundleService } from "../composition";
-import type { ContextBundleService } from "../services/contextBundleService";
+import { createDefaultContextService } from "../composition";
+import type { ContextService } from "../services/contextService";
 import type { ApiResponse } from "./routeTypes";
 import { errorResponse } from "./routeTypes";
 
@@ -18,7 +18,7 @@ export async function handleFeedbackRequest(
     return errorResponse(400, "invalid_request", "Feedback request is invalid.");
   }
 
-  const service = createDefaultContextBundleService();
+  const service = createDefaultContextService();
   const targetError = validateFeedbackTarget(service, parsed.data);
   if (targetError) {
     return targetError;
@@ -32,7 +32,7 @@ export async function handleFeedbackRequest(
 }
 
 function validateFeedbackTarget(
-  service: ContextBundleService,
+  service: ContextService,
   feedback: FeedbackSubmission,
 ): ApiResponse<ApiErrorResponse> | undefined {
   if (feedback.target_type === "topic" && !service.registry.topics.getById(feedback.target_id)) {

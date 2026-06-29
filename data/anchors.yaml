@@ -28,33 +28,6 @@
   citation_label: Event sources
   status: valid
   last_validated_at: 2026-05-05T00:00:00.000Z
-- id: environment-matrix
-  source_id: central-lz-confluence
-  anchor_strategy: confluence-section
-  title: Environment matrix
-  selector:
-    locator: environment-matrix
-  citation_label: Environment matrix
-  status: valid
-  last_validated_at: 2026-05-05T00:00:00.000Z
-- id: regulated-controls
-  source_id: regulated-lz-confluence
-  anchor_strategy: confluence-section
-  title: Regulated controls
-  selector:
-    locator: regulated-controls
-  citation_label: Regulated controls
-  status: valid
-  last_validated_at: 2026-05-05T00:00:00.000Z
-- id: expiration-policy
-  source_id: sandbox-lz-confluence
-  anchor_strategy: confluence-section
-  title: Expiration policy
-  selector:
-    locator: expiration-policy
-  citation_label: Expiration policy
-  status: valid
-  last_validated_at: 2026-05-05T00:00:00.000Z
 - id: public-access
   source_id: s3-policy-doc
   anchor_strategy: document-clause

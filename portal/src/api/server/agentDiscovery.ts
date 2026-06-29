@@ -4,6 +4,9 @@
  * them only point at routes this codebase actually serves — never advertise
  * what does not exist.
  */
+import type { Topic } from "@atlas/schema";
+
+import { serviceRouteParamsForTopic } from "@/lib/availability-service";
 import { DEFAULT_PORTAL_ORIGIN } from "./portalOrigin";
 
 /**
@@ -121,12 +124,27 @@ A missing or failed section is ABSENCE of data, never a negative answer:
 }
 
 type SitemapInput = {
-  topicIds: ReadonlyArray<string>;
+  /** Topics with their type, so each links to its own surface: a service → its
+   *  canonical resource address (plan 020 15d), a security policy → /policies. */
+  topics: ReadonlyArray<Pick<Topic, "id" | "topic_type">>;
   sourceIds: ReadonlyArray<string>;
   guidanceIds: ReadonlyArray<string>;
   /** Canonical `{kind}/{slug}` ids for the agent-readable resource pages. */
   resourceIds?: ReadonlyArray<string>;
 };
+
+/** The crawlable detail path for a topic, by type. Services moved to their
+ *  Resource address; landing zones (gone from the catalog, plan 019) have none. */
+function topicDetailPath(topic: Pick<Topic, "id" | "topic_type">): string | null {
+  if (topic.topic_type === "service") {
+    const { provider, id } = serviceRouteParamsForTopic(topic);
+    return `/service/${encodeURIComponent(provider)}/${encodeURIComponent(id)}`;
+  }
+  if (topic.topic_type === "security-policy") {
+    return `/policies/${encodeURIComponent(topic.id)}`;
+  }
+  return null;
+}
 
 /**
  * Canonical, crawlable pages only: catalog/source/guidance browsing plus the
@@ -134,7 +152,7 @@ type SitemapInput = {
  * chat, and `/api/*` JSON endpoints are deliberately excluded.
  */
 export function buildSitemapXml(
-  { topicIds, sourceIds, guidanceIds, resourceIds = [] }: SitemapInput,
+  { topics, sourceIds, guidanceIds, resourceIds = [] }: SitemapInput,
   origin: string = DEFAULT_PORTAL_ORIGIN,
 ): string {
   const paths = [
@@ -142,7 +160,7 @@ export function buildSitemapXml(
     "/catalog",
     "/sources",
     "/guidance",
-    ...topicIds.map((id) => `/catalog/${encodeURIComponent(id)}`),
+    ...topics.map(topicDetailPath).filter((path): path is string => path !== null),
     ...sourceIds.map((id) => `/sources/${encodeURIComponent(id)}`),
     ...guidanceIds.map((id) => `/guidance/${encodeURIComponent(id)}`),
     // {kind}/{slug} ids are pre-encoded path segments; encode each segment, not

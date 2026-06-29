@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { readdirSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { ContextBundleResponseSchema, TopicDiscoveryResponseSchema } from "@atlas/schema";
+import { ResourceContextResponseSchema, ResourceSearchResponseSchema } from "@atlas/schema";
 
 import { bridgeContextApiRequest } from "./contextApiBridge";
 import { serverContextApiClient } from "./serverContextApiClient";
@@ -94,34 +94,42 @@ describe("atlas-context-consumer bundle parity", () => {
    * bridge below is the exact function served at `/api/*` on the Portal
    * origin; `serverContextApiClient` is what Portal loaders consume.
    */
-  it("the skill's instructed flow returns the same bundle the Portal client gets", async () => {
-    // Step 1 of the SKILL.md: GET /api/topics?query=textract
+  it("the skill's instructed flow returns the same projection the Portal client gets", async () => {
+    // Step 1 of the SKILL.md: GET /api/resources?query=textract
     const discovery = await bridgeContextApiRequest(
-      new Request("https://portal.example.com/api/topics?query=textract"),
+      new Request("https://portal.example.com/api/resources?query=textract"),
     );
     expect(discovery.status).toBe(200);
-    const topics = TopicDiscoveryResponseSchema.parse(await discovery.json());
-    const topic = topics.topics.find((candidate) => candidate.id === "aws-textract");
-    expect(topic).toBeDefined();
+    const search = ResourceSearchResponseSchema.parse(await discovery.json());
+    const match = search.items.find((candidate) => candidate.id === "service/aws/textract");
+    expect(match).toBeDefined();
 
-    // Step 2 of the SKILL.md: GET /api/topics/{topic_id}/context
+    // Step 2 of the SKILL.md: GET /api/resources/{kind}/{slug}
     const response = await bridgeContextApiRequest(
-      new Request("https://portal.example.com/api/topics/aws-textract/context"),
+      new Request("https://portal.example.com/api/resources/service/aws/textract"),
     );
     expect(response.status).toBe(200);
-    const skillBundle = ContextBundleResponseSchema.parse(await response.json());
+    const skillProjection = ResourceContextResponseSchema.parse(await response.json());
 
-    const portalBundle = await serverContextApiClient.getContextBundle({
-      topic_id: "aws-textract",
+    const portalProjection = await serverContextApiClient.getResourceContext(
+      "service",
+      "aws/textract",
+    );
+
+    // One governed projection contract for both consumers, modulo the per-call
+    // timestamp and the origin-derived resource URLs (the Skill call supplied an
+    // origin; the in-process Portal call did not).
+    const normalize = (projection: typeof skillProjection) => ({
+      ...projection,
+      resolvedAt: "x",
+      resource: { ...projection.resource, resourceUrl: "x", markdownUrl: "x" },
     });
+    expect(normalize(skillProjection)).toEqual(normalize(portalProjection));
 
-    // One governed bundle contract for both consumers (ignoring the per-request id).
-    expect({ ...skillBundle, bundle_id: "x" }).toEqual({ ...portalBundle, bundle_id: "x" });
-
-    // Atlas's evidence principle: every Excerpt carries its Citation.
-    for (const source of skillBundle.sources) {
-      for (const excerpt of source.excerpts) {
-        expect(excerpt.citation.source_id).toBe(source.source.id);
+    // Atlas's evidence principle: every resolved Section carries its Citations.
+    for (const section of Object.values(skillProjection.sections)) {
+      if (section.content) {
+        expect(section.citations.length).toBeGreaterThan(0);
       }
     }
   });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { serviceBundle } from "../fixtures/contextBundles";
+import { emptyProjection, serviceProjection } from "../fixtures/resourceContexts";
 import {
   askAtlas,
   buildAskAtlasPrompt,
@@ -9,22 +9,22 @@ import {
 } from "./askAtlas";
 
 describe("Ask Atlas", () => {
-  it("builds prompts only from the context bundle and user question", () => {
+  it("builds prompts only from the resource projection and user question", () => {
     const prompt = buildAskAtlasPrompt({
       question: "How do I use Textract from a private subnet?",
-      bundle: serviceBundle,
+      projection: serviceProjection,
     });
 
     expect(prompt).toContain("How do I use Textract from a private subnet?");
     expect(prompt).toContain("Use the Textract module with private endpoint configuration.");
-    expect(prompt).toContain("textract-module-readme");
+    expect(prompt).toContain("textract-module-readme#private-subnet-usage");
     expect(prompt).not.toContain("production-ready Terraform");
     expect(prompt).not.toContain("bypass approval");
   });
 
-  it("strips claims that do not map to bundle citations", () => {
+  it("strips claims that do not map to projection citations", () => {
     const answer = validateCitations({
-      bundle: serviceBundle,
+      projection: serviceProjection,
       claims: [
         {
           text: "Use private endpoint configuration.",
@@ -51,35 +51,19 @@ describe("Ask Atlas", () => {
     ]);
   });
 
-  it("rejects claims backed only by non-authoritative sources", () => {
+  it("accepts any cited discovered Section — no per-source authority gate (plan 019)", () => {
     const answer = validateCitations({
-      bundle: {
-        ...serviceBundle,
-        sources: [
-          {
-            ...serviceBundle.sources[0],
-            source: {
-              ...serviceBundle.sources[0]!.source,
-              authority_level: "draft",
-            },
-          },
-        ],
-      },
+      projection: serviceProjection,
       claims: [
         {
-          text: "Draft guidance is enough for a factual answer.",
+          text: "Discovered guidance is admissible evidence.",
           citation_ids: ["textract-module-readme#private-subnet-usage"],
         },
       ],
     });
 
-    expect(answer.claims).toEqual([]);
-    expect(answer.rejected_claims).toEqual([
-      {
-        text: "Draft guidance is enough for a factual answer.",
-        citation_ids: ["textract-module-readme#private-subnet-usage"],
-      },
-    ]);
+    expect(answer.claims).toHaveLength(1);
+    expect(answer.rejected_claims).toEqual([]);
   });
 
   it("uses an adapter instead of calling a provider directly", async () => {
@@ -98,7 +82,7 @@ describe("Ask Atlas", () => {
 
     const answer = await askAtlas({
       question: "How do I use Textract from a private subnet?",
-      bundle: serviceBundle,
+      projection: serviceProjection,
       adapter,
       userId: "user-1",
       rateLimiter: createDailyRateLimiter(5),
@@ -108,15 +92,10 @@ describe("Ask Atlas", () => {
     expect(answer.warnings).toEqual([]);
   });
 
-  it("returns no-source answer when the Context Layer has no evidence", async () => {
+  it("returns a no-evidence answer when the projection has no governed content", async () => {
     const answer = await askAtlas({
       question: "How do I use a mainframe?",
-      bundle: {
-        ...serviceBundle,
-        sources: [],
-        warnings: [{ code: "no_registered_source", message: "No registered source found." }],
-        expansion_paths: [],
-      },
+      projection: emptyProjection,
       adapter: {
         async answer() {
           throw new Error("Adapter should not be called without evidence.");
@@ -127,7 +106,7 @@ describe("Ask Atlas", () => {
     });
 
     expect(answer.claims).toEqual([]);
-    expect(answer.warnings[0]).toBe("no registered authoritative source found");
+    expect(answer.warnings[0]).toBe("no governed evidence found");
   });
 
   it("enforces Portal-owned daily rate limits", async () => {
@@ -140,7 +119,7 @@ describe("Ask Atlas", () => {
 
     await askAtlas({
       question: "First question",
-      bundle: serviceBundle,
+      projection: serviceProjection,
       adapter,
       userId: "user-1",
       rateLimiter,
@@ -149,7 +128,7 @@ describe("Ask Atlas", () => {
     await expect(
       askAtlas({
         question: "Second question",
-        bundle: serviceBundle,
+        projection: serviceProjection,
         adapter,
         userId: "user-1",
         rateLimiter,

@@ -26,15 +26,6 @@ describe("InMemorySourceRepository", () => {
     expect(repository.getById("missing-source")).toBeUndefined();
   });
 
-  it("queries sources by authority scope without topic embedding", () => {
-    const repository = new InMemorySourceRepository([source]);
-
-    const matches = repository.findByAuthorityScope("private-networking");
-
-    expect(matches).toEqual([source]);
-    expect(matches[0]).not.toHaveProperty("topic_ids");
-  });
-
   it("rejects malformed source records", () => {
     const repository = new InMemorySourceRepository();
 

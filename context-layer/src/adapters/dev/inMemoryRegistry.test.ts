@@ -7,19 +7,20 @@ describe("in-memory registry adapter", () => {
   it("loads validated repositories for the governed topics and sources", async () => {
     const registry = createInMemoryRegistry(loadRegistryFromManifests());
 
-    expect(registry.topics.list()).toHaveLength(12);
-    expect(registry.sources.list()).toHaveLength(16);
+    expect(registry.topics.list()).toHaveLength(9);
+    expect(registry.sources.list()).toHaveLength(13);
     expect(registry.anchors.list().length).toBeGreaterThan(10);
     expect((await registry.feedback.list()).length).toBeGreaterThan(0);
     expect(registry.mappings.list().length).toBeGreaterThan(12);
   });
 
-  it("supports service, landing-zone, and security-policy scenarios", () => {
+  it("supports service and security-policy scenarios (landing zones are the availability scope, plan 019)", () => {
     const registry = createInMemoryRegistry(loadRegistryFromManifests());
 
     expect(registry.topics.findByType("service").length).toBeGreaterThan(0);
-    expect(registry.topics.findByType("landing-zone").length).toBeGreaterThan(0);
     expect(registry.topics.findByType("security-policy").length).toBeGreaterThan(0);
+    // Landing zones moved to the availability grid — no catalog topics remain.
+    expect(registry.topics.findByType("landing-zone")).toEqual([]);
   });
 
   it("includes stale, deprecated, restricted, and broken-anchor examples", () => {

@@ -5,8 +5,10 @@ import { ClientOnly } from "@/components/client-only";
 import { cn } from "@/lib/utils";
 
 export type RecentItem =
-  | { kind: "service"; topicId: string; name: string }
-  | { kind: "landing-zone"; topicId: string; name: string }
+  // service is addressed by its canonical resource slug `{provider}/{id}`
+  // (plan 020 15d), no longer a topic id. (Landing zones left the catalog in
+  // plan 019, so there is no landing-zone recent item.)
+  | { kind: "service"; slug: string; name: string }
   | { kind: "source"; sourceId: string; name: string };
 
 const STORAGE_KEY = "atlas:recently-viewed";
@@ -38,30 +40,32 @@ export function pushRecent(item: RecentItem) {
 
 export function recentItemFromParts(
   kind: RecentItem["kind"] | undefined,
-  topicOrSourceId: string | undefined,
+  idValue: string | undefined,
   name: string | undefined,
 ): RecentItem | null {
-  if (!kind || !topicOrSourceId || !name) return null;
-  if (kind === "source") {
-    return { kind, sourceId: topicOrSourceId, name };
-  }
-  return { kind, topicId: topicOrSourceId, name };
+  if (!kind || !idValue || !name) return null;
+  if (kind === "source") return { kind, sourceId: idValue, name };
+  return { kind, slug: idValue, name };
 }
 
 export function useRecordRecent(item: RecentItem | null) {
   const kind = item?.kind;
-  const topicOrSourceId = kind === "source" ? item?.sourceId : item?.topicId;
+  const idValue = item ? recentIdValue(item) : undefined;
   const name = item?.name;
 
   useEffect(() => {
-    const next = recentItemFromParts(kind, topicOrSourceId, name);
+    const next = recentItemFromParts(kind, idValue, name);
     if (!next) return;
     pushRecent(next);
-  }, [kind, topicOrSourceId, name]);
+  }, [kind, idValue, name]);
+}
+
+function recentIdValue(item: RecentItem): string {
+  return item.kind === "source" ? item.sourceId : item.slug;
 }
 
 function recentKey(item: RecentItem): string {
-  return item.kind === "source" ? `source:${item.sourceId}` : `${item.kind}:${item.topicId}`;
+  return `${item.kind}:${recentIdValue(item)}`;
 }
 
 function isRecentItem(value: unknown): value is RecentItem {
@@ -70,10 +74,7 @@ function isRecentItem(value: unknown): value is RecentItem {
   if (typeof candidate.kind !== "string") return false;
   if (typeof candidate.name !== "string") return false;
   if (candidate.kind === "source") return typeof candidate.sourceId === "string";
-  return (
-    (candidate.kind === "service" || candidate.kind === "landing-zone") &&
-    typeof candidate.topicId === "string"
-  );
+  return candidate.kind === "service" && typeof candidate.slug === "string";
 }
 
 /**
@@ -124,10 +125,9 @@ function RecentChip({ item }: { item: RecentItem }) {
     "hover:border-border-strong hover:bg-muted",
     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
   );
-  const typeLabel = item.kind === "landing-zone" ? "landing zone" : item.kind;
   const type = (
     <span className="font-mono type-caption uppercase tracking-[0.05em] text-muted-foreground">
-      {typeLabel}
+      {item.kind}
     </span>
   );
 
@@ -139,8 +139,11 @@ function RecentChip({ item }: { item: RecentItem }) {
       </Link>
     );
   }
+  const slashIndex = item.slug.indexOf("/");
+  const provider = slashIndex >= 0 ? item.slug.slice(0, slashIndex) : item.slug;
+  const id = slashIndex >= 0 ? item.slug.slice(slashIndex + 1) : item.slug;
   return (
-    <Link to="/catalog/$topicId" params={{ topicId: item.topicId }} className={className}>
+    <Link to="/service/$provider/$id" params={{ provider, id }} className={className}>
       <span>{item.name}</span>
       {type}
     </Link>

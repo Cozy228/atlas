@@ -5,32 +5,31 @@
  * At a handful of sources that read fine; at dozens, each class block becomes a
  * wall of rows with no way to narrow it. This version keeps the grouped
  * register but makes the grouping a *tool*: a free-text search, a switchable
- * grouping axis (Class / Steward / Authority / Freshness), and facet filters
- * (authority level · freshness · restricted) that narrow live. Grouping buys
+ * grouping axis (Class / Steward / Freshness), and facet filters
+ * (freshness · restricted) that narrow live. Grouping buys
  * one level of structure; search + facets carry the rest.
  */
 import { useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { IconArrowRight, IconLock, IconSearch, IconX } from "@tabler/icons-react";
-import type { AuthorityLevel, Source } from "@atlas/schema";
+import type { Source } from "@atlas/schema";
 
-import { AuthorityBadge, FreshnessIndicator } from "@/components/evidence/badges";
-import { AUTHORITY_ORDER, type FreshnessState } from "@/lib/evidence";
+import { FreshnessIndicator } from "@/components/evidence/badges";
+import { type FreshnessState } from "@/lib/evidence";
 import { cn } from "@/lib/utils";
 
 import { CATEGORY_ORDER, sourceCategory } from "./scale";
-import { AUTHORITY_BAR, CLASS_LABEL, FRESHNESS_META, Header, freshnessMap } from "./shared";
+import { CLASS_LABEL, FRESHNESS_META, Header, freshnessMap } from "./shared";
 
 /**
  * "class" is the default and renders a two-level register (class → category);
  * the others are flat single-axis groupings.
  */
-type Axis = "class" | "steward" | "authority" | "freshness";
+type Axis = "class" | "steward" | "freshness";
 
 const AXES: ReadonlyArray<{ id: Axis; label: string }> = [
   { id: "class", label: "Class" },
   { id: "steward", label: "Steward" },
-  { id: "authority", label: "Authority" },
   { id: "freshness", label: "Freshness" },
 ];
 
@@ -40,7 +39,6 @@ const FRESHNESS_ORDER: ReadonlyArray<FreshnessState> = ["current", "needs-review
 export function SourcesByClass({ sources }: { sources: ReadonlyArray<Source> }) {
   const [query, setQuery] = useState("");
   const [axis, setAxis] = useState<Axis>("class");
-  const [authorityFilter, setAuthorityFilter] = useState<ReadonlySet<AuthorityLevel>>(new Set());
   const [freshnessFilter, setFreshnessFilter] = useState<ReadonlySet<FreshnessState>>(new Set());
   const [restrictedOnly, setRestrictedOnly] = useState(false);
 
@@ -58,26 +56,17 @@ export function SourcesByClass({ sources }: { sources: ReadonlyArray<Source> }) 
   const filtered = useMemo(
     () =>
       searchFiltered.filter((s) => {
-        if (authorityFilter.size && !authorityFilter.has(s.authority_level)) return false;
         if (freshnessFilter.size && !freshnessFilter.has(freshOf.get(s.id) ?? "needs-review"))
           return false;
         if (restrictedOnly && s.visibility !== "restricted") return false;
         return true;
       }),
-    [searchFiltered, authorityFilter, freshnessFilter, restrictedOnly, freshOf],
+    [searchFiltered, freshnessFilter, restrictedOnly, freshOf],
   );
 
   const groups = useMemo(() => groupTwoLevel(filtered, axis, freshOf), [filtered, axis, freshOf]);
 
   // Facet counts reflect the search-filtered set so chips never all collapse.
-  const authorityCounts = useMemo(
-    () =>
-      AUTHORITY_ORDER.map((level) => ({
-        level,
-        count: searchFiltered.filter((s) => s.authority_level === level).length,
-      })).filter((e) => e.count > 0),
-    [searchFiltered],
-  );
   const freshnessCounts = useMemo(
     () =>
       FRESHNESS_ORDER.map((state) => ({
@@ -91,11 +80,9 @@ export function SourcesByClass({ sources }: { sources: ReadonlyArray<Source> }) 
     [searchFiltered],
   );
 
-  const anyFilter =
-    q !== "" || authorityFilter.size > 0 || freshnessFilter.size > 0 || restrictedOnly;
+  const anyFilter = q !== "" || freshnessFilter.size > 0 || restrictedOnly;
   const clearAll = () => {
     setQuery("");
-    setAuthorityFilter(new Set());
     setFreshnessFilter(new Set());
     setRestrictedOnly(false);
   };
@@ -133,19 +120,6 @@ export function SourcesByClass({ sources }: { sources: ReadonlyArray<Source> }) 
 
         {/* Facet filters — one labelled row per facet so chips align */}
         <div className="flex flex-col gap-1.5">
-          <FacetRow label="Authority">
-            {authorityCounts.map(({ level, count }) => (
-              <Chip
-                key={level}
-                active={authorityFilter.has(level)}
-                onClick={() => setAuthorityFilter(toggle(authorityFilter, level))}
-                dot={AUTHORITY_BAR[level]}
-                count={count}
-              >
-                <span className="capitalize">{level}</span>
-              </Chip>
-            ))}
-          </FacetRow>
           <FacetRow label="Freshness">
             {freshnessCounts.map(({ state, count }) => (
               <Chip
@@ -207,7 +181,6 @@ export function SourcesByClass({ sources }: { sources: ReadonlyArray<Source> }) 
               <h2
                 className={cn(
                   "text-[1.0625rem] font-bold tracking-[-0.015em] text-foreground",
-                  axis === "authority" && "capitalize",
                   axis === "steward" && "font-mono text-[15px]",
                 )}
               >
@@ -264,7 +237,7 @@ type Group = {
 };
 
 /** A grouping dimension — how to key a source, order the keys, and label them. */
-type LevelKind = "class" | "category" | "steward" | "authority" | "freshness";
+type LevelKind = "class" | "category" | "steward" | "freshness";
 
 type LevelSpec = {
   keyOf: (s: Source) => string;
@@ -294,13 +267,6 @@ function levelSpec(kind: LevelKind, freshOf: ReadonlyMap<string, FreshnessState>
         order: (p) => [...p].sort((a, b) => a.localeCompare(b)),
         label: (k) => k,
       };
-    case "authority":
-      return {
-        keyOf: (s) => s.authority_level,
-        order: (p) => AUTHORITY_ORDER.filter((k) => p.includes(k)),
-        label: (k) => k,
-        dot: (k) => AUTHORITY_BAR[k],
-      };
     case "freshness":
       return {
         keyOf: (s) => freshOf.get(s.id) ?? "needs-review",
@@ -320,7 +286,6 @@ function levelSpec(kind: LevelKind, freshOf: ReadonlyMap<string, FreshnessState>
 const SECONDARY: Record<Axis, LevelKind> = {
   class: "category",
   steward: "category",
-  authority: "class",
   freshness: "class",
 };
 
@@ -359,13 +324,7 @@ function groupTwoLevel(
 }
 
 function axisNoun(axis: Axis): string {
-  return axis === "class"
-    ? "classes"
-    : axis === "steward"
-      ? "stewards"
-      : axis === "authority"
-        ? "authority levels"
-        : "freshness bands";
+  return axis === "class" ? "classes" : axis === "steward" ? "stewards" : "freshness bands";
 }
 
 function toggle<T>(set: ReadonlySet<T>, value: T): ReadonlySet<T> {
@@ -476,7 +435,6 @@ function ClassRow({ source }: { source: Source }) {
       </span>
       <code className="font-mono text-[10.5px] text-muted-foreground">{source.id}</code>
       <span className="flex flex-wrap items-center gap-2">
-        <AuthorityBadge level={source.authority_level} />
         <FreshnessIndicator source={source} />
         <span className="font-mono text-[10.5px] text-muted-foreground">{source.steward}</span>
       </span>

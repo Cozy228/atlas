@@ -1,6 +1,6 @@
 /**
  * Composition root — the one module that wires concrete adapters into a default
- * Context Layer service. Core (`contextBundleService` + the ports) stays
+ * Context Layer service. Core (`contextService` + the ports) stays
  * adapter-free; only this module imports `adapters/dev`. A production build
  * swaps the dev factories below for live adapters — the single seam where the
  * runtime chooses live sources over the dev manifests. Core stays unaware.
@@ -18,10 +18,7 @@ import { policyDocumentResolver } from "./resolvers/policyDocumentResolver";
 import { createResolverRegistry } from "./resolvers/resolverRegistry";
 import { terraformModuleResolver } from "./resolvers/terraformModuleResolver";
 import { loadResources } from "./adapters/dev/loadResources";
-import type {
-  ContextBundleService,
-  ContextBundleServiceOptions,
-} from "./services/contextBundleService";
+import type { ContextService, ContextServiceOptions } from "./services/contextService";
 
 // The default resource records come from the dev adapter's resource loader. The
 // loader reads + validates the filesystem, so we memoize it: the routes build a
@@ -37,9 +34,7 @@ function getDefaultResources(): ResourceContextRecord[] {
  * caller does not inject; behaviour is identical to the previous in-service
  * factory — only the adapter wiring moved out of core into this composition root.
  */
-export function createDefaultContextBundleService(
-  options: ContextBundleServiceOptions = {},
-): ContextBundleService {
+export function createDefaultContextService(options: ContextServiceOptions = {}): ContextService {
   return {
     registry:
       options.registry ??

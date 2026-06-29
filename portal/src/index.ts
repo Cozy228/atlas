@@ -9,13 +9,6 @@ export {
   validateCitations,
   type LlmAdapter,
 } from "./ask/askAtlas";
-export {
-  buildFeedbackPayload,
-  renderServiceDetail,
-  renderLandingZoneNavigator,
-  renderPortalHome,
-  renderSourceLookup,
-} from "./views/portalViews";
 export { createStaticContextApiClient, type ContextApiClient } from "./api/contextApiClient";
 export { listGuidance, getGuidance, relatedGuidanceForTopic, type Guidance } from "./lib/guidance";
 export { loadGuidance } from "./adapters/dev/loadGuidance";

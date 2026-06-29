@@ -15,6 +15,21 @@
     - AWS Textract
     - Textract
     - Amazon Textract
+  # Identity / presentation metadata absorbed onto the Resource (ADR-0015 §2,
+  # plan 020 15a), copied off the `aws-textract` Topic. The Topic survives as a
+  # facet label only; this record is the metadata home.
+  category: ai-ml
+  status: active
+  description: Managed OCR service for document workflows.
+  owner_team: cloud-platform
+  support_channel: "#cloud-platform"
+  entry_tools:
+    - label: Terraform module
+      url: https://tfe.example.com/app/example/registry/modules/private/example/textract/aws
+    - label: User guide
+      url: https://confluence.example.com/display/CLOUD/Textract+User+Guide
+  topics:
+    - aws-textract
   sections:
     # Private-connectivity prose from the approved Terraform module README.
     network:
@@ -40,6 +55,9 @@
     - S3 public access
     - block public access
     - bucket public access
+    # The security-policy topic this guardrail answers to (plan 019): policies
+    # resolve their governed resource by topic id through the alias mechanism.
+    - s3-guardrails
   sections:
     enforced-controls:
       - source_id: s3-policy-doc
@@ -51,3 +69,95 @@
       - source_id: legacy-s3-policy
         anchor_id: legacy-public-access
         order: 10
+
+# service kind — metadata-only overlays (plan 020 15a). These services already
+# exist + resolve via the availability spine (governance "configured" once an
+# overlay is present); the record's job here is to be the home for the identity
+# metadata migrated off the catalog Topics. No governed Section bindings yet, so
+# `sections` is empty and the content body renders honest-empty until evidence is
+# registered — services are uniform (plan 019), no per-service special-casing.
+- kind: service
+  slug: aws/bedrock
+  provider: aws
+  name: Amazon Bedrock
+  aliases:
+    - AWS Bedrock
+    - Bedrock
+  category: ai-ml
+  status: active
+  description: Managed foundation model access for approved workloads.
+  owner_team: cloud-platform
+  support_channel: "#cloud-platform"
+  entry_tools:
+    - label: Module
+      url: https://tfe.example.com/app/example/registry/modules/private/example/bedrock/aws
+  topics:
+    - aws-bedrock
+  sections: {}
+
+# Decompose (plan 020 15a): the `serverless-compute` umbrella Topic is 1:1 with
+# Lambda in the seed, so it splits out as the concrete Lambda Resource. The
+# umbrella demotes to a facet label (`topics: [serverless-compute]`) and keeps no
+# own content page — old `/catalog/serverless-compute` 301s here.
+- kind: service
+  slug: aws/lambda
+  provider: aws
+  name: AWS Lambda
+  aliases:
+    - Lambda
+    - Serverless Compute
+  category: compute
+  status: active
+  description: Lambda-based compute patterns for event-driven workloads.
+  owner_team: cloud-platform
+  support_channel: "#serverless-support"
+  entry_tools:
+    - label: Module
+      url: https://tfe.example.com/app/example/registry/modules/private/example/lambda/aws
+  topics:
+    - serverless-compute
+  sections: {}
+
+- kind: service
+  slug: aws/api-gateway
+  provider: aws
+  name: API Gateway
+  aliases:
+    - AWS API Gateway
+    - Amazon API Gateway
+  category: networking
+  status: active
+  description: Managed REST and WebSocket API front doors for application workloads.
+  owner_team: cloud-platform
+  support_channel: "#cloud-platform"
+  entry_tools:
+    - label: Terraform module
+      url: https://tfe.example.com/app/example/registry/modules/private/example/apigateway/aws
+    - label: Integration guide
+      url: https://confluence.example.com/display/CLOUD/API+Gateway+Integration
+    - label: User guide
+      url: https://confluence.example.com/display/CLOUD/API+Gateway+User+Guide
+  topics:
+    - api-gateway
+  sections: {}
+
+- kind: service
+  slug: aws/s3
+  provider: aws
+  name: Amazon S3
+  aliases:
+    - AWS S3
+    - S3
+  category: storage
+  status: active
+  description: Object storage for application data, backups, and static assets.
+  owner_team: cloud-platform
+  support_channel: "#cloud-platform"
+  entry_tools:
+    - label: Terraform module
+      url: https://tfe.example.com/app/example/registry/modules/private/example/s3/aws
+    - label: User guide
+      url: https://confluence.example.com/display/CLOUD/S3+User+Guide
+  topics:
+    - aws-s3
+  sections: {}

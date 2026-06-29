@@ -8,7 +8,7 @@ describe("context API Lambda handler", () => {
       version: "2.0",
       routeKey: "GET /topics",
       rawPath: "/topics",
-      rawQueryString: "topic_type=landing-zone",
+      rawQueryString: "topic_type=security-policy",
       headers: {},
       requestContext: { http: { method: "GET", path: "/topics" } },
       isBase64Encoded: false,
@@ -16,6 +16,6 @@ describe("context API Lambda handler", () => {
 
     expect(response.statusCode).toBe(200);
     const body = TopicDiscoveryResponseSchema.parse(JSON.parse(response.body));
-    expect(body.topics.every((topic) => topic.topic_type === "landing-zone")).toBe(true);
+    expect(body.topics.every((topic) => topic.topic_type === "security-policy")).toBe(true);
   });
 });

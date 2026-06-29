@@ -1,5 +1,4 @@
 export { handleAvailabilityRequest } from "./api/availabilityRoute";
-export { handleContextRequest } from "./api/contextRoute";
 export { handleFeedbackRequest } from "./api/feedbackRoute";
 export { handleHttpRequest } from "./api/httpRoute";
 export { handleSourceDiscoveryRequest } from "./api/sourceDiscoveryRoute";
@@ -8,6 +7,7 @@ export { handleTopicDiscoveryRequest } from "./api/topicDiscoveryRoute";
 export { handleTopicRequest } from "./api/topicRoute";
 export {
   handleResourceContextRequest,
+  handleResourceRecordRequest,
   handleResourceSearchRequest,
   type ResourceContextRouteParams,
 } from "./api/resourceRoutes";

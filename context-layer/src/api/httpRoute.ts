@@ -1,8 +1,11 @@
-import type { ApiErrorResponse, ContextRequest, ResourceContextResponse } from "@atlas/schema";
+import type { ApiErrorResponse, ResourceContextResponse } from "@atlas/schema";
 import { handleAvailabilityRequest } from "./availabilityRoute";
-import { handleContextRequest } from "./contextRoute";
 import { handleFeedbackRequest } from "./feedbackRoute";
-import { handleResourceContextRequest, handleResourceSearchRequest } from "./resourceRoutes";
+import {
+  handleResourceContextRequest,
+  handleResourceRecordRequest,
+  handleResourceSearchRequest,
+} from "./resourceRoutes";
 import { handleSourceDiscoveryRequest } from "./sourceDiscoveryRoute";
 import { handleSourceRequest } from "./sourceRoute";
 import { handleTopicDiscoveryRequest } from "./topicDiscoveryRoute";
@@ -47,19 +50,6 @@ export async function handleHttpRequest(request: HttpRequest): Promise<HttpRespo
     return jsonResponse(handleTopicRequest(decodeURIComponent(topicIdMatch[1])));
   }
 
-  const topicContextMatch = path.match(/^\/topics\/([^/]+)\/context$/);
-  if (method === "GET" && topicContextMatch) {
-    return jsonResponse(
-      await handleContextRequest(
-        {
-          topic_id: decodeURIComponent(topicContextMatch[1]),
-          ...contextQuery(request.query),
-        },
-        ctx,
-      ),
-    );
-  }
-
   if (method === "GET" && path === "/sources") {
     return jsonResponse(handleSourceDiscoveryRequest(compactQuery(request.query)));
   }
@@ -69,19 +59,6 @@ export async function handleHttpRequest(request: HttpRequest): Promise<HttpRespo
     return jsonResponse(handleSourceRequest(decodeURIComponent(sourceIdMatch[1])));
   }
 
-  const sourceContentMatch = path.match(/^\/sources\/([^/]+)\/content$/);
-  if (method === "GET" && sourceContentMatch) {
-    return jsonResponse(
-      await handleContextRequest(
-        {
-          source_id: decodeURIComponent(sourceContentMatch[1]),
-          ...contextQuery(request.query),
-        },
-        ctx,
-      ),
-    );
-  }
-
   if (method === "GET" && path === "/availability") {
     return jsonResponse(handleAvailabilityRequest());
   }
@@ -89,6 +66,18 @@ export async function handleHttpRequest(request: HttpRequest): Promise<HttpRespo
   if (method === "GET" && path === "/resources") {
     return jsonResponse(
       handleResourceSearchRequest(request.query?.query, { baseUrl: request.origin }),
+    );
+  }
+
+  // Presentation-metadata read (plan 020 15d) — matched BEFORE the context route
+  // (whose `(.+)` slug would otherwise swallow the `/record` suffix).
+  const resourceRecordMatch = path.match(/^\/resources\/([^/]+)\/(.+)\/record$/);
+  if (method === "GET" && resourceRecordMatch) {
+    return jsonResponse(
+      handleResourceRecordRequest({
+        kind: decodeURIComponent(resourceRecordMatch[1]),
+        slug: decodeURIComponent(resourceRecordMatch[2]),
+      }),
     );
   }
 
@@ -107,14 +96,6 @@ export async function handleHttpRequest(request: HttpRequest): Promise<HttpRespo
       return markdownResponse(renderResourceMarkdown(result.body as ResourceContextResponse));
     }
     return jsonResponse(result);
-  }
-
-  if (method === "GET" && path === "/context") {
-    return jsonResponse(await handleContextRequest(contextQuery(request.query), ctx));
-  }
-
-  if (method === "POST" && path === "/context-bundle") {
-    return jsonResponse(await handleContextRequest(parseJsonBody(request.body), ctx));
   }
 
   if (method === "POST" && path === "/feedback") {
@@ -174,15 +155,6 @@ function compactQuery(query: HttpRequest["query"] = {}): Record<string, string> 
   return Object.fromEntries(
     Object.entries(query).filter((entry): entry is [string, string] => Boolean(entry[1])),
   );
-}
-
-function contextQuery(query: HttpRequest["query"] = {}): Partial<ContextRequest> {
-  const compacted = compactQuery(query);
-  return {
-    anchor_id: compacted.anchor_id,
-    query: compacted.query,
-    disclosure_level: compacted.disclosure_level ? Number(compacted.disclosure_level) : undefined,
-  };
 }
 
 function parseJsonBody(body: string | undefined): unknown {

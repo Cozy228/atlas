@@ -1,8 +1,8 @@
 import { Link, createFileRoute, notFound } from "@tanstack/react-router";
 import { IconArrowLeft, IconArrowUpRight, IconLink } from "@tabler/icons-react";
-import type { ContextBundleResponse, Topic } from "@atlas/schema";
+import type { ResourceContextResponse, Topic } from "@atlas/schema";
 
-import { contextBundleQueryOptions, topicDiscoveryQueryOptions } from "@/api/queries";
+import { resourceContextQueryOptions, topicDiscoveryQueryOptions } from "@/api/queries";
 import { ContextApiError } from "@/api/contextApiError";
 import {
   DetailHeader,
@@ -22,7 +22,7 @@ import { cn } from "@/lib/utils";
 
 type LoaderData = {
   topic: Topic;
-  bundle: Promise<ContextBundleResponse | null>;
+  projection: Promise<ResourceContextResponse | null>;
   relatedServices: ReadonlyArray<Topic>;
   relatedPolicies: ReadonlyArray<Topic>;
   relatedLandingZones: ReadonlyArray<Topic>;
@@ -39,16 +39,16 @@ export const Route = createFileRoute("/policies/$policyId")({
       throw notFound();
     }
 
-    // Slow: the live context bundle resolves every cited anchor through the
-    // resolver/parser. Defer it (no await) so navigation is instant and the
-    // "Policy documents" block renders a skeleton until it lands.
-    const bundle = context.queryClient
-      .ensureQueryData(contextBundleQueryOptions({ topic_id: topic.id }))
-      .catch((error: unknown): ContextBundleResponse | null => {
-        if (
-          error instanceof ContextApiError &&
-          (error.code === "topic_not_found" || error.code === "source_not_found")
-        ) {
+    // Policy = a discovered Resource (plan 019): a security policy's governed
+    // documents are a guardrail Resource's Sections, live-resolved + cited. The
+    // guardrail answers to the policy topic id through its aliases; an
+    // unconfigured policy resolves to no Resource and renders an honest gap.
+    // Slow live resolve — defer it so navigation is instant and the "Policy
+    // documents" block renders a skeleton until it lands.
+    const projection = context.queryClient
+      .ensureQueryData(resourceContextQueryOptions({ kind: "guardrail", slug: topic.id }))
+      .catch((error: unknown): ResourceContextResponse | null => {
+        if (error instanceof ContextApiError && error.code === "resource_not_found") {
           return null;
         }
         throw error;
@@ -60,7 +60,7 @@ export const Route = createFileRoute("/policies/$policyId")({
 
     return {
       topic,
-      bundle,
+      projection,
       relatedServices: related.filter((entry) => entry.topic_type === "service"),
       relatedPolicies: related.filter((entry) => entry.topic_type === "security-policy"),
       relatedLandingZones: related.filter((entry) => entry.topic_type === "landing-zone"),
@@ -70,7 +70,7 @@ export const Route = createFileRoute("/policies/$policyId")({
 });
 
 function PolicyDetailRoute() {
-  const { topic, bundle, relatedServices, relatedPolicies, relatedLandingZones } =
+  const { topic, projection, relatedServices, relatedPolicies, relatedLandingZones } =
     Route.useLoaderData();
 
   const primaryTool = topic.entry_tools[0];
@@ -128,17 +128,18 @@ function PolicyDetailRoute() {
              * hand-maintained rule list to drift from the source of record. */}
             <DetailSection title="Policy documents">
               <DeferredRegion
-                promise={bundle}
+                promise={projection}
                 fallback={<EvidenceSkeleton />}
                 label="the policy documents"
                 retry
               >
                 {(resolved) =>
                   resolved ? (
-                    <EvidenceSection bundle={resolved} />
+                    <EvidenceSection projection={resolved} />
                   ) : (
                     <div className="rounded-lg border border-dashed border-border bg-card p-3.5 text-xs text-muted-foreground">
-                      No registered policy documents resolved. Use feedback below to suggest one.
+                      No governed policy documents are configured for this policy yet. Use feedback
+                      below to suggest a source.
                     </div>
                   )
                 }
@@ -151,7 +152,7 @@ function PolicyDetailRoute() {
           </>
         }
         side={
-          <DeferredRegion promise={bundle} fallback={<MetaCardSkeleton />} label="the details">
+          <DeferredRegion promise={projection} fallback={<MetaCardSkeleton />} label="the details">
             {() => (
               <DetailMetaCard
                 items={[

@@ -1,9 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  ContextBundleResponseSchema,
-  FeedbackResponseSchema,
-  TopicDiscoveryResponseSchema,
-} from "@atlas/schema";
+import { FeedbackResponseSchema, TopicDiscoveryResponseSchema } from "@atlas/schema";
 import { handleHttpRequest } from "./httpRoute";
 
 describe("context API HTTP route adapter", () => {
@@ -23,24 +19,12 @@ describe("context API HTTP route adapter", () => {
     const response = await handleHttpRequest({
       method: "GET",
       path: "/api/topics",
-      query: { topic_type: "landing-zone" },
+      query: { topic_type: "security-policy" },
     });
 
     expect(response.status).toBe(200);
     const body = TopicDiscoveryResponseSchema.parse(JSON.parse(response.body));
-    expect(body.topics.every((topic) => topic.topic_type === "landing-zone")).toBe(true);
-  });
-
-  it("maps GET /topics/:id/context to a context bundle request", async () => {
-    const response = await handleHttpRequest({
-      method: "GET",
-      path: "/topics/aws-textract/context",
-      query: { disclosure_level: "1" },
-    });
-
-    expect(response.status).toBe(200);
-    const body = ContextBundleResponseSchema.parse(JSON.parse(response.body));
-    expect(body.request.topic_id).toBe("aws-textract");
+    expect(body.topics.every((topic) => topic.topic_type === "security-policy")).toBe(true);
   });
 
   it("maps POST /feedback to feedback submission", async () => {

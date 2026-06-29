@@ -11,7 +11,7 @@ export default async (event: unknown): Promise<Response> => {
   ]);
   const xml = buildSitemapXml(
     {
-      topicIds: topics.topics.map((topic) => topic.id),
+      topics: topics.topics,
       sourceIds: sources.sources.map((source) => source.id),
       guidanceIds: loadGuidance().map((guidance) => guidance.id),
       resourceIds: listResourceCanonicalIds(),

@@ -1,36 +1,24 @@
 import { describe, expect, it } from "vitest";
 import { createStaticContextApiClient } from "./contextApiClient";
-import { serviceBundle, landingZoneBundle } from "../fixtures/contextBundles";
+import { serviceProjection } from "../fixtures/resourceContexts";
+
+function client() {
+  return createStaticContextApiClient({
+    sourceDiscovery: { sources: [] },
+    topicDiscovery: { topics: [] },
+    resourceContexts: { "service/aws/textract": serviceProjection },
+  });
+}
 
 describe("Context API client", () => {
-  it("parses context bundles through the shared schema", async () => {
-    const client = createStaticContextApiClient({
-      contextBundles: {
-        "aws-textract": serviceBundle,
-      },
-      sourceDiscovery: { sources: [] },
-      topicDiscovery: { topics: [] },
-    });
-
-    await expect(client.getContextBundle({ topic_id: "aws-textract" })).resolves.toEqual(
-      serviceBundle,
+  it("parses resource projections through the shared schema", async () => {
+    await expect(client().getResourceContext("service", "aws/textract")).resolves.toEqual(
+      serviceProjection,
     );
   });
 
-  it("does not expose Context Layer internals to Portal callers", async () => {
-    const client = createStaticContextApiClient({
-      contextBundles: {
-        "central-landing-zone": landingZoneBundle,
-      },
-      sourceDiscovery: { sources: [] },
-      topicDiscovery: { topics: [] },
-    });
-
-    const bundle = await client.getContextBundle({
-      topic_id: "central-landing-zone",
-    });
-
-    expect(bundle.sources[0]?.source.steward).toBe("cloud-foundation");
-    expect(bundle.sources[0]).not.toHaveProperty("repository");
+  it("resolves a free-text name to a canonical resource id via search", async () => {
+    const result = await client().searchResources("Textract");
+    expect(result.items[0]?.id).toBe("service/aws/textract");
   });
 });

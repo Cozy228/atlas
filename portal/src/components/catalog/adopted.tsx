@@ -9,8 +9,8 @@
  * here because the mainline route keeps them private — the mainline file is
  * not modified.
  *
- * Services, landing zones, and security policies all link to their detail
- * routes (`/catalog/$topicId`, `/policies/$policyId`). Sources are their
+ * Services link to their canonical Resource address (`/service/$provider/$id`,
+ * plan 020 15d); security policies keep `/policies/$policyId`. Sources are their
  * own surface at `/sources`, so the catalog carries no Sources tab.
  */
 import { useCallback, useDeferredValue, useMemo, useState, type MouseEvent } from "react";
@@ -43,13 +43,16 @@ import {
   PopoverTitle,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { findAvailabilityServiceForTopic } from "@/lib/availability-service";
+import {
+  findAvailabilityServiceForTopic,
+  serviceRouteParamsForTopic,
+} from "@/lib/availability-service";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DeferredRegion } from "@/components/deferred-region";
 import { cn } from "@/lib/utils";
 
 type ViewMode = "cards" | "table";
-type AdoptedTab = "services" | "landing-zones" | "policies";
+type AdoptedTab = "services" | "policies";
 
 export function CatalogAdopted({
   topics,
@@ -63,7 +66,6 @@ export function CatalogAdopted({
   const [view, setView] = useState<ViewMode>("cards");
 
   const serviceTopics = topics.filter((topic) => topic.topic_type === "service");
-  const landingZones = topics.filter((topic) => topic.topic_type === "landing-zone");
   const securityPolicies = topics.filter((topic) => topic.topic_type === "security-policy");
 
   return (
@@ -74,14 +76,14 @@ export function CatalogAdopted({
             Catalog
           </h1>
           <p className="w-fit max-w-[60ch] bg-background text-[13.5px] leading-[1.55] text-muted-foreground">
-            Approved services, landing zones, and security policies, with where they run and the
-            authoritative sources behind them.
+            Approved services and security policies, with where they run and the governed sources
+            behind them.
           </p>
         </header>
         <CatalogSearchField
           value={query}
           onChange={setQuery}
-          placeholder="Filter services, zones, policies…"
+          placeholder="Filter services, policies…"
           className="h-10 w-full rounded-md shadow-none sm:max-w-[420px]"
         />
       </div>
@@ -93,12 +95,6 @@ export function CatalogAdopted({
             count={serviceTopics.length}
             active={tab === "services"}
             onSelect={() => setTab("services")}
-          />
-          <TypeTab
-            label="Landing zones"
-            count={landingZones.length}
-            active={tab === "landing-zones"}
-            onSelect={() => setTab("landing-zones")}
           />
           <TypeTab
             label="Security policies"
@@ -136,15 +132,6 @@ export function CatalogAdopted({
                 <TopicWorkspace
                   type="service"
                   topics={serviceTopics}
-                  zone={resolvedZone}
-                  query={query}
-                  view={view}
-                />
-              ) : null}
-              {tab === "landing-zones" ? (
-                <TopicWorkspace
-                  type="landing-zone"
-                  topics={landingZones}
                   zone={resolvedZone}
                   query={query}
                   view={view}
@@ -609,7 +596,10 @@ function TableView({
     if (type === "security-policy") {
       void navigate({ to: "/policies/$policyId", params: { policyId: topicId } });
     } else {
-      void navigate({ to: "/catalog/$topicId", params: { topicId } });
+      void navigate({
+        to: "/service/$provider/$id",
+        params: serviceRouteParamsForTopic({ id: topicId }),
+      });
     }
   };
 
@@ -689,8 +679,8 @@ function TopicNameLink({ topic, type }: { topic: Topic; type: Topic["topic_type"
   }
   return (
     <Link
-      to="/catalog/$topicId"
-      params={{ topicId: topic.id }}
+      to="/service/$provider/$id"
+      params={serviceRouteParamsForTopic(topic)}
       onClick={stop}
       className={className}
     >
@@ -967,7 +957,11 @@ function ServiceCard({
   );
 
   return (
-    <Link to="/catalog/$topicId" params={{ topicId: topic.id }} className={CARD_BASE}>
+    <Link
+      to="/service/$provider/$id"
+      params={serviceRouteParamsForTopic(topic)}
+      className={CARD_BASE}
+    >
       {body}
     </Link>
   );
@@ -1047,7 +1041,11 @@ function TopicCard({ topic }: { topic: Topic }) {
     );
   }
   return (
-    <Link to="/catalog/$topicId" params={{ topicId: topic.id }} className={CARD_BASE}>
+    <Link
+      to="/service/$provider/$id"
+      params={serviceRouteParamsForTopic(topic)}
+      className={CARD_BASE}
+    >
       {content}
     </Link>
   );

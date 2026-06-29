@@ -102,8 +102,12 @@ export const SourceSchema = z
     location: z.string().min(1),
     steward: z.string().min(1),
     visibility: VisibilitySchema,
-    authority_scope: z.array(z.string().min(1)).min(1),
-    authority_level: AuthorityLevelSchema,
+    // Authority deferred end-to-end (plan 019): discovery's entry scope already
+    // crawls only authoritative sources, so authority is not a required per-source
+    // attribute. The vocabulary (AuthorityLevel / authority_conflict) is kept
+    // dormant for later contributed-content authority, not deleted.
+    authority_scope: z.array(z.string().min(1)).min(1).optional(),
+    authority_level: AuthorityLevelSchema.optional(),
     last_observed_at: z.string().datetime(),
     last_reviewed_at: z.string().datetime(),
     review_frequency: z.string().min(1),
@@ -198,24 +202,6 @@ export const TopicDiscoveryResponseSchema = z
   })
   .strict();
 
-export const ContextRequestSchema = z
-  .object({
-    topic_id: z.string().min(1).optional(),
-    source_id: z.string().min(1).optional(),
-    anchor_id: z.string().min(1).optional(),
-    query: z.string().min(1).optional(),
-    disclosure_level: z.number().int().min(0).max(3).optional(),
-  })
-  .strict();
-
-export const ExpansionRequestSchema = z
-  .object({
-    source_id: z.string().min(1),
-    anchor_id: z.string().min(1).optional(),
-    disclosure_level: z.number().int().min(0).max(3),
-  })
-  .strict();
-
 export const CitationSchema = z
   .object({
     source_id: z.string().min(1),
@@ -225,58 +211,12 @@ export const CitationSchema = z
   })
   .strict();
 
-export const ExcerptSchema = z
-  .object({
-    anchor_id: z.string().min(1).optional(),
-    text: z.string().min(1),
-    citation: CitationSchema,
-  })
-  .strict();
-
-export const ContextBundleSourceSchema = z
-  .object({
-    source: SourceSchema,
-    anchors: z.array(AnchorSchema),
-    selection_rationale: z.string().min(1),
-    excerpts: z.array(ExcerptSchema),
-  })
-  .strict();
-
-export const AnchorReferenceSchema = z
-  .object({
-    source_id: z.string().min(1),
-    anchor_id: z.string().min(1),
-    citation_label: z.string().min(1),
-    status: AnchorStatusSchema,
-  })
-  .strict();
-
 export const WarningSchema = z
   .object({
     code: WarningCodeSchema,
     message: z.string().min(1),
     source_id: z.string().min(1).optional(),
     anchor_id: z.string().min(1).optional(),
-  })
-  .strict();
-
-export const ExpansionPathSchema = z
-  .object({
-    source_id: z.string().min(1),
-    anchor_id: z.string().min(1).optional(),
-    disclosure_level: z.number().int().min(0).max(3),
-    label: z.string().min(1),
-  })
-  .strict();
-
-export const ContextBundleResponseSchema = z
-  .object({
-    bundle_id: z.string().min(1),
-    request: ContextRequestSchema,
-    sources: z.array(ContextBundleSourceSchema),
-    anchor_references: z.array(AnchorReferenceSchema),
-    warnings: z.array(WarningSchema),
-    expansion_paths: z.array(ExpansionPathSchema),
   })
   .strict();
 
@@ -445,15 +385,8 @@ export type SourceDiscoveryRequest = z.infer<typeof SourceDiscoveryRequestSchema
 export type SourceDiscoveryResponse = z.infer<typeof SourceDiscoveryResponseSchema>;
 export type TopicDiscoveryRequest = z.infer<typeof TopicDiscoveryRequestSchema>;
 export type TopicDiscoveryResponse = z.infer<typeof TopicDiscoveryResponseSchema>;
-export type ContextRequest = z.infer<typeof ContextRequestSchema>;
-export type ExpansionRequest = z.infer<typeof ExpansionRequestSchema>;
 export type Citation = z.infer<typeof CitationSchema>;
-export type Excerpt = z.infer<typeof ExcerptSchema>;
-export type ContextBundleSource = z.infer<typeof ContextBundleSourceSchema>;
-export type AnchorReference = z.infer<typeof AnchorReferenceSchema>;
 export type Warning = z.infer<typeof WarningSchema>;
-export type ExpansionPath = z.infer<typeof ExpansionPathSchema>;
-export type ContextBundleResponse = z.infer<typeof ContextBundleResponseSchema>;
 export type ApiErrorResponse = z.infer<typeof ApiErrorResponseSchema>;
 export type GuidanceType = z.infer<typeof GuidanceTypeSchema>;
 export type ScenarioFamily = z.infer<typeof ScenarioFamilySchema>;
@@ -707,6 +640,34 @@ export const ResourceContextRecordSchema = z
   })
   .strict();
 
+/**
+ * Resource record read (plan 020 15a/15d, ADR-0015 §1/§2). The Portal-facing
+ * presentation metadata for a Resource — the identity/owner/entry fields that
+ * migrated off the Topic. Distinct from `ResourceContextResponse`, which stays
+ * content-only (ADR-0015 §1): the resource-first page composes record-metadata
+ * (THIS read) + resolved content (`getResourceContext`). `governance:
+ * "configured"` iff a `resources.yaml` overlay exists; a spine-only service
+ * returns identity-only (`unconfigured`, no curated metadata).
+ */
+export const ResourceRecordResponseSchema = z
+  .object({
+    kind: ResourceKindSchema,
+    id: z.string().min(1), // canonical {kind}/{slug}
+    slug: z.string().min(1),
+    provider: z.string().min(1).optional(),
+    name: z.string().min(1),
+    aliases: z.array(z.string().min(1)),
+    governance: ResourceGovernanceSchema,
+    category: z.string().min(1).optional(),
+    status: TopicStatusSchema.optional(),
+    description: z.string().min(1).optional(),
+    owner_team: z.string().min(1).optional(),
+    support_channel: z.string().min(1).optional(),
+    entry_tools: z.array(EntryToolSchema).optional(),
+    topics: z.array(z.string().min(1)).optional(),
+  })
+  .strict();
+
 export type ResourceKind = z.infer<typeof ResourceKindSchema>;
 export type SectionStatus = z.infer<typeof SectionStatusSchema>;
 export type SectionId = z.infer<typeof SectionIdSchema>;
@@ -727,6 +688,7 @@ export type ReferenceDiscoveryState = z.infer<typeof ReferenceDiscoveryStateSche
 export type ResourceContextResponse = z.infer<typeof ResourceContextResponseSchema>;
 export type ResourceSectionBinding = z.infer<typeof ResourceSectionBindingSchema>;
 export type ResourceContextRecord = z.infer<typeof ResourceContextRecordSchema>;
+export type ResourceRecordResponse = z.infer<typeof ResourceRecordResponseSchema>;
 
 /* -------------------------------------------------------------------------- *
  * Regional availability (plan 014)

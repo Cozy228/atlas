@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { ResourceContextRecord } from "@atlas/schema";
-import { createDefaultContextBundleService } from "../composition";
-import type { ContextBundleService } from "../services/contextBundleService";
+import { createDefaultContextService } from "../composition";
+import type { ContextService } from "../services/contextService";
 import { resourceKindRegistry } from "./resourceKindRegistry";
 import {
   getResourceContext,
@@ -13,8 +13,8 @@ import {
 // pilot Textract sources are within review at this instant.
 const NOW = new Date("2026-06-26T00:00:00.000Z");
 
-function pilotService(overrides: Partial<ContextBundleService> = {}): ContextBundleService {
-  return { ...createDefaultContextBundleService(), now: NOW, ...overrides };
+function pilotService(overrides: Partial<ContextService> = {}): ContextService {
+  return { ...createDefaultContextService(), now: NOW, ...overrides };
 }
 
 describe("searchResources", () => {
@@ -249,17 +249,18 @@ describe("getResourceContext — name normalization (single-candidate fallback)"
 
 describe("getResourceContext — identity-first spine (plan 017 B4/B6)", () => {
   it("renders a spine-only service (in the grid, no overlay) as governance:unconfigured, not 404", async () => {
-    // aws/s3 is in the availability spine but has no resources.yaml service record.
+    // azure/aks is in the availability spine but has no resources.yaml service
+    // record (aws/s3 now carries a metadata overlay — plan 020 15a).
     const response = await getResourceContext(pilotService(), {
       kind: "service",
-      slug: "aws/s3",
+      slug: "azure/aks",
     });
 
     expect(response).not.toBeNull();
     expect(response?.governance).toBe("unconfigured");
-    expect(response?.resource.id).toBe("service/aws/s3");
-    expect(response?.resource.slug).toBe("aws/s3");
-    expect(response?.resource.provider).toBe("aws");
+    expect(response?.resource.id).toBe("service/azure/aks");
+    expect(response?.resource.slug).toBe("azure/aks");
+    expect(response?.resource.provider).toBe("azure");
     // Spine-only: empty Sections, NO faked per-section missing entries (B4).
     expect(response?.sections).toEqual({});
     expect(response?.missingSections).toEqual([]);
@@ -327,7 +328,7 @@ describe("getResourceContext — reference discovery merge (plan 017 B4)", () =>
   it("omits discovery entirely when no port is wired (honest absence)", async () => {
     const response = await getResourceContext(pilotService({ referenceDiscovery: undefined }), {
       kind: "service",
-      slug: "aws/s3",
+      slug: "azure/aks",
     });
     expect(response?.governance).toBe("unconfigured");
     expect(response?.references).toEqual([]);

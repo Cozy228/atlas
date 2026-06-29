@@ -1,10 +1,10 @@
 import { type ApiErrorResponse, type TopicResponse } from "@atlas/schema";
-import { createDefaultContextBundleService } from "../composition";
+import { createDefaultContextService } from "../composition";
 import type { ApiResponse } from "./routeTypes";
 import { errorResponse } from "./routeTypes";
 
 export function handleTopicRequest(topicId: string): ApiResponse<ApiErrorResponse | TopicResponse> {
-  const service = createDefaultContextBundleService();
+  const service = createDefaultContextService();
   const topic = service.registry.topics.getById(topicId);
 
   if (!topic) {

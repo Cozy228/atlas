@@ -36,39 +36,9 @@
   entry_tools:
     - label: Module
       url: https://tfe.example.com/app/example/registry/modules/private/example/lambda/aws
-- id: central-landing-zone
-  name: Central Landing Zone
-  topic_type: landing-zone
-  category: platform
-  status: active
-  description: Default landing zone for standard application workloads.
-  owner_team: cloud-foundation
-  support_channel: "#landing-zone-support"
-  entry_tools:
-    - label: TFE
-      url: https://tfe.example.com/central
-- id: regulated-landing-zone
-  name: Regulated Landing Zone
-  topic_type: landing-zone
-  category: platform
-  status: active
-  description: Restricted landing zone for regulated workloads.
-  owner_team: cloud-foundation
-  support_channel: "#regulated-cloud"
-  entry_tools:
-    - label: TFE
-      url: https://tfe.example.com/regulated
-- id: sandbox-landing-zone
-  name: Sandbox Landing Zone
-  topic_type: landing-zone
-  category: platform
-  status: active
-  description: Short-lived experimentation environment.
-  owner_team: cloud-foundation
-  support_channel: "#sandbox-cloud"
-  entry_tools:
-    - label: TFE
-      url: https://tfe.example.com/sandbox
+# Landing zones are the availability scope (plan 019), represented in the
+# availability grid (aws / azure), not as catalog topics — so they carry no
+# catalog topic entries here.
 - id: s3-guardrails
   name: S3 Security
   topic_type: security-policy

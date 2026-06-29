@@ -9,11 +9,9 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getRequestHeader } from "@tanstack/react-start/server";
 import {
-  ContextRequestSchema,
   SourceDiscoveryRequestSchema,
   TopicDiscoveryRequestSchema,
   type AvailabilityResponse,
-  type ContextRequest,
   type SourceDiscoveryRequest,
   type TopicDiscoveryRequest,
 } from "@atlas/schema";
@@ -62,18 +60,6 @@ export const fetchSource = createServerFn(SERVER_FN_OPTIONS)
   .validator((input: unknown): string => idSchema.parse(input))
   .handler(async ({ data }) => contextApiForRequest().getSource(data));
 
-export const fetchContextBundle = createServerFn(SERVER_FN_OPTIONS)
-  .validator((input: unknown): ContextRequest => ContextRequestSchema.parse(input))
-  .handler(async ({ data }) => {
-    // Simulate the resolver's real live fetch + parse of each cited anchor (e.g.
-    // Confluence pages) so the deferred detail-page skeletons are visible in dev.
-    // Dev-only: dropped from prod builds, and moot once the resolver hits real
-    // external systems. Only the bundle is delayed — discovery (source/topic
-    // lists) is awaited synchronously in loaders and must stay fast.
-    if (import.meta.env.DEV) await new Promise((resolve) => setTimeout(resolve, 2000));
-    return contextApiForRequest().getContextBundle(data);
-  });
-
 /**
  * The Explore availability grid, read through the one cited Context Layer
  * availability read (plan 014). Drops the read's citation/warnings and returns
@@ -101,6 +87,12 @@ export const fetchResourceContext = createServerFn(SERVER_FN_OPTIONS)
     if (import.meta.env.DEV) await new Promise((resolve) => setTimeout(resolve, 2000));
     return contextApiForRequest().getResourceContext(data.kind, data.slug);
   });
+
+export const fetchResourceRecord = createServerFn(SERVER_FN_OPTIONS)
+  .validator((input: unknown) => resourceRefSchema.parse(input))
+  // Presentation metadata (plan 020 15d): identity/owner/entry fields. Durable
+  // (no live fetch), so it is awaited for the page shell — no dev delay.
+  .handler(async ({ data }) => contextApiForRequest().getResourceRecord(data.kind, data.slug));
 
 export const fetchTopicDiscovery = createServerFn(SERVER_FN_OPTIONS)
   .validator(

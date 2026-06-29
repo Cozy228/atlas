@@ -87,7 +87,7 @@ describe("fetch Context API client", () => {
         }),
     });
 
-    await expect(client.getContextBundle({ topic_id: "missing" })).rejects.toBeInstanceOf(
+    await expect(client.getResourceContext("service", "missing")).rejects.toBeInstanceOf(
       ContextApiError,
     );
   });

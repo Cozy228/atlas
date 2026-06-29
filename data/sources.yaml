@@ -40,43 +40,6 @@
   last_observed_at: 2026-05-05T00:00:00.000Z
   last_reviewed_at: 2026-04-20T00:00:00.000Z
   review_frequency: P90D
-- id: central-lz-confluence
-  title: Central Landing Zone Guide
-  source_class: confluence-page
-  location: https://confluence.example.com/display/CLOUD/Central+Landing+Zone
-  steward: cloud-foundation
-  visibility: internal
-  authority_scope:
-    - landing-zone-guidance
-  authority_level: authoritative
-  last_observed_at: 2026-05-05T00:00:00.000Z
-  last_reviewed_at: 2026-04-10T00:00:00.000Z
-  review_frequency: P120D
-- id: regulated-lz-confluence
-  title: Regulated Landing Zone Guide
-  source_class: confluence-page
-  location: https://confluence.example.com/display/CLOUD/Regulated+Landing+Zone
-  steward: cloud-foundation
-  visibility: restricted
-  authority_scope:
-    - landing-zone-guidance
-    - regulated-workloads
-  authority_level: authoritative
-  last_observed_at: 2026-05-05T00:00:00.000Z
-  last_reviewed_at: 2026-03-20T00:00:00.000Z
-  review_frequency: P90D
-- id: sandbox-lz-confluence
-  title: Sandbox Landing Zone Guide
-  source_class: confluence-page
-  location: https://confluence.example.com/display/CLOUD/Sandbox+Landing+Zone
-  steward: cloud-foundation
-  visibility: internal
-  authority_scope:
-    - landing-zone-guidance
-  authority_level: reference
-  last_observed_at: 2026-05-05T00:00:00.000Z
-  last_reviewed_at: 2026-04-25T00:00:00.000Z
-  review_frequency: P120D
 - id: s3-policy-doc
   title: S3 Security Policy
   source_class: policy-document

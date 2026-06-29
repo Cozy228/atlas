@@ -2,12 +2,14 @@ import type {
   ApiErrorResponse,
   ResourceContextResponse,
   ResourceKind,
+  ResourceRecordResponse,
   ResourceSearchResponse,
 } from "@atlas/schema";
-import { createDefaultContextBundleService } from "../composition";
+import { createDefaultContextService } from "../composition";
 import { getResourceKindDef } from "../resources/resourceKindRegistry";
 import {
   getResourceContext,
+  getResourceRecord,
   InvalidResourceRequestError,
   searchResources,
 } from "../resources/resourceContextService";
@@ -26,8 +28,39 @@ export function handleResourceSearchRequest(
   if (!query || query.trim().length === 0) {
     return errorResponse(400, "invalid_request", "searchResources requires a non-empty `query`.");
   }
-  const service = createDefaultContextBundleService();
+  const service = createDefaultContextService();
   return { status: 200, body: searchResources(service, query, { baseUrl: options.baseUrl }) };
+}
+
+/**
+ * Resource record read (plan 020 15d): the Portal-facing presentation metadata
+ * for a Resource (ADR-0015 §2), kept separate from the content projection so the
+ * agent contract stays content-only. Unknown kind → 400; unknown resource → 404.
+ */
+export function handleResourceRecordRequest(params: {
+  kind: string;
+  slug: string;
+}): ApiResponse<ResourceRecordResponse | ApiErrorResponse> {
+  if (!getResourceKindDef(params.kind)) {
+    return errorResponse(
+      400,
+      "invalid_request",
+      `Unknown resource kind '${params.kind}'. Valid kinds come from the OpenAPI 'kind' enum / searchResources results.`,
+    );
+  }
+  const service = createDefaultContextService();
+  const record = getResourceRecord(service, {
+    kind: params.kind as ResourceKind,
+    slug: params.slug,
+  });
+  if (!record) {
+    return errorResponse(
+      404,
+      "resource_not_found",
+      `No resource '${params.kind}/${params.slug}' is registered. Call searchResources to resolve the canonical id.`,
+    );
+  }
+  return { status: 200, body: record };
 }
 
 export type ResourceContextRouteParams = {
@@ -56,7 +89,7 @@ export async function handleResourceContextRequest(
   }
 
   const sections = parseSections(params.sections);
-  const service = createDefaultContextBundleService();
+  const service = createDefaultContextService();
 
   try {
     const response = await getResourceContext(

@@ -1,10 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   AnchorSchema,
-  ContextBundleResponseSchema,
-  ContextRequestSchema,
   DiscoveredReferenceSchema,
-  ExpansionRequestSchema,
   FeedbackResponseSchema,
   FeedbackSchema,
   FeedbackSubmissionSchema,
@@ -104,12 +101,19 @@ describe("contract enums", () => {
 });
 
 describe("entity schemas", () => {
-  it("requires source governance fields on Source", () => {
+  it("carries optional, dormant authority fields on Source (plan 019)", () => {
     const parsed = SourceSchema.parse(source);
-
     expect(parsed.authority_level).toBe("authoritative");
     expect(parsed.authority_scope).toEqual(["module-usage"]);
     expect(parsed.steward).toBe("cloud-platform");
+
+    // Authority is deferred end-to-end: a Source without it still validates.
+    const { authority_level, authority_scope, ...withoutAuthority } = source;
+    void authority_level;
+    void authority_scope;
+    const reparsed = SourceSchema.parse(withoutAuthority);
+    expect(reparsed.authority_level).toBeUndefined();
+    expect(reparsed.authority_scope).toBeUndefined();
   });
 
   it("keeps source-native addressability in Anchor records, not Source records", () => {
@@ -159,26 +163,12 @@ describe("entity schemas", () => {
 });
 
 describe("request and response schemas", () => {
-  it("accepts discovery, topic discovery, context, and expansion requests", () => {
+  it("accepts source and topic discovery requests", () => {
     expect(SourceDiscoveryRequestSchema.parse({ query: "textract" })).toEqual({
       query: "textract",
     });
     expect(TopicDiscoveryRequestSchema.parse({ topic_type: "service" })).toEqual({
       topic_type: "service",
-    });
-    expect(ContextRequestSchema.parse({ topic_id: "aws-textract" })).toEqual({
-      topic_id: "aws-textract",
-    });
-    expect(
-      ExpansionRequestSchema.parse({
-        source_id: "textract-module-readme",
-        anchor_id: "textract-private-subnet",
-        disclosure_level: 2,
-      }),
-    ).toEqual({
-      source_id: "textract-module-readme",
-      anchor_id: "textract-private-subnet",
-      disclosure_level: 2,
     });
   });
 
@@ -197,64 +187,6 @@ describe("request and response schemas", () => {
 
     expect(submission.target_id).toBe("aws-textract");
     expect(FeedbackResponseSchema.parse({ feedback })).toEqual({ feedback });
-  });
-
-  it("requires sources, warnings, and expansion_paths on every context bundle", () => {
-    const response = {
-      bundle_id: "bundle-textract",
-      request: {
-        topic_id: "aws-textract",
-      },
-      sources: [
-        {
-          source,
-          anchors: [AnchorSchema.parse(anchor)],
-          selection_rationale: "Authoritative module source for the topic.",
-          excerpts: [
-            {
-              anchor_id: "textract-private-subnet",
-              text: "Use the private endpoint configuration.",
-              citation: {
-                source_id: "textract-module-readme",
-                anchor_id: "textract-private-subnet",
-                label: "Private subnet usage",
-                location: "github.com/example/terraform-aws-textract#private-subnet-usage",
-              },
-            },
-          ],
-        },
-      ],
-      anchor_references: [
-        {
-          source_id: "textract-module-readme",
-          anchor_id: "textract-private-subnet",
-          citation_label: "Private subnet usage",
-          status: "valid",
-        },
-      ],
-      warnings: [],
-      expansion_paths: [
-        {
-          source_id: "textract-module-readme",
-          anchor_id: "textract-private-subnet",
-          disclosure_level: 2,
-          label: "Adjacent module examples",
-        },
-      ],
-    };
-
-    expect(ContextBundleResponseSchema.parse(response)).toEqual(response);
-    expect(() =>
-      ContextBundleResponseSchema.parse({
-        bundle_id: "bundle-textract",
-        request: {
-          topic_id: "aws-textract",
-        },
-        sources: [],
-        anchor_references: [],
-        warnings: [],
-      }),
-    ).toThrow();
   });
 });
 

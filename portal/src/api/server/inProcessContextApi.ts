@@ -8,9 +8,10 @@
  */
 import {
   handleAvailabilityRequest,
-  handleContextRequest,
   handleFeedbackRequest,
   handleResourceContextRequest,
+  handleResourceRecordRequest,
+  handleResourceSearchRequest,
   handleSourceDiscoveryRequest,
   handleSourceRequest,
   handleTopicDiscoveryRequest,
@@ -19,19 +20,20 @@ import {
 import {
   ApiErrorResponseSchema,
   AvailabilityReadResponseSchema,
-  ContextBundleResponseSchema,
   FeedbackResponseSchema,
   ResourceContextResponseSchema,
+  ResourceRecordResponseSchema,
+  ResourceSearchResponseSchema,
   SourceDiscoveryResponseSchema,
   SourceResponseSchema,
   TopicDiscoveryResponseSchema,
   TopicResponseSchema,
   type AvailabilityReadResponse,
-  type ContextBundleResponse,
-  type ContextRequest,
   type FeedbackResponse,
   type FeedbackSubmission,
   type ResourceContextResponse,
+  type ResourceRecordResponse,
+  type ResourceSearchResponse,
   type SourceDiscoveryRequest,
   type SourceDiscoveryResponse,
   type SourceResponse,
@@ -70,9 +72,6 @@ export const serverContextApiClient: ContextApiClient = {
   async getSource(id: string): Promise<SourceResponse> {
     return unwrap(handleSourceRequest(id), SourceResponseSchema);
   },
-  async getContextBundle(request: ContextRequest): Promise<ContextBundleResponse> {
-    return unwrap(await handleContextRequest(request), ContextBundleResponseSchema);
-  },
   async getAvailability(): Promise<AvailabilityReadResponse> {
     return unwrap(handleAvailabilityRequest(), AvailabilityReadResponseSchema);
   },
@@ -81,6 +80,12 @@ export const serverContextApiClient: ContextApiClient = {
       await handleResourceContextRequest({ kind, slug }),
       ResourceContextResponseSchema,
     );
+  },
+  async getResourceRecord(kind: string, slug: string): Promise<ResourceRecordResponse> {
+    return unwrap(handleResourceRecordRequest({ kind, slug }), ResourceRecordResponseSchema);
+  },
+  async searchResources(query: string): Promise<ResourceSearchResponse> {
+    return unwrap(handleResourceSearchRequest(query, {}), ResourceSearchResponseSchema);
   },
   async discoverSources(request: SourceDiscoveryRequest = {}): Promise<SourceDiscoveryResponse> {
     return unwrap(handleSourceDiscoveryRequest(request), SourceDiscoveryResponseSchema);

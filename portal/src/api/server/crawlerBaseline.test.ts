@@ -27,7 +27,7 @@ describe("sitemap.xml", () => {
       serverContextApiClient.discoverSources(),
     ]);
     const xml = buildSitemapXml({
-      topicIds: topics.topics.map((topic) => topic.id),
+      topics: topics.topics,
       sourceIds: sources.sources.map((source) => source.id),
       guidanceIds: loadGuidance().map((guidance) => guidance.id),
     });
@@ -45,7 +45,7 @@ describe("sitemap.xml", () => {
       expect(loc).not.toContain("/api/");
       expect(loc).not.toContain("/feedback");
     }
-    expect(locs).toContain("https://portal.example.com/catalog/aws-textract");
+    expect(locs).toContain("https://portal.example.com/service/aws/textract");
     expect(locs).toContain("https://portal.example.com/sources/textract-module-readme");
   });
 });

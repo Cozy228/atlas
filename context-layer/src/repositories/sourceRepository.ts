@@ -3,7 +3,6 @@ import { SourceSchema, type Source } from "@atlas/schema";
 export type SourceRepository = {
   getById(id: string): Source | undefined;
   list(): Source[];
-  findByAuthorityScope(authorityScope: string): Source[];
 };
 
 export class InMemorySourceRepository implements SourceRepository {
@@ -27,9 +26,5 @@ export class InMemorySourceRepository implements SourceRepository {
 
   list(): Source[] {
     return Array.from(this.sources.values());
-  }
-
-  findByAuthorityScope(authorityScope: string): Source[] {
-    return this.list().filter((source) => source.authority_scope.includes(authorityScope));
   }
 }

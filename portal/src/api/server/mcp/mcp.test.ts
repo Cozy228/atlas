@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ContextBundleResponseSchema } from "@atlas/schema";
+import { ResourceContextResponseSchema } from "@atlas/schema";
 
 import { serverContextApiClient } from "../serverContextApiClient";
 import { buildMcpServerCard, handleMcpRequest } from "./handler";
@@ -50,7 +50,7 @@ describe("mcp protocol surface", () => {
     }[];
     expect(tools.map((tool) => tool.name).sort()).toEqual([
       "atlas_get_availability",
-      "atlas_get_context_bundle",
+      "atlas_get_resource_context",
       "atlas_get_source",
       "atlas_search_service",
     ]);
@@ -90,9 +90,9 @@ describe("mcp tools against the pilot fixtures", () => {
     const result = await callTool("atlas_get_source", {
       source_id: "textract-module-readme",
     });
-    const data = result.structuredContent as { source: { id: string; authority_level: string } };
+    const data = result.structuredContent as { source: { id: string; source_class: string } };
     expect(data.source.id).toBe("textract-module-readme");
-    expect(data.source.authority_level).toBe("authoritative");
+    expect(data.source.source_class).toBe("terraform-module");
   });
 
   it("atlas_get_availability filters by zone and service, carrying its Citation", async () => {
@@ -115,30 +115,34 @@ describe("mcp tools against the pilot fixtures", () => {
     expect(data.citation.location).toContain("Regional+Availability+Matrix");
   });
 
-  it("atlas_get_context_bundle returns the same governed bundle the Portal gets, with Citations", async () => {
-    const result = await callTool("atlas_get_context_bundle", {
-      topic_id: "aws-textract",
+  it("atlas_get_resource_context returns the same projection the Portal gets", async () => {
+    const result = await callTool("atlas_get_resource_context", {
+      kind: "service",
+      slug: "aws/textract",
       response_format: "DETAILED",
     });
-    const bundle = ContextBundleResponseSchema.parse(result.structuredContent);
-    const portalBundle = await serverContextApiClient.getContextBundle({
-      topic_id: "aws-textract",
-    });
-    expect({ ...bundle, bundle_id: "x" }).toEqual({ ...portalBundle, bundle_id: "x" });
+    const projection = ResourceContextResponseSchema.parse(result.structuredContent);
+    const portalProjection = await serverContextApiClient.getResourceContext(
+      "service",
+      "aws/textract",
+    );
+    expect({ ...projection, resolvedAt: "x" }).toEqual({ ...portalProjection, resolvedAt: "x" });
   });
 
-  it("CONCISE bundles keep the Citation on every excerpt and pass warnings through", async () => {
-    const result = await callTool("atlas_get_context_bundle", { topic_id: "aws-textract" });
+  it("CONCISE projections keep Citations on every Section and pass warnings through", async () => {
+    const result = await callTool("atlas_get_resource_context", {
+      kind: "service",
+      slug: "aws/textract",
+    });
     const data = result.structuredContent as {
-      excerpts: { source_id: string; citation: { source_id: string; label: string } }[];
-      warnings: unknown[];
+      sections: { section: string; citations: { sourceId: string }[] }[];
     };
-    expect(data.excerpts.length).toBeGreaterThan(0);
-    for (const excerpt of data.excerpts) {
-      expect(excerpt.citation.source_id).toBe(excerpt.source_id);
-      expect(excerpt.citation.label.length).toBeGreaterThan(0);
+    expect(data.sections.length).toBeGreaterThan(0);
+    for (const section of data.sections) {
+      for (const citation of section.citations) {
+        expect(citation.sourceId.length).toBeGreaterThan(0);
+      }
     }
-    expect(Array.isArray(data.warnings)).toBe(true);
   });
 
   it("failed calls return actionable isError results with a valid example", async () => {

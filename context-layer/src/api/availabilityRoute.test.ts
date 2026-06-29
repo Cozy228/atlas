@@ -2,8 +2,6 @@ import { describe, expect, it } from "vitest";
 import { AvailabilityReadResponseSchema } from "@atlas/schema";
 import { handleAvailabilityRequest } from "./availabilityRoute";
 import { handleHttpRequest } from "./httpRoute";
-import { buildContextBundle } from "../services/contextBundleService";
-import { createDefaultContextBundleService } from "../composition";
 
 /**
  * The single availability read (plan 014): one cited Context Layer read backs
@@ -29,21 +27,5 @@ describe("availability read", () => {
 
     const body = AvailabilityReadResponseSchema.parse(JSON.parse(response.body));
     expect(body.zones).toHaveLength(2);
-  });
-
-  it("shares ONE dataset with the governed matrix resolver (no second source of facts)", async () => {
-    // The grid read and the agent-facing matrix row must agree cell-for-cell,
-    // because the markdown the resolver parses is projected from this same grid.
-    const read = AvailabilityReadResponseSchema.parse(handleAvailabilityRequest().body);
-    const s3 = read.zones
-      .find((zone) => zone.id === "aws")!
-      .services.find((service) => service.id === "s3")!;
-    expect(s3.availability["us-east-1"]?.status).toBe("available");
-
-    const bundle = await buildContextBundle(createDefaultContextBundleService(), {
-      source_id: "availability-matrix",
-      anchor_id: "availability-s3-us-east-1",
-    });
-    expect(bundle.sources[0]?.excerpts[0]?.text).toBe("S3 is available in us-east-1.");
   });
 });

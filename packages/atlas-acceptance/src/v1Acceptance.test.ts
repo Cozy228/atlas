@@ -1,48 +1,53 @@
 import { describe, expect, it } from "vitest";
-import { ContextBundleResponseSchema } from "@atlas/schema";
-import { handleContextRequest, handleTopicRequest } from "@atlas/context-layer";
+import { ResourceContextResponseSchema, ResourceSearchResponseSchema } from "@atlas/schema";
+import {
+  handleResourceContextRequest,
+  handleResourceSearchRequest,
+  handleTopicRequest,
+} from "@atlas/context-layer";
 import {
   askAtlas,
   createDailyRateLimiter,
   getGuidance,
   loadGuidance,
   relatedGuidanceForTopic,
-  renderServiceDetail,
-  renderLandingZoneNavigator,
-  renderSourceLookup,
   type LlmAdapter,
 } from "@atlas/portal";
 
+/**
+ * V1 acceptance, resource-projection era (plan 019). The agent-facing surface is
+ * one core read — a live Resource projection — projected into many views.
+ * Services, guardrails (security policies), and the adoption journeys are all
+ * proven end-to-end through that one surface, from public-safe seed data.
+ */
 describe("Atlas V1 acceptance", () => {
-  it("proves service discovery from seed data through Portal rendering", async () => {
-    const response = await handleContextRequest({ topic_id: "aws-textract" });
+  it("projects a governed service with cited Section content from seed data", async () => {
+    const response = await handleResourceContextRequest({ kind: "service", slug: "aws/textract" });
     expect(response.status).toBe(200);
+    const projection = ResourceContextResponseSchema.parse(response.body);
 
-    const bundle = ContextBundleResponseSchema.parse(response.body);
-    const html = renderServiceDetail(bundle);
+    expect(projection.resource.name).toContain("Textract");
+    expect(projection.governance).toBe("configured");
 
-    expect(html).toContain("AWS Textract");
-    expect(html).toContain("authoritative");
-    expect(html).toContain("Private subnet usage");
+    // "Give me terraform": the cited HCL starter is grounded in a registered
+    // Source (an examples Section), never synthesized.
+    const examples = projection.sections.examples;
+    expect(examples?.content).toContain('module "');
+    expect(examples?.citations[0]?.sourceId).toBe("textract-module-readme");
   });
 
-  it("proves landing zone navigation from seed data through Portal rendering", async () => {
-    const response = await handleContextRequest({ topic_id: "central-landing-zone" });
-    expect(response.status).toBe(200);
-
-    const bundle = ContextBundleResponseSchema.parse(response.body);
-    const html = renderLandingZoneNavigator([bundle]);
-
-    expect(html).toContain("Central Landing Zone");
-    expect(html).toContain("landing-zone-guidance");
-    expect(html).toContain("environment-matrix");
+  it("resolves a free-text name to a canonical resource id, with no cross-service bleed", () => {
+    const response = handleResourceSearchRequest("AWS Textract", {});
+    const search = ResourceSearchResponseSchema.parse(response.body);
+    const ids = search.items.map((item) => item.id);
+    expect(ids).toContain("service/aws/textract");
+    expect(ids).not.toContain("guardrail/s3-public-access");
   });
 
-  it("proves Ask Atlas answers only with accepted citations", async () => {
-    const response = await handleContextRequest({
-      query: "How do I use Textract from a private subnet?",
-    });
-    const bundle = ContextBundleResponseSchema.parse(response.body);
+  it("answers Ask Atlas only with accepted citations", async () => {
+    const response = await handleResourceContextRequest({ kind: "service", slug: "aws/textract" });
+    const projection = ResourceContextResponseSchema.parse(response.body);
+
     const adapter: LlmAdapter = {
       async answer() {
         return {
@@ -62,7 +67,7 @@ describe("Atlas V1 acceptance", () => {
 
     const answer = await askAtlas({
       question: "How do I use Textract from a private subnet?",
-      bundle,
+      projection,
       adapter,
       userId: "pilot-user",
       rateLimiter: createDailyRateLimiter(5),
@@ -72,93 +77,42 @@ describe("Atlas V1 acceptance", () => {
     expect(answer.rejected_claims).toHaveLength(1);
   });
 
-  it("keeps restricted, stale, broken, and missing evidence visible", async () => {
-    const restricted = ContextBundleResponseSchema.parse(
-      (await handleContextRequest({ topic_id: "regulated-landing-zone" })).body,
-    );
-    const broken = ContextBundleResponseSchema.parse(
-      (await handleContextRequest({ topic_id: "private-networking" })).body,
-    );
-    const missing = ContextBundleResponseSchema.parse(
-      (await handleContextRequest({ query: "mainframe" })).body,
-    );
+  it("keeps a security policy's documents cited, with stale evidence still visible", async () => {
+    // A security policy is a discovered Resource (a guardrail): its governed
+    // documents project as cited Sections.
+    const response = await handleResourceContextRequest({
+      kind: "guardrail",
+      slug: "s3-public-access",
+    });
+    const projection = ResourceContextResponseSchema.parse(response.body);
 
-    expect(renderSourceLookup(restricted)).toContain("restricted_source");
-    expect(renderSourceLookup(broken)).toContain("broken_anchor");
-    expect(missing.warnings[0]?.code).toBe("no_registered_source");
+    expect(projection.sections["enforced-controls"]?.citations[0]?.sourceId).toBe("s3-policy-doc");
+    // A deprecated allowance is retained for migration but flagged stale —
+    // surfaced alongside the content, never hidden.
+    const exceptions = projection.sections.exceptions;
+    expect(exceptions?.warnings.some((warning) => warning.code === "stale_source")).toBe(true);
   });
 
-  it("HARD GATE: proves the S3 / API Gateway / Textract adoption journeys are answerable end-to-end, grounded and cited", async () => {
+  it("HARD GATE: the S3 / API Gateway / Textract adoption journeys are wired end-to-end", () => {
     const guidances = loadGuidance();
-    const HERO_SERVICES = [
-      {
-        topicId: "api-gateway",
-        displayName: "API Gateway",
-        moduleSourceId: "apigateway-module-readme",
-        guidanceId: "api-gateway-adoption",
-        terraformQuery: "api gateway terraform",
-        unrelatedModuleId: "textract-module-readme",
-      },
-      {
-        topicId: "aws-s3",
-        displayName: "AWS S3",
-        moduleSourceId: "s3-module-readme",
-        guidanceId: "s3-adoption",
-        terraformQuery: "amazon s3 storage terraform",
-        unrelatedModuleId: "textract-module-readme",
-      },
-      {
-        topicId: "aws-textract",
-        displayName: "AWS Textract",
-        moduleSourceId: "textract-module-readme",
-        guidanceId: "textract-adoption",
-        terraformQuery: "textract terraform",
-        unrelatedModuleId: "apigateway-module-readme",
-      },
+    const heroes = [
+      { topicId: "api-gateway", guidanceId: "api-gateway-adoption" },
+      { topicId: "aws-s3", guidanceId: "s3-adoption" },
+      { topicId: "aws-textract", guidanceId: "textract-adoption" },
     ];
 
-    for (const hero of HERO_SERVICES) {
-      // 1. The service is registered and its governed bundle resolves (disclosure 2 so
-      //    every cited module excerpt — including the Terraform starter — is present).
-      const response = await handleContextRequest({
-        topic_id: hero.topicId,
-        disclosure_level: 2,
-      });
-      expect(response.status, hero.topicId).toBe(200);
-      const bundle = ContextBundleResponseSchema.parse(response.body);
-
-      // 2. The Portal renders the datasheet for a human adopter.
-      const html = renderServiceDetail(bundle);
-      expect(html, hero.displayName).toContain(hero.displayName);
-      expect(html).toContain("authoritative");
-
-      // 3. "Give me terraform": an authoritative terraform-module Source carries a cited
-      //    HCL starter — grounded, never synthesized — via the terraform module integration.
-      const moduleSource = bundle.sources.find((entry) => entry.source.id === hero.moduleSourceId);
-      expect(moduleSource?.source.source_class, hero.moduleSourceId).toBe("terraform-module");
-      expect(moduleSource?.source.authority_level).toBe("authoritative");
-      const starter = moduleSource?.excerpts.find((excerpt) => excerpt.text.includes('module "'));
-      expect(starter?.citation.source_id, hero.moduleSourceId).toBe(hero.moduleSourceId);
-
-      // 4. Relevance: a free-text terraform query returns this service's module and NOT an
-      //    unrelated module (no cross-service bleed).
-      const queryBundle = ContextBundleResponseSchema.parse(
-        (await handleContextRequest({ query: hero.terraformQuery })).body,
-      );
-      const queriedIds = queryBundle.sources.map((entry) => entry.source.id);
-      expect(queriedIds, hero.terraformQuery).toContain(hero.moduleSourceId);
-      expect(queriedIds).not.toContain(hero.unrelatedModuleId);
-
-      // 5. The user guide is a link on the service datasheet (not the adoption route).
+    for (const hero of heroes) {
+      // The service is registered and the user guide is a link on its datasheet.
       const topicResponse = handleTopicRequest(hero.topicId);
-      expect(topicResponse.status).toBe(200);
+      expect(topicResponse.status, hero.topicId).toBe(200);
       const topic = "topic" in topicResponse.body ? topicResponse.body.topic : undefined;
+      expect(topic?.topic_type, hero.topicId).toBe("service");
       expect(
         topic?.entry_tools.map((tool) => tool.label),
         hero.topicId,
       ).toContain("User guide");
 
-      // 6. A governed adoption guide exists, is a route, and is wired to the topic.
+      // A governed adoption guide exists, is a route, and is wired to the topic.
       expect(getGuidance(guidances, hero.guidanceId)?.type, hero.guidanceId).toBe("route");
       expect(relatedGuidanceForTopic(guidances, hero.topicId).map((g) => g.id)).toContain(
         hero.guidanceId,

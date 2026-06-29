@@ -3,40 +3,6 @@ import { describe, expect, it } from "vitest";
 import { serverContextApiClient } from "./inProcessContextApi";
 
 describe("serverContextApiClient", () => {
-  it("returns a parsed context bundle for a known topic", async () => {
-    const bundle = await serverContextApiClient.getContextBundle({
-      topic_id: "aws-textract",
-    });
-
-    expect(bundle.bundle_id).toBeTypeOf("string");
-    expect(bundle.sources.length).toBeGreaterThan(0);
-    expect(bundle.sources[0]?.source.title).toContain("Textract");
-  });
-
-  it("throws a ContextApiError with topic_not_found for an unknown topic", async () => {
-    await expect(
-      serverContextApiClient.getContextBundle({
-        topic_id: "does-not-exist",
-      }),
-    ).rejects.toMatchObject({
-      name: "ContextApiError",
-      code: "topic_not_found",
-      status: 404,
-    });
-  });
-
-  it("throws a ContextApiError with access_denied for a restricted source", async () => {
-    await expect(
-      serverContextApiClient.getContextBundle({
-        source_id: "regulated-lz-confluence",
-      }),
-    ).rejects.toMatchObject({
-      name: "ContextApiError",
-      code: "access_denied",
-      status: 403,
-    });
-  });
-
   it("returns the registered topics, parsed through the shared schema", async () => {
     const response = await serverContextApiClient.discoverTopics();
     expect(response.topics.length).toBeGreaterThan(0);
@@ -79,7 +45,8 @@ describe("serverContextApiClient", () => {
   });
 
   it("projects a spine-only service as governance:unconfigured, not a 404", async () => {
-    const projection = await serverContextApiClient.getResourceContext("service", "aws/s3");
+    // azure/aks is spine-only (aws/s3 now carries a metadata overlay — plan 020 15a).
+    const projection = await serverContextApiClient.getResourceContext("service", "azure/aks");
 
     expect(projection.governance).toBe("unconfigured");
     expect(projection.sections).toEqual({});
@@ -90,5 +57,27 @@ describe("serverContextApiClient", () => {
     await expect(
       serverContextApiClient.getResourceContext("service", "aws/not-a-real-service"),
     ).rejects.toMatchObject({ name: "ContextApiError", code: "resource_not_found", status: 404 });
+  });
+
+  it("reads an overlay-backed service's presentation metadata (plan 020 15d)", async () => {
+    const record = await serverContextApiClient.getResourceRecord("service", "aws/textract");
+
+    expect(record.id).toBe("service/aws/textract");
+    expect(record.governance).toBe("configured");
+    // The identity metadata migrated off the Topic onto the Resource record.
+    expect(record.owner_team).toBe("cloud-platform");
+    expect(record.support_channel).toBe("#cloud-platform");
+    expect(record.category).toBe("ai-ml");
+    expect(record.entry_tools?.length ?? 0).toBeGreaterThan(0);
+    expect(record.topics).toContain("aws-textract");
+  });
+
+  it("reads a spine-only service's record as identity-only, unconfigured", async () => {
+    const record = await serverContextApiClient.getResourceRecord("service", "azure/aks");
+
+    expect(record.id).toBe("service/azure/aks");
+    expect(record.governance).toBe("unconfigured");
+    expect(record.owner_team).toBeUndefined();
+    expect(record.entry_tools).toBeUndefined();
   });
 });

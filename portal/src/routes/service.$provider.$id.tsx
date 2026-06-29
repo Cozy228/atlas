@@ -1,22 +1,23 @@
 /**
- * Catalog detail · route `/catalog/$topicId`
- * ==========================================
- * "The component datasheet" — a topic reads like an electronic component's
+ * Service detail · route `/service/$provider/$id` (canonical `{kind}/{slug}`)
+ * ==========================================================================
+ * "The component datasheet" — a service reads like an electronic component's
  * datasheet: an IDENTITY BAND (icon, designation, status, trust line), a dense
- * SPECIFICATIONS table, WHERE IT RUNS (service region strip / landing-zone
- * catalog scope), GET STARTED (numbered entry tools), APPLICATION NOTES (related
- * guidance), REFERENCES (the Document Sources panel), RELATED IN DOMAIN, and a
- * FEEDBACK section. A sticky evidence rail keeps source health and the page's
- * single primary action in view.
+ * SPECIFICATIONS table, WHERE IT RUNS (service region strip), GET STARTED
+ * (numbered entry tools), APPLICATION NOTES (related guidance), REFERENCE
+ * DOCUMENTS (the resource projection's discovery links), RELATED IN DOMAIN, and
+ * a FEEDBACK section. A sticky evidence rail keeps governed-evidence health and
+ * the page's single primary action in view.
  *
- * Generalised over every catalog topic type (service · landing-zone ·
- * security-policy) from real loader data: the topic, its context bundle (sources,
- * excerpts, warnings — typed-error tolerant), availability record, and related
- * topics. `useRecordRecent` keeps the topic in the Home "recently viewed" trail.
+ * Resource-first (plan 020 15d, ADR-0015): the page is addressed by the Resource
+ * `{kind}/{slug}` (here `service/{provider}/{id}`), NOT a topic id. It composes
+ * the Resource RECORD (presentation metadata migrated off the Topic) + the live
+ * resource projection (governed sections + reference-only discovery links) + the
+ * availability record. Security policies live at `/policies/$policyId` and
+ * landing zones are the availability scope (plan 019) — neither lands here.
  */
 import type { ReactNode } from "react";
 import { Link, createFileRoute, notFound } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
 import {
   IconArrowLeft,
   IconArrowUpRight,
@@ -27,79 +28,71 @@ import {
   IconRoute,
 } from "@tabler/icons-react";
 import type {
-  ContextBundleResponse,
   DiscoveredReference,
+  EntryTool,
   ResourceContextResponse,
+  ResourceRecordResponse,
   Topic,
-  TopicDiscoveryResponse,
+  TopicStatus,
 } from "@atlas/schema";
-
-import { LastFetchChip } from "@/components/last-fetch-chip";
 
 import {
   availabilityQueryOptions,
-  contextBundleQueryOptions,
   guidanceQueryOptions,
   resourceContextQueryOptions,
+  resourceRecordQueryOptions,
   topicDiscoveryQueryOptions,
 } from "@/api/queries";
-import type { LandingZoneData } from "@/api/server/availability";
-import { ContextApiError } from "@/api/contextApiError";
-import { AuthorityBadge, FreshnessIndicator } from "@/components/evidence/badges";
+import type { AvailabilityRecord, LandingZoneData } from "@/api/server/availability";
 import { FeedbackInlineForm } from "@/components/evidence/feedback-inline-form";
 import { ServiceIcon } from "@/components/explore/service-icon";
 import { ServiceIconFallback } from "@/components/explore/service-icon-frame";
-import { useRecordRecent, type RecentItem } from "@/components/home/recently-viewed";
+import { useRecordRecent } from "@/components/home/recently-viewed";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DeferredRegion } from "@/components/deferred-region";
-import { findAvailabilityServiceForTopic } from "@/lib/availability-service";
+import {
+  findAvailabilityServiceById,
+  serviceRouteParamsForTopic,
+} from "@/lib/availability-service";
 import { relatedGuidanceForTopic, type Guidance } from "@/lib/guidance";
 import { cn } from "@/lib/utils";
 
+/** A related service resource shown in "Related in domain": its canonical
+ *  address plus the display copy. */
+type RelatedService = { provider: string; id: string; name: string; description: string };
+
 type LoaderData = {
-  topic: Topic;
-  related: ReadonlyArray<Topic>;
+  record: ResourceRecordResponse;
+  slug: string;
+  serviceId: string;
+  related: ReadonlyArray<RelatedService>;
   guidance: ReadonlyArray<Guidance>;
-  bundle: Promise<ContextBundleResponse | null>;
   zone: Promise<{ defaultZone: LandingZoneData; totalZones: number }>;
-  /** Service-only: the live resource projection (governance + reference-only
-   *  discovery links). `null` for non-service kinds / unmapped services. */
-  referenceDoc: Promise<ResourceContextResponse | null>;
+  /** The live resource projection (governance + reference-only discovery links).
+   *  `null` when the live read fails. */
+  projection: Promise<ResourceContextResponse | null>;
 };
 
-const TYPE_LABEL: Record<Topic["topic_type"], string> = {
-  service: "Service",
-  "landing-zone": "Landing zone",
-  "security-policy": "Security policy",
-};
-
-export const Route = createFileRoute("/catalog/$topicId")({
+export const Route = createFileRoute("/service/$provider/$id")({
   loader: async ({ context, params }): Promise<LoaderData> => {
-    const topicsResp: TopicDiscoveryResponse = await context.queryClient.ensureQueryData(
-      topicDiscoveryQueryOptions,
-    );
+    const slug = `${params.provider}/${params.id}`;
 
-    const topic = topicsResp.topics.find((entry) => entry.id === params.topicId);
-    if (!topic) throw notFound();
+    // Presentation metadata (durable, ADR-0015 §2) — awaited for the page shell.
+    // 404 when the slug resolves to neither an overlay nor the availability spine.
+    const record = await context.queryClient
+      .ensureQueryData(resourceRecordQueryOptions({ kind: "service", slug }))
+      .catch(() => null);
+    if (!record) throw notFound();
 
-    // Slow: defer the live bundle (no await) so navigation is instant and the
-    // References + evidence-health blocks render a skeleton until it lands.
-    // disclosure_level 2 resolves every anchor on each source (the default of 1
-    // returns only the first), so References can show all cited sections.
-    const bundle: Promise<ContextBundleResponse | null> = context.queryClient
-      .ensureQueryData(contextBundleQueryOptions({ topic_id: topic.id, disclosure_level: 2 }))
-      .catch((error: unknown) => {
-        if (
-          error instanceof ContextApiError &&
-          (error.code === "topic_not_found" || error.code === "source_not_found")
-        ) {
-          return null;
-        }
-        throw error;
-      });
+    // The facet Topic this resource belongs to (plan 020 §3): the home for
+    // related-guidance association + the sibling category.
+    const topicsResp = await context.queryClient.ensureQueryData(topicDiscoveryQueryOptions);
+    const facetTopicId = record.topics?.[0];
+    const facetTopic = facetTopicId
+      ? topicsResp.topics.find((entry) => entry.id === facetTopicId)
+      : undefined;
 
-    // Fast: guidance reads a cached projection; await it for the page shell.
     const guidances = await context.queryClient.ensureQueryData(guidanceQueryOptions);
 
     // Slow: availability is a live Confluence fetch + parse in the real adapter —
@@ -108,52 +101,61 @@ export const Route = createFileRoute("/catalog/$topicId")({
     const zone: Promise<{ defaultZone: LandingZoneData; totalZones: number }> = context.queryClient
       .ensureQueryData(availabilityQueryOptions)
       .then((availability) => ({
-        defaultZone: availability.zones[0]!,
+        defaultZone:
+          availability.zones.find((z) => z.id === params.provider) ?? availability.zones[0]!,
         totalZones: availability.zones.length,
       }));
 
-    // Slow + service-only: the resource projection's canonical slug is
-    // `{provider}/{service id}`, derived from the availability spine — so chain it
-    // off `zone`. Reference discovery is reference-only (never the page's claims),
-    // so a failure degrades to null and the block shows an honest gap.
-    const referenceDoc: Promise<ResourceContextResponse | null> =
-      topic.topic_type === "service"
-        ? zone.then(({ defaultZone }) => {
-            const service = findAvailabilityServiceForTopic(topic, defaultZone.services);
-            if (!service) return null;
-            return context.queryClient
-              .ensureQueryData(
-                resourceContextQueryOptions({
-                  kind: "service",
-                  slug: `${defaultZone.id}/${service.id}`,
-                }),
-              )
-              .catch(() => null);
-          })
-        : Promise.resolve(null);
+    // Slow: the live resource projection, keyed by the canonical slug. Reference
+    // discovery + governed sections are live, so a failure degrades to null and
+    // the blocks show an honest gap.
+    const projection: Promise<ResourceContextResponse | null> = context.queryClient
+      .ensureQueryData(resourceContextQueryOptions({ kind: "service", slug }))
+      .catch(() => null);
+
+    // Related in domain: sibling service resources sharing this resource's
+    // category (a facet attribute), each addressed by its own canonical slug.
+    const related: ReadonlyArray<RelatedService> = facetTopic
+      ? topicsResp.topics
+          .filter(
+            (entry) =>
+              entry.id !== facetTopic.id &&
+              entry.topic_type === "service" &&
+              entry.category === facetTopic.category,
+          )
+          .map((sibling) => siblingService(sibling, params.provider))
+      : [];
 
     return {
-      topic,
-      related: topicsResp.topics.filter(
-        (entry) => entry.id !== topic.id && entry.category === topic.category,
-      ),
-      guidance: relatedGuidanceForTopic(guidances, topic.id),
-      bundle,
+      record,
+      slug,
+      serviceId: params.id,
+      related,
+      guidance: relatedGuidanceForTopic(guidances, facetTopicId ?? record.id),
       zone,
-      referenceDoc,
+      projection,
     };
   },
-  component: CatalogDetailRoute,
+  component: ServiceDetailRoute,
 });
 
+/** Map a sibling service Topic to its canonical resource address (shared slug
+ *  mapping), keeping the current page's provider. */
+function siblingService(topic: Topic, provider: string): RelatedService {
+  const { id } = serviceRouteParamsForTopic(topic);
+  return { provider, id, name: topic.name, description: topic.description };
+}
+
 const STATUS_CHIP: Record<
-  Topic["status"],
+  TopicStatus,
   { variant: "success" | "info" | "critical"; label: string }
 > = {
   active: { variant: "success", label: "General availability" },
   planned: { variant: "info", label: "Planned" },
   deprecated: { variant: "critical", label: "Deprecated" },
 };
+
+const DEFAULT_STATUS: TopicStatus = "active";
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("en-US", {
@@ -167,24 +169,16 @@ function formatDate(iso: string): string {
  * Page
  * ========================================================================== */
 
-function CatalogDetailRoute() {
-  const { topic, related, guidance, bundle, zone, referenceDoc } = Route.useLoaderData();
-  const { dataUpdatedAt } = useQuery(
-    contextBundleQueryOptions({ topic_id: topic.id, disclosure_level: 2 }),
-  );
+function ServiceDetailRoute() {
+  const { record, slug, serviceId, related, guidance, zone, projection } = Route.useLoaderData();
+  const entryTools: ReadonlyArray<EntryTool> = record.entry_tools ?? [];
+  const status = record.status ?? DEFAULT_STATUS;
+  const category = record.category ?? "Service";
+  // Feedback still targets the facet Topic (its id is the durable feedback key);
+  // falls back to the resource slug for a spine-only service with no facet.
+  const feedbackTargetId = record.topics?.[0] ?? slug;
 
-  const recent: RecentItem | null =
-    topic.topic_type === "service"
-      ? { kind: "service", topicId: topic.id, name: topic.name }
-      : topic.topic_type === "landing-zone"
-        ? { kind: "landing-zone", topicId: topic.id, name: topic.name }
-        : null;
-  useRecordRecent(recent);
-
-  const isService = topic.topic_type === "service";
-  // locations / service / live / planned / availability spec rows all derive from
-  // the deferred `zone` — computed inside the DeferredRegion blocks below so the shell
-  // (identity band, get-started, application notes) paints without waiting on it.
+  useRecordRecent({ kind: "service", slug, name: record.name });
 
   // Numbered main-column sections — only the ones that apply, in order.
   const sections: ReadonlyArray<{ title: string; node: ReactNode }> = [
@@ -193,65 +187,46 @@ function CatalogDetailRoute() {
       node: (
         <DeferredRegion
           promise={zone}
-          fallback={
-            <SpecsSkeleton rows={isService || topic.topic_type === "landing-zone" ? 8 : 5} />
-          }
+          fallback={<SpecsSkeleton rows={8} />}
           label="the specifications"
           retry
         >
-          {({ defaultZone, totalZones }) => {
+          {({ defaultZone }) => {
             const locations = defaultZone.locations;
-            const service = isService
-              ? findAvailabilityServiceForTopic(topic, defaultZone.services)
-              : null;
+            const service = findAvailabilityServiceById(defaultZone.services, serviceId);
             const live = locations.filter((loc) => {
-              const status = service?.availability[loc.id]?.status;
-              return status === "available" || status === "interim";
+              const cellStatus = service?.availability[loc.id]?.status;
+              return cellStatus === "available" || cellStatus === "interim";
             }).length;
             const planned = locations.filter(
               (loc) => service?.availability[loc.id]?.status === "planned",
             ).length;
             const specs: ReadonlyArray<{ label: string; value: ReactNode }> = [
-              { label: "Type", value: TYPE_LABEL[topic.topic_type] },
-              { label: "Domain", value: topic.category },
-              { label: "Status", value: STATUS_CHIP[topic.status].label },
-              { label: "Owner", value: topic.owner_team },
+              { label: "Type", value: "Service" },
+              { label: "Domain", value: category },
+              { label: "Status", value: STATUS_CHIP[status].label },
+              { label: "Owner", value: record.owner_team ?? "—" },
               {
                 label: "Support",
-                value: <code className="font-mono text-[11.5px]">{topic.support_channel}</code>,
+                value: record.support_channel ? (
+                  <code className="font-mono text-[11.5px]">{record.support_channel}</code>
+                ) : (
+                  "—"
+                ),
               },
-              ...(isService
-                ? [
-                    { label: "Landing zone", value: defaultZone.name },
-                    {
-                      label: "Regions live",
-                      value: (
-                        <span className="tabular-nums">
-                          {live} of {locations.length}
-                        </span>
-                      ),
-                    },
-                    {
-                      label: "Regions planned",
-                      value: <span className="tabular-nums">{planned}</span>,
-                    },
-                  ]
-                : topic.topic_type === "landing-zone"
-                  ? [
-                      {
-                        label: "Services",
-                        value: <span className="tabular-nums">{defaultZone.services.length}</span>,
-                      },
-                      {
-                        label: "Regions",
-                        value: <span className="tabular-nums">{locations.length}</span>,
-                      },
-                      {
-                        label: "Landing zones",
-                        value: <span className="tabular-nums">{totalZones}</span>,
-                      },
-                    ]
-                  : []),
+              { label: "Landing zone", value: defaultZone.name },
+              {
+                label: "Regions live",
+                value: (
+                  <span className="tabular-nums">
+                    {live} of {locations.length}
+                  </span>
+                ),
+              },
+              {
+                label: "Regions planned",
+                value: <span className="tabular-nums">{planned}</span>,
+              },
             ];
             return (
               <dl className="grid grid-cols-1 overflow-hidden rounded-[4px] border border-border bg-card sm:grid-cols-2">
@@ -264,46 +239,21 @@ function CatalogDetailRoute() {
         </DeferredRegion>
       ),
     },
-    ...(isService
-      ? [
-          {
-            title: "Where it runs",
-            node: (
-              <DeferredRegion
-                promise={zone}
-                fallback={<WhereItRunsSkeleton />}
-                label="where it runs"
-              >
-                {({ defaultZone }) => (
-                  <WhereItRuns
-                    service={findAvailabilityServiceForTopic(topic, defaultZone.services)}
-                    locations={defaultZone.locations}
-                  />
-                )}
-              </DeferredRegion>
-            ),
-          },
-        ]
-      : topic.topic_type === "landing-zone"
-        ? [
-            {
-              title: "Catalog scope",
-              node: (
-                <DeferredRegion
-                  promise={zone}
-                  fallback={<WhereItRunsSkeleton />}
-                  label="the catalog scope"
-                >
-                  {({ defaultZone, totalZones }) => (
-                    <CatalogScope zone={defaultZone} totalZones={totalZones} />
-                  )}
-                </DeferredRegion>
-              ),
-            },
-          ]
-        : []),
-    ...(topic.entry_tools.length > 0
-      ? [{ title: "Get started", node: <GetStarted topic={topic} /> }]
+    {
+      title: "Where it runs",
+      node: (
+        <DeferredRegion promise={zone} fallback={<WhereItRunsSkeleton />} label="where it runs">
+          {({ defaultZone }) => (
+            <WhereItRuns
+              service={findAvailabilityServiceById(defaultZone.services, serviceId)}
+              locations={defaultZone.locations}
+            />
+          )}
+        </DeferredRegion>
+      ),
+    },
+    ...(entryTools.length > 0
+      ? [{ title: "Get started", node: <GetStarted entryTools={entryTools} /> }]
       : []),
     ...(guidance.length > 0
       ? [
@@ -319,43 +269,25 @@ function CatalogDetailRoute() {
           },
         ]
       : []),
-    // Service topics: the reference-only discovery block (plan 017) REPLACES the
-    // governed Document-Sources panel here — the source health still lives in the
-    // evidence rail. Non-service kinds have no discovery spine, so they keep the
-    // governed References panel.
-    isService
-      ? {
-          title: "Reference documents",
-          node: (
-            <DeferredRegion
-              promise={referenceDoc}
-              fallback={<ReferencesSkeleton />}
-              label="the reference documents"
-              retry
-            >
-              {(projection) => <ReferenceDocs projection={projection} />}
-            </DeferredRegion>
-          ),
-        }
-      : {
-          title: "References",
-          node: (
-            <DeferredRegion
-              promise={bundle}
-              fallback={<ReferencesSkeleton />}
-              label="the references"
-              retry
-            >
-              {(resolved) => <References sources={resolved?.sources ?? []} />}
-            </DeferredRegion>
-          ),
-        },
+    {
+      title: "Reference documents",
+      node: (
+        <DeferredRegion
+          promise={projection}
+          fallback={<ReferencesSkeleton />}
+          label="the reference documents"
+          retry
+        >
+          {(resolved) => <ReferenceDocs projection={resolved} />}
+        </DeferredRegion>
+      ),
+    },
     ...(related.length > 0
-      ? [{ title: "Related in domain", node: <RelatedInDomain topics={related} /> }]
+      ? [{ title: "Related in domain", node: <RelatedInDomain services={related} /> }]
       : []),
     {
       title: "Help Atlas stay accurate",
-      node: <FeedbackInlineForm target={{ target_type: "topic", target_id: topic.id }} />,
+      node: <FeedbackInlineForm target={{ target_type: "topic", target_id: feedbackTargetId }} />,
     },
   ];
 
@@ -376,86 +308,61 @@ function CatalogDetailRoute() {
             aria-hidden
             className="flex size-14 shrink-0 items-center justify-center rounded-lg bg-brand-tint"
           >
-            {isService ? (
-              <DeferredRegion
-                promise={zone}
-                fallback={<ServiceIconFallback serviceId={topic.id} size="lg" />}
-                errorFallback={<ServiceIconFallback serviceId={topic.id} size="lg" />}
-              >
-                {({ defaultZone }) => {
-                  const service = findAvailabilityServiceForTopic(topic, defaultZone.services);
-                  return service ? (
-                    <ServiceIcon serviceId={service.id} size="lg" />
-                  ) : (
-                    <ServiceIconFallback serviceId={topic.id} size="lg" />
-                  );
-                }}
-              </DeferredRegion>
-            ) : (
-              <ServiceIconFallback serviceId={topic.id} size="lg" />
-            )}
+            <DeferredRegion
+              promise={zone}
+              fallback={<ServiceIconFallback serviceId={serviceId} size="lg" />}
+              errorFallback={<ServiceIconFallback serviceId={serviceId} size="lg" />}
+            >
+              {({ defaultZone }) => {
+                const service = findAvailabilityServiceById(defaultZone.services, serviceId);
+                return service ? (
+                  <ServiceIcon serviceId={service.id} size="lg" />
+                ) : (
+                  <ServiceIconFallback serviceId={serviceId} size="lg" />
+                );
+              }}
+            </DeferredRegion>
           </span>
           <div className="flex min-w-0 flex-col gap-1.5">
             <span className="w-fit font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-              {TYPE_LABEL[topic.topic_type]} · {topic.category}
+              Service · {category}
             </span>
             <div className="flex flex-wrap items-center gap-3">
               <h1 className="w-fit text-[1.75rem] font-bold leading-[1.1] tracking-[-0.025em] text-foreground">
-                {topic.name}
+                {record.name}
               </h1>
-              <Badge variant={STATUS_CHIP[topic.status].variant}>
-                {STATUS_CHIP[topic.status].label}
-              </Badge>
-              <code className="font-mono text-[11.5px] text-muted-foreground">{topic.id}</code>
+              <Badge variant={STATUS_CHIP[status].variant}>{STATUS_CHIP[status].label}</Badge>
+              <code className="font-mono text-[11.5px] text-muted-foreground">{record.id}</code>
             </div>
-            <p className="w-fit max-w-[68ch] text-[14.5px] leading-[1.55] text-muted-foreground">
-              {topic.description}
-            </p>
+            {record.description ? (
+              <p className="w-fit max-w-[68ch] text-[14.5px] leading-[1.55] text-muted-foreground">
+                {record.description}
+              </p>
+            ) : null}
           </div>
         </div>
-        {/* Trust line: every fact below is real loader data. */}
+        {/* Trust line: owner, support, and the live discovery count. */}
         <p className="flex w-fit flex-wrap items-center gap-x-2.5 gap-y-1 text-[12.5px] text-muted-foreground">
-          <span className="font-semibold text-foreground">{topic.owner_team}</span>
-          <Sep />
-          <code className="font-mono text-[11px]">{topic.support_channel}</code>
-          <Sep />
-          <DeferredRegion
-            promise={bundle}
-            fallback={
-              <span
-                aria-hidden
-                className="inline-block h-3 w-24 animate-pulse rounded bg-accent align-middle"
-              />
-            }
-            errorFallback={null}
-          >
+          {record.owner_team ? (
+            <span className="font-semibold text-foreground">{record.owner_team}</span>
+          ) : null}
+          {record.owner_team && record.support_channel ? <Sep /> : null}
+          {record.support_channel ? (
+            <code className="font-mono text-[11px]">{record.support_channel}</code>
+          ) : null}
+          <DeferredRegion promise={projection} fallback={null} errorFallback={null}>
             {(resolved) => {
-              const sources = resolved?.sources ?? [];
-              const freshest = sources
-                .map((entry) => entry.source.last_reviewed_at)
-                .toSorted()
-                .at(-1);
-              return (
+              const count = resolved?.references.length ?? 0;
+              return count > 0 ? (
                 <>
+                  <Sep />
                   <span className="tabular-nums">
-                    {sources.length} source{sources.length === 1 ? "" : "s"}
+                    {count} reference doc{count === 1 ? "" : "s"}
                   </span>
-                  {freshest ? (
-                    <>
-                      <Sep />
-                      <span className="tabular-nums">reviewed {formatDate(freshest)}</span>
-                    </>
-                  ) : null}
                 </>
-              );
+              ) : null;
             }}
           </DeferredRegion>
-          {dataUpdatedAt ? (
-            <>
-              <Sep />
-              <LastFetchChip updatedAt={dataUpdatedAt} />
-            </>
-          ) : null}
         </p>
       </header>
 
@@ -471,20 +378,20 @@ function CatalogDetailRoute() {
 
         {/* Evidence rail — sticky, the page's single primary action lives here */}
         <aside className="flex flex-col gap-4 lg:sticky lg:top-[76px]">
-          {topic.entry_tools[0] ? (
+          {entryTools[0] ? (
             <div className="flex flex-col gap-3 rounded-[4px] border border-border bg-card p-4">
               <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                 Actions
               </span>
               <a
-                href={topic.entry_tools[0].url}
+                href={entryTools[0].url}
                 target="_blank"
                 rel="noreferrer"
                 className="flex h-9 items-center justify-center rounded-[3px] bg-primary px-3.5 text-[13px] font-semibold text-primary-foreground transition-colors hover:bg-brand-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               >
-                {topic.entry_tools[0].label}
+                {entryTools[0].label}
               </a>
-              {topic.entry_tools.slice(1, 3).map((tool) => (
+              {entryTools.slice(1, 3).map((tool) => (
                 <a
                   key={tool.url}
                   href={tool.url}
@@ -503,33 +410,11 @@ function CatalogDetailRoute() {
               Evidence health
             </span>
             <DeferredRegion
-              promise={bundle}
+              promise={projection}
               fallback={<EvidenceHealthSkeleton />}
               label="evidence health"
             >
-              {(resolved) => {
-                const sources = resolved?.sources ?? [];
-                const warnings = resolved?.warnings ?? [];
-                return (
-                  <>
-                    <RailStat label="Registered sources" value={String(sources.length)} />
-                    <RailStat
-                      label="Anchored references"
-                      value={String(resolved?.anchor_references.length ?? 0)}
-                    />
-                    <RailStat label="Open warnings" value={String(warnings.length)} />
-                    {warnings.map((warning) => (
-                      <p
-                        key={`${warning.code}-${warning.source_id ?? ""}`}
-                        className="flex items-start gap-2 rounded-[3px] border border-warning/50 bg-warning-tint px-3 py-2 text-[12px] leading-[1.5] text-warning-ink"
-                      >
-                        <IconInfoCircle aria-hidden className="mt-0.5 size-3.5 shrink-0" />
-                        {warning.message}
-                      </p>
-                    ))}
-                  </>
-                );
-              }}
+              {(resolved) => <EvidenceHealth projection={resolved} />}
             </DeferredRegion>
           </div>
         </aside>
@@ -546,7 +431,7 @@ function WhereItRuns({
   service,
   locations,
 }: {
-  service: ReturnType<typeof findAvailabilityServiceForTopic>;
+  service: AvailabilityRecord | null;
   locations: LandingZoneData["locations"];
 }) {
   return (
@@ -600,31 +485,10 @@ function WhereItRuns({
   );
 }
 
-function CatalogScope({ zone, totalZones }: { zone: LandingZoneData; totalZones: number }) {
-  return (
-    <>
-      <p className="rounded-[4px] border border-border bg-card px-4 py-3 text-[13px] leading-[1.55] text-muted-foreground">
-        <span className="font-mono font-bold text-foreground">{zone.services.length}</span> services
-        across <span className="font-mono font-bold text-foreground">{zone.locations.length}</span>{" "}
-        regions and outposts
-        {totalZones > 1 ? ` (${totalZones} landing zones)` : ""}. Filter to this zone on the
-        availability map.
-      </p>
-      <Link
-        to="/availability"
-        className="mt-2 flex w-fit items-center gap-1 text-[12.5px] font-semibold text-brand-ink hover:underline"
-      >
-        Open in availability map
-        <IconArrowUpRight aria-hidden className="size-3.5" />
-      </Link>
-    </>
-  );
-}
-
-function GetStarted({ topic }: { topic: Topic }) {
+function GetStarted({ entryTools }: { entryTools: ReadonlyArray<EntryTool> }) {
   return (
     <ol className="overflow-hidden rounded-[4px] border border-border bg-card">
-      {topic.entry_tools.map((tool, i) => (
+      {entryTools.map((tool, i) => (
         <li key={tool.label} className={cn(i > 0 && "border-t border-border")}>
           <a
             href={tool.url}
@@ -654,56 +518,42 @@ function GetStarted({ topic }: { topic: Topic }) {
   );
 }
 
-function References({ sources }: { sources: ContextBundleResponse["sources"] }) {
-  if (sources.length === 0) {
+/** Evidence-health rail derived from the live resource projection: governed
+ *  Section count, citation count, discovered reference count, and the open
+ *  warnings (Section warnings + missing-source gaps). */
+function EvidenceHealth({ projection }: { projection: ResourceContextResponse | null }) {
+  if (!projection) {
     return (
-      <p className="rounded-[4px] border border-dashed border-border bg-card px-4 py-5 text-[13px] text-muted-foreground">
-        No sources are registered against this topic yet. Claims on this page would be unverifiable,
-        so Atlas shows none.
+      <p className="text-[12px] leading-[1.5] text-muted-foreground">
+        No governed resource is mapped to this service yet.
       </p>
     );
   }
+  const sections = Object.values(projection.sections);
+  const citations = sections.reduce((sum, section) => sum + section.citations.length, 0);
+  const warnings = [
+    ...sections.flatMap((section) => section.warnings),
+    ...projection.missingSections.map((missing) => ({
+      code: missing.code,
+      message: missing.message,
+    })),
+  ];
   return (
-    <div className="overflow-hidden rounded-[4px] border border-border bg-card">
-      {sources.map((entry, i) => (
-        <article
-          key={entry.source.id}
-          className={cn("flex gap-4 px-4 py-4", i > 0 && "border-t border-border")}
+    <>
+      <RailStat label="Governed sections" value={String(Object.keys(projection.sections).length)} />
+      <RailStat label="Citations" value={String(citations)} />
+      <RailStat label="Reference docs" value={String(projection.references.length)} />
+      <RailStat label="Open warnings" value={String(warnings.length)} />
+      {warnings.map((warning, i) => (
+        <p
+          key={`${warning.code}-${i}`}
+          className="flex items-start gap-2 rounded-[3px] border border-warning/50 bg-warning-tint px-3 py-2 text-[12px] leading-[1.5] text-warning-ink"
         >
-          <span className="w-8 shrink-0 text-right text-[1.25rem] font-bold leading-none tabular-nums text-muted-foreground/60">
-            {i + 1}
-          </span>
-          <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-              <span className="text-[13.5px] font-bold text-foreground">{entry.source.title}</span>
-              <code className="font-mono text-[10.5px] text-muted-foreground">
-                {entry.source.source_class} · {entry.source.id}
-              </code>
-            </div>
-            <p className="text-[12.5px] leading-[1.5] text-muted-foreground">
-              {entry.selection_rationale}
-            </p>
-            {entry.excerpts.length > 0 ? (
-              <div className="flex flex-col gap-1.5">
-                {entry.excerpts.map((excerpt, ei) => (
-                  <p
-                    key={excerpt.citation.anchor_id ?? excerpt.anchor_id ?? ei}
-                    className="border-l border-border pl-3 text-[12.5px] italic leading-[1.5] text-muted-foreground"
-                  >
-                    “{excerpt.text}”
-                  </p>
-                ))}
-              </div>
-            ) : null}
-            <div className="mt-0.5 flex flex-wrap items-center gap-2">
-              <AuthorityBadge level={entry.source.authority_level} />
-              <FreshnessIndicator source={entry.source} />
-              <span className="text-[11.5px] text-muted-foreground">{entry.source.steward}</span>
-            </div>
-          </div>
-        </article>
+          <IconInfoCircle aria-hidden className="mt-0.5 size-3.5 shrink-0" />
+          {warning.message}
+        </p>
       ))}
-    </div>
+    </>
   );
 }
 
@@ -855,16 +705,14 @@ function ReferenceDocRow({
   );
 }
 
-function RelatedInDomain({ topics }: { topics: ReadonlyArray<Topic> }) {
+function RelatedInDomain({ services }: { services: ReadonlyArray<RelatedService> }) {
   return (
     <div className="grid gap-3 sm:grid-cols-2">
-      {topics.map((entry) => (
+      {services.map((entry) => (
         <Link
-          key={entry.id}
-          to={entry.topic_type === "security-policy" ? "/policies/$policyId" : "/catalog/$topicId"}
-          params={
-            entry.topic_type === "security-policy" ? { policyId: entry.id } : { topicId: entry.id }
-          }
+          key={`${entry.provider}/${entry.id}`}
+          to="/service/$provider/$id"
+          params={{ provider: entry.provider, id: entry.id }}
           className="group flex flex-col gap-1 rounded-[4px] border border-border bg-card p-4 transition-[border-color,box-shadow] hover:border-border-strong hover:shadow-[0_1px_2px_oklch(40%_0.05_264.18/0.05),0_6px_16px_oklch(40%_0.05_264.18/0.08)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <span className="text-[13.5px] font-bold text-foreground group-hover:text-brand-ink">
@@ -944,12 +792,12 @@ function SpecsSkeleton({ rows }: { rows: number }) {
   );
 }
 
-/** Placeholder for the deferred "Where it runs" / "Catalog scope" section. */
+/** Placeholder for the deferred "Where it runs" section. */
 function WhereItRunsSkeleton() {
   return <Skeleton aria-hidden className="h-[124px] w-full rounded-[4px]" />;
 }
 
-/** Placeholder for the deferred References list — a couple of source-card rows. */
+/** Placeholder for the deferred Reference documents list. */
 function ReferencesSkeleton() {
   return (
     <div aria-hidden className="overflow-hidden rounded-[4px] border border-border bg-card">

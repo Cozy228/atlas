@@ -24,11 +24,8 @@ last_reviewed: "2026-04-18"
 applies_to:
   services:
     - serverless-compute
-  landing_zones:
-    - central-landing-zone
 sources:
   - platform-reference-guide
-  - central-lz-confluence
 
 steps:
   - id: choose-landing-zone
@@ -46,8 +43,6 @@ steps:
       - id: confirm-choice
         title: Confirm the selected landing zone
         required: true
-    sources:
-      - central-lz-confluence
 
   - id: request-access
     title: Request access

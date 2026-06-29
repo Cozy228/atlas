@@ -36,9 +36,10 @@ function ref(
 }
 
 // Sample references keyed by canonical `{provider}/{id}`. Spans all three
-// doc_types across a configured service (aws/textract) and spine-only services
-// (aws/s3, azure/aks) so both the configured-merge and unconfigured-banner paths
-// render with content. Fictional, public-safe URLs only.
+// doc_types across configured services (aws/textract, aws/s3 — the latter gained
+// a metadata overlay in plan 020 15a) and a spine-only service (azure/aks) so
+// both the configured-merge and unconfigured-banner paths render with content.
+// Fictional, public-safe URLs only.
 const FIXTURE_REFERENCES: Record<string, DiscoveredReference[]> = {
   "aws/textract": [
     ref(

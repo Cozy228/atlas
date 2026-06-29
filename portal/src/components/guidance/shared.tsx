@@ -20,7 +20,7 @@ import {
 import type { Icon } from "@tabler/icons-react";
 import type { Source } from "@atlas/schema";
 
-import { AuthorityBadge, FreshnessIndicator } from "@/components/evidence/badges";
+import { FreshnessIndicator } from "@/components/evidence/badges";
 import { Badge } from "@/components/ui/badge";
 import type { Guidance, GuidanceAction, GuidanceStep, GuidanceType } from "@/lib/guidance";
 import { taskKey, type GuidanceProgress } from "@/lib/guidance-progress";
@@ -207,7 +207,6 @@ export function EvidenceRows({
                   {source.title}
                 </Link>
                 <span className="flex items-center gap-1.5">
-                  <AuthorityBadge level={source.authority_level} />
                   <FreshnessIndicator source={source} />
                 </span>
               </>

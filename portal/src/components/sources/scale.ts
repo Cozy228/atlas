@@ -10,7 +10,7 @@
  *
  * Everything here is fictional. No company names, ids, or locations.
  */
-import type { AuthorityLevel, Source, Visibility } from "@atlas/schema";
+import type { Source, Visibility } from "@atlas/schema";
 
 type ClassSeed = {
   cls: Source["source_class"];
@@ -20,16 +20,6 @@ type ClassSeed = {
   /** [title, slug] pairs — slug feeds the source id. */
   items: ReadonlyArray<readonly [string, string]>;
 };
-
-const AUTHORITY_CYCLE: ReadonlyArray<AuthorityLevel> = [
-  "authoritative",
-  "authoritative",
-  "reference",
-  "reference",
-  "example",
-  "draft",
-  "deprecated",
-];
 
 /** Fixed review anchors (today ≈ 2026-06-12) so freshness varies deterministically. */
 const REVIEWED_CYCLE: ReadonlyArray<string> = [
@@ -216,7 +206,6 @@ export function sourceCategory(source: Source): string {
 }
 
 function buildSource(seed: ClassSeed, title: string, slug: string, index: number): Source {
-  const authority = AUTHORITY_CYCLE[index % AUTHORITY_CYCLE.length]!;
   const reviewed = REVIEWED_CYCLE[index % REVIEWED_CYCLE.length]!;
   const frequency = FREQUENCY_CYCLE[index % FREQUENCY_CYCLE.length]!;
   // Every 6th policy/confluence source is restricted; modules stay internal.
@@ -232,8 +221,6 @@ function buildSource(seed: ClassSeed, title: string, slug: string, index: number
     location: `https://example.internal/${seed.idPrefix}/${slug}`,
     steward: seed.stewards[index % seed.stewards.length]!,
     visibility,
-    authority_scope: [seed.cls],
-    authority_level: authority,
     last_observed_at: reviewed,
     last_reviewed_at: reviewed,
     review_frequency: frequency,
