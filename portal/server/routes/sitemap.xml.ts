@@ -1,7 +1,7 @@
 import { buildSitemapXml } from "@/api/server/agentDiscovery";
 import { handlerRequest, resolvePortalOrigin } from "@/api/server/portalOrigin";
 import { serverContextApiClient } from "@/api/server/serverContextApiClient";
-import { loadGuidance } from "@/adapters/dev/loadGuidance";
+import { loadGuidance } from "@/lib/loadGuidance";
 
 export default async (event: unknown): Promise<Response> => {
   const [topics, sources] = await Promise.all([
@@ -18,7 +18,7 @@ export default async (event: unknown): Promise<Response> => {
     {
       topics: topics.topics,
       sourceIds: sources.sources.map((source) => source.id),
-      guidanceIds: loadGuidance().map((guidance) => guidance.id),
+      guidanceIds: (await loadGuidance()).map((guidance) => guidance.id),
       resourceIds,
     },
     resolvePortalOrigin(handlerRequest(event)),

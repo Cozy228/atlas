@@ -15,7 +15,6 @@
     "lint": "tsc --noEmit --pretty false",
     "typecheck": "tsc --noEmit --pretty false",
     "test": "vitest run",
-    "validate:guidance": "vitest run guidance-manifest",
     "validate:registry": "vitest run registry-manifest"
   },
   "dependencies": {

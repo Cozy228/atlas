@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { server, setDevDiscoveryEnv } from "@atlas/context-layer/devMocks";
 
-import { loadGuidance } from "../../adapters/dev/loadGuidance";
+import { loadGuidance } from "../../lib/loadGuidance";
 import { buildOauthProtectedResource, buildRobotsTxt, buildSitemapXml } from "./agentDiscovery";
 import { serverContextApiClient } from "./serverContextApiClient";
 
@@ -42,7 +42,7 @@ describe("sitemap.xml", () => {
     const xml = buildSitemapXml({
       topics: topics.topics,
       sourceIds: sources.sources.map((source) => source.id),
-      guidanceIds: loadGuidance().map((guidance) => guidance.id),
+      guidanceIds: (await loadGuidance()).map((guidance) => guidance.id),
     });
 
     expect(xml).toMatch(

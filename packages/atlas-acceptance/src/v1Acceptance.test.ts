@@ -116,7 +116,7 @@ describe("Atlas V1 acceptance", () => {
   });
 
   it("HARD GATE: the S3 / API Gateway / Textract adoption journeys are wired end-to-end", async () => {
-    const guidances = loadGuidance();
+    const guidances = await loadGuidance();
     const heroes = [
       { slug: "aws/api-gateway", guidanceId: "api-gateway-adoption" },
       { slug: "aws/s3", guidanceId: "s3-adoption" },

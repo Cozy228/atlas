@@ -17,6 +17,7 @@ import {
   DEV_CONFLUENCE_SPACE_KEYS,
   DEV_TERRAFORM_BASE_URL,
 } from "./fixtures";
+import { DEV_GUIDANCE_URL } from "./guidanceFixture";
 
 /**
  * Set every discovery env var to the MSW fixture endpoints (idempotent).
@@ -40,6 +41,8 @@ export function setDevDiscoveryEnv(
   env.ATLAS_CONFLUENCE_TOKEN = "dev-mock-token";
   env.ATLAS_CONFLUENCE_SECURITY_SPACE_KEY = DEV_CONFLUENCE_SECURITY_SPACE_KEY;
   env.ATLAS_CONFLUENCE_AVAILABILITY_PAGE_AWSF = DEV_AVAILABILITY_PAGE_ID_AWSF;
+  // Guidance store: the live loadGuidance loader fetches this URL (MSW-served).
+  env.ATLAS_GUIDANCE_URL = DEV_GUIDANCE_URL;
   // Reference-discovery space (optional): on by default.
   if (options.referenceSpace !== false) {
     env.ATLAS_CONFLUENCE_SPACE_KEYS = DEV_CONFLUENCE_SPACE_KEYS.join(",");

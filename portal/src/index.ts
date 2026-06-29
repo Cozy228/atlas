@@ -11,4 +11,4 @@ export {
 } from "./ask/askAtlas";
 export { createStaticContextApiClient, type ContextApiClient } from "./api/contextApiClient";
 export { listGuidance, getGuidance, relatedGuidanceForTopic, type Guidance } from "./lib/guidance";
-export { loadGuidance } from "./adapters/dev/loadGuidance";
+export { loadGuidance } from "./lib/loadGuidance";

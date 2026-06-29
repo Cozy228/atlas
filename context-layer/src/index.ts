@@ -29,5 +29,4 @@ export { LANDING_ZONES } from "./landingZones";
 export { resolveReleaseNotes } from "./releaseNotes/resolveReleaseNotes";
 export type { Announcement } from "./releaseNotes/parseAnnouncements";
 export { cachedResolutionContext } from "./sourceContent/sourceContentCache";
-export { resolveDataDir } from "./adapters/dev/dataDir";
 export type { Release, ReleaseItem } from "./releaseNotes/parseReleaseNotes";

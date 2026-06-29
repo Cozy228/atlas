@@ -6,7 +6,7 @@
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test",
-    "validate:guidance": "pnpm --filter @atlas/schema validate:guidance",
+    "validate:guidance": "pnpm --filter @atlas/context-layer validate:guidance",
     "validate:registry": "pnpm --filter @atlas/schema validate:registry",
     "prepare": "husky"
   },

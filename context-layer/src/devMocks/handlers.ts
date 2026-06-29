@@ -15,6 +15,7 @@ import {
   DEV_TERRAFORM_BASE_URL,
   TERRAFORM_MODULES,
 } from "./fixtures";
+import { DEV_GUIDANCE_MANIFESTS, DEV_GUIDANCE_URL } from "./guidanceFixture";
 
 /**
  * Space-only listing recall (plan 018 G5): all pages under a space, used by
@@ -109,9 +110,23 @@ const terraformModuleHandlers = [
   ),
 ];
 
+/**
+ * Guidance store — the live `loadGuidance` loader's fetch target. Returns the
+ * route-guidance manifests as a JSON array; the loader validates each against
+ * `GuidanceSchema` and maps to the portal `Guidance`. The single live path for
+ * guidance (plan 018 G6): in prod the same env points at a real store.
+ */
+const guidanceHandlers = [
+  http.get(DEV_GUIDANCE_URL, async () => {
+    await delay(devMockLatencyMs());
+    return HttpResponse.json(DEV_GUIDANCE_MANIFESTS);
+  }),
+];
+
 /** Every handler the Node-mode server registers. Order: most specific first. */
 export const handlers = [
   ...confluencePageHandlers,
   ...cqlSearchHandlers,
   ...terraformModuleHandlers,
+  ...guidanceHandlers,
 ];

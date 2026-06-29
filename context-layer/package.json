@@ -19,7 +19,8 @@
     "build:lambda": "tsdown --config tsdown.lambda.config.ts",
     "lint": "tsc --noEmit --pretty false",
     "typecheck": "tsc --noEmit --pretty false",
-    "test": "vitest run --exclude \"scripts/*.debug.test.ts\""
+    "test": "vitest run --exclude \"scripts/*.debug.test.ts\"",
+    "validate:guidance": "vitest run guidanceFixture"
   },
   "dependencies": {
     "@atlas/schema": "workspace:*",

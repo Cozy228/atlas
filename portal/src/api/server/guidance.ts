@@ -9,7 +9,7 @@
  */
 import { createServerFn } from "@tanstack/react-start";
 import type { Guidance } from "@/lib/guidance";
-import { loadGuidance } from "../../adapters/dev/loadGuidance";
+import { loadGuidance } from "@/lib/loadGuidance";
 
 export const fetchGuidance = createServerFn({
   method: "GET",
