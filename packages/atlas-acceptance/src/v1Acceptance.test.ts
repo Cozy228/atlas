@@ -5,11 +5,7 @@ import {
   handleResourceSearchRequest,
   handleTopicRequest,
 } from "@atlas/context-layer";
-import {
-  server,
-  DEV_TERRAFORM_BASE_URL,
-  DEV_CONFLUENCE_BASE_URL,
-} from "@atlas/context-layer/devMocks";
+import { server, setDevDiscoveryEnv } from "@atlas/context-layer/devMocks";
 import {
   askAtlas,
   createDailyRateLimiter,
@@ -19,37 +15,20 @@ import {
   type LlmAdapter,
 } from "@atlas/portal";
 
-// Single live path (plan 018): textract's terraform-backed sections (network,
-// examples) fetch from the registry; the guardrail's policy sections fetch from
-// Confluence (G4). Boot the shared Node-mode MSW server and point ATLAS_TERRAFORM_*
-// and ATLAS_CONFLUENCE_* at the fixtures so both channels resolve live.
-const savedEnv = {
-  terraformBaseUrl: process.env.ATLAS_TERRAFORM_BASE_URL,
-  terraformToken: process.env.ATLAS_TERRAFORM_TOKEN,
-  confluenceBaseUrl: process.env.ATLAS_CONFLUENCE_BASE_URL,
-  confluenceToken: process.env.ATLAS_CONFLUENCE_TOKEN,
-};
+// Single live path (plan 018 G5): the registry + resource records are the OUTPUT
+// of live discovery, so every discovery channel must point at the MSW fixtures —
+// service modules (Terraform), the availability spine, the reference space, and
+// the guardrail space. Boot the shared Node-mode MSW server so the live adapters
+// resolve through the in-process interceptor.
+const savedEnv = { ...process.env };
 beforeAll(() => {
   server.listen({ onUnhandledRequest: "bypass" });
-  process.env.ATLAS_TERRAFORM_BASE_URL = DEV_TERRAFORM_BASE_URL;
-  process.env.ATLAS_TERRAFORM_TOKEN = "dev-mock-token";
-  process.env.ATLAS_CONFLUENCE_BASE_URL = DEV_CONFLUENCE_BASE_URL;
-  process.env.ATLAS_CONFLUENCE_TOKEN = "dev-mock-token";
+  setDevDiscoveryEnv();
 });
 afterAll(() => {
   server.close();
-  restoreEnv("ATLAS_TERRAFORM_BASE_URL", savedEnv.terraformBaseUrl);
-  restoreEnv("ATLAS_TERRAFORM_TOKEN", savedEnv.terraformToken);
-  restoreEnv("ATLAS_CONFLUENCE_BASE_URL", savedEnv.confluenceBaseUrl);
-  restoreEnv("ATLAS_CONFLUENCE_TOKEN", savedEnv.confluenceToken);
+  process.env = savedEnv;
 });
-function restoreEnv(key: string, value: string | undefined): void {
-  if (value === undefined) {
-    delete process.env[key];
-  } else {
-    process.env[key] = value;
-  }
-}
 
 /**
  * V1 acceptance, resource-projection era (plan 019). The agent-facing surface is
@@ -73,12 +52,12 @@ describe("Atlas V1 acceptance", () => {
     expect(examples?.citations[0]?.sourceId).toBe("textract-module-readme");
   });
 
-  it("resolves a free-text name to a canonical resource id, with no cross-service bleed", () => {
-    const response = handleResourceSearchRequest("AWS Textract", {});
+  it("resolves a free-text name to a canonical resource id, with no cross-service bleed", async () => {
+    const response = await handleResourceSearchRequest("AWS Textract", {});
     const search = ResourceSearchResponseSchema.parse(response.body);
     const ids = search.items.map((item) => item.id);
     expect(ids).toContain("service/aws/textract");
-    expect(ids).not.toContain("guardrail/s3-public-access");
+    expect(ids).not.toContain("guardrail/data-encryption-standard");
   });
 
   it("answers Ask Atlas only with accepted citations", async () => {
@@ -114,44 +93,50 @@ describe("Atlas V1 acceptance", () => {
     expect(answer.rejected_claims).toHaveLength(1);
   });
 
-  it("keeps a security policy's documents cited, with stale evidence still visible", async () => {
+  it("keeps a security policy's documents cited from the discovered policy page", async () => {
     // A security policy is a discovered Resource (a guardrail): its governed
-    // documents project as cited Sections.
+    // documents project as cited Sections, bound by heading to the discovered
+    // SECPOL policy page.
     const response = await handleResourceContextRequest({
       kind: "guardrail",
-      slug: "s3-public-access",
+      slug: "public-access-controls",
     });
     const projection = ResourceContextResponseSchema.parse(response.body);
 
-    expect(projection.sections["enforced-controls"]?.citations[0]?.sourceId).toBe("s3-policy-doc");
-    // A deprecated allowance is retained for migration but flagged stale —
-    // surfaced alongside the content, never hidden.
+    const enforced = projection.sections["enforced-controls"];
+    expect(enforced?.status).toBe("available");
+    expect(enforced?.citations[0]?.sourceId).toBe("public-access-controls-policy-doc");
+    expect(enforced?.content?.toLowerCase()).toContain("public access");
+
+    // The legacy-waiver exceptions section is cited from the same policy document,
+    // surfaced alongside the enforced controls — never hidden.
     const exceptions = projection.sections.exceptions;
-    expect(exceptions?.warnings.some((warning) => warning.code === "stale_source")).toBe(true);
+    expect(exceptions?.status).toBe("available");
+    expect(exceptions?.citations[0]?.sourceId).toBe("public-access-controls-policy-doc");
   });
 
-  it("HARD GATE: the S3 / API Gateway / Textract adoption journeys are wired end-to-end", () => {
+  it("HARD GATE: the S3 / API Gateway / Textract adoption journeys are wired end-to-end", async () => {
     const guidances = loadGuidance();
     const heroes = [
-      { topicId: "api-gateway", guidanceId: "api-gateway-adoption" },
-      { topicId: "aws-s3", guidanceId: "s3-adoption" },
-      { topicId: "aws-textract", guidanceId: "textract-adoption" },
+      { slug: "aws/api-gateway", guidanceId: "api-gateway-adoption" },
+      { slug: "aws/s3", guidanceId: "s3-adoption" },
+      { slug: "aws/textract", guidanceId: "textract-adoption" },
     ];
 
     for (const hero of heroes) {
-      // The service is registered and the user guide is a link on its datasheet.
-      const topicResponse = handleTopicRequest(hero.topicId);
-      expect(topicResponse.status, hero.topicId).toBe(200);
+      // The service is registered (its Topic id is the resource slug) and carries
+      // a derived Terraform-module entry tool on its datasheet.
+      const topicResponse = await handleTopicRequest(hero.slug);
+      expect(topicResponse.status, hero.slug).toBe(200);
       const topic = "topic" in topicResponse.body ? topicResponse.body.topic : undefined;
-      expect(topic?.topic_type, hero.topicId).toBe("service");
-      expect(
-        topic?.entry_tools.map((tool) => tool.label),
-        hero.topicId,
-      ).toContain("User guide");
+      expect(topic?.topic_type, hero.slug).toBe("service");
+      expect(topic?.entry_tools?.map((tool) => tool.label) ?? [], hero.slug).toContain(
+        "Terraform module",
+      );
 
-      // A governed adoption guide exists, is a route, and is wired to the topic.
+      // A governed adoption guide exists, is a route, and is wired to the resource.
       expect(getGuidance(guidances, hero.guidanceId)?.type, hero.guidanceId).toBe("route");
-      expect(relatedGuidanceForTopic(guidances, hero.topicId).map((g) => g.id)).toContain(
+      expect(relatedGuidanceForTopic(guidances, hero.slug).map((g) => g.id)).toContain(
         hero.guidanceId,
       );
     }

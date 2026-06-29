@@ -18,7 +18,7 @@ export async function handleFeedbackRequest(
     return errorResponse(400, "invalid_request", "Feedback request is invalid.");
   }
 
-  const service = createDefaultContextService();
+  const service = await createDefaultContextService();
   const targetError = validateFeedbackTarget(service, parsed.data);
   if (targetError) {
     return targetError;

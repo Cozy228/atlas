@@ -275,7 +275,12 @@ function buildCitationLocation(
  * body parses to a root with no headings, so it yields `undefined` as before.
  */
 function extractSectionFromRoot(root: HTMLElement, locator: string): string | undefined {
-  const headings = root.querySelectorAll("h1, h2, h3, h4, h5, h6");
+  // The page's `<h1>` is its title, not a bindable section (same rule discovery
+  // applies when it reads the TOC) — only `<h2>`–`<h6>` are locatable sections.
+  // This also avoids a title/section slug collision (an `<h1>` and an `<h2>` whose
+  // text slugifies identically): matching the title would collect no content (its
+  // next sibling is the section heading) and falsely report a broken anchor.
+  const headings = root.querySelectorAll("h2, h3, h4, h5, h6");
   const match = headings.find((heading) => slugify(heading.text) === locator);
   if (!match) {
     return undefined;

@@ -5,6 +5,7 @@ import {
   type ParsedAvailabilityPage,
 } from "../sourceContent/confluenceAvailabilityProvider";
 import { fetchConfluenceStorageHtml } from "../sourceContent/confluenceCloudContentProvider";
+import { LANDING_ZONES, resolveLandingZoneSource } from "../landingZones";
 
 /**
  * Availability matrix resolver (ADR-0009, plan 021 G3).
@@ -55,11 +56,17 @@ export const availabilityMatrixResolver: AnchorResolver = {
       return unavailable(source.id);
     }
 
-    const fetched = await fetchConfluenceStorageHtml(
-      ctx,
-      { token, baseUrl, email },
-      source.location,
-    );
+    // Availability is LZ-rooted (plan 021 G3): the matrix page is the wired
+    // landing zone's availability page, resolved from env. The derived source
+    // carries a logical `location` ("availability"), so prefer the wired LZ's
+    // page id and fall back to `source.location` (the seed/unit path that already
+    // carries a real page id). The resource projection is single-LZ (the default
+    // wired zone) until per-surface LZ scope lands (plan 023).
+    const wiredZone = LANDING_ZONES.find((zone) => zone.dataStatus === "available");
+    const lzPageId = wiredZone ? resolveLandingZoneSource(wiredZone, env)?.pageId : undefined;
+    const pageId = lzPageId ?? source.location;
+
+    const fetched = await fetchConfluenceStorageHtml(ctx, { token, baseUrl, email }, pageId);
     if (!fetched.ok) {
       return unavailable(source.id);
     }

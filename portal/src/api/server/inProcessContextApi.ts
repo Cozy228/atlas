@@ -67,10 +67,10 @@ function unwrap<TBody>(result: HandlerResult, schema: { parse(input: unknown): T
 
 export const serverContextApiClient: ContextApiClient = {
   async getTopic(id: string): Promise<TopicResponse> {
-    return unwrap(handleTopicRequest(id), TopicResponseSchema);
+    return unwrap(await handleTopicRequest(id), TopicResponseSchema);
   },
   async getSource(id: string): Promise<SourceResponse> {
-    return unwrap(handleSourceRequest(id), SourceResponseSchema);
+    return unwrap(await handleSourceRequest(id), SourceResponseSchema);
   },
   async getAvailability(): Promise<AvailabilityReadResponse> {
     return unwrap(await handleAvailabilityRequest(), AvailabilityReadResponseSchema);
@@ -85,13 +85,13 @@ export const serverContextApiClient: ContextApiClient = {
     return unwrap(await handleResourceRecordRequest({ kind, slug }), ResourceRecordResponseSchema);
   },
   async searchResources(query: string): Promise<ResourceSearchResponse> {
-    return unwrap(handleResourceSearchRequest(query, {}), ResourceSearchResponseSchema);
+    return unwrap(await handleResourceSearchRequest(query, {}), ResourceSearchResponseSchema);
   },
   async discoverSources(request: SourceDiscoveryRequest = {}): Promise<SourceDiscoveryResponse> {
-    return unwrap(handleSourceDiscoveryRequest(request), SourceDiscoveryResponseSchema);
+    return unwrap(await handleSourceDiscoveryRequest(request), SourceDiscoveryResponseSchema);
   },
   async discoverTopics(request: TopicDiscoveryRequest = {}): Promise<TopicDiscoveryResponse> {
-    return unwrap(handleTopicDiscoveryRequest(request), TopicDiscoveryResponseSchema);
+    return unwrap(await handleTopicDiscoveryRequest(request), TopicDiscoveryResponseSchema);
   },
   async submitFeedback(request: FeedbackSubmission): Promise<FeedbackResponse> {
     return unwrap(await handleFeedbackRequest(request), FeedbackResponseSchema);

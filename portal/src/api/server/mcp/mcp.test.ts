@@ -1,27 +1,20 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { ResourceContextResponseSchema } from "@atlas/schema";
-import {
-  server,
-  DEV_AVAILABILITY_PAGE_ID_AWSF,
-  DEV_CONFLUENCE_BASE_URL,
-  DEV_TERRAFORM_BASE_URL,
-} from "@atlas/context-layer/devMocks";
+import { server, setDevDiscoveryEnv } from "@atlas/context-layer/devMocks";
 
 import { serverContextApiClient } from "../serverContextApiClient";
 import { buildMcpServerCard, handleMcpRequest } from "./handler";
 import { mcpTools } from "./tools";
 
-// The availability tool reads the LZ-aware grid (plan 021 G3), fetch+parsed from
-// the awsf availability page. Boot the MSW source-space + point ATLAS_CONFLUENCE_*
-// at it so the tool resolves live; other tools tolerate absent channels honestly.
+// The tools read the discovery-derived catalog + the LZ-aware availability grid
+// (plan 018 G5 / 021 G3). Boot the MSW source-space and point EVERY discovery
+// channel at it so the registry/resources + availability resolve live.
 const savedEnv = { ...process.env };
 beforeAll(() => {
   server.listen({ onUnhandledRequest: "bypass" });
-  process.env.ATLAS_CONFLUENCE_BASE_URL = DEV_CONFLUENCE_BASE_URL;
-  process.env.ATLAS_CONFLUENCE_TOKEN = "dev-mock-token";
-  process.env.ATLAS_CONFLUENCE_AVAILABILITY_PAGE_AWSF = DEV_AVAILABILITY_PAGE_ID_AWSF;
-  process.env.ATLAS_TERRAFORM_BASE_URL = DEV_TERRAFORM_BASE_URL;
-  process.env.ATLAS_TERRAFORM_TOKEN = "dev-mock-token";
+  // Reference space off: the resource-context parity test compares two live
+  // projections, and reference discovery stamps a run-time timestamp.
+  setDevDiscoveryEnv(process.env, { referenceSpace: false });
 });
 afterAll(() => {
   server.close();
@@ -99,14 +92,11 @@ describe("mcp tools against the pilot fixtures", () => {
       topics: { id: string; name: string; description: string }[];
       total: number;
     };
-    expect(data.topics.map((topic) => topic.id)).toContain("aws-textract");
+    expect(data.topics.map((topic) => topic.id)).toContain("aws/textract");
     // CONCISE: high-signal fields only, no owner/support/entry_tools noise.
-    expect(Object.keys(data.topics[0]!).sort()).toEqual([
-      "description",
-      "id",
-      "name",
-      "topic_type",
-    ]);
+    // Derived service topics carry no description (honest-gap), so the undefined
+    // field drops out over JSON — id/name/topic_type remain.
+    expect(Object.keys(data.topics[0]!).sort()).toEqual(["id", "name", "topic_type"]);
   });
 
   it("atlas_get_source returns the registry record by semantic id", async () => {

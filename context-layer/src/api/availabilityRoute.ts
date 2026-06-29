@@ -25,7 +25,7 @@ const AVAILABILITY_SOURCE_ID = "availability-matrix";
 export async function handleAvailabilityRequest(): Promise<
   ApiResponse<ApiErrorResponse | AvailabilityReadResponse>
 > {
-  const service = createDefaultContextService();
+  const service = await createDefaultContextService();
   const source = service.registry.sources.getById(AVAILABILITY_SOURCE_ID);
   if (!source) {
     return errorResponse(

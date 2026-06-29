@@ -1,12 +1,22 @@
-import { describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { ApiErrorResponseSchema, FeedbackResponseSchema } from "@atlas/schema";
+import { setDevDiscoveryEnv } from "../devMocks";
 import { handleFeedbackRequest } from "./feedbackRoute";
+
+// Post-flip (plan 018 G5) the registry (incl. feedback targets) is the OUTPUT of
+// live discovery; point every channel at the MSW fixtures so the target topic
+// exists. The service topic id is now the resource slug (`aws/textract`).
+const savedEnv = { ...process.env };
+beforeAll(() => setDevDiscoveryEnv());
+afterAll(() => {
+  process.env = savedEnv;
+});
 
 describe("feedback route", () => {
   it("captures user feedback as a shared contract response", async () => {
     const response = await handleFeedbackRequest({
       target_type: "topic",
-      target_id: "aws-textract",
+      target_id: "aws/textract",
       feedback_type: "stale",
       message: "The getting started guidance needs a new review.",
     });
@@ -15,7 +25,7 @@ describe("feedback route", () => {
     const parsed = FeedbackResponseSchema.parse(response.body);
     expect(parsed.feedback).toMatchObject({
       target_type: "topic",
-      target_id: "aws-textract",
+      target_id: "aws/textract",
       feedback_type: "stale",
       message: "The getting started guidance needs a new review.",
     });

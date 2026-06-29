@@ -20,7 +20,7 @@ version: 1.0.0
 last_reviewed: "2026-05-02"
 applies_to:
   services:
-    - aws-s3
+    - aws/s3
   landing_zones:
     - awsf
 sources:

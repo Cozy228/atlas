@@ -25,16 +25,17 @@ function topic(id: string, name: string): Topic {
 }
 
 describe("findAvailabilityServiceForTopic", () => {
-  it("maps seeded service topic IDs to AWS availability services", () => {
-    expect(findAvailabilityServiceForTopic(topic("aws-textract", "AWS Textract"), services)?.id).toBe(
-      "textract",
-    );
-    expect(findAvailabilityServiceForTopic(topic("aws-bedrock", "AWS Bedrock"), services)?.id).toBe(
-      "bedrock",
-    );
+  it("maps a service topic's resource slug to its AWS availability service", () => {
+    // Post-flip (plan 018 G5) the service Topic id IS the resource slug
+    // (`aws/<id>`); the availability service id is the slug tail.
     expect(
-      findAvailabilityServiceForTopic(topic("serverless-compute", "Serverless Compute"), services)
-        ?.id,
-    ).toBe("lambda");
+      findAvailabilityServiceForTopic(topic("aws/textract", "Amazon Textract"), services)?.id,
+    ).toBe("textract");
+    expect(
+      findAvailabilityServiceForTopic(topic("aws/bedrock", "Amazon Bedrock"), services)?.id,
+    ).toBe("bedrock");
+    expect(findAvailabilityServiceForTopic(topic("aws/lambda", "Lambda"), services)?.id).toBe(
+      "lambda",
+    );
   });
 });

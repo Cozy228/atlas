@@ -73,7 +73,8 @@ function PolicyDetailRoute() {
   const { topic, projection, relatedServices, relatedPolicies } = Route.useLoaderData();
   const landingZone = useCurrentLandingZoneRecord();
 
-  const primaryTool = topic.entry_tools[0];
+  const entryTools = topic.entry_tools ?? [];
+  const primaryTool = entryTools[0];
   const hasRelationships = relatedServices.length > 0 || relatedPolicies.length > 0;
 
   // Per-LZ honesty (plan 021 C2, ADR-0006): an unwired landing zone shows the
@@ -120,9 +121,9 @@ function PolicyDetailRoute() {
       <DetailLayout
         main={
           <>
-            {topic.entry_tools.length > 0 ? (
+            {entryTools.length > 0 ? (
               <DetailSection title="Entry tools">
-                <EntryToolsGrid tools={topic.entry_tools} />
+                <EntryToolsGrid tools={entryTools} />
               </DetailSection>
             ) : null}
 
@@ -174,8 +175,8 @@ function PolicyDetailRoute() {
                 items={[
                   { label: "Status", value: topic.status },
                   { label: "Domain", value: topic.category },
-                  { label: "Owner", value: topic.owner_team },
-                  { label: "Support", value: topic.support_channel },
+                  { label: "Owner", value: topic.owner_team ?? "—" },
+                  { label: "Support", value: topic.support_channel ?? "—" },
                   { label: "ID", value: topic.id },
                 ]}
                 actions={
@@ -194,7 +195,7 @@ function PolicyDetailRoute() {
                         <IconArrowUpRight className="size-3.5" />
                       </a>
                     ) : null}
-                    {topic.entry_tools.slice(1, 3).map((tool) => (
+                    {entryTools.slice(1, 3).map((tool) => (
                       <a
                         key={tool.url}
                         href={tool.url}

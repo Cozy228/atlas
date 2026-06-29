@@ -12,3 +12,4 @@ export { server } from "./server";
 export { handlers, devMockLatencyMs } from "./handlers";
 export * from "./fixtures";
 export * from "./availabilityFixture";
+export { setDevDiscoveryEnv } from "./testEnv";

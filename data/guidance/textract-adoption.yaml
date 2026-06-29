@@ -20,7 +20,7 @@ version: 1.0.0
 last_reviewed: "2026-05-02"
 applies_to:
   services:
-    - aws-textract
+    - aws/textract
   landing_zones:
     - awsf
 sources:

@@ -12,7 +12,6 @@ export {
   type ResourceContextRouteParams,
 } from "./api/resourceRoutes";
 export { renderResourceMarkdown } from "./resources/renderResourceMarkdown";
-export { listResourceCanonicalIds } from "./adapters/dev/loadResources";
 export {
   getResourceContext,
   searchResources,

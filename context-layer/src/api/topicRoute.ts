@@ -3,8 +3,10 @@ import { createDefaultContextService } from "../composition";
 import type { ApiResponse } from "./routeTypes";
 import { errorResponse } from "./routeTypes";
 
-export function handleTopicRequest(topicId: string): ApiResponse<ApiErrorResponse | TopicResponse> {
-  const service = createDefaultContextService();
+export async function handleTopicRequest(
+  topicId: string,
+): Promise<ApiResponse<ApiErrorResponse | TopicResponse>> {
+  const service = await createDefaultContextService();
   const topic = service.registry.topics.getById(topicId);
 
   if (!topic) {

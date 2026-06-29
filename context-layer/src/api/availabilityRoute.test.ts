@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { AvailabilityReadResponseSchema } from "@atlas/schema";
-import { DEV_AVAILABILITY_PAGE_ID_AWSF, DEV_CONFLUENCE_BASE_URL } from "../devMocks";
+import { setDevDiscoveryEnv } from "../devMocks";
 import { handleAvailabilityRequest } from "./availabilityRoute";
 import { handleHttpRequest } from "./httpRoute";
 
@@ -9,29 +9,16 @@ import { handleHttpRequest } from "./httpRoute";
  * read backs the Portal grid, the MCP tool, and the agent matrix row. The wired
  * `awsf` landing zone is discovered from its MSW availability page; the unwired
  * `awsc`/`azure` zones return honest-empty grids (ADR-0006), never another LZ's data.
+ *
+ * Post-flip (plan 018 G5) the availability-matrix Source is itself a discovery
+ * output, so the whole discovery env must be pointed at the fixtures (probing the
+ * service modules over the spine runs as part of building the service).
  */
-const saved = {
-  baseUrl: process.env.ATLAS_CONFLUENCE_BASE_URL,
-  token: process.env.ATLAS_CONFLUENCE_TOKEN,
-  page: process.env.ATLAS_CONFLUENCE_AVAILABILITY_PAGE_AWSF,
-};
-beforeAll(() => {
-  process.env.ATLAS_CONFLUENCE_BASE_URL = DEV_CONFLUENCE_BASE_URL;
-  process.env.ATLAS_CONFLUENCE_TOKEN = "dev-mock-token";
-  process.env.ATLAS_CONFLUENCE_AVAILABILITY_PAGE_AWSF = DEV_AVAILABILITY_PAGE_ID_AWSF;
-});
+const savedEnv = { ...process.env };
+beforeAll(() => setDevDiscoveryEnv());
 afterAll(() => {
-  restore("ATLAS_CONFLUENCE_BASE_URL", saved.baseUrl);
-  restore("ATLAS_CONFLUENCE_TOKEN", saved.token);
-  restore("ATLAS_CONFLUENCE_AVAILABILITY_PAGE_AWSF", saved.page);
+  process.env = savedEnv;
 });
-function restore(key: string, value: string | undefined): void {
-  if (value === undefined) {
-    delete process.env[key];
-  } else {
-    process.env[key] = value;
-  }
-}
 
 describe("availability read", () => {
   it("returns the landing zones with the governing availability-matrix Citation", async () => {

@@ -2,7 +2,6 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import type { Source } from "@atlas/schema";
 import { confluencePageResolver } from "./confluencePageResolver";
 import type { FetchLike } from "./resolverTypes";
-import { createInMemorySourceContentProvider } from "./sourceContentProvider";
 
 const source: Source = {
   id: "central-lz-confluence",
@@ -58,7 +57,6 @@ describe("confluencePageResolver (single live path)", () => {
       source,
       heading: "Environment matrix",
       citationLabel: "Environment matrix",
-      contentProvider: createInMemorySourceContentProvider({}),
     });
 
     expect(fetch).toHaveBeenCalledTimes(1);
@@ -73,7 +71,6 @@ describe("confluencePageResolver (single live path)", () => {
       source,
       heading: "Environment matrix",
       citationLabel: "Environment matrix",
-      contentProvider: createInMemorySourceContentProvider({}),
     });
 
     expect(result.warnings[0]?.code).toBe("broken_anchor");
@@ -86,7 +83,6 @@ describe("confluencePageResolver (single live path)", () => {
       source,
       heading: "Environment matrix",
       citationLabel: "Environment matrix",
-      contentProvider: createInMemorySourceContentProvider({}),
     });
 
     expect(result.warnings[0]?.code).toBe("source_unavailable");
@@ -97,7 +93,6 @@ describe("confluencePageResolver (single live path)", () => {
     const result = await confluencePageResolver.resolve({
       ctx: { token: "fictional-bearer-token", fetch },
       source,
-      contentProvider: createInMemorySourceContentProvider({}),
     });
 
     expect(result.warnings[0]?.code).toBe("broken_anchor");
@@ -110,7 +105,6 @@ describe("confluencePageResolver (single live path)", () => {
       source,
       heading: "Environment matrix",
       citationLabel: "Environment matrix",
-      contentProvider: createInMemorySourceContentProvider({}),
     });
 
     expect(fetch).not.toHaveBeenCalled();

@@ -96,10 +96,14 @@ export const TopicSchema = z
     topic_type: TopicTypeSchema,
     category: z.string().min(1),
     status: TopicStatusSchema,
-    description: z.string().min(1),
-    owner_team: z.string().min(1),
-    support_channel: z.string().min(1),
-    entry_tools: z.array(EntryToolSchema),
+    // Presentation metadata is honest-gap: derived topics carry only what
+    // discovery can back (id/name/type/category/status). Owner/support/
+    // description/entry_tools are optional — omitted when undiscoverable
+    // (plan 018 G5), never fabricated.
+    description: z.string().min(1).optional(),
+    owner_team: z.string().min(1).optional(),
+    support_channel: z.string().min(1).optional(),
+    entry_tools: z.array(EntryToolSchema).optional(),
   })
   .strict();
 

@@ -21,14 +21,14 @@ import { errorResponse, type ApiResponse } from "./routeTypes";
  * `{kind}/{slug}` ids + URLs. It answers no questions — a missing/empty `query`
  * is a 400, an unmatched query is a 200 with an empty `items[]`.
  */
-export function handleResourceSearchRequest(
+export async function handleResourceSearchRequest(
   query: string | undefined,
   options: { baseUrl?: string } = {},
-): ApiResponse<ResourceSearchResponse | ApiErrorResponse> {
+): Promise<ApiResponse<ResourceSearchResponse | ApiErrorResponse>> {
   if (!query || query.trim().length === 0) {
     return errorResponse(400, "invalid_request", "searchResources requires a non-empty `query`.");
   }
-  const service = createDefaultContextService();
+  const service = await createDefaultContextService();
   return { status: 200, body: searchResources(service, query, { baseUrl: options.baseUrl }) };
 }
 
@@ -48,7 +48,7 @@ export async function handleResourceRecordRequest(params: {
       `Unknown resource kind '${params.kind}'. Valid kinds come from the OpenAPI 'kind' enum / searchResources results.`,
     );
   }
-  const service = createDefaultContextService();
+  const service = await createDefaultContextService();
   const record = await getResourceRecord(service, {
     kind: params.kind as ResourceKind,
     slug: params.slug,
@@ -89,7 +89,7 @@ export async function handleResourceContextRequest(
   }
 
   const sections = parseSections(params.sections);
-  const service = createDefaultContextService();
+  const service = await createDefaultContextService();
 
   try {
     const response = await getResourceContext(

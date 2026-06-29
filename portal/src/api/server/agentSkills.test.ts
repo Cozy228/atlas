@@ -1,11 +1,25 @@
 import { createHash } from "node:crypto";
 import { readdirSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { ResourceContextResponseSchema, ResourceSearchResponseSchema } from "@atlas/schema";
+import { server, setDevDiscoveryEnv } from "@atlas/context-layer/devMocks";
 
 import { bridgeContextApiRequest } from "./contextApiBridge";
 import { serverContextApiClient } from "./serverContextApiClient";
+
+// Post-flip (plan 018 G5) the projection-parity test reads the discovery-derived
+// catalog, so boot the MSW server + point the discovery channels at the fixtures.
+// Reference space stays off so the two-consumer parity stays deterministic.
+const savedEnv = { ...process.env };
+beforeAll(() => {
+  server.listen({ onUnhandledRequest: "bypass" });
+  setDevDiscoveryEnv(process.env, { referenceSpace: false });
+});
+afterAll(() => {
+  server.close();
+  process.env = savedEnv;
+});
 
 /**
  * Agent Skills Discovery (Cloudflare RFC v0.2.0) publication tests.

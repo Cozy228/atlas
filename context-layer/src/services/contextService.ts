@@ -10,7 +10,6 @@ import type {
 import type { FeedbackRepository } from "../repositories/feedbackRepository";
 import type { Registry } from "../registry/registry";
 import type { ResolverRegistry } from "../resolvers/resolverRegistry";
-import type { SourceContentProvider } from "../resolvers/sourceContentProvider";
 import type { AvailabilityProvider } from "./availabilityProvider";
 import type { ResourceReferenceDiscovery } from "./resourceReferenceDiscovery";
 
@@ -23,7 +22,6 @@ import type { ResourceReferenceDiscovery } from "./resourceReferenceDiscovery";
 export type ContextService = {
   registry: Registry;
   resolvers: ResolverRegistry;
-  contentProvider: SourceContentProvider;
   availabilityProvider: AvailabilityProvider;
   /** Reference-only Confluence discovery port (plan 017). Optional: when unset,
    *  resource reads carry an empty `references` list + `null` discovery state. */
@@ -38,8 +36,6 @@ export type ContextServiceOptions = {
   feedbackRepository?: FeedbackRepository;
   /** Injection seam: supply an assembled registry port (tests / adapters). */
   registry?: Registry;
-  /** Injection seam: supply a source-content provider port (tests / adapters). */
-  contentProvider?: SourceContentProvider;
   /** Injection seam: supply an availability provider port (tests / adapters). */
   availabilityProvider?: AvailabilityProvider;
   /** Injection seam: supply a reference-discovery port (tests / live adapter). */

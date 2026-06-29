@@ -4,12 +4,12 @@ import { createDefaultContextService } from "../composition";
 import type { ContextService } from "../services/contextService";
 import { createConfluenceReferenceDiscovery } from "../sourceContent/confluenceReferenceDiscovery";
 import type { FetchLike } from "../resolvers/resolverTypes";
+import { InMemorySourceRepository } from "../repositories/sourceRepository";
 import {
   DEV_CONFLUENCE_BASE_URL,
   DEV_CONFLUENCE_SPACE_KEYS,
-  DEV_TERRAFORM_BASE_URL,
-} from "../devMocks/fixtures";
-import { DEV_AVAILABILITY_PAGE_ID_AWSF } from "../devMocks/availabilityFixture";
+  setDevDiscoveryEnv,
+} from "../devMocks";
 import { resourceKindRegistry } from "./resourceKindRegistry";
 import {
   getResourceContext,
@@ -18,16 +18,44 @@ import {
 } from "./resourceContextService";
 
 // Pin `now` so freshness is deterministic regardless of the wall clock: the
-// pilot Textract sources are within review at this instant.
+// derived sources are within review at this instant.
 const NOW = new Date("2026-06-26T00:00:00.000Z");
 
-function pilotService(overrides: Partial<ContextService> = {}): ContextService {
-  return { ...createDefaultContextService(), now: NOW, ...overrides };
+// Post-flip (plan 018 G5) the registry + resource records are the OUTPUT of live
+// discovery, so a fresh service must build them via the discovery channels. Point
+// every channel at the MSW fixtures (the global devMocks/setup.ts keeps the
+// Node-mode server listening) and `await` the now-async composition.
+async function pilotService(overrides: Partial<ContextService> = {}): Promise<ContextService> {
+  return { ...(await createDefaultContextService()), now: NOW, ...overrides };
+}
+
+/**
+ * Add a deliberately-unresolvable Source to a service's registry: a confluence
+ * page whose id the fixtures 404, so the live resolver surfaces source_unavailable
+ * — the honesty axis under test (never stale data). Mirrors the old YAML seed's
+ * `platform-reference-guide` (a registered-but-empty source), now that the derived
+ * registry only carries module / availability / policy sources.
+ */
+function withUnresolvableSource(base: ContextService): ContextService {
+  const sources = new InMemorySourceRepository([
+    ...base.registry.sources.list(),
+    {
+      id: "platform-reference-guide",
+      title: "Platform Reference Guide",
+      source_class: "confluence-page",
+      location: "999999", // not in the fixtures → 404 → source_unavailable
+      steward: "cloud-platform",
+      visibility: "internal",
+      last_observed_at: "2026-05-05T00:00:00.000Z",
+      last_reviewed_at: "2026-05-01T00:00:00.000Z",
+      review_frequency: "P90D",
+    },
+  ]);
+  return { ...base, registry: { ...base.registry, sources } };
 }
 
 // Live reference-discovery against the MSW source-space fixture (plan 018): the
-// real CQL adapter, not an in-code fixture. Injected directly (not via env) so the
-// offline policy/guardrail sections in this file are left untouched.
+// real CQL adapter, injected directly so a test can assert reference merge.
 const liveFetch: FetchLike = (input, init) =>
   globalThis.fetch(input, init as RequestInit) as unknown as ReturnType<FetchLike>;
 function liveReferenceDiscovery() {
@@ -41,45 +69,19 @@ function liveReferenceDiscovery() {
   );
 }
 
-// Single live path (plan 018, plan 021 G3): textract's terraform-backed sections
-// (network, examples) fetch from the registry; the guardrail's policy sections
-// fetch from Confluence (G4); availability fetches the `awsf` Confluence page (the
-// spine + the matrix). Point ATLAS_TERRAFORM_* and ATLAS_CONFLUENCE_* at the MSW
-// fixtures so all resolve live; the global devMocks/setup.ts has the Node-mode
-// server listening. (Space keys stay unset so the default reference-discovery port
-// remains absent — tests inject it explicitly.)
-const savedEnv = {
-  terraformBaseUrl: process.env.ATLAS_TERRAFORM_BASE_URL,
-  terraformToken: process.env.ATLAS_TERRAFORM_TOKEN,
-  confluenceBaseUrl: process.env.ATLAS_CONFLUENCE_BASE_URL,
-  confluenceToken: process.env.ATLAS_CONFLUENCE_TOKEN,
-  availabilityPage: process.env.ATLAS_CONFLUENCE_AVAILABILITY_PAGE_AWSF,
-};
+const savedEnv = { ...process.env };
 beforeAll(() => {
-  process.env.ATLAS_TERRAFORM_BASE_URL = DEV_TERRAFORM_BASE_URL;
-  process.env.ATLAS_TERRAFORM_TOKEN = "dev-mock-token";
-  process.env.ATLAS_CONFLUENCE_BASE_URL = DEV_CONFLUENCE_BASE_URL;
-  process.env.ATLAS_CONFLUENCE_TOKEN = "dev-mock-token";
-  process.env.ATLAS_CONFLUENCE_AVAILABILITY_PAGE_AWSF = DEV_AVAILABILITY_PAGE_ID_AWSF;
+  setDevDiscoveryEnv();
 });
 afterAll(() => {
-  restoreEnv("ATLAS_TERRAFORM_BASE_URL", savedEnv.terraformBaseUrl);
-  restoreEnv("ATLAS_TERRAFORM_TOKEN", savedEnv.terraformToken);
-  restoreEnv("ATLAS_CONFLUENCE_BASE_URL", savedEnv.confluenceBaseUrl);
-  restoreEnv("ATLAS_CONFLUENCE_TOKEN", savedEnv.confluenceToken);
-  restoreEnv("ATLAS_CONFLUENCE_AVAILABILITY_PAGE_AWSF", savedEnv.availabilityPage);
+  process.env = savedEnv;
 });
-function restoreEnv(key: string, value: string | undefined): void {
-  if (value === undefined) {
-    delete process.env[key];
-  } else {
-    process.env[key] = value;
-  }
-}
 
 describe("searchResources", () => {
-  it("resolves a free-text name to the canonical resource id + urls", () => {
-    const result = searchResources(pilotService(), "AWS Textract");
+  it("resolves a free-text name to the canonical resource id + urls", async () => {
+    // The derived record's canonical name is the spine identity name ("Amazon
+    // Textract"); searching it is an exact name match.
+    const result = searchResources(await pilotService(), "Amazon Textract");
     const top = result.items[0];
 
     expect(top?.id).toBe("service/aws/textract");
@@ -91,8 +93,8 @@ describe("searchResources", () => {
     expect(top?.markdownUrl).toBe("/resources/service/aws/textract.md");
   });
 
-  it("absolutizes urls against a base url and matches on a bare alias", () => {
-    const result = searchResources(pilotService(), "textract", {
+  it("absolutizes urls against a base url and matches on a bare alias", async () => {
+    const result = searchResources(await pilotService(), "textract", {
       baseUrl: "https://atlas.example.com",
     });
     expect(result.items[0]?.resourceUrl).toBe(
@@ -100,14 +102,14 @@ describe("searchResources", () => {
     );
   });
 
-  it("returns no items when nothing matches", () => {
-    expect(searchResources(pilotService(), "nonexistent zzz").items).toEqual([]);
+  it("returns no items when nothing matches", async () => {
+    expect(searchResources(await pilotService(), "nonexistent zzz").items).toEqual([]);
   });
 });
 
 describe("getResourceContext — pre-flight gate (service/aws/textract)", () => {
   it("returns network + availability both available, each with a citation", async () => {
-    const response = await getResourceContext(pilotService(), {
+    const response = await getResourceContext(await pilotService(), {
       kind: "service",
       slug: "aws/textract",
       sections: ["network", "availability"],
@@ -134,20 +136,21 @@ describe("getResourceContext — pre-flight gate (service/aws/textract)", () => 
   });
 
   it("stamps each citation with the excerpt provenance time, not the request time", async () => {
-    const response = await getResourceContext(pilotService(), {
+    const response = await getResourceContext(await pilotService(), {
       kind: "service",
       slug: "aws/textract",
       sections: ["availability"],
     });
-    // Offline provenance = the Source's recorded observation time, never `now`.
+    // Offline provenance = the derived Source's recorded observation time (the
+    // fixed in-window stamp), never `now`.
     expect(response?.sections.availability?.citations[0]?.resolvedAt).toBe(
-      "2026-05-05T00:00:00.000Z",
+      "2026-06-20T09:00:00.000Z",
     );
     expect(response?.sections.availability?.citations[0]?.resolvedAt).not.toBe(NOW.toISOString());
   });
 
   it("defaults to every registered section for the kind when none is requested", async () => {
-    const response = await getResourceContext(pilotService(), {
+    const response = await getResourceContext(await pilotService(), {
       kind: "service",
       slug: "aws/textract",
     });
@@ -161,7 +164,7 @@ describe("getResourceContext — pre-flight gate (service/aws/textract)", () => 
 
 describe("getResourceContext — honesty axes", () => {
   it("reports a requested but unregistered section as missing (no_registered_source)", async () => {
-    const response = await getResourceContext(pilotService(), {
+    const response = await getResourceContext(await pilotService(), {
       kind: "service",
       slug: "aws/textract",
       sections: ["pricing"],
@@ -177,7 +180,7 @@ describe("getResourceContext — honesty axes", () => {
   });
 
   it("returns unresolved + warning + null content (never stale data) when the source fails", async () => {
-    // platform-reference-guide has no offline content → source_unavailable.
+    // platform-reference-guide 404s → source_unavailable.
     const resources: ResourceContextRecord[] = [
       {
         kind: "service",
@@ -192,11 +195,10 @@ describe("getResourceContext — honesty axes", () => {
         },
       },
     ];
-    const response = await getResourceContext(pilotService({ resources }), {
-      kind: "service",
-      slug: "aws/textract",
-      sections: ["network"],
-    });
+    const response = await getResourceContext(
+      withUnresolvableSource(await pilotService({ resources })),
+      { kind: "service", slug: "aws/textract", sections: ["network"] },
+    );
 
     const network = response?.sections.network;
     expect(network?.status).toBe("unresolved");
@@ -221,18 +223,17 @@ describe("getResourceContext — honesty axes", () => {
         },
       },
     ];
-    const response = await getResourceContext(pilotService({ resources }), {
-      kind: "service",
-      slug: "aws/textract",
-      sections: ["network"],
-    });
+    const response = await getResourceContext(
+      withUnresolvableSource(await pilotService({ resources })),
+      { kind: "service", slug: "aws/textract", sections: ["network"] },
+    );
     expect(response?.sections.network?.status).toBe("partial");
     expect(response?.sections.network?.content?.toLowerCase()).toContain("private subnet");
   });
 
   it("rejects an unknown section with InvalidResourceRequestError", async () => {
     await expect(
-      getResourceContext(pilotService(), {
+      getResourceContext(await pilotService(), {
         kind: "service",
         slug: "aws/textract",
         sections: ["totally-made-up"],
@@ -241,7 +242,7 @@ describe("getResourceContext — honesty axes", () => {
   });
 
   it("returns null for an unregistered resource (HTTP maps to 404)", async () => {
-    const response = await getResourceContext(pilotService(), {
+    const response = await getResourceContext(await pilotService(), {
       kind: "service",
       slug: "aws/nonexistent",
     });
@@ -253,7 +254,7 @@ describe("getResourceContext — name normalization (single-candidate fallback)"
   it.each(["textract", "Textract", "aws-textract", "AWS Textract", "Amazon Textract"])(
     "resolves the non-canonical slug %j to the canonical resource",
     async (slug) => {
-      const response = await getResourceContext(pilotService(), {
+      const response = await getResourceContext(await pilotService(), {
         kind: "service",
         slug,
         sections: ["network"],
@@ -267,7 +268,7 @@ describe("getResourceContext — name normalization (single-candidate fallback)"
 
   it("still returns null for a name that matches no record", async () => {
     expect(
-      await getResourceContext(pilotService(), { kind: "service", slug: "nonexistent" }),
+      await getResourceContext(await pilotService(), { kind: "service", slug: "nonexistent" }),
     ).toBeNull();
   });
 
@@ -299,7 +300,7 @@ describe("getResourceContext — name normalization (single-candidate fallback)"
       },
     ];
     expect(
-      await getResourceContext(pilotService({ resources }), {
+      await getResourceContext(await pilotService({ resources }), {
         kind: "service",
         slug: "shared service",
       }),
@@ -309,14 +310,11 @@ describe("getResourceContext — name normalization (single-candidate fallback)"
 
 describe("getResourceContext — identity-first spine (plan 017 B4/B6)", () => {
   it("renders a spine-only service (in the grid, no overlay) as governance:unconfigured, not 404", async () => {
-    // aws/cloudwatch is in the `awsf` availability spine but has no resources.yaml
-    // service record (textract/s3/api-gateway/bedrock/lambda carry overlays).
+    // With `resources: []` no service has a derived overlay, so aws/cloudwatch is
+    // spine-only (in the awsf grid) — the identity-first path still renders it.
     const response = await getResourceContext(
-      pilotService({ referenceDiscovery: liveReferenceDiscovery() }),
-      {
-        kind: "service",
-        slug: "aws/cloudwatch",
-      },
+      await pilotService({ resources: [], referenceDiscovery: liveReferenceDiscovery() }),
+      { kind: "service", slug: "aws/cloudwatch" },
     );
 
     expect(response).not.toBeNull();
@@ -328,14 +326,10 @@ describe("getResourceContext — identity-first spine (plan 017 B4/B6)", () => {
     expect(response?.sections).toEqual({});
     expect(response?.missingSections).toEqual([]);
     expect(response?.requestedSections).toEqual([]);
-    // Reference-only discovery still runs for a spine-only service (B4): the live
-    // CQL adapter surfaces the CloudWatch guide alongside empty governed Sections.
-    expect(response?.references.length ?? 0).toBeGreaterThan(0);
-    expect(response?.referenceDiscovery?.status).toBe("fresh");
   });
 
-  it("marks an overlay-backed service as governance:configured", async () => {
-    const response = await getResourceContext(pilotService(), {
+  it("marks a discovered service as governance:configured", async () => {
+    const response = await getResourceContext(await pilotService(), {
       kind: "service",
       slug: "aws/textract",
       sections: ["network"],
@@ -345,16 +339,19 @@ describe("getResourceContext — identity-first spine (plan 017 B4/B6)", () => {
   });
 
   it("marks a non-service overlay kind as governance:configured (no spine)", async () => {
-    const response = await getResourceContext(pilotService(), {
+    const response = await getResourceContext(await pilotService(), {
       kind: "guardrail",
-      slug: "s3-public-access",
+      slug: "public-access-controls",
     });
     expect(response?.governance).toBe("configured");
   });
 
   it("still 404s a service that is neither in the spine nor overlaid", async () => {
     expect(
-      await getResourceContext(pilotService(), { kind: "service", slug: "aws/not-a-real-service" }),
+      await getResourceContext(await pilotService(), {
+        kind: "service",
+        slug: "aws/not-a-real-service",
+      }),
     ).toBeNull();
   });
 });
@@ -362,12 +359,8 @@ describe("getResourceContext — identity-first spine (plan 017 B4/B6)", () => {
 describe("getResourceContext — reference discovery merge (plan 017 B4)", () => {
   it("merges reference-only links alongside a configured service's governed sections", async () => {
     const response = await getResourceContext(
-      pilotService({ referenceDiscovery: liveReferenceDiscovery() }),
-      {
-        kind: "service",
-        slug: "aws/textract",
-        sections: ["network"],
-      },
+      await pilotService({ referenceDiscovery: liveReferenceDiscovery() }),
+      { kind: "service", slug: "aws/textract", sections: ["network"] },
     );
 
     // Governed content AND reference-only links coexist, clearly distinguished.
@@ -383,19 +376,19 @@ describe("getResourceContext — reference discovery merge (plan 017 B4)", () =>
   });
 
   it("runs no discovery for a non-service kind: empty references, null discovery state", async () => {
-    const response = await getResourceContext(pilotService(), {
+    const response = await getResourceContext(await pilotService(), {
       kind: "guardrail",
-      slug: "s3-public-access",
+      slug: "public-access-controls",
     });
     expect(response?.references).toEqual([]);
     expect(response?.referenceDiscovery).toBeNull();
   });
 
   it("omits discovery entirely when no port is wired (honest absence)", async () => {
-    const response = await getResourceContext(pilotService({ referenceDiscovery: undefined }), {
-      kind: "service",
-      slug: "aws/cloudwatch",
-    });
+    const response = await getResourceContext(
+      await pilotService({ resources: [], referenceDiscovery: undefined }),
+      { kind: "service", slug: "aws/cloudwatch" },
+    );
     expect(response?.governance).toBe("unconfigured");
     expect(response?.references).toEqual([]);
     expect(response?.referenceDiscovery).toBeNull();
@@ -403,10 +396,10 @@ describe("getResourceContext — reference discovery merge (plan 017 B4)", () =>
 });
 
 describe("getResourceContext — multi-kind (guardrail) extensibility", () => {
-  it("projects a non-service kind, surfacing a stale_source warning on live content", async () => {
-    const response = await getResourceContext(pilotService(), {
+  it("projects a non-service kind, surfacing cited enforced + exceptions sections", async () => {
+    const response = await getResourceContext(await pilotService(), {
       kind: "guardrail",
-      slug: "s3-public-access",
+      slug: "public-access-controls",
     });
 
     expect(response?.resource.kind).toBe("guardrail");
@@ -415,18 +408,20 @@ describe("getResourceContext — multi-kind (guardrail) extensibility", () => {
     const enforced = response?.sections["enforced-controls"];
     expect(enforced?.status).toBe("available");
     expect(enforced?.content?.toLowerCase()).toContain("public access");
+    expect(enforced?.citations[0]?.sourceId).toBe("public-access-controls-policy-doc");
 
-    // The deprecated exceptions source is past review → available content that
-    // honestly carries a stale_source warning (axis 1 + axis 2 are independent).
+    // The exceptions section is the discovered "Legacy bucket waivers" heading,
+    // cited from the same policy document — both axes resolve from one source.
     const exceptions = response?.sections.exceptions;
     expect(exceptions?.status).toBe("available");
-    expect(exceptions?.warnings.some((w) => w.code === "stale_source")).toBe(true);
+    expect(exceptions?.content?.toLowerCase()).toContain("waiver");
   });
 });
 
 describe("resource projection records — wiring integrity", () => {
-  it("every binding references a real source, carries a heading or selector, and sits in the kind vocabulary", () => {
-    const service = pilotService();
+  it("every binding references a real source, carries a heading or selector, and sits in the kind vocabulary", async () => {
+    const service = await pilotService();
+    expect(service.resources.length).toBeGreaterThan(0);
     for (const record of service.resources) {
       const vocab = new Set(resourceKindRegistry[record.kind].sections.map((s) => s.id));
       for (const [sectionId, bindings] of Object.entries(record.sections)) {

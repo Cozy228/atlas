@@ -1,6 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
 import type { Source } from "@atlas/schema";
-import { createInMemorySourceContentProvider } from "./sourceContentProvider";
 import type { FetchLike } from "./resolverTypes";
 import { terraformModuleResolver } from "./terraformModuleResolver";
 
@@ -40,10 +39,6 @@ function failingFetch(status: number) {
   }));
 }
 
-/** A request with the offline `contentProvider` field satisfied but never read:
- *  the resolver is single-live, so it always fetches and ignores this provider. */
-const unusedContentProvider = () => createInMemorySourceContentProvider({});
-
 describe("terraformModuleResolver (single live path)", () => {
   it("resolves a registered markdown heading anchor from the live registry", async () => {
     const fetch = registryFetch({
@@ -56,7 +51,6 @@ describe("terraformModuleResolver (single live path)", () => {
       source,
       heading: "Private subnet usage",
       citationLabel: "Private subnet usage",
-      contentProvider: unusedContentProvider(),
     });
 
     expect(fetch).toHaveBeenCalledTimes(1);
@@ -81,7 +75,6 @@ describe("terraformModuleResolver (single live path)", () => {
       source,
       heading: "Private subnet usage",
       citationLabel: "Private subnet usage",
-      contentProvider: unusedContentProvider(),
     });
 
     expect(result.excerpts).toEqual([]);
@@ -107,7 +100,6 @@ describe("terraformModuleResolver (single live path)", () => {
       source,
       heading: "Private subnet usage",
       citationLabel: "Private subnet usage",
-      contentProvider: unusedContentProvider(),
     });
 
     if (previousToken !== undefined) {
@@ -131,7 +123,6 @@ describe("terraformModuleResolver (single live path)", () => {
       source,
       heading: "Private subnet usage",
       citationLabel: "Private subnet usage",
-      contentProvider: unusedContentProvider(),
     });
 
     expect(fetch).toHaveBeenCalledTimes(1);
@@ -151,7 +142,6 @@ describe("terraformModuleResolver (single live path)", () => {
     const result = await terraformModuleResolver.resolve({
       ctx: { token: "caller-bearer-xyz", fetch },
       source,
-      contentProvider: unusedContentProvider(),
     });
 
     expect(result.excerpts).toEqual([]);
@@ -177,7 +167,6 @@ describe("terraformModuleResolver (single live path)", () => {
       source,
       heading: "Private subnet usage",
       citationLabel: "Private subnet usage",
-      contentProvider: unusedContentProvider(),
     });
 
     if (previousToken === undefined) {
@@ -209,7 +198,6 @@ describe("terraformModuleResolver (single live path)", () => {
       source,
       heading: "Private subnet usage",
       citationLabel: "Private subnet usage",
-      contentProvider: unusedContentProvider(),
     });
 
     if (previousToken !== undefined) {
@@ -233,7 +221,6 @@ describe("terraformModuleResolver (single live path)", () => {
       source,
       selector: { field: "version" },
       citationLabel: "Module version",
-      contentProvider: unusedContentProvider(),
     });
 
     expect(fetch).toHaveBeenCalledTimes(1);

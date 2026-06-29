@@ -42,21 +42,21 @@ export async function handleHttpRequest(request: HttpRequest): Promise<HttpRespo
   const ctx = await resolutionContextFromHeaders(request.headers);
 
   if (method === "GET" && path === "/topics") {
-    return jsonResponse(handleTopicDiscoveryRequest(compactQuery(request.query)));
+    return jsonResponse(await handleTopicDiscoveryRequest(compactQuery(request.query)));
   }
 
   const topicIdMatch = path.match(/^\/topics\/([^/]+)$/);
   if (method === "GET" && topicIdMatch) {
-    return jsonResponse(handleTopicRequest(decodeURIComponent(topicIdMatch[1])));
+    return jsonResponse(await handleTopicRequest(decodeURIComponent(topicIdMatch[1])));
   }
 
   if (method === "GET" && path === "/sources") {
-    return jsonResponse(handleSourceDiscoveryRequest(compactQuery(request.query)));
+    return jsonResponse(await handleSourceDiscoveryRequest(compactQuery(request.query)));
   }
 
   const sourceIdMatch = path.match(/^\/sources\/([^/]+)$/);
   if (method === "GET" && sourceIdMatch) {
-    return jsonResponse(handleSourceRequest(decodeURIComponent(sourceIdMatch[1])));
+    return jsonResponse(await handleSourceRequest(decodeURIComponent(sourceIdMatch[1])));
   }
 
   if (method === "GET" && path === "/availability") {
@@ -65,7 +65,7 @@ export async function handleHttpRequest(request: HttpRequest): Promise<HttpRespo
 
   if (method === "GET" && path === "/resources") {
     return jsonResponse(
-      handleResourceSearchRequest(request.query?.query, { baseUrl: request.origin }),
+      await handleResourceSearchRequest(request.query?.query, { baseUrl: request.origin }),
     );
   }
 

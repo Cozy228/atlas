@@ -644,9 +644,9 @@ function TableView({
                   <TopicStatusChip status={topic.status} />
                 )}
               </Td>
-              <Td className="text-foreground">{topic.owner_team}</Td>
+              <Td className="text-foreground">{topic.owner_team ?? "—"}</Td>
               <Td className="font-mono type-caption text-muted-foreground">
-                {topic.support_channel}
+                {topic.support_channel ?? "—"}
               </Td>
               <Td className="text-center text-muted-foreground">
                 <IconArrowRight className="inline size-3.5 transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />
@@ -924,7 +924,7 @@ function ServiceCard({
         slug={topic.id}
       />
       <p className="line-clamp-2 min-h-[2.5rem] text-[13px] leading-[1.5] text-muted-foreground">
-        {topic.description}
+        {topic.description ?? "No description available yet."}
       </p>
       <div className="flex flex-wrap items-center gap-1.5">
         {visibleChips.map((location) => {
@@ -946,9 +946,9 @@ function ServiceCard({
         ) : null}
       </div>
       <div className="mt-auto flex items-center justify-between gap-2 border-t border-border pt-2.5 text-[11.5px]">
-        <span className="truncate font-semibold text-foreground">{topic.owner_team}</span>
+        <span className="truncate font-semibold text-foreground">{topic.owner_team ?? "—"}</span>
         <span className="shrink-0 font-mono text-[11px] text-muted-foreground">
-          {topic.support_channel}
+          {topic.support_channel ?? "—"}
         </span>
       </div>
     </>
@@ -1020,13 +1020,13 @@ function TopicCard({ topic }: { topic: Topic }) {
         slug={topic.id}
       />
       <p className="line-clamp-2 min-h-[2.5rem] text-[13px] leading-[1.5] text-muted-foreground">
-        {topic.description}
+        {topic.description ?? "No description available yet."}
       </p>
       <dl className="mt-auto grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 border-t border-border pt-2.5 text-xs">
         <DefRow label="Domain" value={topic.category} />
         <DefRow label="Status" value={topic.status} mono />
-        <DefRow label="Owner" value={topic.owner_team} />
-        <DefRow label="Support" value={topic.support_channel} mono />
+        <DefRow label="Owner" value={topic.owner_team ?? "—"} />
+        <DefRow label="Support" value={topic.support_channel ?? "—"} mono />
       </dl>
     </>
   );

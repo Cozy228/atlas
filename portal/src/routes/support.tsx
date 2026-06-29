@@ -48,8 +48,9 @@ export const Route = createFileRoute("/support")({
     for (const topic of topics) {
       const entry = map.get(topic.category) ?? {
         domain: topic.category,
-        team: topic.owner_team,
-        channel: topic.support_channel,
+        // Owner/support are honest-gap on derived topics (plan 018 G5).
+        team: topic.owner_team ?? "—",
+        channel: topic.support_channel ?? "—",
         areas: 0,
       };
       entry.areas += 1;

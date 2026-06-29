@@ -1,6 +1,15 @@
-import { describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { FeedbackResponseSchema, TopicDiscoveryResponseSchema } from "@atlas/schema";
+import { setDevDiscoveryEnv } from "../devMocks";
 import { handleHttpRequest } from "./httpRoute";
+
+// Post-flip (plan 018 G5) the registry is the OUTPUT of live discovery; point
+// every channel at the MSW fixtures so topics/sources/feedback targets exist.
+const savedEnv = { ...process.env };
+beforeAll(() => setDevDiscoveryEnv());
+afterAll(() => {
+  process.env = savedEnv;
+});
 
 describe("context API HTTP route adapter", () => {
   it("maps GET /topics query parameters to topic discovery", async () => {
@@ -33,7 +42,7 @@ describe("context API HTTP route adapter", () => {
       path: "/feedback",
       body: JSON.stringify({
         target_type: "topic",
-        target_id: "aws-textract",
+        target_id: "aws/textract",
         feedback_type: "unclear",
         message: "Clarify private subnet guidance.",
       }),
@@ -41,7 +50,7 @@ describe("context API HTTP route adapter", () => {
 
     expect(response.status).toBe(201);
     const body = FeedbackResponseSchema.parse(JSON.parse(response.body));
-    expect(body.feedback.target_id).toBe("aws-textract");
+    expect(body.feedback.target_id).toBe("aws/textract");
   });
 
   it("returns structured errors for unknown HTTP routes", async () => {

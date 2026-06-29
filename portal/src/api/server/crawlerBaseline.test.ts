@@ -1,8 +1,21 @@
-import { describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { server, setDevDiscoveryEnv } from "@atlas/context-layer/devMocks";
 
 import { loadGuidance } from "../../adapters/dev/loadGuidance";
 import { buildOauthProtectedResource, buildRobotsTxt, buildSitemapXml } from "./agentDiscovery";
 import { serverContextApiClient } from "./serverContextApiClient";
+
+// Post-flip (plan 018 G5) the sitemap's catalog pages come from live discovery,
+// so boot the MSW server + point the discovery channels at the fixtures.
+const savedEnv = { ...process.env };
+beforeAll(() => {
+  server.listen({ onUnhandledRequest: "bypass" });
+  setDevDiscoveryEnv(process.env, { referenceSpace: false });
+});
+afterAll(() => {
+  server.close();
+  process.env = savedEnv;
+});
 
 describe("robots.txt", () => {
   const robots = buildRobotsTxt();

@@ -1,8 +1,23 @@
-import { describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { ResourceContextResponseSchema } from "@atlas/schema";
 import { handleHttpRequest } from "@atlas/context-layer";
+import { server, setDevDiscoveryEnv } from "@atlas/context-layer/devMocks";
 
 import { createFetchContextApiClient } from "./httpContextApiClient";
+
+// Post-flip (plan 018 G5) the catalog is the OUTPUT of live discovery, so boot
+// the MSW server + point the discovery channels at the fixtures. Reference space
+// stays off: the two-consumer parity proof compares live projections, and
+// reference discovery stamps a per-call timestamp (kept an honest empty list).
+const savedEnv = { ...process.env };
+beforeAll(() => {
+  server.listen({ onUnhandledRequest: "bypass" });
+  setDevDiscoveryEnv(process.env, { referenceSpace: false });
+});
+afterAll(() => {
+  server.close();
+  process.env = savedEnv;
+});
 
 /**
  * Projection-equivalence proof (ADR-0011): the Portal and an external Skill are

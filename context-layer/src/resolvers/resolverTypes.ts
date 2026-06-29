@@ -1,5 +1,4 @@
 import type { Source, SourceClass } from "@atlas/schema";
-import type { SourceContentProvider } from "./sourceContentProvider";
 
 export type ResolvedExcerpt = {
   anchor_id?: string;
@@ -100,9 +99,6 @@ export type ResolveRequest = {
   selector?: Record<string, string>;
   /** Citation label for the resolved excerpt (was the Anchor's citation_label). */
   citationLabel?: string;
-  /** Optional dev content provider — only the availability matrix resolver still
-   *  reads it (availability stays dev until G3). */
-  contentProvider?: SourceContentProvider;
   ctx: ResolutionContext;
 };
 

@@ -3,10 +3,10 @@ import { createDefaultContextService } from "../composition";
 import type { ApiResponse } from "./routeTypes";
 import { errorResponse } from "./routeTypes";
 
-export function handleSourceRequest(
+export async function handleSourceRequest(
   sourceId: string,
-): ApiResponse<ApiErrorResponse | SourceResponse> {
-  const service = createDefaultContextService();
+): Promise<ApiResponse<ApiErrorResponse | SourceResponse>> {
+  const service = await createDefaultContextService();
   const source = service.registry.sources.getById(sourceId);
 
   if (!source) {

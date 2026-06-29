@@ -88,13 +88,10 @@ export const Route = createFileRoute("/service/$provider/$id")({
       .catch(() => null);
     if (!record) throw notFound();
 
-    // The facet Topic this resource belongs to (plan 020 §3): the home for
-    // related-guidance association + the sibling category.
+    // Sibling services share this resource's category (a facet attribute). Post
+    // plan 018 G5 the catalog Topics are discovery-derived and `record.topics` is
+    // gone, so siblings come straight from the category, not a facet Topic.
     const topicsResp = await context.queryClient.ensureQueryData(topicDiscoveryQueryOptions);
-    const facetTopicId = record.topics?.[0];
-    const facetTopic = facetTopicId
-      ? topicsResp.topics.find((entry) => entry.id === facetTopicId)
-      : undefined;
 
     const guidances = await context.queryClient.ensureQueryData(guidanceQueryOptions);
 
@@ -123,13 +120,13 @@ export const Route = createFileRoute("/service/$provider/$id")({
 
     // Related in domain: sibling service resources sharing this resource's
     // category (a facet attribute), each addressed by its own canonical slug.
-    const related: ReadonlyArray<RelatedService> = facetTopic
+    const related: ReadonlyArray<RelatedService> = record.category
       ? topicsResp.topics
           .filter(
             (entry) =>
-              entry.id !== facetTopic.id &&
+              entry.id !== record.slug &&
               entry.topic_type === "service" &&
-              entry.category === facetTopic.category,
+              entry.category === record.category,
           )
           .map((sibling) => siblingService(sibling, params.provider))
       : [];
@@ -139,7 +136,9 @@ export const Route = createFileRoute("/service/$provider/$id")({
       slug,
       serviceId: params.id,
       related,
-      guidance: relatedGuidanceForTopic(guidances, facetTopicId ?? record.id),
+      // Guidance association is keyed by the resource slug (guidance
+      // `applies_to.services` holds slugs post plan 018 G5).
+      guidance: relatedGuidanceForTopic(guidances, record.slug),
       zone,
       projection,
     };
@@ -151,7 +150,7 @@ export const Route = createFileRoute("/service/$provider/$id")({
  *  mapping), keeping the current page's provider. */
 function siblingService(topic: Topic, provider: string): RelatedService {
   const { id } = serviceRouteParamsForTopic(topic);
-  return { provider, id, name: topic.name, description: topic.description };
+  return { provider, id, name: topic.name, description: topic.description ?? "" };
 }
 
 const STATUS_CHIP: Record<
@@ -182,9 +181,9 @@ function ServiceDetailRoute() {
   const entryTools: ReadonlyArray<EntryTool> = record.entry_tools ?? [];
   const status = record.status ?? DEFAULT_STATUS;
   const category = record.category ?? "Service";
-  // Feedback still targets the facet Topic (its id is the durable feedback key);
-  // falls back to the resource slug for a spine-only service with no facet.
-  const feedbackTargetId = record.topics?.[0] ?? slug;
+  // Feedback targets the resource slug (= the derived service Topic id, the
+  // durable feedback key post plan 018 G5).
+  const feedbackTargetId = record.slug;
 
   useRecordRecent({ kind: "service", slug, name: record.name });
 

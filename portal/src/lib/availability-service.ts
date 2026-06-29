@@ -2,23 +2,19 @@ import type { Topic } from "@atlas/schema";
 
 import type { AvailabilityRecord } from "@/api/server/availability";
 
-const TOPIC_SERVICE_ALIASES: Readonly<Record<string, string>> = {
-  "aws-bedrock": "bedrock",
-  "aws-textract": "textract",
-  "serverless-compute": "lambda",
-};
-
 /**
  * Map a service Topic to its canonical Resource route params
- * (`/service/$provider/$id`, plan 020 15d). The slug tail is the availability
- * service id (`serverless-compute` → `lambda`, the Topic↔Resource Decompose of
- * plan 020 15a); every catalog service in the seed is AWS-provided.
+ * (`/service/$provider/$id`, plan 020 15d). Post-flip (plan 018 G5) the service
+ * Topic id IS the resource slug (`aws/<id>`, e.g. `aws/textract`), so the route
+ * params are a straight split on "/": `provider` is the cloud, `id` the service
+ * machine id. A bare id (no "/") degrades to the AWS provider.
  */
 export function serviceRouteParamsForTopic(topic: Pick<Topic, "id">): {
   provider: string;
   id: string;
 } {
-  return { provider: "aws", id: TOPIC_SERVICE_ALIASES[topic.id] ?? topic.id.replace(/^aws-/, "") };
+  const [provider, id] = topic.id.split("/");
+  return id ? { provider, id } : { provider: "aws", id: provider };
 }
 
 export function findAvailabilityServiceForTopic(
@@ -45,7 +41,10 @@ export function findAvailabilityServiceById(
 }
 
 function resolveServiceId(topic: Pick<Topic, "id" | "name">): string {
-  return TOPIC_SERVICE_ALIASES[topic.id] ?? topic.id.replace(/^aws-/, "");
+  // The resource slug tail is the availability service id (`aws/textract` →
+  // `textract`); a bare id (no "/") is already the service id.
+  const tail = topic.id.split("/").at(-1);
+  return tail ?? topic.id;
 }
 
 function normalizeName(value: string): string {

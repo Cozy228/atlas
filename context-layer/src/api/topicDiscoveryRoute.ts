@@ -8,9 +8,9 @@ import { createDefaultContextService } from "../composition";
 import type { ApiResponse } from "./routeTypes";
 import { errorResponse } from "./routeTypes";
 
-export function handleTopicDiscoveryRequest(
+export async function handleTopicDiscoveryRequest(
   input: unknown,
-): ApiResponse<ApiErrorResponse | TopicDiscoveryResponse> {
+): Promise<ApiResponse<ApiErrorResponse | TopicDiscoveryResponse>> {
   const parsed = TopicDiscoveryRequestSchema.safeParse(input);
   if (!parsed.success) {
     return errorResponse(400, "invalid_request", "Topic discovery request is invalid.");
@@ -18,6 +18,6 @@ export function handleTopicDiscoveryRequest(
 
   return {
     status: 200,
-    body: discoverTopics(createDefaultContextService(), parsed.data),
+    body: discoverTopics(await createDefaultContextService(), parsed.data),
   };
 }

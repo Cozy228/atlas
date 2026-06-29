@@ -22,7 +22,6 @@ import {
 } from "../services/serviceIdentityNormalizer";
 import type { ResolverRegistry } from "../resolvers/resolverRegistry";
 import { defaultResolutionContext, type ResolutionContext } from "../resolvers/resolverTypes";
-import type { SourceContentProvider } from "../resolvers/sourceContentProvider";
 import { isStale } from "../services/freshness";
 import { getResourceKindDef } from "./resourceKindRegistry";
 
@@ -58,7 +57,6 @@ export type ResourceContextDeps = {
     sources: { getById(id: string): import("@atlas/schema").Source | undefined };
   };
   resolvers: ResolverRegistry;
-  contentProvider: SourceContentProvider;
   now: Date;
 };
 
@@ -396,7 +394,6 @@ async function resolveSection(
       heading: binding.heading,
       selector: binding.selector,
       citationLabel: binding.citation_label,
-      contentProvider: deps.contentProvider,
       ctx,
     });
 
