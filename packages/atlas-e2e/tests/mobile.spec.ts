@@ -3,15 +3,26 @@ import { expect, test } from "@playwright/test";
 import { expectShellWithMockBadge } from "./helpers";
 
 /**
- * Mobile assertion (plan 026 WU6). A 390px viewport across the layout-sensitive
- * pages: nothing overflows the viewport horizontally, and the hamburger nav
- * (which replaces the desktop bar below md) opens and navigates.
+ * Mobile narrow-viewport pass (plan 026 WU6 + WU9). A 375px viewport across every
+ * top-level page plus a service detail: nothing overflows horizontally, and the
+ * hamburger nav (which replaces the desktop bar below md) opens and navigates.
  */
-test.use({ viewport: { width: 390, height: 844 } });
+test.use({ viewport: { width: 375, height: 812 } });
 
-const MOBILE_ROUTES = ["/", "/catalog", "/availability", "/service/aws/textract"] as const;
+const MOBILE_ROUTES = [
+  "/",
+  "/overview",
+  "/availability",
+  "/catalog",
+  "/guidance",
+  "/sources",
+  "/skills",
+  "/whatsnew",
+  "/support",
+  "/service/aws/textract",
+] as const;
 
-test.describe("mobile (390px)", () => {
+test.describe("mobile (375px)", () => {
   for (const path of MOBILE_ROUTES) {
     test(`no horizontal overflow on ${path}`, async ({ page }) => {
       await page.goto(path);
