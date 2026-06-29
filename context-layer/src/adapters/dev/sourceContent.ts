@@ -1,5 +1,4 @@
 import { createInMemorySourceContentProvider } from "../../resolvers/sourceContentProvider";
-import { toAvailabilityMatrixMarkdown } from "./availability";
 
 export function createDevSourceContentProvider() {
   return createInMemorySourceContentProvider({
@@ -48,12 +47,6 @@ export function createDevSourceContentProvider() {
         'module "bucket" {\n  source              = "app.terraform.io/example/s3/aws"\n  name                = "orders-assets"\n  versioning          = true\n  block_public_access = true\n  encryption          = "aws:kms"\n}',
       "#bucket-setup":
         "Declare the bucket through the module: it enforces block-public-access, default KMS encryption, and versioning, and emits the bucket name and ARN as outputs.",
-    },
-    // The governed region × Service availability table the matrix resolver parses
-    // (ADR-0009). Projected out of the single availability dataset (plan 014) so
-    // the matrix facts are never authored a second time; the grid is fictional.
-    "availability-matrix": {
-      "availability-matrix": toAvailabilityMatrixMarkdown(),
     },
   });
 }

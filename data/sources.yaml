@@ -165,7 +165,10 @@
 - id: availability-matrix
   title: Regional Availability Matrix
   source_class: availability-matrix
-  location: https://confluence.example.com/display/CLOUD/Regional+Availability+Matrix
+  # The per-LZ availability Confluence page id the matrix resolver fetches (plan
+  # 021 G3): dev/integration = the MSW `awsf` availability page, prod = the real
+  # page. The citation URL is built from the fetched page's webui at request time.
+  location: "200001"
   steward: cloud-platform
   visibility: internal
   authority_scope:

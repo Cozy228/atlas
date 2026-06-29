@@ -60,7 +60,7 @@ export async function handleHttpRequest(request: HttpRequest): Promise<HttpRespo
   }
 
   if (method === "GET" && path === "/availability") {
-    return jsonResponse(handleAvailabilityRequest());
+    return jsonResponse(await handleAvailabilityRequest());
   }
 
   if (method === "GET" && path === "/resources") {
@@ -74,7 +74,7 @@ export async function handleHttpRequest(request: HttpRequest): Promise<HttpRespo
   const resourceRecordMatch = path.match(/^\/resources\/([^/]+)\/(.+)\/record$/);
   if (method === "GET" && resourceRecordMatch) {
     return jsonResponse(
-      handleResourceRecordRequest({
+      await handleResourceRecordRequest({
         kind: decodeURIComponent(resourceRecordMatch[1]),
         slug: decodeURIComponent(resourceRecordMatch[2]),
       }),

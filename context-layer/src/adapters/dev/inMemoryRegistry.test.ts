@@ -18,8 +18,8 @@ describe("in-memory registry adapter", () => {
 
     expect(registry.topics.findByType("service").length).toBeGreaterThan(0);
     expect(registry.topics.findByType("security-policy").length).toBeGreaterThan(0);
-    // Landing zones moved to the availability grid — no catalog topics remain.
-    expect(registry.topics.findByType("landing-zone")).toEqual([]);
+    // Landing zones are no longer a catalog topic type — they are the availability
+    // discovery scope (plan 021), so `landing-zone` is gone from `topicTypes`.
   });
 
   it("includes stale, deprecated, and restricted source examples", () => {

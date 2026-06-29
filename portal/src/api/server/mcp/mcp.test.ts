@@ -1,9 +1,32 @@
-import { describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { ResourceContextResponseSchema } from "@atlas/schema";
+import {
+  server,
+  DEV_AVAILABILITY_PAGE_ID_AWSF,
+  DEV_CONFLUENCE_BASE_URL,
+  DEV_TERRAFORM_BASE_URL,
+} from "@atlas/context-layer/devMocks";
 
 import { serverContextApiClient } from "../serverContextApiClient";
 import { buildMcpServerCard, handleMcpRequest } from "./handler";
 import { mcpTools } from "./tools";
+
+// The availability tool reads the LZ-aware grid (plan 021 G3), fetch+parsed from
+// the awsf availability page. Boot the MSW source-space + point ATLAS_CONFLUENCE_*
+// at it so the tool resolves live; other tools tolerate absent channels honestly.
+const savedEnv = { ...process.env };
+beforeAll(() => {
+  server.listen({ onUnhandledRequest: "bypass" });
+  process.env.ATLAS_CONFLUENCE_BASE_URL = DEV_CONFLUENCE_BASE_URL;
+  process.env.ATLAS_CONFLUENCE_TOKEN = "dev-mock-token";
+  process.env.ATLAS_CONFLUENCE_AVAILABILITY_PAGE_AWSF = DEV_AVAILABILITY_PAGE_ID_AWSF;
+  process.env.ATLAS_TERRAFORM_BASE_URL = DEV_TERRAFORM_BASE_URL;
+  process.env.ATLAS_TERRAFORM_TOKEN = "dev-mock-token";
+});
+afterAll(() => {
+  server.close();
+  process.env = savedEnv;
+});
 
 function rpc(method: string, params?: Record<string, unknown>, id: number = 1): Request {
   return new Request("https://portal.example.com/mcp", {
@@ -97,7 +120,7 @@ describe("mcp tools against the pilot fixtures", () => {
 
   it("atlas_get_availability filters by zone and service, carrying its Citation", async () => {
     const result = await callTool("atlas_get_availability", {
-      zone: "aws",
+      zone: "awsf",
       service_query: "textract",
     });
     const data = result.structuredContent as {
@@ -106,13 +129,15 @@ describe("mcp tools against the pilot fixtures", () => {
     };
     expect(data.services.length).toBeGreaterThan(0);
     for (const service of data.services) {
-      expect(service.zone).toBe("aws");
+      expect(service.zone).toBe("awsf");
       expect(service.availability).toBeTypeOf("object");
     }
     // The grid reads through the one cited source of record (plan 014).
     expect(data.citation.source_id).toBe("availability-matrix");
     expect(data.citation.label.length).toBeGreaterThan(0);
-    expect(data.citation.location).toContain("Regional+Availability+Matrix");
+    // The read carries the governing source's location (the per-LZ availability
+    // page id since plan 021 G3); only that it is cited matters here.
+    expect(data.citation.location.length).toBeGreaterThan(0);
   });
 
   it("atlas_get_resource_context returns the same projection the Portal gets", async () => {

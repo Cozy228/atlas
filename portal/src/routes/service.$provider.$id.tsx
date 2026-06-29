@@ -43,7 +43,7 @@ import {
   resourceRecordQueryOptions,
   topicDiscoveryQueryOptions,
 } from "@/api/queries";
-import type { AvailabilityRecord, LandingZoneData } from "@/api/server/availability";
+import type { AvailabilityRecord, LandingZoneAvailability } from "@/api/server/availability";
 import { FeedbackInlineForm } from "@/components/evidence/feedback-inline-form";
 import { ServiceIcon } from "@/components/explore/service-icon";
 import { ServiceIconFallback } from "@/components/explore/service-icon-frame";
@@ -68,7 +68,7 @@ type LoaderData = {
   serviceId: string;
   related: ReadonlyArray<RelatedService>;
   guidance: ReadonlyArray<Guidance>;
-  zone: Promise<{ defaultZone: LandingZoneData; totalZones: number }>;
+  zone: Promise<{ defaultZone: LandingZoneAvailability; totalZones: number }>;
   /** The live resource projection (governance + reference-only discovery links).
    *  `null` when the live read fails. */
   projection: Promise<ResourceContextResponse | null>;
@@ -98,9 +98,8 @@ export const Route = createFileRoute("/service/$provider/$id")({
     // Slow: availability is a live Confluence fetch + parse in the real adapter —
     // defer it (no await) so navigation is instant; the specs, where-it-runs and
     // identity icon render a skeleton until it lands.
-    const zone: Promise<{ defaultZone: LandingZoneData; totalZones: number }> = context.queryClient
-      .ensureQueryData(availabilityQueryOptions)
-      .then((availability) => ({
+    const zone: Promise<{ defaultZone: LandingZoneAvailability; totalZones: number }> =
+      context.queryClient.ensureQueryData(availabilityQueryOptions).then((availability) => ({
         defaultZone:
           availability.zones.find((z) => z.id === params.provider) ?? availability.zones[0]!,
         totalZones: availability.zones.length,
@@ -432,7 +431,7 @@ function WhereItRuns({
   locations,
 }: {
   service: AvailabilityRecord | null;
-  locations: LandingZoneData["locations"];
+  locations: LandingZoneAvailability["locations"];
 }) {
   return (
     <>

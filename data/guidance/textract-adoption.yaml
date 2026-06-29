@@ -22,7 +22,7 @@ applies_to:
   services:
     - aws-textract
   landing_zones:
-    - central-landing-zone
+    - awsf
 sources:
   - textract-module-readme
 

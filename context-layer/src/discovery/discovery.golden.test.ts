@@ -17,8 +17,12 @@ import {
   type ResourceContextRecord,
   type Source,
 } from "@atlas/schema";
-import { DEV_TERRAFORM_BASE_URL } from "../devMocks";
-import { createDevAvailabilityProvider } from "../adapters/dev/availability";
+import {
+  DEV_AVAILABILITY_PAGE_ID_AWSF,
+  DEV_CONFLUENCE_BASE_URL,
+  DEV_TERRAFORM_BASE_URL,
+} from "../devMocks";
+import { createConfluenceAvailabilityProvider } from "../sourceContent/confluenceAvailabilityProvider";
 import { defaultResolutionContext } from "../resolvers/resolverTypes";
 import { discoverServiceSources, type DiscoverServiceSourcesDeps } from "./discoverSources";
 import { deriveServiceResources, deriveServiceSourceRecords } from "./deriveResources";
@@ -29,13 +33,17 @@ describe("service discovery → resource derivation (golden)", () => {
   let sources: Source[];
 
   beforeAll(async () => {
-    // Point the live Terraform adapter at the MSW-served fixture registry.
+    // Point the live Terraform + availability adapters at the MSW-served fixtures.
     process.env.ATLAS_TERRAFORM_BASE_URL = DEV_TERRAFORM_BASE_URL;
     process.env.ATLAS_TERRAFORM_TOKEN = "dev-mock-token";
+    process.env.ATLAS_CONFLUENCE_BASE_URL = DEV_CONFLUENCE_BASE_URL;
+    process.env.ATLAS_CONFLUENCE_TOKEN = "dev-mock-token";
+    process.env.ATLAS_CONFLUENCE_AVAILABILITY_PAGE_AWSF = DEV_AVAILABILITY_PAGE_ID_AWSF;
 
+    const ctx = defaultResolutionContext(); // late-bound fetch → MSW interceptor
     const deps: DiscoverServiceSourcesDeps = {
-      availabilityProvider: createDevAvailabilityProvider(),
-      ctx: defaultResolutionContext(), // late-bound fetch → MSW interceptor
+      availabilityProvider: createConfluenceAvailabilityProvider({ fetch: ctx.fetch }),
+      ctx,
       terraform: {
         baseUrl: process.env.ATLAS_TERRAFORM_BASE_URL!,
         token: process.env.ATLAS_TERRAFORM_TOKEN!,

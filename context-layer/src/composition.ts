@@ -6,11 +6,7 @@
  * runtime chooses live sources over the dev manifests. Core stays unaware.
  */
 import type { ResourceContextRecord } from "@atlas/schema";
-import {
-  createDevAvailabilityProvider,
-  createDevRegistry,
-  createDevSourceContentProvider,
-} from "./adapters/dev";
+import { createDevRegistry, createDevSourceContentProvider } from "./adapters/dev";
 import { availabilityMatrixResolver } from "./resolvers/availabilityMatrixResolver";
 import { confluencePageResolver } from "./resolvers/confluencePageResolver";
 import { policyDocumentResolver } from "./resolvers/policyDocumentResolver";
@@ -18,6 +14,7 @@ import { createResolverRegistry } from "./resolvers/resolverRegistry";
 import { terraformModuleResolver } from "./resolvers/terraformModuleResolver";
 import { loadResources } from "./adapters/dev/loadResources";
 import { createConfluenceReferenceDiscovery } from "./sourceContent/confluenceReferenceDiscovery";
+import { createConfluenceAvailabilityProvider } from "./sourceContent/confluenceAvailabilityProvider";
 import type { ResourceReferenceDiscovery } from "./services/resourceReferenceDiscovery";
 import type { FetchLike } from "./resolvers/resolverTypes";
 import type { ContextService, ContextServiceOptions } from "./services/contextService";
@@ -85,7 +82,9 @@ export function createDefaultContextService(options: ContextServiceOptions = {})
       availabilityMatrixResolver,
     ]),
     contentProvider: options.contentProvider ?? createDevSourceContentProvider(),
-    availabilityProvider: options.availabilityProvider ?? createDevAvailabilityProvider(),
+    availabilityProvider:
+      options.availabilityProvider ??
+      createConfluenceAvailabilityProvider({ fetch: liveFetch, env: options.env }),
     referenceDiscovery: options.referenceDiscovery ?? createReferenceDiscoveryFromEnv(options.env),
     resources: options.resources ?? getDefaultResources(),
     now: new Date(),

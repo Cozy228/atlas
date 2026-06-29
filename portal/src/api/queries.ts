@@ -1,5 +1,6 @@
 import { queryOptions } from "@tanstack/react-query";
 import type {
+  LandingZone,
   ResourceContextResponse,
   ResourceRecordResponse,
   SourceDiscoveryRequest,
@@ -10,6 +11,7 @@ import type {
 
 import { fetchAvailability, type AvailabilityResponse } from "@/api/server/availability";
 import {
+  fetchLandingZones,
   fetchResourceContext,
   fetchResourceRecord,
   fetchSourceDiscovery,
@@ -43,6 +45,13 @@ export const availabilityQueryKey = ["availability"] as const;
 export const availabilityQueryOptions = queryOptions<AvailabilityResponse>({
   queryKey: availabilityQueryKey,
   queryFn: () => fetchAvailability(),
+  staleTime: Infinity,
+});
+
+export const landingZonesQueryOptions = queryOptions<LandingZone[]>({
+  queryKey: ["landing-zones"] as const,
+  queryFn: () => fetchLandingZones(),
+  // The LZ topology is config (dev=prod), effectively static within a session.
   staleTime: Infinity,
 });
 

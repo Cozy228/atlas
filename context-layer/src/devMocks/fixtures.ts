@@ -11,6 +11,10 @@
  * What's New, Terraform README, GitHub guidance, CQL references). G0 seeds the
  * Confluence v2 page read that proves the MSW seam.
  */
+import {
+  DEV_AVAILABILITY_PAGE_ID_AWSF,
+  renderAvailabilityPageStorage,
+} from "./availabilityFixture";
 
 /** Fictional Confluence site base (without `/wiki`) the dev adapter is pointed at. */
 export const DEV_CONFLUENCE_BASE_URL = "https://atlas-dev.example.atlassian.net";
@@ -65,6 +69,13 @@ export const CQL_REFERENCE_CORPUS: CqlCandidate[] = [
   {
     title: "Azure Kubernetes Service — onboarding guide",
     webui: "/wiki/spaces/CLOUD/pages/1401/AKS+Onboarding+Guide",
+  },
+  // aws/cloudwatch — user-guide only (a spine-only AWS service: in the `awsf`
+  // availability grid, no resources.yaml overlay). Title carries the product name
+  // so it clears the identity-admission gate (B8/B9).
+  {
+    title: "Amazon CloudWatch — operations & usage guide",
+    webui: "/wiki/spaces/CLOUD/pages/1501/CloudWatch+Operations+Guide",
   },
 ];
 
@@ -201,6 +212,17 @@ export const CONFLUENCE_PAGES: Record<string, ConfluencePageFixture> = {
       },
     },
     _links: { webui: "/spaces/CLOUD/pages/900001/Whats+New" },
+  },
+  // Per-LZ availability page (plan 021 G3): the `awsf` landing zone's regional
+  // availability grid, rendered from the relocated availability fixture. The live
+  // `confluenceAvailabilityProvider` and the `availabilityMatrixResolver` both
+  // fetch + parse THIS page — the per-LZ form of plan 018's availability handler.
+  [DEV_AVAILABILITY_PAGE_ID_AWSF]: {
+    id: DEV_AVAILABILITY_PAGE_ID_AWSF,
+    title: "AWS Foundation — Regional Availability",
+    version: { number: 5, createdAt: "2026-05-05T09:00:00.000Z" },
+    body: { storage: { value: renderAvailabilityPageStorage() } },
+    _links: { webui: "/spaces/CLOUD/pages/200001/AWS+Foundation+Availability" },
   },
 };
 

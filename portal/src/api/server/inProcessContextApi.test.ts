@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   server,
+  DEV_AVAILABILITY_PAGE_ID_AWSF,
   DEV_CONFLUENCE_BASE_URL,
   DEV_CONFLUENCE_SPACE_KEYS,
   DEV_TERRAFORM_BASE_URL,
@@ -18,6 +19,7 @@ beforeAll(() => {
   process.env.ATLAS_CONFLUENCE_BASE_URL = DEV_CONFLUENCE_BASE_URL;
   process.env.ATLAS_CONFLUENCE_TOKEN = "dev-mock-token";
   process.env.ATLAS_CONFLUENCE_SPACE_KEYS = DEV_CONFLUENCE_SPACE_KEYS.join(",");
+  process.env.ATLAS_CONFLUENCE_AVAILABILITY_PAGE_AWSF = DEV_AVAILABILITY_PAGE_ID_AWSF;
   process.env.ATLAS_TERRAFORM_BASE_URL = DEV_TERRAFORM_BASE_URL;
   process.env.ATLAS_TERRAFORM_TOKEN = "dev-mock-token";
 });
@@ -31,9 +33,7 @@ describe("serverContextApiClient", () => {
     const response = await serverContextApiClient.discoverTopics();
     expect(response.topics.length).toBeGreaterThan(0);
     expect(
-      response.topics.every((topic) =>
-        ["service", "landing-zone", "security-policy"].includes(topic.topic_type),
-      ),
+      response.topics.every((topic) => ["service", "security-policy"].includes(topic.topic_type)),
     ).toBe(true);
   });
 
@@ -69,8 +69,8 @@ describe("serverContextApiClient", () => {
   });
 
   it("projects a spine-only service as governance:unconfigured, not a 404", async () => {
-    // azure/aks is spine-only (aws/s3 now carries a metadata overlay — plan 020 15a).
-    const projection = await serverContextApiClient.getResourceContext("service", "azure/aks");
+    // aws/cloudwatch is spine-only (in the awsf grid, no resources.yaml overlay).
+    const projection = await serverContextApiClient.getResourceContext("service", "aws/cloudwatch");
 
     expect(projection.governance).toBe("unconfigured");
     expect(projection.sections).toEqual({});
@@ -97,9 +97,9 @@ describe("serverContextApiClient", () => {
   });
 
   it("reads a spine-only service's record as identity-only, unconfigured", async () => {
-    const record = await serverContextApiClient.getResourceRecord("service", "azure/aks");
+    const record = await serverContextApiClient.getResourceRecord("service", "aws/cloudwatch");
 
-    expect(record.id).toBe("service/azure/aks");
+    expect(record.id).toBe("service/aws/cloudwatch");
     expect(record.governance).toBe("unconfigured");
     expect(record.owner_team).toBeUndefined();
     expect(record.entry_tools).toBeUndefined();

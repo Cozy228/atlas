@@ -21,8 +21,8 @@ const AVAILABILITY_SOURCE_ID = "availability-matrix";
  * resolver hits (boundary TODO). A missing Source 404s rather than serving an
  * uncited grid — honesty over resilience (ADR-0009 §4).
  */
-export function handleAvailabilityRequest(): ApiResponse<
-  ApiErrorResponse | AvailabilityReadResponse
+export async function handleAvailabilityRequest(): Promise<
+  ApiResponse<ApiErrorResponse | AvailabilityReadResponse>
 > {
   const service = createDefaultContextService();
   const source = service.registry.sources.getById(AVAILABILITY_SOURCE_ID);
@@ -53,7 +53,7 @@ export function handleAvailabilityRequest(): ApiResponse<
   return {
     status: 200,
     body: {
-      zones: service.availabilityProvider.getZones(),
+      zones: await service.availabilityProvider.getZones(),
       citation: {
         source_id: source.id,
         label: source.title,

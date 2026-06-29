@@ -9,6 +9,7 @@ import {
   DEV_CONFLUENCE_SPACE_KEYS,
   DEV_TERRAFORM_BASE_URL,
 } from "../devMocks/fixtures";
+import { DEV_AVAILABILITY_PAGE_ID_AWSF } from "../devMocks/availabilityFixture";
 import { resourceKindRegistry } from "./resourceKindRegistry";
 import {
   getResourceContext,
@@ -40,29 +41,33 @@ function liveReferenceDiscovery() {
   );
 }
 
-// Single live path (plan 018): textract's terraform-backed sections (network,
-// examples) fetch from the registry; the guardrail's policy sections fetch from
-// Confluence (G4). Point ATLAS_TERRAFORM_* and ATLAS_CONFLUENCE_* at the MSW
-// fixtures so both resolve live; the global devMocks/setup.ts has the Node-mode
-// server listening. Availability stays dev. (Space keys stay unset so the default
-// reference-discovery port remains absent — tests inject it explicitly.)
+// Single live path (plan 018, plan 021 G3): textract's terraform-backed sections
+// (network, examples) fetch from the registry; the guardrail's policy sections
+// fetch from Confluence (G4); availability fetches the `awsf` Confluence page (the
+// spine + the matrix). Point ATLAS_TERRAFORM_* and ATLAS_CONFLUENCE_* at the MSW
+// fixtures so all resolve live; the global devMocks/setup.ts has the Node-mode
+// server listening. (Space keys stay unset so the default reference-discovery port
+// remains absent — tests inject it explicitly.)
 const savedEnv = {
   terraformBaseUrl: process.env.ATLAS_TERRAFORM_BASE_URL,
   terraformToken: process.env.ATLAS_TERRAFORM_TOKEN,
   confluenceBaseUrl: process.env.ATLAS_CONFLUENCE_BASE_URL,
   confluenceToken: process.env.ATLAS_CONFLUENCE_TOKEN,
+  availabilityPage: process.env.ATLAS_CONFLUENCE_AVAILABILITY_PAGE_AWSF,
 };
 beforeAll(() => {
   process.env.ATLAS_TERRAFORM_BASE_URL = DEV_TERRAFORM_BASE_URL;
   process.env.ATLAS_TERRAFORM_TOKEN = "dev-mock-token";
   process.env.ATLAS_CONFLUENCE_BASE_URL = DEV_CONFLUENCE_BASE_URL;
   process.env.ATLAS_CONFLUENCE_TOKEN = "dev-mock-token";
+  process.env.ATLAS_CONFLUENCE_AVAILABILITY_PAGE_AWSF = DEV_AVAILABILITY_PAGE_ID_AWSF;
 });
 afterAll(() => {
   restoreEnv("ATLAS_TERRAFORM_BASE_URL", savedEnv.terraformBaseUrl);
   restoreEnv("ATLAS_TERRAFORM_TOKEN", savedEnv.terraformToken);
   restoreEnv("ATLAS_CONFLUENCE_BASE_URL", savedEnv.confluenceBaseUrl);
   restoreEnv("ATLAS_CONFLUENCE_TOKEN", savedEnv.confluenceToken);
+  restoreEnv("ATLAS_CONFLUENCE_AVAILABILITY_PAGE_AWSF", savedEnv.availabilityPage);
 });
 function restoreEnv(key: string, value: string | undefined): void {
   if (value === undefined) {
@@ -122,7 +127,7 @@ describe("getResourceContext — pre-flight gate (service/aws/textract)", () => 
     expect(availability?.content).toContain("us-east-1");
     expect(availability?.content).toContain("ca-central-1");
     expect(availability?.citations[0]?.sourceId).toBe("availability-matrix");
-    expect(availability?.citations[0]?.url).toContain("Regional+Availability+Matrix");
+    expect(availability?.citations[0]?.url).toContain("AWS+Foundation+Availability");
 
     expect(response?.missingSections).toEqual([]);
     expect(response?.resolvedAt).toBe(NOW.toISOString());
@@ -304,27 +309,27 @@ describe("getResourceContext — name normalization (single-candidate fallback)"
 
 describe("getResourceContext — identity-first spine (plan 017 B4/B6)", () => {
   it("renders a spine-only service (in the grid, no overlay) as governance:unconfigured, not 404", async () => {
-    // azure/aks is in the availability spine but has no resources.yaml service
-    // record (aws/s3 now carries a metadata overlay — plan 020 15a).
+    // aws/cloudwatch is in the `awsf` availability spine but has no resources.yaml
+    // service record (textract/s3/api-gateway/bedrock/lambda carry overlays).
     const response = await getResourceContext(
       pilotService({ referenceDiscovery: liveReferenceDiscovery() }),
       {
         kind: "service",
-        slug: "azure/aks",
+        slug: "aws/cloudwatch",
       },
     );
 
     expect(response).not.toBeNull();
     expect(response?.governance).toBe("unconfigured");
-    expect(response?.resource.id).toBe("service/azure/aks");
-    expect(response?.resource.slug).toBe("azure/aks");
-    expect(response?.resource.provider).toBe("azure");
+    expect(response?.resource.id).toBe("service/aws/cloudwatch");
+    expect(response?.resource.slug).toBe("aws/cloudwatch");
+    expect(response?.resource.provider).toBe("aws");
     // Spine-only: empty Sections, NO faked per-section missing entries (B4).
     expect(response?.sections).toEqual({});
     expect(response?.missingSections).toEqual([]);
     expect(response?.requestedSections).toEqual([]);
     // Reference-only discovery still runs for a spine-only service (B4): the live
-    // CQL adapter surfaces the AKS onboarding guide alongside empty governed Sections.
+    // CQL adapter surfaces the CloudWatch guide alongside empty governed Sections.
     expect(response?.references.length ?? 0).toBeGreaterThan(0);
     expect(response?.referenceDiscovery?.status).toBe("fresh");
   });
@@ -389,7 +394,7 @@ describe("getResourceContext — reference discovery merge (plan 017 B4)", () =>
   it("omits discovery entirely when no port is wired (honest absence)", async () => {
     const response = await getResourceContext(pilotService({ referenceDiscovery: undefined }), {
       kind: "service",
-      slug: "azure/aks",
+      slug: "aws/cloudwatch",
     });
     expect(response?.governance).toBe("unconfigured");
     expect(response?.references).toEqual([]);

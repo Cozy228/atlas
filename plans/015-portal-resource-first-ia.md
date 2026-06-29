@@ -1,5 +1,25 @@
 # 015 — Portal Resource-first IA migration (ADR-0015 execution)
 
+> **Status (2026-06-29): CLOSED — core DONE, remainder deferred-optional.** The
+> user-facing objective (resource-first service IA) shipped: **15a** (records +
+> metadata migration) and **15d** (catalog re-key → canonical `/service/{provider}/{id}`)
+> landed in [`plans/020`](020-service-resource-convergence.md); **15b** (agent
+> `{kind}/{slug}` addressing) and **15f** (retire old surfaces) were already done
+> (15f via 019 + 020, clean removal, no 301). The three remaining steps are
+> **not opened as a follow-up plan** — each is premature or empty today:
+> - **15c (APP-scope seam)** — ADR-0015 ships this *independently* of the ADR-0012
+>   APP migration; building the no-op seam now is premature. Folds into ADR-0012
+>   when that is scheduled.
+> - **15e (facet pages + bounded-concurrency aggregator)** — `private-networking` /
+>   `logging-monitoring` already resolve via `/policies/$policyId` (019), and no
+>   resource carries those facet tags yet, so a facet aggregate would be an empty
+>   shell. Revisit only if product wants theme-aggregate pages *and* the data exists.
+> - **15g (terminal blind-loop)** — the agent surface (15b) was unchanged by 020,
+>   so discovery behaviour did not change; a fresh blind-loop is routine verification,
+>   not a gate on new capability.
+>
+> Original execution plan (historical) follows.
+
 > Handoff from `plans/013` "Converged c-2 target model". A 2026-06-27 grilling pass revised that
 > shape and **accepted** [ADR-0015](../docs/adr/0015-portal-resource-first-ia.md); the MVP done-bar
 > was reached the same day, clearing the only gate. This plan is the authoritative execution plan;

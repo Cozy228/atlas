@@ -62,6 +62,15 @@ export type ResolutionContext = {
    * (the memo is a pure optimisation, never a correctness dependency).
    */
   pageCache?: Map<string, Promise<unknown>>;
+  /**
+   * The visibility/scope seam reserved by ADR-0015 §5, first *filled* by ADR-0017.
+   * A no-op by default: absent ⇒ today's full, global-visible return, so every
+   * un-migrated read path is unchanged (progressive safety). `landingZoneId` fills
+   * the seam first (LZ-rooted discovery); `appId` stays reserved for ADR-0012 APP
+   * scope. Like `app_id`, scope *filters* — it never enters the `{kind}/{slug}`
+   * address. No resolver reads it yet; it rides along the context to resolvers.
+   */
+  scope?: { landingZoneId?: string; appId?: string };
 };
 
 /**

@@ -26,7 +26,7 @@ import type { Topic } from "@atlas/schema";
 
 import type {
   AvailabilityRecord,
-  LandingZoneData,
+  LandingZoneAvailability,
   Location,
   LocationStatus,
 } from "@/api/server/availability";
@@ -59,7 +59,7 @@ export function CatalogAdopted({
   zone,
 }: {
   topics: ReadonlyArray<Topic>;
-  zone: Promise<LandingZoneData>;
+  zone: Promise<LandingZoneAvailability>;
 }) {
   const [tab, setTab] = useState<AdoptedTab>("services");
   const [query, setQuery] = useState("");
@@ -240,13 +240,11 @@ function capAvailStatus(
 
 const TYPE_NOUN: Record<Topic["topic_type"], string> = {
   service: "services",
-  "landing-zone": "landing zones",
   "security-policy": "security policies",
 };
 
 const TYPE_COLUMN: Record<Topic["topic_type"], string> = {
   service: "Service",
-  "landing-zone": "Landing zone",
   "security-policy": "Security policy",
 };
 
@@ -265,7 +263,7 @@ function TopicWorkspace({
 }: {
   type: Topic["topic_type"];
   topics: ReadonlyArray<Topic>;
-  zone: LandingZoneData;
+  zone: LandingZoneAvailability;
   query: string;
   view: ViewMode;
 }) {
@@ -538,7 +536,7 @@ function CardsView({
 }: {
   type: Topic["topic_type"];
   topics: ReadonlyArray<Topic>;
-  zone: LandingZoneData;
+  zone: LandingZoneAvailability;
   serviceFor: ServiceLookup;
 }) {
   if (type === "service") {
@@ -588,7 +586,7 @@ function TableView({
 }: {
   type: Topic["topic_type"];
   topics: ReadonlyArray<Topic>;
-  zone: LandingZoneData;
+  zone: LandingZoneAvailability;
   serviceFor: ServiceLookup;
 }) {
   const navigate = useNavigate();

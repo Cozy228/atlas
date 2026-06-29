@@ -4,6 +4,8 @@ import { IconMenu2, IconSearch } from "@tabler/icons-react";
 
 import { AskAtlasFab } from "@/components/ask-atlas-fab";
 import { AskAtlasProvider, useAskAtlas } from "@/components/ask-atlas/context";
+import { CurrentLandingZoneProvider } from "@/components/landing-zone/context";
+import { LandingZoneSelector } from "@/components/landing-zone/landing-zone-selector";
 import { PortalFooter } from "@/components/portal-footer";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -32,17 +34,19 @@ const PRIMARY_NAV: ReadonlyArray<NavItem> = [
 export function PortalShell({ children }: PortalShellProps) {
   return (
     <ThemeProvider>
-      <AskAtlasProvider>
-        <div className="flex min-h-dvh w-full flex-col bg-background text-foreground">
-          <TopBar />
-          {/* 32px coordinate grid on a full-width canvas, beginning below the
+      <CurrentLandingZoneProvider>
+        <AskAtlasProvider>
+          <div className="flex min-h-dvh w-full flex-col bg-background text-foreground">
+            <TopBar />
+            {/* 32px coordinate grid on a full-width canvas, beginning below the
               opaque top bar. Shows only in negative space; text-bearing blocks
               carry bg-background plates to mask it (DESIGN.md §5). */}
-          <main className="min-w-0 flex-1 bg-coordinate-grid">{children}</main>
-          <PortalFooter />
-          <AskAtlasFab />
-        </div>
-      </AskAtlasProvider>
+            <main className="min-w-0 flex-1 bg-coordinate-grid">{children}</main>
+            <PortalFooter />
+            <AskAtlasFab />
+          </div>
+        </AskAtlasProvider>
+      </CurrentLandingZoneProvider>
     </ThemeProvider>
   );
 }
@@ -65,8 +69,9 @@ function TopBar() {
           <TopNavLink key={item.to} item={item} />
         ))}
       </nav>
-      <div className="flex items-center justify-end gap-1">
+      <div className="flex items-center justify-end gap-1.5">
         <NavMenu open={menuOpen} onOpenChange={(open) => setMenuOpen(open)} />
+        <LandingZoneSelector />
         <SearchButton />
         <ThemeToggle />
       </div>

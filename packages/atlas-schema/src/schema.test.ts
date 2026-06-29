@@ -60,7 +60,7 @@ describe("contract enums", () => {
   });
 
   it("matches the V1 topic types exactly", () => {
-    expect(topicTypes).toEqual(["service", "landing-zone", "security-policy"]);
+    expect(topicTypes).toEqual(["service", "security-policy"]);
   });
 
   it("matches the V1 authority levels exactly", () => {

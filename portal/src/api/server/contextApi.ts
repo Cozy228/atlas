@@ -12,9 +12,11 @@ import {
   SourceDiscoveryRequestSchema,
   TopicDiscoveryRequestSchema,
   type AvailabilityResponse,
+  type LandingZone,
   type SourceDiscoveryRequest,
   type TopicDiscoveryRequest,
 } from "@atlas/schema";
+import { LANDING_ZONES } from "@atlas/context-layer";
 import { z } from "zod";
 
 import { createServerContextApiClient } from "./httpContextApiClient";
@@ -74,6 +76,17 @@ export const fetchAvailability = createServerFn(SERVER_FN_OPTIONS).handler(
     const { zones } = await contextApiForRequest().getAvailability();
     return { zones };
   },
+);
+
+/**
+ * The landing-zone topology (plan 021 G3, ADR-0017) — the discovery root's LZ
+ * list, served to the Portal's current-LZ selector. Lightweight (no availability
+ * fetch): just id/name/cloud/dataStatus, so the top-nav dropdown paints
+ * immediately and the unwired LZs (`dataStatus: "not-available"`) are listed, not
+ * hidden — an honest dead-end on selection, never another LZ's data (ADR-0006).
+ */
+export const fetchLandingZones = createServerFn(SERVER_FN_OPTIONS).handler(
+  async (): Promise<LandingZone[]> => LANDING_ZONES.map((zone) => ({ ...zone })),
 );
 
 const resourceRefSchema = z.object({ kind: z.string().min(1), slug: z.string().min(1) });

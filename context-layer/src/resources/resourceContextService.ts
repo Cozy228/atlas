@@ -145,7 +145,7 @@ export async function getResourceContext(
 
   // Service kind, spine-first: the availability inventory may still establish the
   // resource's existence + canonical identity.
-  const identity = findServiceIdentity(deps.availabilityProvider, params.slug);
+  const identity = await findServiceIdentity(deps.availabilityProvider, params.slug);
   if (!identity) {
     return null;
   }
@@ -161,10 +161,10 @@ export async function getResourceContext(
  * `"unconfigured"` (no curated metadata yet); a genuine miss → `null` (404).
  * Synchronous: no Source resolution, no discovery.
  */
-export function getResourceRecord(
+export async function getResourceRecord(
   deps: Pick<ResourceContextDeps, "resources" | "availabilityProvider">,
   params: { kind: ResourceKind; slug: string },
-): ResourceRecordResponse | null {
+): Promise<ResourceRecordResponse | null> {
   const overlay = findRecord(deps.resources, params.kind, params.slug);
   if (overlay) {
     return {
@@ -188,7 +188,7 @@ export function getResourceRecord(
   if (params.kind !== "service") {
     return null;
   }
-  const identity = findServiceIdentity(deps.availabilityProvider, params.slug);
+  const identity = await findServiceIdentity(deps.availabilityProvider, params.slug);
   if (!identity) {
     return null;
   }
@@ -230,7 +230,7 @@ async function projectConfigured(
 
   // Reference-only discovery runs ALONGSIDE the governed sections (service kind
   // only): the spine identity enriched with the overlay's curated aliases (B8).
-  const discovery = await runDiscovery(deps, discoveryIdentityForRecord(deps, record));
+  const discovery = await runDiscovery(deps, await discoveryIdentityForRecord(deps, record));
 
   return {
     resource: toResourceSummary(record, params.baseUrl),
@@ -300,10 +300,10 @@ async function runDiscovery(
  * with the overlay's curated aliases (B8), falling back to an overlay-derived
  * identity if the service is not in the spine. Non-service kinds → no discovery.
  */
-function discoveryIdentityForRecord(
+async function discoveryIdentityForRecord(
   deps: ResourceContextDeps,
   record: ResourceContextRecord,
-): ServiceIdentity | undefined {
+): Promise<ServiceIdentity | undefined> {
   if (record.kind !== "service") {
     return undefined;
   }
@@ -311,9 +311,9 @@ function discoveryIdentityForRecord(
   const id = record.slug.includes("/")
     ? record.slug.slice(record.slug.indexOf("/") + 1)
     : record.slug;
-  const spine = deps.availabilityProvider
-    .listServices()
-    .find((identity) => identity.key === record.slug);
+  const spine = (await deps.availabilityProvider.listServices()).find(
+    (identity) => identity.key === record.slug,
+  );
   const base = spine ?? normalizeServiceIdentity({ provider, id, name: record.name });
   return applyOverlayAliases(base, [record.name, ...record.aliases]);
 }
@@ -321,11 +321,11 @@ function discoveryIdentityForRecord(
 /** Resolve a requested service `slug` to its spine `ServiceIdentity` by canonical
  *  `{provider}/{id}` key. Spine-only services are addressed canonically (the
  *  availability grid links use the canonical id). */
-function findServiceIdentity(
+async function findServiceIdentity(
   availabilityProvider: Pick<AvailabilityProvider, "listServices">,
   slug: string,
-): ServiceIdentity | undefined {
-  return availabilityProvider.listServices().find((identity) => identity.key === slug);
+): Promise<ServiceIdentity | undefined> {
+  return (await availabilityProvider.listServices()).find((identity) => identity.key === slug);
 }
 
 /** Build a ResourceSummary from a spine identity (no overlay). The canonical id

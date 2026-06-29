@@ -7,7 +7,7 @@ export const sourceClasses = [
   "availability-matrix",
 ] as const;
 
-export const topicTypes = ["service", "landing-zone", "security-policy"] as const;
+export const topicTypes = ["service", "security-policy"] as const;
 
 export const authorityLevels = [
   "authoritative",
@@ -678,11 +678,9 @@ export type ResourceRecordResponse = z.infer<typeof ResourceRecordResponseSchema
  * -------------------------------------------------------------------------- */
 export const locationKinds = ["region", "outpost"] as const;
 export const locationStatuses = ["available", "planned", "interim", "not-planned"] as const;
-export const landingZoneIds = ["aws", "azure"] as const;
 
 export const LocationKindSchema = z.enum(locationKinds);
 export const LocationStatusSchema = z.enum(locationStatuses);
-export const LandingZoneIdSchema = z.enum(landingZoneIds);
 
 export const LocationSchema = z
   .object({
@@ -714,24 +712,55 @@ export const AvailabilityRecordSchema = z
   })
   .strict();
 
-export const LandingZoneDataSchema = z
+/* -------------------------------------------------------------------------- *
+ * Landing zone topology (ADR-0017, plan 021)
+ *
+ * The landing zone is the discovery root: the ONE hardcoded input from which
+ * availability, services, and links are discovered. This schema holds the LZ
+ * *shape* only — the `LANDING_ZONES` constant lives in
+ * `context-layer/src/landingZones/` (config, dev=prod), never a dev seed nor a
+ * `data/*.yaml`. `id` is a named cloud×environment target (e.g. "awsf"); `cloud`
+ * (region-carrying) and `tier` are attributes, not identity (decision #2) — an LZ
+ * never spans clouds. `dataStatus` is honesty (ADR-0006): "not-available" is a
+ * registered target with no wired availability source, never a hidden LZ.
+ * -------------------------------------------------------------------------- */
+export const landingZoneClouds = ["aws", "azure"] as const;
+export const landingZoneDataStatuses = ["available", "not-available"] as const;
+
+export const LandingZoneCloudSchema = z.enum(landingZoneClouds);
+export const LandingZoneDataStatusSchema = z.enum(landingZoneDataStatuses);
+
+export const LandingZoneSchema = z
   .object({
-    id: LandingZoneIdSchema,
+    id: z.string().min(1),
     name: z.string().min(1),
-    locations: z.array(LocationSchema).readonly(),
-    services: z.array(AvailabilityRecordSchema).readonly(),
+    cloud: LandingZoneCloudSchema,
+    tier: z.string().min(1).optional(),
+    dataStatus: LandingZoneDataStatusSchema,
   })
   .strict();
 
+/**
+ * A landing zone's availability grid: the LZ topology + its discovered services
+ * × locations. `id` is the LZ id (e.g. "awsf") and `cloud` an attribute — the
+ * rename of the old `LandingZoneData` (id=cloud) misnomer (plan 021 B4). An
+ * unwired LZ (`dataStatus: "not-available"`) carries empty `locations`/`services`
+ * — an honest per-LZ dead-end (ADR-0006), never another LZ's data.
+ */
+export const LandingZoneAvailabilitySchema = LandingZoneSchema.extend({
+  locations: z.array(LocationSchema).readonly(),
+  services: z.array(AvailabilityRecordSchema).readonly(),
+}).strict();
+
 export const AvailabilityResponseSchema = z
   .object({
-    zones: z.array(LandingZoneDataSchema).readonly(),
+    zones: z.array(LandingZoneAvailabilitySchema).readonly(),
   })
   .strict();
 
 export const AvailabilityReadResponseSchema = z
   .object({
-    zones: z.array(LandingZoneDataSchema).readonly(),
+    zones: z.array(LandingZoneAvailabilitySchema).readonly(),
     citation: CitationSchema,
     warnings: z.array(WarningSchema),
   })
@@ -739,11 +768,13 @@ export const AvailabilityReadResponseSchema = z
 
 export type LocationKind = z.infer<typeof LocationKindSchema>;
 export type LocationStatus = z.infer<typeof LocationStatusSchema>;
-export type LandingZoneId = z.infer<typeof LandingZoneIdSchema>;
 export type Location = z.infer<typeof LocationSchema>;
 export type LocationAvailability = z.infer<typeof LocationAvailabilitySchema>;
 export type AvailabilityRecord = z.infer<typeof AvailabilityRecordSchema>;
-export type LandingZoneData = z.infer<typeof LandingZoneDataSchema>;
+export type LandingZoneCloud = z.infer<typeof LandingZoneCloudSchema>;
+export type LandingZoneDataStatus = z.infer<typeof LandingZoneDataStatusSchema>;
+export type LandingZone = z.infer<typeof LandingZoneSchema>;
+export type LandingZoneAvailability = z.infer<typeof LandingZoneAvailabilitySchema>;
 export type AvailabilityResponse = z.infer<typeof AvailabilityResponseSchema>;
 export type AvailabilityReadResponse = z.infer<typeof AvailabilityReadResponseSchema>;
 

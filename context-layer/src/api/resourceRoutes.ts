@@ -37,10 +37,10 @@ export function handleResourceSearchRequest(
  * for a Resource (ADR-0015 §2), kept separate from the content projection so the
  * agent contract stays content-only. Unknown kind → 400; unknown resource → 404.
  */
-export function handleResourceRecordRequest(params: {
+export async function handleResourceRecordRequest(params: {
   kind: string;
   slug: string;
-}): ApiResponse<ResourceRecordResponse | ApiErrorResponse> {
+}): Promise<ApiResponse<ResourceRecordResponse | ApiErrorResponse>> {
   if (!getResourceKindDef(params.kind)) {
     return errorResponse(
       400,
@@ -49,7 +49,7 @@ export function handleResourceRecordRequest(params: {
     );
   }
   const service = createDefaultContextService();
-  const record = getResourceRecord(service, {
+  const record = await getResourceRecord(service, {
     kind: params.kind as ResourceKind,
     slug: params.slug,
   });

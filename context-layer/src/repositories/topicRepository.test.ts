@@ -34,7 +34,7 @@ describe("InMemoryTopicRepository", () => {
 
     expect(repository.findByType("service")).toEqual([topic]);
     expect(repository.findByCategory("ai-ml")).toEqual([topic]);
-    expect(repository.findByType("landing-zone")).toEqual([]);
+    expect(repository.findByType("security-policy")).toEqual([]);
     expect(repository.getById("aws-textract")).not.toHaveProperty("source_ids");
   });
 

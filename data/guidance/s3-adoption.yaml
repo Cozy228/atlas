@@ -22,7 +22,7 @@ applies_to:
   services:
     - aws-s3
   landing_zones:
-    - central-landing-zone
+    - awsf
 sources:
   - s3-module-readme
   - s3-policy-doc

@@ -10,7 +10,9 @@ Date: 2026-06-26 (proposed) · 2026-06-27 (accepted after a grilling pass)
 > (`{provider}/{resource}` → `{kind}/{slug}`). A 2026-06-27 grilling pass resolved the open
 > sub-questions (promotion rule, metadata home, facet content, addressing, sequencing); execution
 > detail lives in `plans/013` ("Converged c-2 target model"). This ADR records the decision and
-> the 0012/0013 revisions.
+> the 0012/0013 revisions. The §5 scope seam is later **seated and first-filled** by
+> [ADR-0017](./0017-landing-zone-discovery-root.md) (`ResolutionContext.scope`, landing-zone first; the
+> current-LZ selector is its first entry surface).
 
 ## Context
 

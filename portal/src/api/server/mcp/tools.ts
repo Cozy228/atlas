@@ -41,7 +41,11 @@ const GetSourceInput = z.object({
 });
 
 const GetAvailabilityInput = z.object({
-  zone: z.enum(["aws", "azure"]).optional().describe("Landing zone to inspect."),
+  zone: z
+    .string()
+    .min(1)
+    .optional()
+    .describe("Landing zone id to inspect (e.g. awsf); omit for all."),
   service_query: z.string().min(1).optional().describe("Filter services by name."),
   location_id: z.string().min(1).optional().describe("One region/outpost id, e.g. 'us-east-1'."),
   ...PageSchema,
@@ -216,7 +220,7 @@ export function toolErrorMessage(toolName: string, error: unknown): string {
   const example: Record<string, string> = {
     atlas_search_service: `{"query": "textract"}`,
     atlas_get_source: `{"source_id": "textract-module-readme"}`,
-    atlas_get_availability: `{"zone": "aws", "service_query": "textract"}`,
+    atlas_get_availability: `{"zone": "awsf", "service_query": "textract"}`,
     atlas_get_resource_context: `{"kind": "service", "slug": "aws/textract"}`,
   };
   const reason =

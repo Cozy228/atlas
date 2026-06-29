@@ -11,12 +11,12 @@ import { createFileRoute } from "@tanstack/react-router";
 import type { Topic, TopicDiscoveryResponse } from "@atlas/schema";
 
 import { availabilityQueryOptions, topicDiscoveryQueryOptions } from "@/api/queries";
-import type { LandingZoneData } from "@/api/server/availability";
+import type { LandingZoneAvailability } from "@/api/server/availability";
 import { CatalogAdopted } from "@/components/catalog/adopted";
 
 type LoaderData = {
   topics: ReadonlyArray<Topic>;
-  zone: Promise<LandingZoneData>;
+  zone: Promise<LandingZoneAvailability>;
 };
 
 export const Route = createFileRoute("/catalog/")({

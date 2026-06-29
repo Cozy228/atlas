@@ -119,12 +119,7 @@ export function AskAtlasSearch({ onOpenChange, onSwitchToAsk }: AskAtlasSearchPr
           description: `${topic.topic_type} · ${topic.category}`,
           to: `/catalog/${topic.id}`,
           icon: topicIcon(topic.topic_type),
-          category:
-            topic.topic_type === "landing-zone"
-              ? "Landing Zones"
-              : topic.topic_type === "security-policy"
-                ? "Security policies"
-                : "Services",
+          category: topic.topic_type === "security-policy" ? "Security policies" : "Services",
         });
       }
     }

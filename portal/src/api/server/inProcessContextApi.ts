@@ -73,7 +73,7 @@ export const serverContextApiClient: ContextApiClient = {
     return unwrap(handleSourceRequest(id), SourceResponseSchema);
   },
   async getAvailability(): Promise<AvailabilityReadResponse> {
-    return unwrap(handleAvailabilityRequest(), AvailabilityReadResponseSchema);
+    return unwrap(await handleAvailabilityRequest(), AvailabilityReadResponseSchema);
   },
   async getResourceContext(kind: string, slug: string): Promise<ResourceContextResponse> {
     return unwrap(
@@ -82,7 +82,7 @@ export const serverContextApiClient: ContextApiClient = {
     );
   },
   async getResourceRecord(kind: string, slug: string): Promise<ResourceRecordResponse> {
-    return unwrap(handleResourceRecordRequest({ kind, slug }), ResourceRecordResponseSchema);
+    return unwrap(await handleResourceRecordRequest({ kind, slug }), ResourceRecordResponseSchema);
   },
   async searchResources(query: string): Promise<ResourceSearchResponse> {
     return unwrap(handleResourceSearchRequest(query, {}), ResourceSearchResponseSchema);

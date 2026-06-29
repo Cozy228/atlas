@@ -63,7 +63,9 @@ export const Route = createFileRoute("/policies/$policyId")({
       projection,
       relatedServices: related.filter((entry) => entry.topic_type === "service"),
       relatedPolicies: related.filter((entry) => entry.topic_type === "security-policy"),
-      relatedLandingZones: related.filter((entry) => entry.topic_type === "landing-zone"),
+      // Landing zones are no longer catalog topics (plan 019/021) — a policy never
+      // relates to one through the topic graph, so this is honestly empty.
+      relatedLandingZones: [],
     };
   },
   component: PolicyDetailRoute,

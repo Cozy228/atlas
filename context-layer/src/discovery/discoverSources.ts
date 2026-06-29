@@ -54,8 +54,9 @@ export async function discoverServiceSources(
   const { availabilityProvider, ctx, terraform } = deps;
   const config = { baseUrl: terraform.baseUrl, token: terraform.token };
 
+  const identities = await availabilityProvider.listServices();
   return Promise.all(
-    availabilityProvider.listServices().map(async (identity) => {
+    identities.map(async (identity) => {
       const address = `example/${identity.id}/${identity.provider}`;
       const found = await discoverTerraformModule(ctx, config, address);
       const module: DiscoveredModule | null = found
