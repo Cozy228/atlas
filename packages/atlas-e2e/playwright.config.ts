@@ -10,6 +10,12 @@ import { defineConfig } from "@playwright/test";
  */
 const channel = process.env.PW_CHANNEL ?? (process.platform === "darwin" ? "chrome" : "msedge");
 
+// One source for both the readiness probe and in-test navigation, so they never
+// drift. `localhost` (not 127.0.0.1) on purpose: the dev server binds the IPv6
+// loopback (::1) here, which a hard-coded IPv4 probe would miss; localhost
+// resolves to whatever the dev server actually bound, on every OS.
+const baseURL = process.env.PW_BASE_URL ?? "http://localhost:3000";
+
 export default defineConfig({
   testDir: "./tests",
   fullyParallel: true,
@@ -17,9 +23,21 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [["html", { open: "never" }], ["github"]] : [["list"]],
   use: {
+    baseURL,
     channel,
     trace: "on-first-retry",
     screenshot: "only-on-failure",
     video: "retain-on-failure",
+  },
+  // Primary layer: the mock-FORCED dev server. DEV_MOCKS=1 makes data hermetic
+  // regardless of any local .env.local; LLM_PROVIDER=simulated makes Ask
+  // deterministic. Windows-safe: flags go through the `env` object (never a
+  // `VAR=value cmd` shell prefix) and the command is pnpm-only (no Unix shell).
+  webServer: {
+    command: "pnpm --filter @atlas/portal dev",
+    env: { DEV_MOCKS: "1", LLM_PROVIDER: "simulated" },
+    url: baseURL,
+    reuseExistingServer: !process.env.CI,
+    timeout: 120_000,
   },
 });
