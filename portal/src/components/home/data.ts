@@ -9,9 +9,7 @@ export type MainlineRoute =
   | "/"
   | "/catalog"
   | "/guidance"
-  | "/skills"
   | "/sources"
-  | "/overview"
   | "/whatsnew"
   | "/support"
   | "/availability";
@@ -67,7 +65,7 @@ export type Intent = {
   lands: string;
 };
 
-/** Five parallel doors, one per thing you might be trying to do. */
+/** Parallel doors, one per thing you might be trying to do. */
 export const INTENTS: ReadonlyArray<Intent> = [
   {
     verb: "Build",
@@ -96,13 +94,6 @@ export const INTENTS: ReadonlyArray<Intent> = [
     description: "Confirm what's required, and cite it, before you ship.",
     to: "/sources",
     lands: "Source registry",
-  },
-  {
-    verb: "Watch",
-    title: "See platform health",
-    description: "Deployments, service health, and open incidents as they stand now.",
-    to: "/overview",
-    lands: "Operations overview",
   },
 ];
 
@@ -138,10 +129,5 @@ export const LIFECYCLE: ReadonlyArray<LifecyclePhase> = [
     phase: "Validate",
     title: "Check security policies",
     links: [{ label: "Sources", to: "/sources" }],
-  },
-  {
-    phase: "Operate",
-    title: "Monitor and evolve",
-    links: [{ label: "Operations overview", to: "/overview" }],
   },
 ];

@@ -8,7 +8,6 @@ import {
   type AskAtlasClaim,
   type LlmAdapter,
 } from "@/ask/askAtlas";
-import { findAvailabilityServiceById } from "@/lib/availability-service";
 import { createConfiguredClaimsAdapter } from "./llmProvider";
 import { serverContextApiClient } from "./serverContextApiClient";
 
@@ -68,20 +67,11 @@ async function resolveProjection(data: AskInput): Promise<ResourceContextRespons
 }
 
 async function resolveResourceRef(data: AskInput): Promise<{ kind: string; slug: string } | null> {
+  // An anchored ask carries the service's canonical resource slug ({provider}/{id},
+  // e.g. "aws/textract") — use it directly; getResourceContext degrades to null if
+  // it does not resolve. A free-text ask resolves by resource search.
   if (data.resourceSlug) {
-    // The ask is anchored to a resource slug (e.g. "aws/textract"); confirm it
-    // against the availability spine and resolve the canonical service ref.
-    try {
-      const { zones } = await serverContextApiClient.getAvailability();
-      const zone = zones.find((entry) => entry.id === "aws") ?? zones[0];
-      const serviceId = data.resourceSlug.split("/").at(-1) ?? data.resourceSlug;
-      const service = zone ? findAvailabilityServiceById(zone.services, serviceId) : undefined;
-      if (zone && service) {
-        return { kind: "service", slug: `${zone.id}/${service.id}` };
-      }
-    } catch {
-      // Spine resolution failed — fall through to free-text search.
-    }
+    return { kind: "service", slug: data.resourceSlug };
   }
 
   const search = await serverContextApiClient.searchResources(data.question);

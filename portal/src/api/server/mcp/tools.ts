@@ -113,11 +113,16 @@ export const mcpTools: McpToolDefinition[] = [
       // The discovery-derived catalog returns every resource in one read; narrow
       // it here by free-text query, kind, and category.
       const { resources } = await client.discoverResources();
-      const query = input.query?.toLowerCase();
+      // Tokenize the free-text query and match on ANY token, so a multi-word
+      // query ("textract ocr") still hits a resource that contains only one term.
+      const tokens = (input.query ?? "")
+        .toLowerCase()
+        .split(/[^a-z0-9-]+/)
+        .filter((token) => token.length >= 2);
       const matches = resources.filter((resource) => {
         if (input.kind && resource.kind !== input.kind) return false;
         if (input.category && resource.category !== input.category) return false;
-        if (!query) return true;
+        if (tokens.length === 0) return true;
         const haystack = [
           resource.name,
           ...resource.aliases,
@@ -126,7 +131,7 @@ export const mcpTools: McpToolDefinition[] = [
         ]
           .join(" ")
           .toLowerCase();
-        return haystack.includes(query);
+        return tokens.some((token) => haystack.includes(token));
       });
       const page = matches.slice(input.offset, input.offset + input.limit);
       return {
