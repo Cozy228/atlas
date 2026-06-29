@@ -38,7 +38,7 @@ const portalCodeSplittingGroups = [
   { name: "tabler-icons", test: /node_modules[\\/]@tabler[\\/]icons-react[\\/]/, priority: 21 },
 ];
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),
@@ -57,6 +57,11 @@ export default defineConfig({
     !isVitest &&
       nitro({
         serverDir: "server",
+        // Dev-only MSW boot (plan 018 seam): start the Node-mode source-system
+        // interceptor so the dev runtime's live discovery resolves against the
+        // fixtures. Registered for `vite serve` ONLY — the prod build
+        // (`command === "build"`) never lists it, so `msw` stays out of the bundle.
+        plugins: command === "serve" ? ["./server/devMocks/start"] : [],
         // Pre-compress public assets (>1KB) to .gz/.br at build time so any host
         // serves smaller bytes with zero runtime overhead. CDNs that already
         // compress will simply ignore these files.
@@ -84,4 +89,4 @@ export default defineConfig({
       },
     },
   },
-});
+}));

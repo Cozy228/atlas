@@ -101,36 +101,47 @@ async function fetchRegistryModule(
 ): Promise<FetchRegistryModuleResult> {
   const url = registryModuleUrl(config, mod);
 
-  const response = await ctx.fetch(url, {
-    method: "GET",
-    headers: {
-      Authorization: `Bearer ${config.token}`,
-      Accept: "application/json",
-    },
-  });
+  try {
+    const response = await ctx.fetch(url, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${config.token}`,
+        Accept: "application/json",
+      },
+    });
 
-  if (response.status === 401 || response.status === 403) {
-    return {
-      ok: false,
-      code: "restricted_source",
-      message: "The module registry denied access to this source for the supplied identity.",
-    };
-  }
-  if (response.status === 404) {
+    if (response.status === 401 || response.status === 403) {
+      return {
+        ok: false,
+        code: "restricted_source",
+        message: "The module registry denied access to this source for the supplied identity.",
+      };
+    }
+    if (response.status === 404) {
+      return {
+        ok: false,
+        code: "source_unavailable",
+        message: "Module was not found in the registry at request time.",
+      };
+    }
+    if (!response.ok) {
+      return {
+        ok: false,
+        code: "source_unavailable",
+        message: "Module could not be resolved from the registry at request time.",
+      };
+    }
+    return { ok: true, body: (await response.json()) as RegistryModuleResponse };
+  } catch {
+    // Unreachable registry (DNS/TLS, or a relative URL from an unconfigured host)
+    // is an honest gap (ADR-0006), never a thrown resolution: the caller derives
+    // module: null / an availability warning, never a failed Context API request.
     return {
       ok: false,
       code: "source_unavailable",
-      message: "Module was not found in the registry at request time.",
+      message: "The module registry was unreachable at request time.",
     };
   }
-  if (!response.ok) {
-    return {
-      ok: false,
-      code: "source_unavailable",
-      message: "Module could not be resolved from the registry at request time.",
-    };
-  }
-  return { ok: true, body: (await response.json()) as RegistryModuleResponse };
 }
 
 /**

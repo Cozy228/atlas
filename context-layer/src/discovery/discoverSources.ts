@@ -61,13 +61,23 @@ export async function discoverServiceSources(
   deps: DiscoverServiceSourcesDeps,
 ): Promise<DiscoveredService[]> {
   const { availabilityProvider, ctx, terraform } = deps;
-  const config = { baseUrl: terraform.baseUrl, token: terraform.token };
-
   const spine = flattenSpine(await availabilityProvider.getZones());
+
+  // Honest-gap (ADR-0006, plan 018): with no Terraform channel configured, no
+  // module is discoverable — every service resolves `module: null` rather than
+  // building a relative `/api/registry/...` URL that `globalThis.fetch` rejects
+  // in Node and would fail the entire discovery pass (and get cached rejected).
+  if (!terraform.baseUrl) {
+    return spine.map(({ identity, domain }) => ({ identity, domain, module: null }));
+  }
+
+  const config = { baseUrl: terraform.baseUrl, token: terraform.token };
   return Promise.all(
     spine.map(async ({ identity, domain }) => {
       const address = `example/${identity.id}/${identity.provider}`;
-      const found = await discoverTerraformModule(ctx, config, address);
+      // A probe that throws (registry unreachable, DNS failure) is an honest gap
+      // for THAT service — never a rejected discovery that fails every route.
+      const found = await discoverTerraformModule(ctx, config, address).catch(() => null);
       const module: DiscoveredModule | null = found
         ? {
             sourceId: `${identity.id}-module-readme`,
