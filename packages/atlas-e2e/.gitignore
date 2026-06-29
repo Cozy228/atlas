@@ -1,0 +1,5 @@
+# Playwright run artifacts — regenerated every run, never committed.
+playwright-report/
+blob-report/
+test-results/
+.last-run.json

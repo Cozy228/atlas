@@ -1,0 +1,19 @@
+{
+  "name": "@atlas/e2e",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "e2e": "playwright test",
+    "e2e:smoke": "playwright test --config=playwright.smoke.config.ts",
+    "e2e:doctor": "node scripts/doctor.mjs",
+    "e2e:report": "playwright show-report",
+    "typecheck": "tsc --noEmit --pretty false",
+    "lint": "tsc --noEmit --pretty false"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.61.1",
+    "@types/node": "26.0.0",
+    "typescript": "6.0.3"
+  }
+}
