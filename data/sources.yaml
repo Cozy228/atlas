@@ -43,7 +43,9 @@
 - id: s3-policy-doc
   title: S3 Security Policy
   source_class: policy-document
-  location: s3://policy-docs/cloud/s3-security.md
+  # Confluence page id (policy goes single-live, plan 018 G4): the resolver fetches
+  # this page and locates the section by heading-slug scan.
+  location: "300001"
   steward: cloud-security
   visibility: internal
   authority_scope:
@@ -56,7 +58,9 @@
 - id: legacy-s3-policy
   title: Legacy S3 Policy
   source_class: policy-document
-  location: s3://policy-docs/cloud/legacy-s3-security.md
+  # Confluence page id (policy goes single-live, plan 018 G4). Past-review on
+  # purpose so the stale_source warning persists.
+  location: "300002"
   steward: cloud-security
   visibility: internal
   authority_scope:

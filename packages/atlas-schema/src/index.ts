@@ -19,21 +19,8 @@ export const authorityLevels = [
 
 export const visibilityLevels = ["internal", "restricted"] as const;
 
-export const anchorStrategies = [
-  "markdown-heading",
-  "confluence-section",
-  "document-clause",
-  // Parametric matrix address (ADR-0009): the selector pins a Service, a region,
-  // or both, and the resolver answers at that grain (cell / row / column).
-  "availability-cell",
-  // Terraform registry metadata field (ADR-0010): the selector pins a module
-  // metadata field (version / input / output) alongside README prose anchors.
-  "module-field",
-] as const;
-
 export const topicStatuses = ["active", "deprecated", "planned"] as const;
-export const anchorStatuses = ["valid", "broken", "weak", "unvalidated"] as const;
-export const feedbackTargetTypes = ["topic", "source", "anchor"] as const;
+export const feedbackTargetTypes = ["topic", "source"] as const;
 export const feedbackTypes = ["missing", "stale", "broken", "unclear"] as const;
 
 export const warningCodes = [
@@ -65,27 +52,11 @@ export const SourceClassSchema = z.enum(sourceClasses);
 export const TopicTypeSchema = z.enum(topicTypes);
 export const AuthorityLevelSchema = z.enum(authorityLevels);
 export const VisibilitySchema = z.enum(visibilityLevels);
-export const AnchorStrategySchema = z.enum(anchorStrategies);
 export const TopicStatusSchema = z.enum(topicStatuses);
-export const AnchorStatusSchema = z.enum(anchorStatuses);
 export const FeedbackTargetTypeSchema = z.enum(feedbackTargetTypes);
 export const FeedbackTypeSchema = z.enum(feedbackTypes);
 export const WarningCodeSchema = z.enum(warningCodes);
 export const ApiErrorCodeSchema = z.enum(apiErrorCodes);
-
-export const AnchorSchema = z
-  .object({
-    id: z.string().min(1),
-    source_id: z.string().min(1),
-    anchor_strategy: AnchorStrategySchema,
-    title: z.string().min(1),
-    selector: z.record(z.string(), z.unknown()),
-    citation_label: z.string().min(1),
-    content_fingerprint: z.string().min(1).optional(),
-    status: AnchorStatusSchema,
-    last_validated_at: z.string().datetime(),
-  })
-  .strict();
 
 export const EntryToolSchema = z
   .object({
@@ -364,14 +335,11 @@ export type SourceClass = z.infer<typeof SourceClassSchema>;
 export type TopicType = z.infer<typeof TopicTypeSchema>;
 export type AuthorityLevel = z.infer<typeof AuthorityLevelSchema>;
 export type Visibility = z.infer<typeof VisibilitySchema>;
-export type AnchorStrategy = z.infer<typeof AnchorStrategySchema>;
 export type TopicStatus = z.infer<typeof TopicStatusSchema>;
-export type AnchorStatus = z.infer<typeof AnchorStatusSchema>;
 export type FeedbackTargetType = z.infer<typeof FeedbackTargetTypeSchema>;
 export type FeedbackType = z.infer<typeof FeedbackTypeSchema>;
 export type WarningCode = z.infer<typeof WarningCodeSchema>;
 export type ApiErrorCode = z.infer<typeof ApiErrorCodeSchema>;
-export type Anchor = z.infer<typeof AnchorSchema>;
 export type EntryTool = z.infer<typeof EntryToolSchema>;
 export type Source = z.infer<typeof SourceSchema>;
 export type Topic = z.infer<typeof TopicSchema>;
@@ -610,7 +578,15 @@ export const ResourceContextResponseSchema = z
 export const ResourceSectionBindingSchema = z
   .object({
     source_id: z.string().min(1),
-    anchor_id: z.string().min(1).optional(),
+    // Section entry heading — a DEFAULT entry point, not a fixed address. The
+    // resolver slugifies it and locates the section at runtime by heading-slug
+    // scan (anchor "3 去"); the agent may request any heading beyond this vocab.
+    heading: z.string().min(1).optional(),
+    // Structured selector for sources NOT located by heading: the availability
+    // matrix (service/region) and terraform module fields (field).
+    selector: z.record(z.string(), z.string()).optional(),
+    // Citation label for the resolved excerpt (was the Anchor's citation_label).
+    citation_label: z.string().min(1).optional(),
     order: z.number().int().nonnegative(),
   })
   .strict();
@@ -781,7 +757,6 @@ export {
 export {
   validateSourceDocument,
   validateTopicDocument,
-  validateAnchorDocument,
   validateMappingDocument,
   validateRegistryManifest,
   type DocumentValidation,

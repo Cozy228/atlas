@@ -6,8 +6,10 @@ import {
 } from "../sourceContent/confluenceCloudContentProvider";
 import type { ResolutionContext } from "../resolvers/resolverTypes";
 import { parseReleaseNotes, type Release } from "./parseReleaseNotes";
+import { parseAnnouncements, type Announcement } from "./parseAnnouncements";
 
 export type { Release } from "./parseReleaseNotes";
+export type { Announcement } from "./parseAnnouncements";
 
 /**
  * Runtime resolution of the federated-platform **release-notes Confluence page**.
@@ -17,13 +19,16 @@ export type { Release } from "./parseReleaseNotes";
  * caller ACL), then renders the storage HTML to text and parses it
  * ({@link parseReleaseNotes}). Not a CLI: this runs in-process.
  *
- * The page address is configured in code below (env override for ops).
+ * The page id comes from `ATLAS_RELEASE_NOTES_PAGE_ID`, read lazily (per call,
+ * not at import) so a runtime that sets the env after this module loads — dev
+ * MSW, integration tests, ops — is always honoured.
  */
-export const RELEASE_NOTES_PAGE_ID =
-  readEnv().ATLAS_RELEASE_NOTES_PAGE_ID ?? "CONFIGURE_RELEASE_NOTES_PAGE_ID";
+export function releaseNotesPageId(): string {
+  return readEnv().ATLAS_RELEASE_NOTES_PAGE_ID ?? "CONFIGURE_RELEASE_NOTES_PAGE_ID";
+}
 
 export type ReleaseNotesResult =
-  | { ok: true; releases: Release[] }
+  | { ok: true; releases: Release[]; announcements: Announcement[] }
   | {
       ok: false;
       code: "not_configured" | "restricted_source" | "source_unavailable";
@@ -33,7 +38,7 @@ export type ReleaseNotesResult =
 export async function resolveReleaseNotes(
   ctx: ResolutionContext,
   config: Partial<ConfluenceLiveConfig> = confluenceConfigFromEnv(ctx),
-  pageId: string = RELEASE_NOTES_PAGE_ID,
+  pageId: string = releaseNotesPageId(),
 ): Promise<ReleaseNotesResult> {
   if (!config.token || !config.baseUrl || pageId === "CONFIGURE_RELEASE_NOTES_PAGE_ID") {
     return {
@@ -53,16 +58,26 @@ export async function resolveReleaseNotes(
     return fetched;
   }
 
-  return { ok: true, releases: parseReleaseNotes(renderStorageHtml(fetched.html)) };
+  // One render, two parses: formal releases and standalone announcements both
+  // come off the single "What's New" page.
+  const text = renderStorageHtml(fetched.html);
+  return {
+    ok: true,
+    releases: parseReleaseNotes(text),
+    announcements: parseAnnouncements(text),
+  };
 }
 
 /**
- * Render Confluence storage HTML to the line format {@link parseReleaseNotes}
- * expects: headings/paragraphs as their own lines, ordered-list items numbered,
- * unordered-list items bulleted.
+ * Render Confluence storage HTML to the line format the parsers expect:
+ * headings/paragraphs as their own lines, ordered-list items numbered,
+ * unordered-list items bulleted. Anchor hrefs are preserved inline as
+ * `"<label> (<href>)"` so the announcement parser can recover a call-to-action
+ * link the agent/UI follows (releases never carry inline links, so this is inert
+ * for the release path).
  *
  * ponytail: covers the common storage elements (h1-6 / p / ol / ul). If the
- * real page nests scope differently, tune this walk — the parser downstream is
+ * real page nests scope differently, tune this walk — the parsers downstream are
  * unchanged.
  */
 export function renderStorageHtml(html: string): string {
@@ -86,7 +101,7 @@ export function renderStorageHtml(html: string): string {
           lines.push(`• ${collapse(li.text)}`);
         });
       } else if (/^h[1-6]$/.test(tag) || tag === "p") {
-        const text = collapse(element.text);
+        const text = renderInline(element);
         if (text) {
           lines.push(text);
         }
@@ -98,6 +113,31 @@ export function renderStorageHtml(html: string): string {
 
   walk(root);
   return lines.join("\n");
+}
+
+/**
+ * Flatten an element's inline content to one line, preserving anchor hrefs as
+ * `"<label> (<href>)"`. An element with no anchors yields exactly `collapse(text)`.
+ */
+function renderInline(element: HTMLElement): string {
+  const parts: string[] = [];
+  for (const child of element.childNodes) {
+    if (child.nodeType === 3) {
+      parts.push((child as HTMLElement).text);
+      continue;
+    }
+    if (child.nodeType !== 1) {
+      continue;
+    }
+    const el = child as HTMLElement;
+    if ((el.rawTagName ?? "").toLowerCase() === "a") {
+      const href = el.getAttribute("href");
+      parts.push(href ? `${el.text} (${href})` : el.text);
+    } else {
+      parts.push(renderInline(el));
+    }
+  }
+  return collapse(parts.join(""));
 }
 
 function collapse(text: string): string {

@@ -41,9 +41,6 @@ function validateFeedbackTarget(
   if (feedback.target_type === "source" && !service.registry.sources.getById(feedback.target_id)) {
     return errorResponse(404, "source_not_found", "Feedback target source was not found.");
   }
-  if (feedback.target_type === "anchor" && !service.registry.anchors.getById(feedback.target_id)) {
-    return errorResponse(422, "anchor_broken", "Feedback target anchor was not found.");
-  }
 
   return undefined;
 }

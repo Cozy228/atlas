@@ -372,10 +372,10 @@ export function createDevAvailabilityProvider(): AvailabilityProvider {
 
 /**
  * The governed availability-matrix scope (ADR-0009): the AWS zone, region
- * columns only, restricted to the services the registered `availability-cell`
- * anchors pin (`data/anchors.yaml`). Labels mirror those anchor selectors so the
- * markdown the resolver parses still answers S3 / API Gateway / Textract — but
- * every cell's STATUS is now read from `availabilityZones`, not authored twice.
+ * columns only, restricted to the services the availability bindings pin via
+ * their `selector`. Labels mirror those selectors so the markdown the resolver
+ * parses still answers S3 / API Gateway / Textract — but every cell's STATUS is
+ * now read from `availabilityZones`, not authored twice.
  */
 const MATRIX_ZONE_ID = "aws";
 const MATRIX_ROWS: ReadonlyArray<{ label: string; serviceId: string }> = [

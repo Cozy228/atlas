@@ -1,5 +1,29 @@
-import { describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { DEV_TERRAFORM_BASE_URL } from "../devMocks/fixtures";
 import { handleHttpRequest } from "./httpRoute";
+
+// Single live path (plan 018 G2): textract's terraform-backed `network`/`examples`
+// sections fetch from the registry now, so point ATLAS_TERRAFORM_* at the MSW
+// Terraform fixture (the global devMocks/setup.ts keeps the server listening).
+const savedTerraformEnv = {
+  baseUrl: process.env.ATLAS_TERRAFORM_BASE_URL,
+  token: process.env.ATLAS_TERRAFORM_TOKEN,
+};
+beforeAll(() => {
+  process.env.ATLAS_TERRAFORM_BASE_URL = DEV_TERRAFORM_BASE_URL;
+  process.env.ATLAS_TERRAFORM_TOKEN = "dev-mock-token";
+});
+afterAll(() => {
+  restoreEnv("ATLAS_TERRAFORM_BASE_URL", savedTerraformEnv.baseUrl);
+  restoreEnv("ATLAS_TERRAFORM_TOKEN", savedTerraformEnv.token);
+});
+function restoreEnv(key: string, value: string | undefined): void {
+  if (value === undefined) {
+    delete process.env[key];
+  } else {
+    process.env[key] = value;
+  }
+}
 
 describe("resource HTTP routes", () => {
   it("searchResources resolves a free-text name to a canonical id", async () => {

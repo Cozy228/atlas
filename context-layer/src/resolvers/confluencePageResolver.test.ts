@@ -1,14 +1,14 @@
-import { describe, expect, it, vi } from "vitest";
-import type { Anchor, Source } from "@atlas/schema";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import type { Source } from "@atlas/schema";
 import { confluencePageResolver } from "./confluencePageResolver";
-import { offlineResolutionContext, type FetchLike } from "./resolverTypes";
+import type { FetchLike } from "./resolverTypes";
 import { createInMemorySourceContentProvider } from "./sourceContentProvider";
 
 const source: Source = {
   id: "central-lz-confluence",
   title: "Central Landing Zone Guide",
   source_class: "confluence-page",
-  location: "https://confluence.example.com/display/CLOUD/Central+Landing+Zone",
+  location: "123456",
   steward: "cloud-foundation",
   visibility: "internal",
   authority_scope: ["landing-zone-guidance"],
@@ -18,143 +18,103 @@ const source: Source = {
   review_frequency: "P120D",
 };
 
-const anchor: Anchor = {
-  id: "environment-matrix",
-  source_id: "central-lz-confluence",
-  anchor_strategy: "confluence-section",
-  title: "Environment matrix",
-  selector: { locator: "environment-matrix" },
-  citation_label: "Environment matrix",
-  status: "valid",
-  last_validated_at: "2026-05-05T00:00:00.000Z",
-};
+/** A live Confluence Cloud v2 page response (storage body), as the API returns. */
+function pageFetch(storageHtml: string, status = 200) {
+  return vi.fn<FetchLike>(async () => ({
+    ok: status >= 200 && status < 300,
+    status,
+    async json() {
+      return {
+        version: { number: 3 },
+        body: { storage: { value: storageHtml } },
+        _links: { webui: "/spaces/CLOUD/pages/123456/Central" },
+      };
+    },
+  }));
+}
 
-describe("confluencePageResolver", () => {
-  it("resolves a registered Confluence section", async () => {
+// Single live path (plan 018): the resolver always fetches from Confluence, so a
+// base url must be configured for the live branch to engage. The injected `fetch`
+// stands in for the network (unit-level); integration suites use MSW instead.
+const savedBaseUrl = process.env.ATLAS_CONFLUENCE_BASE_URL;
+beforeAll(() => {
+  process.env.ATLAS_CONFLUENCE_BASE_URL = "https://example.atlassian.net";
+});
+afterAll(() => {
+  if (savedBaseUrl === undefined) {
+    delete process.env.ATLAS_CONFLUENCE_BASE_URL;
+  } else {
+    process.env.ATLAS_CONFLUENCE_BASE_URL = savedBaseUrl;
+  }
+});
+
+describe("confluencePageResolver (single live path)", () => {
+  it("resolves a registered Confluence section from the live page", async () => {
+    const fetch = pageFetch(
+      "<h2>Environment matrix</h2><p>Production and non-production accounts are separated.</p>",
+    );
     const result = await confluencePageResolver.resolve({
-      ctx: offlineResolutionContext(),
+      ctx: { token: "fictional-bearer-token", fetch },
       source,
-      anchors: [anchor],
-      anchorId: "environment-matrix",
-      contentProvider: createInMemorySourceContentProvider({
-        "central-lz-confluence": {
-          "environment-matrix": "Production and non-production accounts are separated.",
-        },
-      }),
+      heading: "Environment matrix",
+      citationLabel: "Environment matrix",
+      contentProvider: createInMemorySourceContentProvider({}),
     });
 
+    expect(fetch).toHaveBeenCalledTimes(1);
     expect(result.excerpts[0]?.text).toContain("Production");
     expect(result.warnings).toEqual([]);
   });
 
-  it("returns broken_anchor when the section is absent", async () => {
+  it("returns broken_anchor when the section heading is absent from the page", async () => {
+    const fetch = pageFetch("<h2>Something else</h2><p>No matching heading here.</p>");
     const result = await confluencePageResolver.resolve({
-      ctx: offlineResolutionContext(),
+      ctx: { token: "fictional-bearer-token", fetch },
       source,
-      anchors: [anchor],
-      anchorId: "environment-matrix",
-      contentProvider: createInMemorySourceContentProvider({
-        "central-lz-confluence": {},
-      }),
+      heading: "Environment matrix",
+      citationLabel: "Environment matrix",
+      contentProvider: createInMemorySourceContentProvider({}),
     });
 
     expect(result.warnings[0]?.code).toBe("broken_anchor");
   });
 
-  it("returns source_unavailable when the page cannot be fetched", async () => {
+  it("returns source_unavailable when the page cannot be fetched (404)", async () => {
+    const fetch = pageFetch("", 404);
     const result = await confluencePageResolver.resolve({
-      ctx: offlineResolutionContext(),
+      ctx: { token: "fictional-bearer-token", fetch },
       source,
-      anchors: [anchor],
-      anchorId: "environment-matrix",
+      heading: "Environment matrix",
+      citationLabel: "Environment matrix",
       contentProvider: createInMemorySourceContentProvider({}),
     });
 
     expect(result.warnings[0]?.code).toBe("source_unavailable");
   });
 
-  it("returns broken_anchor for malformed section input", async () => {
+  it("returns broken_anchor when no section heading is supplied to locate", async () => {
+    const fetch = pageFetch("<h2>Environment matrix</h2><p>Present, but unrequested.</p>");
     const result = await confluencePageResolver.resolve({
-      ctx: offlineResolutionContext(),
+      ctx: { token: "fictional-bearer-token", fetch },
       source,
-      anchors: [
-        {
-          ...anchor,
-          id: "bad",
-          title: "Bad",
-          selector: { locator: "#bad" },
-          citation_label: "Bad",
-        },
-      ],
-      anchorId: "bad",
-      contentProvider: createInMemorySourceContentProvider({
-        "central-lz-confluence": { "#bad": "Invalid locator." },
-      }),
+      contentProvider: createInMemorySourceContentProvider({}),
     });
 
     expect(result.warnings[0]?.code).toBe("broken_anchor");
   });
 
-  it("falls back to the pilot provider offline (no token, no base url) without fetching", async () => {
+  it("yields an honest source_unavailable gap when no token is configured, without fetching", async () => {
     const fetch = vi.fn<FetchLike>();
-
     const result = await confluencePageResolver.resolve({
       ctx: { token: undefined, fetch },
       source,
-      anchors: [anchor],
-      anchorId: "environment-matrix",
-      contentProvider: createInMemorySourceContentProvider({
-        "central-lz-confluence": {
-          "environment-matrix": "Production and non-production accounts are separated.",
-        },
-      }),
-    });
-
-    expect(fetch).not.toHaveBeenCalled();
-    expect(result.excerpts[0]?.text).toContain("Production");
-    expect(result.warnings).toEqual([]);
-  });
-
-  it("takes the live branch when a token and base url are configured", async () => {
-    const env = (
-      globalThis as typeof globalThis & {
-        process: { env: Record<string, string | undefined> };
-      }
-    ).process.env;
-    const previousBaseUrl = env.ATLAS_CONFLUENCE_BASE_URL;
-    env.ATLAS_CONFLUENCE_BASE_URL = "https://example.atlassian.net";
-
-    const fetch = vi.fn<FetchLike>(async () => ({
-      ok: true,
-      status: 200,
-      async json() {
-        return {
-          version: { number: 3 },
-          body: {
-            storage: {
-              value: "<h2>Environment matrix</h2><p>Live separation of accounts.</p>",
-            },
-          },
-          _links: { webui: "/spaces/CLOUD/pages/123456/Central" },
-        };
-      },
-    }));
-
-    const result = await confluencePageResolver.resolve({
-      ctx: { token: "fictional-bearer-token", fetch },
-      source: { ...source, location: "123456" },
-      anchors: [anchor],
-      anchorId: "environment-matrix",
+      heading: "Environment matrix",
+      citationLabel: "Environment matrix",
       contentProvider: createInMemorySourceContentProvider({}),
     });
 
-    if (previousBaseUrl === undefined) {
-      delete env.ATLAS_CONFLUENCE_BASE_URL;
-    } else {
-      env.ATLAS_CONFLUENCE_BASE_URL = previousBaseUrl;
-    }
-
-    expect(fetch).toHaveBeenCalledTimes(1);
-    expect(result.excerpts[0]?.text).toContain("Live separation of accounts.");
+    expect(fetch).not.toHaveBeenCalled();
+    expect(result.excerpts).toEqual([]);
+    expect(result.warnings[0]?.code).toBe("source_unavailable");
   });
 });

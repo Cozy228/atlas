@@ -9,6 +9,10 @@
     ".": {
       "types": "./src/index.ts",
       "import": "./src/index.ts"
+    },
+    "./devMocks": {
+      "types": "./src/devMocks/index.ts",
+      "import": "./src/devMocks/index.ts"
     }
   },
   "scripts": {

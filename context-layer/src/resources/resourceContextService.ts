@@ -21,7 +21,7 @@ import {
   normalizeServiceIdentity,
 } from "../services/serviceIdentityNormalizer";
 import type { ResolverRegistry } from "../resolvers/resolverRegistry";
-import { offlineResolutionContext, type ResolutionContext } from "../resolvers/resolverTypes";
+import { defaultResolutionContext, type ResolutionContext } from "../resolvers/resolverTypes";
 import type { SourceContentProvider } from "../resolvers/sourceContentProvider";
 import { isStale } from "../services/freshness";
 import { getResourceKindDef } from "./resourceKindRegistry";
@@ -56,7 +56,6 @@ export type ResourceContextDeps = {
   referenceDiscovery?: ResourceReferenceDiscovery;
   registry: {
     sources: { getById(id: string): import("@atlas/schema").Source | undefined };
-    anchors: { findBySourceId(sourceId: string): import("@atlas/schema").Anchor[] };
   };
   resolvers: ResolverRegistry;
   contentProvider: SourceContentProvider;
@@ -129,7 +128,7 @@ export type GetResourceContextParams = {
 export async function getResourceContext(
   deps: ResourceContextDeps,
   params: GetResourceContextParams,
-  ctx: ResolutionContext = offlineResolutionContext(),
+  ctx: ResolutionContext = defaultResolutionContext(),
 ): Promise<ResourceContextResponse | null> {
   const overlay = findRecord(deps.resources, params.kind, params.slug);
 
@@ -394,8 +393,9 @@ async function resolveSection(
 
     const result = await resolver.resolve({
       source,
-      anchors: deps.registry.anchors.findBySourceId(source.id),
-      anchorId: binding.anchor_id,
+      heading: binding.heading,
+      selector: binding.selector,
+      citationLabel: binding.citation_label,
       contentProvider: deps.contentProvider,
       ctx,
     });
@@ -412,9 +412,8 @@ async function resolveSection(
           sourceId: source.id,
           title: source.title,
           url: excerpt.citation.location,
-          ...((excerpt.anchor_id ?? binding.anchor_id)
-            ? { anchor: excerpt.anchor_id ?? binding.anchor_id }
-            : {}),
+          // The runtime-located slug (heading-slug scan), never a stored anchor.
+          ...(excerpt.anchor_id ? { anchor: excerpt.anchor_id } : {}),
           // Provenance clock: the moment this content was parsed from Source. For
           // the offline/recorded path that is the Source's last observation; the
           // live cache path stamps the real fetch time (kept separate from the

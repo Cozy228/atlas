@@ -12,9 +12,11 @@
  *   - `status: "unavailable"` — past max-staleness, cache dead (not unbounded stale);
  *   - `incomplete: true`      — recall was truncated at the per-service cap.
  *
- * Dev wires `createDevReferenceDiscovery()` (in-code fixture); a prod build swaps
- * in `createConfluenceReferenceDiscovery(config)` (live CQL search). Core stays
- * adapter-free — only the composition root picks the implementation.
+ * One live path (plan 018): the composition root builds
+ * `createConfluenceReferenceDiscovery(config)` (live CQL search) from environment
+ * config — dev/integration point it at the MSW source-space fixture, prod at the
+ * real site. Unconfigured → no port (honest absence), never an in-code fixture.
+ * Core stays adapter-free.
  */
 import type { DiscoveredReference, ReferenceDiscoveryState, ServiceIdentity } from "@atlas/schema";
 

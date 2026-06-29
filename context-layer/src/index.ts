@@ -26,10 +26,8 @@ export {
   type ResourceKindDef,
   type SectionDef,
 } from "./resources/resourceKindRegistry";
-export { loadReleaseNotes } from "./adapters/dev/loadReleaseNotes";
-export { loadAnnouncements } from "./adapters/dev/loadAnnouncements";
-export type { Announcement } from "./adapters/dev/loadAnnouncements";
 export { resolveReleaseNotes } from "./releaseNotes/resolveReleaseNotes";
+export type { Announcement } from "./releaseNotes/parseAnnouncements";
 export { cachedResolutionContext } from "./sourceContent/sourceContentCache";
 export { resolveDataDir } from "./adapters/dev/dataDir";
 export type { Release, ReleaseItem } from "./releaseNotes/parseReleaseNotes";

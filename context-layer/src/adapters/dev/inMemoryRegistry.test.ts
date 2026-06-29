@@ -9,7 +9,6 @@ describe("in-memory registry adapter", () => {
 
     expect(registry.topics.list()).toHaveLength(9);
     expect(registry.sources.list()).toHaveLength(13);
-    expect(registry.anchors.list().length).toBeGreaterThan(10);
     expect((await registry.feedback.list()).length).toBeGreaterThan(0);
     expect(registry.mappings.list().length).toBeGreaterThan(12);
   });
@@ -23,16 +22,13 @@ describe("in-memory registry adapter", () => {
     expect(registry.topics.findByType("landing-zone")).toEqual([]);
   });
 
-  it("includes stale, deprecated, restricted, and broken-anchor examples", () => {
+  it("includes stale, deprecated, and restricted source examples", () => {
     const registry = createInMemoryRegistry(loadRegistryFromManifests());
     const sources = registry.sources.list();
 
     expect(sources.some((source) => source.id === "legacy-s3-policy")).toBe(true);
     expect(sources.some((source) => source.authority_level === "deprecated")).toBe(true);
     expect(sources.some((source) => source.visibility === "restricted")).toBe(true);
-    expect(
-      registry.anchors.list().some((anchor) => String(anchor.selector.locator).includes("missing")),
-    ).toBe(true);
   });
 
   it("rejects malformed seed records before repositories are created", () => {

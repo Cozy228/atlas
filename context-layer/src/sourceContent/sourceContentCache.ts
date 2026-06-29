@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 
 import {
-  offlineResolutionContext,
+  defaultResolutionContext,
   type FetchLike,
   type ResolutionContext,
 } from "../resolvers/resolverTypes";
@@ -221,13 +221,13 @@ function sharedCache(env: Record<string, string | undefined>): Promise<SourceCon
  * The default resolution context for live source resolution, with `fetch`
  * wrapped by the shared cache. Used by both the HTTP router and the in-process
  * route, so a repeat Confluence/Terraform fetch is served from cache regardless
- * of entry point. `offlineResolutionContext()` stays cache-free for tests and
+ * of entry point. `defaultResolutionContext()` stays cache-free for tests and
  * callers that pass their own context.
  */
 export async function cachedResolutionContext(
   env: Record<string, string | undefined> = readProcessEnv(),
 ): Promise<ResolutionContext> {
-  const base = offlineResolutionContext();
+  const base = defaultResolutionContext();
   const cache = await sharedCache(env);
   return { ...base, fetch: withCache(base.fetch, cache, cacheTtlSeconds(env)) };
 }

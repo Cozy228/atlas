@@ -1,19 +1,19 @@
-import type { Anchor, Source } from "@atlas/schema";
+import type { Source } from "@atlas/schema";
 import type { AnchorResolver, ResolveRequest, ResolveResult } from "./resolverTypes";
 
 /**
  * Availability matrix resolver (ADR-0009).
  *
  * A governed Source holds a region × Service availability table. This resolver
- * parses it once into a structured matrix and answers at the grain the anchor
- * pins via its `availability-cell` selector:
+ * parses it once into a structured matrix and answers at the grain the binding's
+ * `selector` pins:
  *
  *   - service + region  -> a cell   ("S3 is available in us-east-1")
  *   - service only      -> a row    ("S3 — us-east-1: available; …")
  *   - region only       -> a column ("us-east-1 — S3: available; …")
  *
- * Query precision mirrors citation granularity: a precise anchor gets a precise
- * answer, a fuzzy anchor a fuzzy one. On a fetch/parse failure the resolver
+ * Query precision mirrors citation granularity: a precise selector gets a precise
+ * answer, a fuzzy selector a fuzzy one. On a fetch/parse failure the resolver
  * returns NO availability data plus a warning — never a stale cached matrix
  * (ADR-0009 §4): honesty over resilience.
  */
@@ -46,13 +46,11 @@ const parseMemo = new Map<string, AvailabilityMatrix>();
 export const availabilityMatrixResolver: AnchorResolver = {
   sourceClass: "availability-matrix",
   async resolve(request: ResolveRequest): Promise<ResolveResult> {
-    const { source, anchors, anchorId, contentProvider } = request;
-    const anchor = selectAnchor(anchors, anchorId);
-    if (!anchor) {
-      return brokenAnchor(source.id, anchorId, "anchor is not registered");
-    }
+    const { source, selector, citationLabel, contentProvider } = request;
 
-    const rawTable = contentProvider.getSourceContent(source.id)?.[AVAILABILITY_TABLE_KEY];
+    // Availability stays dev until G3: the raw table is read from the injected
+    // dev content provider, not fetched live.
+    const rawTable = contentProvider?.getSourceContent(source.id)?.[AVAILABILITY_TABLE_KEY];
     const matrix = rawTable ? parseMatrix(rawTable) : undefined;
     if (!matrix) {
       return {
@@ -63,67 +61,69 @@ export const availabilityMatrixResolver: AnchorResolver = {
             message:
               "Availability matrix could not be fetched or parsed; no availability data is returned.",
             source_id: source.id,
-            anchor_id: anchor.id,
           },
         ],
       };
     }
 
-    return resolveAtGrain(source, anchor, matrix);
+    return resolveAtGrain(source, selector ?? {}, citationLabel, matrix);
   },
 };
 
-function resolveAtGrain(source: Source, anchor: Anchor, matrix: AvailabilityMatrix): ResolveResult {
-  const service = stringSelector(anchor, "service");
-  const region = stringSelector(anchor, "region");
+function resolveAtGrain(
+  source: Source,
+  selector: Record<string, string>,
+  label: string | undefined,
+  matrix: AvailabilityMatrix,
+): ResolveResult {
+  const service = stringSelector(selector, "service");
+  const region = stringSelector(selector, "region");
 
   // Cell: both axes pinned.
   if (service && region) {
     const row = matrix.services.get(service.toLowerCase());
     if (!row) {
-      return brokenAnchor(source.id, anchor.id, `service "${service}" is not in the matrix`);
+      return brokenAnchor(source.id, `service "${service}" is not in the matrix`);
     }
     const status = row.statuses.get(region.toLowerCase()) ?? "not-planned";
-    return excerpt(source, anchor, `${row.service} is ${status} in ${region}.`);
+    return excerpt(source, label, `${row.service} is ${status} in ${region}.`);
   }
 
   // Row: only the Service is pinned.
   if (service) {
     const row = matrix.services.get(service.toLowerCase());
     if (!row) {
-      return brokenAnchor(source.id, anchor.id, `service "${service}" is not in the matrix`);
+      return brokenAnchor(source.id, `service "${service}" is not in the matrix`);
     }
     const cells = matrix.regions.map(
       (col) => `${col}: ${row.statuses.get(col.toLowerCase()) ?? "not-planned"}`,
     );
-    return excerpt(source, anchor, `${row.service} — ${cells.join("; ")}.`);
+    return excerpt(source, label, `${row.service} — ${cells.join("; ")}.`);
   }
 
   // Column: only the region is pinned.
   if (region) {
     if (!matrix.regions.some((col) => col.toLowerCase() === region.toLowerCase())) {
-      return brokenAnchor(source.id, anchor.id, `region "${region}" is not in the matrix`);
+      return brokenAnchor(source.id, `region "${region}" is not in the matrix`);
     }
     const cells = [...matrix.services.values()].map(
       (row) => `${row.service}: ${row.statuses.get(region.toLowerCase()) ?? "not-planned"}`,
     );
-    return excerpt(source, anchor, `${region} — ${cells.join("; ")}.`);
+    return excerpt(source, label, `${region} — ${cells.join("; ")}.`);
   }
 
-  // An availability-cell anchor must pin at least one axis.
-  return brokenAnchor(source.id, anchor.id, "selector pins neither a service nor a region");
+  // An availability selector must pin at least one axis.
+  return brokenAnchor(source.id, "selector pins neither a service nor a region");
 }
 
-function excerpt(source: Source, anchor: Anchor, text: string): ResolveResult {
+function excerpt(source: Source, label: string | undefined, text: string): ResolveResult {
   return {
     excerpts: [
       {
-        anchor_id: anchor.id,
         text,
         citation: {
           source_id: source.id,
-          anchor_id: anchor.id,
-          label: anchor.citation_label,
+          label: label ?? source.title,
           location: source.location,
         },
       },
@@ -132,19 +132,14 @@ function excerpt(source: Source, anchor: Anchor, text: string): ResolveResult {
   };
 }
 
-function brokenAnchor(
-  sourceId: string,
-  anchorId: string | undefined,
-  reason: string,
-): ResolveResult {
+function brokenAnchor(sourceId: string, reason: string): ResolveResult {
   return {
     excerpts: [],
     warnings: [
       {
         code: "broken_anchor",
-        message: `Availability anchor could not be resolved: ${reason}.`,
+        message: `Availability selector could not be resolved: ${reason}.`,
         source_id: sourceId,
-        anchor_id: anchorId,
       },
     ],
   };
@@ -213,14 +208,7 @@ function isSeparatorRow(cells: string[]): boolean {
   return cells.length > 0 && cells.every((cell) => /^:?-+:?$/.test(cell));
 }
 
-function stringSelector(anchor: Anchor, key: string): string | undefined {
-  const value = anchor.selector[key];
+function stringSelector(selector: Record<string, string>, key: string): string | undefined {
+  const value = selector[key];
   return typeof value === "string" && value.length > 0 ? value : undefined;
-}
-
-function selectAnchor(anchors: Anchor[], anchorId: string | undefined): Anchor | undefined {
-  if (anchorId) {
-    return anchors.find((anchor) => anchor.id === anchorId);
-  }
-  return anchors[0];
 }

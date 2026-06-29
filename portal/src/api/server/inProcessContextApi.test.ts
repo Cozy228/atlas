@@ -1,6 +1,30 @@
-import { describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import {
+  server,
+  DEV_CONFLUENCE_BASE_URL,
+  DEV_CONFLUENCE_SPACE_KEYS,
+  DEV_TERRAFORM_BASE_URL,
+} from "@atlas/context-layer/devMocks";
 
 import { serverContextApiClient } from "./inProcessContextApi";
+
+// Integration: drive the in-process Context API against the shared MSW source-space
+// fixture (plan 018). Point the Confluence channel at the fixture so reference
+// discovery resolves live via CQL, and the Terraform channel so textract's
+// terraform-backed sections resolve live from the registry (single live path, G2).
+const savedEnv = { ...process.env };
+beforeAll(() => {
+  server.listen({ onUnhandledRequest: "bypass" });
+  process.env.ATLAS_CONFLUENCE_BASE_URL = DEV_CONFLUENCE_BASE_URL;
+  process.env.ATLAS_CONFLUENCE_TOKEN = "dev-mock-token";
+  process.env.ATLAS_CONFLUENCE_SPACE_KEYS = DEV_CONFLUENCE_SPACE_KEYS.join(",");
+  process.env.ATLAS_TERRAFORM_BASE_URL = DEV_TERRAFORM_BASE_URL;
+  process.env.ATLAS_TERRAFORM_TOKEN = "dev-mock-token";
+});
+afterAll(() => {
+  server.close();
+  process.env = savedEnv;
+});
 
 describe("serverContextApiClient", () => {
   it("returns the registered topics, parsed through the shared schema", async () => {

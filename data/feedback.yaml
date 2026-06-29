@@ -1,9 +1,9 @@
 # Atlas Feedback manifest — public-safe, fictional sample.
 # Authored initial feedback state; validated by createInMemoryRegistry.
 
-- id: feedback-private-networking-anchor
-  target_type: anchor
-  target_id: vpc-endpoints
+- id: feedback-private-networking-source
+  target_type: source
+  target_id: private-networking-policy
   feedback_type: broken
-  message: The VPC endpoints clause is missing in the pilot source.
+  message: The VPC endpoints guidance is missing from this source.
   submitted_at: 2026-05-06T00:00:00.000Z

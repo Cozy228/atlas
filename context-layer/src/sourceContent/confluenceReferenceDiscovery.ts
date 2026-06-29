@@ -28,6 +28,9 @@ import {
   confluenceAuthorization,
   type ConfluenceLiveConfig,
 } from "./confluenceCloudContentProvider";
+// Doc-type classification is a kernel rule (plan 018 B11) — moved to the
+// rules-only kernel and re-imported so admission behavior is unchanged.
+import { judgeDocType } from "../kernel/docTypePatterns";
 import type {
   ResourceReferenceDiscovery,
   ResourceReferenceDiscoveryResult,
@@ -252,64 +255,6 @@ function identityHit(title: string, admissionAliases: string[]): boolean {
       alias.split(" ").filter((token) => token.length > 0),
     ),
   );
-}
-
-const DOC_TYPE_PRIORITY: Record<DocType, number> = {
-  policy: 3,
-  "user-guide": 2,
-  design: 1, // widest fallback — lowest tie-break priority (B11)
-};
-
-// Controlled, global doc-type patterns (fixed small set, NOT per-space — per-space
-// would break O(1), B11). Each is a normalized token-sequence; longest match wins,
-// tie-break by DOC_TYPE_PRIORITY. Zero hit → not admitted.
-const DOC_TYPE_PATTERNS: ReadonlyArray<{ docType: DocType; tokens: string[] }> = [
-  { docType: "design", tokens: ["design"] },
-  { docType: "design", tokens: ["architecture"] },
-  { docType: "design", tokens: ["hld"] },
-  { docType: "design", tokens: ["lld"] },
-  { docType: "design", tokens: ["technical", "design"] },
-  { docType: "design", tokens: ["solution", "design"] },
-  { docType: "design", tokens: ["design", "document"] },
-  { docType: "design", tokens: ["reference", "architecture"] },
-  { docType: "user-guide", tokens: ["guide"] },
-  { docType: "user-guide", tokens: ["user", "guide"] },
-  { docType: "user-guide", tokens: ["how", "to"] },
-  { docType: "user-guide", tokens: ["howto"] },
-  { docType: "user-guide", tokens: ["runbook"] },
-  { docType: "user-guide", tokens: ["onboarding"] },
-  { docType: "user-guide", tokens: ["getting", "started"] },
-  { docType: "user-guide", tokens: ["usage"] },
-  { docType: "user-guide", tokens: ["tutorial"] },
-  { docType: "user-guide", tokens: ["quickstart"] },
-  { docType: "user-guide", tokens: ["faq"] },
-  { docType: "policy", tokens: ["policy"] },
-  { docType: "policy", tokens: ["standard"] },
-  { docType: "policy", tokens: ["standards"] },
-  { docType: "policy", tokens: ["guardrail"] },
-  { docType: "policy", tokens: ["compliance"] },
-  { docType: "policy", tokens: ["governance"] },
-  { docType: "policy", tokens: ["security", "policy"] },
-  { docType: "policy", tokens: ["data", "policy"] },
-];
-
-function judgeDocType(title: string): DocType | null {
-  const titleTokens = tokenize(title);
-  let best: { docType: DocType; tokens: string[] } | null = null;
-  for (const pattern of DOC_TYPE_PATTERNS) {
-    if (!containsSubsequence(titleTokens, pattern.tokens)) {
-      continue;
-    }
-    if (
-      best === null ||
-      pattern.tokens.length > best.tokens.length ||
-      (pattern.tokens.length === best.tokens.length &&
-        DOC_TYPE_PRIORITY[pattern.docType] > DOC_TYPE_PRIORITY[best.docType])
-    ) {
-      best = pattern;
-    }
-  }
-  return best?.docType ?? null;
 }
 
 /* -------------------------------------------------------------------------- *

@@ -1,10 +1,15 @@
-import { describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { ResourceContextResponseSchema, ResourceSearchResponseSchema } from "@atlas/schema";
 import {
   handleResourceContextRequest,
   handleResourceSearchRequest,
   handleTopicRequest,
 } from "@atlas/context-layer";
+import {
+  server,
+  DEV_TERRAFORM_BASE_URL,
+  DEV_CONFLUENCE_BASE_URL,
+} from "@atlas/context-layer/devMocks";
 import {
   askAtlas,
   createDailyRateLimiter,
@@ -13,6 +18,38 @@ import {
   relatedGuidanceForTopic,
   type LlmAdapter,
 } from "@atlas/portal";
+
+// Single live path (plan 018): textract's terraform-backed sections (network,
+// examples) fetch from the registry; the guardrail's policy sections fetch from
+// Confluence (G4). Boot the shared Node-mode MSW server and point ATLAS_TERRAFORM_*
+// and ATLAS_CONFLUENCE_* at the fixtures so both channels resolve live.
+const savedEnv = {
+  terraformBaseUrl: process.env.ATLAS_TERRAFORM_BASE_URL,
+  terraformToken: process.env.ATLAS_TERRAFORM_TOKEN,
+  confluenceBaseUrl: process.env.ATLAS_CONFLUENCE_BASE_URL,
+  confluenceToken: process.env.ATLAS_CONFLUENCE_TOKEN,
+};
+beforeAll(() => {
+  server.listen({ onUnhandledRequest: "bypass" });
+  process.env.ATLAS_TERRAFORM_BASE_URL = DEV_TERRAFORM_BASE_URL;
+  process.env.ATLAS_TERRAFORM_TOKEN = "dev-mock-token";
+  process.env.ATLAS_CONFLUENCE_BASE_URL = DEV_CONFLUENCE_BASE_URL;
+  process.env.ATLAS_CONFLUENCE_TOKEN = "dev-mock-token";
+});
+afterAll(() => {
+  server.close();
+  restoreEnv("ATLAS_TERRAFORM_BASE_URL", savedEnv.terraformBaseUrl);
+  restoreEnv("ATLAS_TERRAFORM_TOKEN", savedEnv.terraformToken);
+  restoreEnv("ATLAS_CONFLUENCE_BASE_URL", savedEnv.confluenceBaseUrl);
+  restoreEnv("ATLAS_CONFLUENCE_TOKEN", savedEnv.confluenceToken);
+});
+function restoreEnv(key: string, value: string | undefined): void {
+  if (value === undefined) {
+    delete process.env[key];
+  } else {
+    process.env[key] = value;
+  }
+}
 
 /**
  * V1 acceptance, resource-projection era (plan 019). The agent-facing surface is

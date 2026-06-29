@@ -1,32 +1,46 @@
-import type { AnchorResolver } from "./resolverTypes";
-import { resolveAnchor } from "./resolveAnchor";
+import type { AnchorResolver, ResolveResult } from "./resolverTypes";
 import { resolveConfluencePageLive } from "../sourceContent/confluenceCloudContentProvider";
 
 export const policyDocumentResolver: AnchorResolver = {
   sourceClass: "policy-document",
   async resolve(request) {
-    // Governance policies are published in Confluence too: when a Confluence
-    // channel is configured, resolve the policy page live (caller's Bearer
-    // first, else the service token) — same seam as the confluence-page
-    // resolver. Without it, fall back to the offline in-memory provider, which
-    // serves the clause-anchored S3 markdown content.
+    // Single live path (plan 018): governance policies are published in
+    // Confluence, so the policy page is ALWAYS fetched live — dev/integration =
+    // MSW, prod = real — never an in-memory provider. Same seam as the
+    // confluence-page resolver. Token order: the caller's Bearer first (so the
+    // page resolves under the caller's own ACL), else the service token.
     const env = readProcessEnv();
     const token = request.ctx.token ?? env.ATLAS_CONFLUENCE_TOKEN;
     const baseUrl = env.ATLAS_CONFLUENCE_BASE_URL;
     const email = env.ATLAS_CONFLUENCE_EMAIL;
 
-    if (token && baseUrl) {
-      return resolveConfluencePageLive(request, { token, baseUrl, email });
+    // No Confluence channel configured = honest gap, never a fabricated fallback.
+    if (!token || !baseUrl) {
+      return honestGap(request.source.id);
     }
 
-    return resolveAnchor({
-      ...request,
-      isValidLocator(locator) {
-        return locator.startsWith("clause-");
-      },
-    });
+    return resolveConfluencePageLive(request, { token, baseUrl, email });
   },
 };
+
+/**
+ * Honest gap when no Confluence channel is configured: the single live path
+ * cannot fetch the policy page, so the section is surfaced as unavailable data —
+ * never a fake fallback from an in-memory provider (plan 018).
+ */
+function honestGap(sourceId: string): ResolveResult {
+  return {
+    excerpts: [],
+    warnings: [
+      {
+        code: "source_unavailable",
+        message:
+          "No Confluence channel is configured; the policy cannot be resolved at request time.",
+        source_id: sourceId,
+      },
+    ],
+  };
+}
 
 function readProcessEnv(): Record<string, string | undefined> {
   const processLike = globalThis as typeof globalThis & {

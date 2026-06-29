@@ -1,7 +1,14 @@
-import { describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { ResourceContextRecord } from "@atlas/schema";
 import { createDefaultContextService } from "../composition";
 import type { ContextService } from "../services/contextService";
+import { createConfluenceReferenceDiscovery } from "../sourceContent/confluenceReferenceDiscovery";
+import type { FetchLike } from "../resolvers/resolverTypes";
+import {
+  DEV_CONFLUENCE_BASE_URL,
+  DEV_CONFLUENCE_SPACE_KEYS,
+  DEV_TERRAFORM_BASE_URL,
+} from "../devMocks/fixtures";
 import { resourceKindRegistry } from "./resourceKindRegistry";
 import {
   getResourceContext,
@@ -15,6 +22,54 @@ const NOW = new Date("2026-06-26T00:00:00.000Z");
 
 function pilotService(overrides: Partial<ContextService> = {}): ContextService {
   return { ...createDefaultContextService(), now: NOW, ...overrides };
+}
+
+// Live reference-discovery against the MSW source-space fixture (plan 018): the
+// real CQL adapter, not an in-code fixture. Injected directly (not via env) so the
+// offline policy/guardrail sections in this file are left untouched.
+const liveFetch: FetchLike = (input, init) =>
+  globalThis.fetch(input, init as RequestInit) as unknown as ReturnType<FetchLike>;
+function liveReferenceDiscovery() {
+  return createConfluenceReferenceDiscovery(
+    {
+      baseUrl: DEV_CONFLUENCE_BASE_URL,
+      token: "dev-mock-token",
+      spaceKeys: DEV_CONFLUENCE_SPACE_KEYS,
+    },
+    { fetch: liveFetch },
+  );
+}
+
+// Single live path (plan 018): textract's terraform-backed sections (network,
+// examples) fetch from the registry; the guardrail's policy sections fetch from
+// Confluence (G4). Point ATLAS_TERRAFORM_* and ATLAS_CONFLUENCE_* at the MSW
+// fixtures so both resolve live; the global devMocks/setup.ts has the Node-mode
+// server listening. Availability stays dev. (Space keys stay unset so the default
+// reference-discovery port remains absent — tests inject it explicitly.)
+const savedEnv = {
+  terraformBaseUrl: process.env.ATLAS_TERRAFORM_BASE_URL,
+  terraformToken: process.env.ATLAS_TERRAFORM_TOKEN,
+  confluenceBaseUrl: process.env.ATLAS_CONFLUENCE_BASE_URL,
+  confluenceToken: process.env.ATLAS_CONFLUENCE_TOKEN,
+};
+beforeAll(() => {
+  process.env.ATLAS_TERRAFORM_BASE_URL = DEV_TERRAFORM_BASE_URL;
+  process.env.ATLAS_TERRAFORM_TOKEN = "dev-mock-token";
+  process.env.ATLAS_CONFLUENCE_BASE_URL = DEV_CONFLUENCE_BASE_URL;
+  process.env.ATLAS_CONFLUENCE_TOKEN = "dev-mock-token";
+});
+afterAll(() => {
+  restoreEnv("ATLAS_TERRAFORM_BASE_URL", savedEnv.terraformBaseUrl);
+  restoreEnv("ATLAS_TERRAFORM_TOKEN", savedEnv.terraformToken);
+  restoreEnv("ATLAS_CONFLUENCE_BASE_URL", savedEnv.confluenceBaseUrl);
+  restoreEnv("ATLAS_CONFLUENCE_TOKEN", savedEnv.confluenceToken);
+});
+function restoreEnv(key: string, value: string | undefined): void {
+  if (value === undefined) {
+    delete process.env[key];
+  } else {
+    process.env[key] = value;
+  }
 }
 
 describe("searchResources", () => {
@@ -127,7 +182,7 @@ describe("getResourceContext — honesty axes", () => {
         aliases: ["Textract"],
         sections: {
           network: [
-            { source_id: "platform-reference-guide", anchor_id: "pilot-limitations", order: 10 },
+            { source_id: "platform-reference-guide", heading: "Pilot limitations", order: 10 },
           ],
         },
       },
@@ -155,8 +210,8 @@ describe("getResourceContext — honesty axes", () => {
         aliases: ["Textract"],
         sections: {
           network: [
-            { source_id: "textract-module-readme", anchor_id: "private-subnet-usage", order: 10 },
-            { source_id: "platform-reference-guide", anchor_id: "pilot-limitations", order: 20 },
+            { source_id: "textract-module-readme", heading: "Private subnet usage", order: 10 },
+            { source_id: "platform-reference-guide", heading: "Pilot limitations", order: 20 },
           ],
         },
       },
@@ -221,7 +276,7 @@ describe("getResourceContext — name normalization (single-candidate fallback)"
         aliases: ["Shared Service"],
         sections: {
           network: [
-            { source_id: "textract-module-readme", anchor_id: "private-subnet-usage", order: 10 },
+            { source_id: "textract-module-readme", heading: "Private subnet usage", order: 10 },
           ],
         },
       },
@@ -233,7 +288,7 @@ describe("getResourceContext — name normalization (single-candidate fallback)"
         aliases: ["Shared Service"],
         sections: {
           network: [
-            { source_id: "textract-module-readme", anchor_id: "private-subnet-usage", order: 10 },
+            { source_id: "textract-module-readme", heading: "Private subnet usage", order: 10 },
           ],
         },
       },
@@ -251,10 +306,13 @@ describe("getResourceContext — identity-first spine (plan 017 B4/B6)", () => {
   it("renders a spine-only service (in the grid, no overlay) as governance:unconfigured, not 404", async () => {
     // azure/aks is in the availability spine but has no resources.yaml service
     // record (aws/s3 now carries a metadata overlay — plan 020 15a).
-    const response = await getResourceContext(pilotService(), {
-      kind: "service",
-      slug: "azure/aks",
-    });
+    const response = await getResourceContext(
+      pilotService({ referenceDiscovery: liveReferenceDiscovery() }),
+      {
+        kind: "service",
+        slug: "azure/aks",
+      },
+    );
 
     expect(response).not.toBeNull();
     expect(response?.governance).toBe("unconfigured");
@@ -265,8 +323,8 @@ describe("getResourceContext — identity-first spine (plan 017 B4/B6)", () => {
     expect(response?.sections).toEqual({});
     expect(response?.missingSections).toEqual([]);
     expect(response?.requestedSections).toEqual([]);
-    // Reference-only discovery still runs for a spine-only service (B4): the dev
-    // fixture surfaces aws/s3 links alongside the empty governed Sections.
+    // Reference-only discovery still runs for a spine-only service (B4): the live
+    // CQL adapter surfaces the AKS onboarding guide alongside empty governed Sections.
     expect(response?.references.length ?? 0).toBeGreaterThan(0);
     expect(response?.referenceDiscovery?.status).toBe("fresh");
   });
@@ -298,11 +356,14 @@ describe("getResourceContext — identity-first spine (plan 017 B4/B6)", () => {
 
 describe("getResourceContext — reference discovery merge (plan 017 B4)", () => {
   it("merges reference-only links alongside a configured service's governed sections", async () => {
-    const response = await getResourceContext(pilotService(), {
-      kind: "service",
-      slug: "aws/textract",
-      sections: ["network"],
-    });
+    const response = await getResourceContext(
+      pilotService({ referenceDiscovery: liveReferenceDiscovery() }),
+      {
+        kind: "service",
+        slug: "aws/textract",
+        sections: ["network"],
+      },
+    );
 
     // Governed content AND reference-only links coexist, clearly distinguished.
     expect(response?.governance).toBe("configured");
@@ -359,7 +420,7 @@ describe("getResourceContext — multi-kind (guardrail) extensibility", () => {
 });
 
 describe("resource projection records — wiring integrity", () => {
-  it("every binding references a real source + anchor, and every section is in the kind vocabulary", () => {
+  it("every binding references a real source, carries a heading or selector, and sits in the kind vocabulary", () => {
     const service = pilotService();
     for (const record of service.resources) {
       const vocab = new Set(resourceKindRegistry[record.kind].sections.map((s) => s.id));
@@ -371,12 +432,13 @@ describe("resource projection records — wiring integrity", () => {
             source,
             `source ${binding.source_id} for ${record.kind}/${record.slug}`,
           ).toBeDefined();
-          if (binding.anchor_id) {
-            const anchor = service.registry.anchors
-              .findBySourceId(binding.source_id)
-              .find((a) => a.id === binding.anchor_id);
-            expect(anchor, `anchor ${binding.anchor_id} on ${binding.source_id}`).toBeDefined();
-          }
+          // A binding addresses its section by an inline heading (heading-slug
+          // scan) or a structured selector — never a pre-stored anchor.
+          const located = Boolean(binding.heading) || Boolean(binding.selector);
+          expect(
+            located,
+            `binding on ${binding.source_id} for ${record.kind}/${record.slug} has a heading or selector`,
+          ).toBe(true);
         }
       }
     }

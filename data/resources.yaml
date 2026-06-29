@@ -1,10 +1,11 @@
 # Atlas Resource projection records (plan 011, ADR-0013) — public-safe, fictional.
 #
-# Kind-first identity + Section Projection Plan ONLY: each Section maps to existing
-# Source + Anchor references with an order, never to Section content. Atlas stores
-# no resolved excerpts; the agent-facing /api/resources surface live-resolves these
-# references per request. Section ids are drawn from the resource-kind registry
-# vocabulary for the record's `kind`.
+# Kind-first identity + Section Projection Plan ONLY: each Section binds an existing
+# Source with an inline `heading` (a DEFAULT entry point, located at runtime by
+# heading-slug scan) or a structured `selector`, plus an order — never Section
+# content. Atlas stores no resolved excerpts; the agent-facing /api/resources surface
+# live-resolves these references per request. Section ids are drawn from the
+# resource-kind registry vocabulary for the record's `kind`.
 
 # service kind — complete vocabulary demonstrated on the pilot service.
 - kind: service
@@ -31,20 +32,26 @@
   topics:
     - aws-textract
   sections:
-    # Private-connectivity prose from the approved Terraform module README.
+    # Private-connectivity prose from the approved Terraform module README. The
+    # heading is a DEFAULT entry point, located at runtime by heading-slug scan.
     network:
       - source_id: textract-module-readme
-        anchor_id: private-subnet-usage
+        heading: Private subnet usage
+        citation_label: Private subnet usage
         order: 10
     # Net-new wiring (plan 011 §3): the governed regional matrix, Textract row.
+    # Located by structured selector (not a heading), so it carries `selector`.
     availability:
       - source_id: availability-matrix
-        anchor_id: availability-textract-row
+        selector:
+          service: Textract
+        citation_label: Textract regional availability
         order: 10
     # The cited Terraform starter — a registered Source excerpt, never synthesized.
     examples:
       - source_id: textract-module-readme
-        anchor_id: textract-terraform-starter
+        heading: Terraform starter
+        citation_label: Terraform starter
         order: 10
 
 # guardrail kind — a non-service kind, proving the framework is per-kind extensible.
@@ -61,13 +68,15 @@
   sections:
     enforced-controls:
       - source_id: s3-policy-doc
-        anchor_id: public-access
+        heading: Public access controls
+        citation_label: Public access controls
         order: 10
     # Deprecated allowance retained for migration — surfaces as available content
     # carrying a stale_source warning (the source is past its review window).
     exceptions:
       - source_id: legacy-s3-policy
-        anchor_id: legacy-public-access
+        heading: Legacy public access
+        citation_label: Legacy public access
         order: 10
 
 # service kind — metadata-only overlays (plan 020 15a). These services already

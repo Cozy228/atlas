@@ -1,11 +1,4 @@
-import {
-  AnchorSchema,
-  FeedbackSchema,
-  SourceSchema,
-  SourceTopicMappingSchema,
-  TopicSchema,
-} from "@atlas/schema";
-import { InMemoryAnchorRepository } from "../../repositories/anchorRepository";
+import { FeedbackSchema, SourceSchema, SourceTopicMappingSchema, TopicSchema } from "@atlas/schema";
 import {
   InMemoryFeedbackRepository,
   type FeedbackRepository,
@@ -16,7 +9,6 @@ import { InMemoryTopicRepository } from "../../repositories/topicRepository";
 import type { Registry } from "../../registry/registry";
 
 export type RegistrySeed = {
-  anchors: unknown[];
   feedback: unknown[];
   sources: unknown[];
   topics: unknown[];
@@ -31,7 +23,6 @@ export function createInMemoryRegistry(
   seed: RegistrySeed,
   options: RegistryOptions = {},
 ): Registry {
-  const anchors = seed.anchors.map((anchor) => AnchorSchema.parse(anchor));
   const feedback = seed.feedback.map((item) => FeedbackSchema.parse(item));
   const sources = seed.sources.map((source) => SourceSchema.parse(source));
   const topics = seed.topics.map((topic) => TopicSchema.parse(topic));
@@ -39,13 +30,6 @@ export function createInMemoryRegistry(
 
   const sourceIds = new Set(sources.map((source) => source.id));
   const topicIds = new Set(topics.map((topic) => topic.id));
-  const anchorIds = new Set(anchors.map((anchor) => anchor.id));
-
-  for (const anchor of anchors) {
-    if (!sourceIds.has(anchor.source_id)) {
-      throw new Error(`Unknown source_id in anchor: ${anchor.source_id}`);
-    }
-  }
 
   for (const mapping of mappings) {
     if (!sourceIds.has(mapping.source_id)) {
@@ -63,13 +47,9 @@ export function createInMemoryRegistry(
     if (item.target_type === "topic" && !topicIds.has(item.target_id)) {
       throw new Error(`Unknown topic target_id in feedback: ${item.target_id}`);
     }
-    if (item.target_type === "anchor" && !anchorIds.has(item.target_id)) {
-      throw new Error(`Unknown anchor target_id in feedback: ${item.target_id}`);
-    }
   }
 
   return {
-    anchors: new InMemoryAnchorRepository(anchors),
     feedback: options.feedback ?? new InMemoryFeedbackRepository(feedback),
     sources: new InMemorySourceRepository(sources),
     topics: new InMemoryTopicRepository(topics),

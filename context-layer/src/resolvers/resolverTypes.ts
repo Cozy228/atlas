@@ -1,4 +1,4 @@
-import type { Anchor, Source, SourceClass } from "@atlas/schema";
+import type { Source, SourceClass } from "@atlas/schema";
 import type { SourceContentProvider } from "./sourceContentProvider";
 
 export type ResolvedExcerpt = {
@@ -65,20 +65,35 @@ export type ResolutionContext = {
 };
 
 /**
- * Default context for callers that do not supply one (existing in-process
- * callers and tests). No token means the live providers defer to the offline
- * in-memory map; `globalThis.fetch` is only used when a live provider is reached.
+ * Default context for callers that do not supply one (in-process callers and
+ * tests). `fetch` is **late-bound** — it re-reads `globalThis.fetch` on every
+ * call rather than capturing it once — so the dev/integration MSW interceptor,
+ * which patches `globalThis.fetch` when its server starts, is always picked up
+ * even if the context object was created before `server.listen()` (plan 018
+ * Risk #1). In prod this is the real `globalThis.fetch`; no token still means a
+ * resolver with no configured source yields an honest gap rather than a fake.
  */
-export function offlineResolutionContext(): ResolutionContext {
-  const runtime = globalThis as typeof globalThis & { fetch?: FetchLike };
-  return { token: undefined, fetch: runtime.fetch as FetchLike };
+export function defaultResolutionContext(): ResolutionContext {
+  return {
+    token: undefined,
+    fetch: (input, init) => globalThis.fetch(input, init as RequestInit) as ReturnType<FetchLike>,
+  };
 }
 
 export type ResolveRequest = {
   source: Source;
-  anchors: Anchor[];
-  anchorId?: string;
-  contentProvider: SourceContentProvider;
+  /** Section entry heading — a DEFAULT entry point, not a fixed address. The
+   *  resolver slugifies it and locates the section at runtime by heading-slug
+   *  scan; the agent may request any heading beyond the canonical vocabulary. */
+  heading?: string;
+  /** Structured selector for sources NOT located by heading: the availability
+   *  matrix (service/region) and terraform module fields (field). */
+  selector?: Record<string, string>;
+  /** Citation label for the resolved excerpt (was the Anchor's citation_label). */
+  citationLabel?: string;
+  /** Optional dev content provider — only the availability matrix resolver still
+   *  reads it (availability stays dev until G3). */
+  contentProvider?: SourceContentProvider;
   ctx: ResolutionContext;
 };
 

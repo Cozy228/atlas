@@ -10,7 +10,7 @@
  *
  * Feedback ships as authored initial state in `feedback.yaml`; it is validated
  * downstream by `createInMemoryRegistry` (the registry-manifest gate covers the
- * authored sources/topics/anchors/mappings).
+ * authored sources/topics/mappings).
  */
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -37,13 +37,12 @@ export function loadRegistryFromManifests(dir: string = DATA_DIR): RegistrySeed 
   // configured) contribute an empty registry rather than throwing — missing data
   // is an honest gap, not a crash. Malformed data still fails fast below.
   if (!existsSync(join(dir, "sources.yaml"))) {
-    return { sources: [], topics: [], anchors: [], mappings: [], feedback: [] };
+    return { sources: [], topics: [], mappings: [], feedback: [] };
   }
 
-  const { sources, topics, anchors, mappings, issues } = validateRegistryManifest({
+  const { sources, topics, mappings, issues } = validateRegistryManifest({
     sources: readYaml(dir, "sources.yaml"),
     topics: readYaml(dir, "topics.yaml"),
-    anchors: readYaml(dir, "anchors.yaml"),
     mappings: readYaml(dir, "source-topic-mappings.yaml"),
   });
 
@@ -60,5 +59,5 @@ export function loadRegistryFromManifests(dir: string = DATA_DIR): RegistrySeed 
     throw new Error(`Invalid feedback.yaml in ${dir}: expected a top-level list of records.`);
   }
 
-  return { sources, topics, anchors, mappings, feedback };
+  return { sources, topics, mappings, feedback };
 }

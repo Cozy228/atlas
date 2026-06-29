@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import {
-  AnchorSchema,
   DiscoveredReferenceSchema,
   FeedbackResponseSchema,
   FeedbackSchema,
@@ -18,19 +17,6 @@ import {
   sourceClasses,
   topicTypes,
 } from "./index";
-
-const anchor = {
-  id: "textract-private-subnet",
-  source_id: "textract-module-readme",
-  anchor_strategy: "markdown-heading",
-  title: "Private subnet usage",
-  selector: {
-    locator: "#private-subnet-usage",
-  },
-  citation_label: "Private subnet usage",
-  status: "valid",
-  last_validated_at: "2026-05-05T00:00:00.000Z",
-};
 
 const source = {
   id: "textract-module-readme",
@@ -116,25 +102,21 @@ describe("entity schemas", () => {
     expect(reparsed.authority_scope).toBeUndefined();
   });
 
-  it("keeps source-native addressability in Anchor records, not Source records", () => {
-    const parsed = AnchorSchema.parse(anchor);
-
-    expect(parsed.source_id).toBe("textract-module-readme");
-    expect(parsed.anchor_strategy).toBe("markdown-heading");
-    expect(() => SourceSchema.parse({ ...source, available_anchors: [anchor] })).toThrow();
+  it("rejects unknown fields on a Source record (strict schema)", () => {
+    expect(() => SourceSchema.parse({ ...source, unexpected_field: [] })).toThrow();
   });
 
   it("accepts operational feedback as a separate non-authoritative signal", () => {
     const parsed = FeedbackSchema.parse({
       id: "feedback-1",
-      target_type: "anchor",
-      target_id: "textract-private-subnet",
+      target_type: "source",
+      target_id: "textract-module-readme",
       feedback_type: "broken",
       message: "The private subnet section is out of date.",
       submitted_at: "2026-05-06T00:00:00.000Z",
     });
 
-    expect(parsed.target_type).toBe("anchor");
+    expect(parsed.target_type).toBe("source");
     expect(parsed.feedback_type).toBe("broken");
   });
 

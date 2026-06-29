@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import type { Anchor, Source } from "@atlas/schema";
+import type { Source } from "@atlas/schema";
 import { resolveTerraformModuleLive } from "./terraformModuleContentProvider";
 import type { FetchLike } from "../resolvers/resolverTypes";
 
@@ -16,17 +16,6 @@ const source: Source = {
   last_observed_at: "2026-05-05T00:00:00.000Z",
   last_reviewed_at: "2026-05-02T00:00:00.000Z",
   review_frequency: "P90D",
-};
-
-const anchor: Anchor = {
-  id: "s3-terraform-starter",
-  source_id: "s3-module-readme",
-  anchor_strategy: "markdown-heading",
-  title: "Terraform starter",
-  selector: { locator: "#terraform-starter" },
-  citation_label: "Terraform starter",
-  status: "valid",
-  last_validated_at: "2026-05-05T00:00:00.000Z",
 };
 
 // Public registry => /v1/modules; a private TFC/TFE host => /api/registry/v1/modules.
@@ -77,8 +66,8 @@ describe("resolveTerraformModuleLive", () => {
     const result = await resolveTerraformModuleLive(
       {
         source,
-        anchors: [anchor],
-        anchorId: "s3-terraform-starter",
+        heading: "Terraform starter",
+        citationLabel: "Terraform starter",
         ctx: { token: config.token, fetch },
       },
       config,
@@ -100,8 +89,8 @@ describe("resolveTerraformModuleLive", () => {
     await resolveTerraformModuleLive(
       {
         source,
-        anchors: [anchor],
-        anchorId: "s3-terraform-starter",
+        heading: "Terraform starter",
+        citationLabel: "Terraform starter",
         ctx: { token: config.token, fetch },
       },
       { token: config.token, baseUrl: "https://tfe.example.internal" },
@@ -118,8 +107,8 @@ describe("resolveTerraformModuleLive", () => {
     const result = await resolveTerraformModuleLive(
       {
         source,
-        anchors: [anchor],
-        anchorId: "s3-terraform-starter",
+        heading: "Terraform starter",
+        citationLabel: "Terraform starter",
         ctx: { token: config.token, fetch },
       },
       config,
@@ -135,8 +124,8 @@ describe("resolveTerraformModuleLive", () => {
     const result = await resolveTerraformModuleLive(
       {
         source,
-        anchors: [anchor],
-        anchorId: "s3-terraform-starter",
+        heading: "Terraform starter",
+        citationLabel: "Terraform starter",
         ctx: { token: config.token, fetch },
       },
       config,
@@ -154,8 +143,8 @@ describe("resolveTerraformModuleLive", () => {
     const result = await resolveTerraformModuleLive(
       {
         source,
-        anchors: [anchor],
-        anchorId: "s3-terraform-starter",
+        heading: "Terraform starter",
+        citationLabel: "Terraform starter",
         ctx: { token: config.token, fetch },
       },
       config,

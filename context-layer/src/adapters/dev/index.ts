@@ -13,7 +13,6 @@ import { DATA_DIR, loadRegistryFromManifests } from "./loadRegistryFromManifests
 
 export { createDevSourceContentProvider } from "./sourceContent";
 export { createDevAvailabilityProvider } from "./availability";
-export { createDevReferenceDiscovery } from "./referenceDiscovery";
 
 export type DevRegistryOptions = {
   env?: Record<string, string | undefined>;

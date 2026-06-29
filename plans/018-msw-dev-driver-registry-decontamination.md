@@ -1,6 +1,9 @@
 # 018 — MSW dev driver + source decontamination (discovery-output, rules-only kernel)
 
-> Status: design — decisions locked across the 2026-06-28 grilling session(s).
+> Status: design — decisions locked across the 2026-06-28 grilling session(s),
+> **reconciled with the now-landed plans 019/020 in a 2026-06-29 grilling pass**
+> (see "Reconciliation with plans 019/020" below — it amends the `metadata` and
+> `guidance` rows, drops the `governance` field, and de-specializes the tests).
 > **Sequencing: runs AFTER [019](019-contextbundle-retirement-and-authority-defer.md).**
 > 019 leaves a portal that reads only resource-projection with authority deferred, so
 > 018 touches the **source side only**.
@@ -8,6 +11,16 @@
 > [`016-domain-decontamination.md`](016-domain-decontamination.md).
 > Principle: memory `atlas-registry-is-discovery-output` — registry is the OUTPUT of
 > discovery, not a hand-authored seed.
+
+## Progress (2026-06-29 — execution started)
+
+**Landed + green** (`pnpm -r typecheck·lint·test` all pass; prod lambda bundle has 0 `msw`/`devMocks`):
+- **G0 GATE** ✅ — Node-mode MSW seam: `context-layer/src/devMocks/{fixtures,handlers,server,setup,index}.ts` + `vitest.config.ts` setupFiles + `pnpm-workspace.yaml allowBuilds: msw: false`. Late-bound fetch proven intercepted. Subpath export `@atlas/context-layer/devMocks` (server+fixtures) for portal/Nitro reuse.
+- **G1 (reference slice)** ✅ — late-bound fetch (`offlineResolutionContext`→`defaultResolutionContext`); live CQL reference discovery via MSW (`createReferenceDiscoveryFromEnv` in composition, env-gated, honest-absence when unconfigured) + honesty states (truncation/401/403/404); **deleted `adapters/dev/referenceDiscovery.ts`**.
+- **G2 (terraform + confluence-page)** ✅ — both resolvers now single-live (always fetch; `!token`→honest gap; no `resolveAnchor`, no `contentProvider`). Terraform MSW: `TERRAFORM_MODULES` + registry handler. `resolveAnchor` now has ONE remaining user: `policyDocumentResolver`.
+- **G6** ✅ — newsletter releases + standalone announcements both from one MSW-served Confluence "What's New" page; `resolveReleaseNotes`→`{releases,announcements}`; new `parseAnnouncements.ts`; portal fns single-live; **deleted `loadReleaseNotes`/`loadAnnouncements`** (`data/newsletter.yaml` kept on disk, unloaded).
+
+**Remaining = the coupled CORE (G3 ∥ G4 → G5).** Key finding: every remaining Confluence consumer (policy + availability) shares the `ATLAS_CONFLUENCE_BASE_URL` gate, and the seed's `policy-document` live path is broken (`clause-2.1` locators can't slug-match a heading). So policy + availability + the **G4 binding-schema change** (`anchor_id`→inline `heading`/`selector`, wide: schema + every resolver signature + every resolver test + `resolveSection` + every resource record + delete AnchorRepository/AnchorSchema/anchors.yaml/integrity/feedback-target) + **G5 derivation** (`resource=groupByKindIdentity(discoveredSources)` + rules-only kernel, deletes `data/*.yaml`+loaders+`adapters/dev/`) must flip **together** as one atomic core. No smaller green slice remains. Recommended approach: author the full source-space fixture (policy pages with real headings + availability page) + kernel + derivation engine **behind** the live path (additive, green), THEN flip composition + migrate all Confluence-consuming tests + delete the seed in one pass.
 
 ## Context
 
@@ -55,9 +68,55 @@ This plan removes that parallel path entirely. After it:
 | descriptive/normative | descriptive → discovery; normative → kernel rules. The old ≈4 governed sources are **not** kernel — their descriptive facts are discovered (dev: MSW fixture). |
 | Resources | **Derived from discovery**, not authored. `resource = groupByKindIdentity(discoveredSources)`; `section → source` by `doc_type`; in-source position by heading-pattern default + raw-TOC; missing → honest-gap. Delete `resources.yaml` + `loadResources`. |
 | anchor "3 去" | **Drop pre-stored anchors.** Binding carries an inline `heading` (a **default entry**, not a fixed address); the section is located at **runtime** (heading-slug scan). The full **heading list (TOC) is a free byproduct of the same parse** — no new endpoint/contract. The agent may request **any** heading, beyond the canonical vocabulary. Delete `AnchorRepository` / `anchors.yaml` / `AnchorSchema`. |
-| guidance | Fetch from an **external, non-Atlas-owned GitHub repo** as yaml → `Guidance[]` (resolution, not seed, not discovery). **Condition:** guidance must genuinely live in a separate repo Atlas does not own; `data/guidance/` becomes **dev fixture only** (MSW serves the GitHub raw response). If Atlas actually owns it → bundle it, do not fetch. |
+| guidance | Read through a **`GuidanceSource` port**; Phase-1 backing = a **separate, runtime-fetched structured-YAML store** → `Guidance[]` (resolution, not seed, not discovery). `data/guidance/` becomes **dev fixture only** (MSW serves the raw response). **Condition corrected (2026-06-29):** the real requirement is **independent of the Atlas build**, NOT legal non-ownership — an Atlas-org repo that is separate from the app build is still runtime-mutable (edit → re-fetch, no rebuild); only *bundling* is seed-in-disguise. Keep the form **structured** (guidance is a structured flow — steps/tasks/destination; Confluence prose can't encode it). Contributor-friendliness is a **Phase-2 write-path** concern (Portal contribution UI emitting structured guidance + reactivating 019's dormant authority for contributed content), seamed by the port — **not in 018**. |
 | newsletter + announcements | **Both from Confluence** — the "What's New" page carries `releases:` and standalone `announcements:`. `resolveReleaseNotes` extracts **both** (extend it if it only parses releases). `data/newsletter.yaml` → dev fixture (MSW serves the page). Delete `loadReleaseNotes` / `loadAnnouncements`. No kernel content. |
-| metadata | **Extract only what the existing fetch trivially yields** (Confluence v2 `version`/`createdAt`/`authorId`, Terraform `published`) → freshness (`stale_source`) + owner. Richer `approve`/`review` metadata deferred. |
+| metadata | **Presentation metadata is best-effort discovered, gap otherwise (2026-06-29).** Discovered: `category` ← the availability page's **domain grouping** (decision below); `description` ← the overview section's lead; `entry_tools` ← the discovered Terraform module source + user-guide reference; freshness (`stale_source`) ← Confluence v2 `version`/`createdAt`, Terraform `published`. **Honest-gap / default** (no clean discovery source, do NOT add bespoke sources or kernel entries to fill catalog chrome): `owner_team`, `support_channel` (absent until a real ownership source exists — the catalog already degrades to "—"); `status` → default `active` (availability yields regional status, not lifecycle/deprecation). **Correction:** the old "owner ← `authorId`" was a misframe — page author ≠ owning team. Richer `approve`/`review` metadata still deferred. |
+
+## Reconciliation with plans 019/020 (2026-06-29 grilling)
+
+018 was locked before 019 finished and before 020 existed. This pass reconciles
+them — the decisions above already fold in the amendments; the downstream
+schema/test changes 018 must make:
+
+- **Presentation metadata = discovery-derived, gap otherwise.** 020 migrated
+  `owner_team`/`support_channel`/`category`/`status`/`description`/`entry_tools`
+  onto `resources.yaml` records. 018 deletes that overlay → these come from
+  discovery (`category`/`description`/`entry_tools`) or honest-gap
+  (`owner_team`/`support_channel`/`status`). The 020 catalog page already
+  degrades gracefully ("—" / conditional trust line) — do not regress that.
+- **Drop the `governance` field.** 020's `ResourceContextResponse` /
+  `ResourceRecordResponse` carry `governance: configured|unconfigured`, meaning
+  "a `resources.yaml` overlay exists." With overlays gone the field is
+  meaningless → **remove it from the schema**; consumers (`ReferenceDocs`,
+  `EvidenceHealth`, the "No governed sources" notice) key off **`sections.length`**
+  instead (empty governed sections = the same signal). Also drop
+  `ResourceGovernanceSchema` usage in the projection.
+- **`getResourceRecord` (020) is now discovery-backed**, not overlay-backed:
+  G5's derivation produces its presentation-metadata bundle. The
+  `/resources/{kind}/{slug}/record` route + clients stay; only the data source
+  changes.
+- **Single cross-reference key = the discovered `{kind}/{slug}`; the curated
+  topic-id namespace is removed** (forced by "registry = discovery output" — not
+  a choice). Today guidance + 020's `topics:` facet + the catalog cross-reference
+  *curated* ids (`aws-textract`, `serverless-compute`, dead `central-landing-zone`);
+  discovery yields concrete `{provider}/{id}` (`aws/lambda`) instead. So: (a)
+  re-key `data/guidance/*.yaml applies_to.{services,landing_zones,security_policies}`
+  to the discovered slug and **drop dead refs** (`central-landing-zone` — LZ left
+  in 019; already dangling); (b) **drop 020's `record.topics` facet field** —
+  `relatedGuidanceForTopic` and the feedback target key on the slug, not a curated
+  topic id; (c) the umbrella `serverless-compute` **collapses to its member**
+  `service/aws/lambda`; (d) the 020 bridges (`serviceRouteParamsForTopic` /
+  `TOPIC_SERVICE_ALIASES`) lose their job and go away. **Must be settled in G5**
+  (which deletes the curated ids) and G6 (whose guidance fixture uses the new key).
+- **De-specialize the tests (all services 平权 — no special service).** There is
+  no "textract HARD GATE" as a privileged anchor. The safety net replacing the
+  deleted count-oracles is a **generic fixture-driven discovery test**: boot MSW
+  with the source-space fixture, run discovery, assert the derived
+  resources/sections/citations for **every** fixture service uniformly (a golden
+  set, content-level — stronger than counts), plus the honest-gap/reference-only
+  branches. Rewrite 019's `v1Acceptance` (drop the textract-as-hero framing) and
+  the 020-added assertions (`getResourceRecord → owner_team="cloud-platform"`,
+  the `governance` asserts) to the discovery-derived, de-specialized shape.
 
 ## Mechanism: MSW wiring (application code stays mock-free)
 
@@ -71,15 +130,116 @@ This plan removes that parallel path entirely. After it:
 
 Shared: `context-layer/src/devMocks/{handlers,fixtures,server}.ts`; latency via `delay(ATLAS_DEV_MOCK_LATENCY_MS)`.
 
-## Implementation batches (each ends green: `pnpm -r typecheck · lint · test`)
+## Goals & execution (goal-driven · opus subagents on disjoint lanes · main agent verifies)
 
-- **B0 — MSW harness (additive).** `pnpm add -Dw msw`. `devMocks/{handlers,fixtures,server}.ts` (source-system endpoints; fixtures migrated from the dev adapters). Integration-only vitest `setupFiles`. `devMocks/handlers.test.ts` boots `setupServer` and fetches each mocked URL. Nothing in app code wired.
-- **B1 — Single live path + reference discovery via MSW.** composition wires live adapters unconditionally with late-bound fetch; CQL handler serves migrated `FIXTURE_REFERENCES` as real `results[]`. **Delete the resolver `else` branches, `resolveAnchor`, in-memory registry/content provider, and `adapters/dev/referenceDiscovery.ts`.**
-- **B2 — Source-content resolution via MSW.** `confluencePageResolver` / `policyDocumentResolver` / `terraformModuleResolver` become unconditional-live; add Confluence v2 page + Terraform README handlers. Delete `adapters/dev/sourceContent.ts`.
-- **B3 — Availability spine via MSW.** `sourceContent/confluenceAvailabilityProvider.ts` implements the unchanged `AvailabilityProvider` by fetch+parse (generalize `parseMarkdownMatrix`); availability is a discovered source classified to the `availability` section. Delete `adapters/dev/availability.ts`.
-- **B4 — anchor "3 去".** `ResourceSectionBindingSchema` drops `anchor_id`, adds inline `{ heading?, selector?, citation_label? }`. `resolveSection` builds the request from `binding.heading`/`selector`. `ResolveRequest` → `{ source, locator?, selector?, citationLabel?, contentProvider, ctx }`. Keep `extractSectionFromRoot` / `extractSectionText` / `parseMatrix` verbatim (they ARE the runtime location). Expose the **heading list (TOC)** off the same parse. Delete `repositories/anchorRepository.ts`, `Registry.anchors`, the anchor integrity loop, `data/anchors.yaml`, `AnchorSchema`, the feedback `anchor` target. (`anchor_references` retirement is in 019.)
-- **B5 — Rules-only kernel + resource derivation.** `context-layer/src/kernel/` — TS constants: `serviceIdentityNormalizer`, `DOC_TYPE_PATTERNS`, `VENDOR_PREFIXES`, discovery entry scope, conflict/severity policy, **`SECTION_RULES`** (per-kind `{ grouping-identity, section→docType, heading-pattern }`). composition assembles registry/resources **from discovery + these rules** — no instances. **Per-kind note:** every kind groups by a **discovered** identity — `service` via `serviceIdentityNormalizer`; `guardrail`/`security-policy` and `landing-zone` each have **their own Confluence site/space/page**, so their unit taxonomy is discovered the same way. The kernel holds only the **space→kind + classification** rules (zero instance taxonomy); `data/topics.yaml` is fully discovery-output. Delete `loadRegistryFromManifests` / `loadResources` / the 5 registry+resource yaml files.
-- **B6 — Content loaders.** guidance → external-GitHub-yaml fetch+parse (MSW-mocked) replacing `loadGuidance`; newsletter **+ announcements** → MSW-mocked Confluence via `resolveReleaseNotes` (extended to extract both), delete `loadReleaseNotes`/`loadAnnouncements`/`newsletter.yaml`-as-source; metadata-A extraction. Delete `dataDir.ts` + `resolveDataDir`.
+Each goal is a **verifiable end-state**: it closes only when its **done-when**
+check passes, which the **main agent runs and accepts (验收)** — subagents
+propose a diff + self-check, the main agent re-runs the check and gates. Global
+bar: every goal ends green at `pnpm -r typecheck · lint · test`.
+
+**Roles**
+- **Main agent (orchestrator + 验收):** owns the sequential **spine** —
+  `composition.ts`, the `@atlas/schema` contract changes, and the
+  resource-derivation engine (single-author coherence) — and **runs/accepts every
+  goal's done-when before the next goal starts**. Acceptance is never delegated.
+- **Subagents (model: `opus`; `isolation: worktree` when mutating concurrently):**
+  the disjoint-file lanes below.
+
+**Parallel fan-out lanes (disjoint file-sets):**
+- **Lane R — grounding (read-only):** before each goal, map current shape + every
+  consumer of a to-be-deleted symbol. High fan-out, zero risk.
+- **Lane H — MSW handlers + fixtures:** one subagent per source system
+  (Confluence-content · Confluence-availability · Confluence-WhatsNew ·
+  Terraform-README · GitHub-guidance · CQL-references). Disjoint `devMocks/` files.
+- **Lane K — kernel rules:** one subagent per rule module (`DOC_TYPE_PATTERNS` ·
+  `VENDOR_PREFIXES` · `SECTION_RULES` · discovery-entry-scope · conflict/severity).
+- **Lane T — test migration:** one subagent per test area (delete count-oracles ·
+  availability test · resolver tests · v1Acceptance + 020 getResourceRecord tests).
+
+### G0 — Mock seam proven · GATE (sequential; nothing else starts; no fan-out)
+- **Goal:** the load-bearing mechanism works — `setupServer` (Node) intercepts a
+  late-bound source-system fetch; conditionally registered; **zero `msw` in prod**.
+- **Done-when (main agent):** `devMocks/handlers.test.ts` boots `setupServer` and
+  each mocked URL returns its fixture; a test proves a **late**
+  `(i,init)=>globalThis.fetch` call is intercepted; a `command==='build'` bundle →
+  `rg msw` = 0.
+- **Subagents:** none — go/no-go, main agent does it. (`pnpm add -Dw msw`;
+  `devMocks/{handlers,fixtures,server}.ts`; integration-only vitest `setupFiles`;
+  app code untouched.) **If red, STOP — the whole approach is rethought.**
+
+### G1 — Single live path (main-agent spine, after G0)
+- **Goal:** ONE path — resolvers always fetch+parse; no env-gated `else`, no
+  `adapters/dev/`, no in-memory registry/content provider.
+- **Done-when:** `rg "adapters/dev"` app code (non-test) = 0; missing creds + no
+  MSW = honest gap (test, not fake fallback); reference discovery serves migrated
+  `FIXTURE_REFERENCES` via the CQL handler.
+- **Main agent owns** `composition.ts` (unconditional live + late-bound fetch).
+  **Subagents:** Lane H (CQL handler); then per-resolver `else`-branch deletions
+  fan out (disjoint resolver files). Delete `resolveAnchor`, in-memory
+  registry/content provider, `adapters/dev/referenceDiscovery.ts`.
+
+### G2 — Source content discovered (fan-out, after G1)
+- **Goal:** `confluencePageResolver` / `policyDocumentResolver` /
+  `terraformModuleResolver` unconditional-live against MSW.
+- **Done-when:** each resolves its fixture to section content + citation;
+  `adapters/dev/sourceContent.ts` deleted.
+- **Subagents:** Lane H (Confluence v2 page · Terraform README) + 3 disjoint
+  resolver subagents + Lane T (resolver tests). Main agent accepts each.
+
+### G3 — Availability discovered + domain grouping (parallel to G2, after G1)
+- **Goal:** `confluenceAvailabilityProvider` implements the unchanged
+  `AvailabilityProvider` by fetch+parse; the parse **preserves domain grouping**
+  (feeds the grid **and** `resource.category`).
+- **Done-when:** `listServices()` matches the MSW availability fixture rows
+  (generic over N); `domain` present per service; `adapters/dev/availability.ts`
+  deleted.
+- **Subagents:** Lane H (availability page handler, domain-grouped) + Lane T
+  (availability test). Independent of G2.
+
+### G4 — Anchor "3 去" (schema = main-agent, after G1)
+- **Goal:** bindings carry inline `{ heading?, selector?, citation_label? }`; the
+  section is located at **runtime** (heading-slug scan); the TOC is a free byproduct.
+- **Done-when:** `ResourceSectionBindingSchema` has no `anchor_id`; `resolveSection`
+  builds from `binding.heading`/`selector`; `extractSectionFromRoot` /
+  `extractSectionText` / `parseMatrix` unchanged; TOC exposed; `anchorRepository` /
+  `Registry.anchors` / anchor-integrity / `data/anchors.yaml` / `AnchorSchema` /
+  feedback `anchor` target deleted.
+- **Main agent owns** the schema + `ResolveRequest` change (shared contract;
+  coordinate with G2's `resolveSection` edits). **Subagents:** Lane T (anchor tests).
+
+### G5 — Rules-only kernel + resource derivation (main-agent core, after G2/G3/G4)
+- **Goal:** registry + resources assembled **from discovery + kernel rules** — zero
+  instances; the presentation-metadata bundle + cross-ref re-key land here.
+- **Done-when:** `kernel/` holds only rules; `resource =
+  groupByKindIdentity(discoveredSources)` + `SECTION_RULES`; `getResourceRecord`
+  metadata bundle derived (category/description/entry_tools; owner/support gap;
+  default-active status); `governance` **and** `topics` fields dropped; cross-refs
+  keyed on `{kind}/{slug}` (guidance `applies_to` + feedback + related);
+  `serverless-compute`→`service/aws/lambda`; the generic golden-discovery test
+  green; `loadRegistryFromManifests` / `loadResources` + the 5 registry/resource
+  yaml deleted.
+- **Subagents:** Lane K (5 disjoint kernel-rule subagents) land first; **main agent
+  builds the derivation engine** on top (single-author). Lane T rewrites
+  v1Acceptance + 020 tests (de-specialized).
+
+### G6 — Content loaders (INDEPENDENT track — parallel to G1–G5, after G0)
+- **Goal:** guidance via the `GuidanceSource` port (runtime structured store);
+  newsletter + announcements via MSW-mocked Confluence.
+- **Done-when:** the port reads the GitHub-raw fixture (`applies_to` keyed on
+  `{kind}/{slug}`, dead `central-landing-zone` dropped); `resolveReleaseNotes`
+  extracts releases **and** announcements; `loadGuidance` / `loadReleaseNotes` /
+  `loadAnnouncements` / `newsletter.yaml`-as-source / `dataDir.ts` /
+  `resolveDataDir` deleted.
+- **Subagents:** Lane H (GitHub-guidance · Confluence-WhatsNew) + the port
+  subagent. Disjoint from the resource track → runs concurrently from G0.
+
+### G-verify — Decontamination proven (main agent, last)
+- **Done-when (global gates — see ## Verification):** prod-clean `rg`; `rm -rf
+  data/` → tests pass; dev-runtime MSW render; real-creds resolve. The four checks
+  fan out (Lane R-style); the **main agent accepts**.
+
+**Dependency spine:** G0 → G1 → {G2 ∥ G3 ∥ G4-schema} → G5 → G-verify, with **G6
+as an independent parallel track from G0**. The main agent gates each arrow.
 
 ## anchor "3 去" design
 
@@ -119,10 +279,15 @@ agent is not limited to the canonical vocabulary. `ResourceCitation.anchor` stay
 - New integration suites drive the live adapters through `setupServer`. Replace count-oracles
   with **equal-or-stronger** integration asserts (017 DoD forbids gutting suites); the CQL
   handler must reproduce truncation/`incomplete` + 401/403/404 so honesty states stay exercised.
+- **De-specialized (all services 平权).** The golden discovery test asserts the derived
+  resources/sections/citations for **every** fixture service uniformly — no privileged
+  "textract gate". Rewrite 019's `v1Acceptance` off the textract-as-hero framing, and the
+  020-added `getResourceRecord`/`governance` assertions to the discovery-derived shape
+  (owner/support absent, no `governance` field).
 
 ## Verification
 
-1. `pnpm -r typecheck && pnpm -r lint && pnpm -r test` green after each batch.
+1. `pnpm -r typecheck && pnpm -r lint && pnpm -r test` green after each goal.
 2. **Prod-clean proof:** `rg -n "devMocks|msw" --glob '!**/devMocks/**' --glob '!**/*.test.*' context-layer/src portal/src portal/server` → 0 in app code; a prod build's bundle contains no `msw`/handlers.
 3. `rm -rf data/` → `pnpm -r test` → no ENOENT (no file dependency remains).
 4. Dev runtime: `ATLAS_DEV_MOCKS=1 pnpm --filter portal dev` → catalog renders reference block + derived sections, latency visible, all sourced from MSW.

@@ -4,20 +4,17 @@
  * mirroring `guidanceManifest.ts`: callers parse YAML/JSON and pass the plain
  * objects in, so this stays portable and testable.
  *
- * Scope: the four registry object kinds the pilot seed already uses — Sources,
- * Topics, Anchors, and Source↔Topic mappings. New contracts (availability-cell /
- * module-field anchor kinds, mapping severity, …) belong to later legs and are
- * intentionally not modelled here.
+ * Scope: the registry object kinds the seed uses — Sources, Topics, and
+ * Source↔Topic mappings. New contracts (mapping severity, …) belong to later
+ * legs and are intentionally not modelled here.
  *
  * Errors block import; there are no warning-tier checks for registry objects
  * today (the governance warnings live in the guidance gate).
  */
 import {
-  AnchorSchema,
   SourceSchema,
   SourceTopicMappingSchema,
   TopicSchema,
-  type Anchor,
   type Source,
   type SourceTopicMapping,
   type Topic,
@@ -52,8 +49,6 @@ export const validateSourceDocument = (raw: unknown, file = "<source>") =>
   validateDocument(SourceSchema, raw, file);
 export const validateTopicDocument = (raw: unknown, file = "<topic>") =>
   validateDocument(TopicSchema, raw, file);
-export const validateAnchorDocument = (raw: unknown, file = "<anchor>") =>
-  validateDocument(AnchorSchema, raw, file);
 export const validateMappingDocument = (raw: unknown, file = "<mapping>") =>
   validateDocument(SourceTopicMappingSchema, raw, file);
 
@@ -107,29 +102,26 @@ function collect<S extends z.ZodTypeAny>(
 export type RegistryManifestInput = {
   sources: unknown;
   topics: unknown;
-  anchors: unknown;
   mappings: unknown;
 };
 
 export type RegistryManifestValidation = {
   sources: Source[];
   topics: Topic[];
-  anchors: Anchor[];
   mappings: SourceTopicMapping[];
   issues: ManifestIssue[];
 };
 
 /**
  * Validate a full set of already-parsed registry documents and check cross-file
- * invariants: duplicate ids per kind, and dangling references (anchor → source,
- * mapping → source / topic). Returns the validated entities plus all issues.
+ * invariants: duplicate ids per kind, and dangling references (mapping → source
+ * / topic). Returns the validated entities plus all issues.
  */
 export function validateRegistryManifest(input: RegistryManifestInput): RegistryManifestValidation {
   const issues: ManifestIssue[] = [];
 
   const sources = collect(SourceSchema, input.sources, "sources.yaml", "source", issues);
   const topics = collect(TopicSchema, input.topics, "topics.yaml", "topic", issues);
-  const anchors = collect(AnchorSchema, input.anchors, "anchors.yaml", "anchor", issues);
   const mappings = collect(
     SourceTopicMappingSchema,
     input.mappings,
@@ -140,16 +132,6 @@ export function validateRegistryManifest(input: RegistryManifestInput): Registry
 
   const sourceIds = new Set(sources.map((source) => source.id));
   const topicIds = new Set(topics.map((topic) => topic.id));
-
-  for (const anchor of anchors) {
-    if (!sourceIds.has(anchor.source_id)) {
-      issues.push({
-        level: "error",
-        path: `anchors.yaml:${anchor.id}.source_id`,
-        message: `dangling source_id "${anchor.source_id}" (no such source)`,
-      });
-    }
-  }
 
   for (const mapping of mappings) {
     if (!sourceIds.has(mapping.source_id)) {
@@ -168,5 +150,5 @@ export function validateRegistryManifest(input: RegistryManifestInput): Registry
     }
   }
 
-  return { sources, topics, anchors, mappings, issues };
+  return { sources, topics, mappings, issues };
 }

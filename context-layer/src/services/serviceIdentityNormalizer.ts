@@ -18,10 +18,9 @@
  * compares against an identically normalized title without re-normalizing here.
  */
 import type { ServiceIdentity } from "@atlas/schema";
-
-/** Vendor prefixes stripped from a display name to recover the bare product
- *  name (B8). Extensible — the spine grows as providers enter the inventory. */
-const VENDOR_PREFIXES = new Set(["amazon", "aws", "azure", "gcp", "google", "microsoft"]);
+// Vendor prefixes are a kernel rule (plan 018) — moved to the rules-only kernel
+// and re-imported here so the normalizer's behavior is unchanged (B8).
+import { VENDOR_PREFIXES } from "../kernel/vendorPrefixes";
 
 export type ServiceIdentityInput = {
   provider: string;

@@ -25,7 +25,6 @@ describe("data/* registry manifests", () => {
   const result = validateRegistryManifest({
     sources: readYaml("sources.yaml"),
     topics: readYaml("topics.yaml"),
-    anchors: readYaml("anchors.yaml"),
     mappings: readYaml("source-topic-mappings.yaml"),
   });
   const errors = result.issues.filter((i) => i.level === "error");
@@ -37,7 +36,6 @@ describe("data/* registry manifests", () => {
   it("parses the expected number of records per kind", () => {
     expect(result.sources).toHaveLength(13);
     expect(result.topics).toHaveLength(9);
-    expect(result.anchors).toHaveLength(21);
     expect(result.mappings).toHaveLength(14);
   });
 });
@@ -71,27 +69,14 @@ const cleanManifest = (): RegistryManifestInput => ({
       entry_tools: [],
     },
   ],
-  anchors: [
-    {
-      id: "a1",
-      source_id: "s1",
-      anchor_strategy: "document-clause",
-      title: "A1",
-      selector: { locator: "clause-1" },
-      citation_label: "A1",
-      status: "valid",
-      last_validated_at: "2026-05-05T00:00:00.000Z",
-    },
-  ],
   mappings: [{ id: "m1", source_id: "s1", topic_id: "t1" }],
 });
 
 describe("validateRegistryManifest", () => {
   it("accepts a clean manifest with no errors", () => {
-    const { issues, sources, topics, anchors, mappings } =
-      validateRegistryManifest(cleanManifest());
+    const { issues, sources, topics, mappings } = validateRegistryManifest(cleanManifest());
     expect(issues).toEqual([]);
-    expect([sources.length, topics.length, anchors.length, mappings.length]).toEqual([1, 1, 1, 1]);
+    expect([sources.length, topics.length, mappings.length]).toEqual([1, 1, 1]);
   });
 
   it("flags a duplicate id with an actionable message", () => {
@@ -113,9 +98,9 @@ describe("validateRegistryManifest", () => {
     expect(issue?.path).toContain("m1");
   });
 
-  it("flags a dangling anchor source reference", () => {
+  it("flags a dangling mapping source reference", () => {
     const input = cleanManifest();
-    (input.anchors as Array<{ source_id: string }>)[0].source_id = "ghost-source";
+    (input.mappings as Array<{ source_id: string }>)[0].source_id = "ghost-source";
     const { issues } = validateRegistryManifest(input);
     expect(issues.some((i) => i.message.includes('dangling source_id "ghost-source"'))).toBe(true);
   });
