@@ -16,9 +16,10 @@ const AVAILABILITY_SOURCE_ID = "availability-matrix";
  * `atlas_get_availability` tool, and the agent resource `availability` section
  * all read THIS one cited source of record, so they can never diverge.
  *
- * The grid comes from the injected `AvailabilityProvider` port: dev serves an
- * in-memory dataset, prod would live-fetch the same Confluence page the matrix
- * resolver hits (boundary TODO). A missing Source 404s rather than serving an
+ * The grid comes from the injected `AvailabilityProvider` port, which discovers
+ * each landing zone's availability by live-fetching + parsing its bound
+ * Confluence page (dev → MSW, prod → the real space; plan 021 G3) — one live
+ * path, no in-memory dataset. A missing Source 404s rather than serving an
  * uncited grid — honesty over resilience (ADR-0009 §4).
  */
 export async function handleAvailabilityRequest(): Promise<

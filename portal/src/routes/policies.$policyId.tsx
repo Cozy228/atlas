@@ -14,6 +14,8 @@ import { EntryToolsGrid } from "@/components/detail/entry-tools-grid";
 import { EvidenceSection } from "@/components/detail/evidence-section";
 import { RelatedColumn } from "@/components/detail/related-column";
 import { DeferredRegion } from "@/components/deferred-region";
+import { DataNotAvailableForZone } from "@/components/landing-zone/data-not-available";
+import { useCurrentLandingZoneRecord } from "@/components/landing-zone/landing-zone-gate";
 import { FeedbackInlineForm } from "@/components/evidence/feedback-inline-form";
 import { PageBody } from "@/components/page-section";
 import { Badge } from "@/components/ui/badge";
@@ -25,7 +27,6 @@ type LoaderData = {
   projection: Promise<ResourceContextResponse | null>;
   relatedServices: ReadonlyArray<Topic>;
   relatedPolicies: ReadonlyArray<Topic>;
-  relatedLandingZones: ReadonlyArray<Topic>;
 };
 
 export const Route = createFileRoute("/policies/$policyId")({
@@ -63,21 +64,37 @@ export const Route = createFileRoute("/policies/$policyId")({
       projection,
       relatedServices: related.filter((entry) => entry.topic_type === "service"),
       relatedPolicies: related.filter((entry) => entry.topic_type === "security-policy"),
-      // Landing zones are no longer catalog topics (plan 019/021) — a policy never
-      // relates to one through the topic graph, so this is honestly empty.
-      relatedLandingZones: [],
     };
   },
   component: PolicyDetailRoute,
 });
 
 function PolicyDetailRoute() {
-  const { topic, projection, relatedServices, relatedPolicies, relatedLandingZones } =
-    Route.useLoaderData();
+  const { topic, projection, relatedServices, relatedPolicies } = Route.useLoaderData();
+  const landingZone = useCurrentLandingZoneRecord();
 
   const primaryTool = topic.entry_tools[0];
-  const hasRelationships =
-    relatedServices.length > 0 || relatedPolicies.length > 0 || relatedLandingZones.length > 0;
+  const hasRelationships = relatedServices.length > 0 || relatedPolicies.length > 0;
+
+  // Per-LZ honesty (plan 021 C2, ADR-0006): an unwired landing zone shows the
+  // honest dead-end here too, never the default zone's policy.
+  if (landingZone?.dataStatus === "not-available") {
+    return (
+      <PageBody width="comfortable" gap="compact">
+        <Link
+          to="/catalog"
+          search={{ tab: "policies" }}
+          className={cn(
+            "inline-flex w-fit items-center gap-1.5 rounded-sm text-xs font-medium text-muted-foreground transition-colors",
+            "hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          )}
+        >
+          <IconArrowLeft className="size-3.5" aria-hidden /> Back to security policies
+        </Link>
+        <DataNotAvailableForZone zoneName={landingZone.name} surface="policy" />
+      </PageBody>
+    );
+  }
 
   return (
     <PageBody width="comfortable" gap="compact">
@@ -117,9 +134,6 @@ function PolicyDetailRoute() {
                   ) : null}
                   {relatedPolicies.length > 0 ? (
                     <RelatedColumn title="Security policies" topics={relatedPolicies} />
-                  ) : null}
-                  {relatedLandingZones.length > 0 ? (
-                    <RelatedColumn title="Landing zones" topics={relatedLandingZones} />
                   ) : null}
                 </div>
               </DetailSection>

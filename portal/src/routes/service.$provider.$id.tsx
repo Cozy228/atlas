@@ -51,6 +51,9 @@ import { useRecordRecent } from "@/components/home/recently-viewed";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DeferredRegion } from "@/components/deferred-region";
+import { DEFAULT_LANDING_ZONE_ID } from "@/components/landing-zone/context";
+import { DataNotAvailableForZone } from "@/components/landing-zone/data-not-available";
+import { useCurrentLandingZoneRecord } from "@/components/landing-zone/landing-zone-gate";
 import {
   findAvailabilityServiceById,
   serviceRouteParamsForTopic,
@@ -100,8 +103,14 @@ export const Route = createFileRoute("/service/$provider/$id")({
     // identity icon render a skeleton until it lands.
     const zone: Promise<{ defaultZone: LandingZoneAvailability; totalZones: number }> =
       context.queryClient.ensureQueryData(availabilityQueryOptions).then((availability) => ({
+        // The datasheet shows the default (only wired) LZ's grid until per-LZ
+        // resource scope lands (plan 023). Match by the LZ id, not the URL
+        // `provider` (a cloud) — post-rename zone ids are LZ ids (awsf), so the
+        // old `z.id === params.provider` matched nothing for aws and the empty
+        // not-available zone for azure.
         defaultZone:
-          availability.zones.find((z) => z.id === params.provider) ?? availability.zones[0]!,
+          availability.zones.find((z) => z.id === DEFAULT_LANDING_ZONE_ID) ??
+          availability.zones[0]!,
         totalZones: availability.zones.length,
       }));
 
@@ -178,6 +187,24 @@ function ServiceDetailRoute() {
   const feedbackTargetId = record.topics?.[0] ?? slug;
 
   useRecordRecent({ kind: "service", slug, name: record.name });
+
+  // Per-LZ honesty (plan 021 C2, ADR-0006): an unwired landing zone shows the
+  // honest dead-end here too, never the default zone's datasheet.
+  const landingZone = useCurrentLandingZoneRecord();
+  if (landingZone?.dataStatus === "not-available") {
+    return (
+      <div className="mx-auto flex w-full max-w-[1180px] flex-col gap-7 px-6 py-9 sm:px-8">
+        <Link
+          to="/catalog"
+          className="flex w-fit items-center gap-1.5 text-[13px] font-medium text-muted-foreground transition-colors hover:text-brand-ink"
+        >
+          <IconArrowLeft aria-hidden className="size-3.5" />
+          Catalog
+        </Link>
+        <DataNotAvailableForZone zoneName={landingZone.name} surface="service" />
+      </div>
+    );
+  }
 
   // Numbered main-column sections — only the ones that apply, in order.
   const sections: ReadonlyArray<{ title: string; node: ReactNode }> = [

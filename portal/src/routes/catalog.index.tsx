@@ -13,6 +13,8 @@ import type { Topic, TopicDiscoveryResponse } from "@atlas/schema";
 import { availabilityQueryOptions, topicDiscoveryQueryOptions } from "@/api/queries";
 import type { LandingZoneAvailability } from "@/api/server/availability";
 import { CatalogAdopted } from "@/components/catalog/adopted";
+import { DEFAULT_LANDING_ZONE_ID } from "@/components/landing-zone/context";
+import { LandingZoneGate } from "@/components/landing-zone/landing-zone-gate";
 
 type LoaderData = {
   topics: ReadonlyArray<Topic>;
@@ -27,12 +29,14 @@ export const Route = createFileRoute("/catalog/")({
     // Slow: availability is a live Confluence fetch in the real adapter — defer it
     // (no await) so the catalog shell (header, tabs, search) paints immediately;
     // the workspace renders a skeleton until the zone lands.
-    const zone = context.queryClient
-      .ensureQueryData(availabilityQueryOptions)
-      .then(
-        (availability) =>
-          availability.zones.find((entry) => entry.id === "aws") ?? availability.zones[0]!,
-      );
+    const zone = context.queryClient.ensureQueryData(availabilityQueryOptions).then(
+      // The catalog shows the default (only wired) LZ's availability summary
+      // until per-surface LZ scope lands (plans 022/023); pick it by id, not
+      // by array position, so reordering LANDING_ZONES can't silently swap it.
+      (availability) =>
+        availability.zones.find((entry) => entry.id === DEFAULT_LANDING_ZONE_ID) ??
+        availability.zones[0]!,
+    );
     return { topics: topicsResp.topics, zone };
   },
   component: CatalogIndex,
@@ -43,7 +47,9 @@ function CatalogIndex() {
 
   return (
     <div className="mx-auto flex w-full max-w-[1180px] flex-col gap-8 px-6 py-8 sm:px-8">
-      <CatalogAdopted topics={topics} zone={zone} />
+      <LandingZoneGate surface="catalog">
+        <CatalogAdopted topics={topics} zone={zone} />
+      </LandingZoneGate>
     </div>
   );
 }

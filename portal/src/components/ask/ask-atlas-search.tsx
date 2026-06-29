@@ -10,7 +10,6 @@ import {
   IconHome,
   IconLayoutGrid,
   IconLifebuoy,
-  IconMapPin,
   IconSearch,
 } from "@tabler/icons-react";
 import Fuse from "fuse.js";
@@ -78,7 +77,6 @@ const CONTACT_SUPPORT: SearchResult = {
 
 const TOPIC_ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   service: IconLayoutGrid,
-  "landing-zone": IconMapPin,
 };
 
 function topicIcon(type: string) {
