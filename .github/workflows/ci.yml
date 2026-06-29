@@ -102,3 +102,47 @@ jobs:
             packages/atlas-e2e/playwright-report/
             packages/atlas-e2e/test-results/
           retention-days: 7
+
+  # Smoke layer: the REAL prod build, mock-free (badge ABSENT, route-200, SSR, no
+  # JS error). ubuntu-only — responsive/a11y/degraded specs are cross-platform
+  # isomorphic and already run on the windows primary leg, so the prod smoke does
+  # not need a second OS (revisit if a Windows prod-server bug appears).
+  e2e-smoke:
+    name: e2e-smoke (prod build)
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PW_CHANNEL: msedge
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Browser doctor
+        run: pnpm --filter @atlas/e2e e2e:doctor
+
+      # e2e:smoke builds the portal, then runs the mock-free prod-server smoke layer.
+      - name: E2E smoke (prod build, mock-free)
+        run: pnpm --filter @atlas/e2e e2e:smoke
+
+      - name: Upload report + traces
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-smoke
+          path: |
+            packages/atlas-e2e/playwright-report/
+            packages/atlas-e2e/test-results/
+          retention-days: 7
