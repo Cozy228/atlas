@@ -2,18 +2,23 @@ import { useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import { IconMenu2, IconSearch } from "@tabler/icons-react";
 
+import type { DataMode } from "@/api/server/dataMode";
 import { AskAtlasFab } from "@/components/ask-atlas-fab";
 import { AskAtlasProvider, useAskAtlas } from "@/components/ask-atlas/context";
 import { CurrentLandingZoneProvider } from "@/components/landing-zone/context";
 import { LandingZoneSelector } from "@/components/landing-zone/landing-zone-selector";
 import { PortalFooter } from "@/components/portal-footer";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { ThemeProvider } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
 type PortalShellProps = {
   children: ReactNode;
+  /** Dev-runtime data mode (plan 026 WU-B); drives the "Mock data" top-nav badge.
+   *  Undefined / 'live' renders no badge — the prod build always reports 'live'. */
+  dataMode?: DataMode;
 };
 
 type NavItem = {
@@ -30,13 +35,13 @@ const PRIMARY_NAV: ReadonlyArray<NavItem> = [
   { to: "/sources", label: "Sources" },
 ];
 
-export function PortalShell({ children }: PortalShellProps) {
+export function PortalShell({ children, dataMode }: PortalShellProps) {
   return (
     <ThemeProvider>
       <CurrentLandingZoneProvider>
         <AskAtlasProvider>
           <div className="flex min-h-dvh w-full flex-col bg-background text-foreground">
-            <TopBar />
+            <TopBar dataMode={dataMode} />
             {/* 32px coordinate grid on a full-width canvas, beginning below the
               opaque top bar. Shows only in negative space; text-bearing blocks
               carry bg-background plates to mask it (DESIGN.md §5). */}
@@ -50,7 +55,7 @@ export function PortalShell({ children }: PortalShellProps) {
   );
 }
 
-function TopBar() {
+function TopBar({ dataMode }: { dataMode?: DataMode }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const nav = PRIMARY_NAV;
 
@@ -62,7 +67,17 @@ function TopBar() {
         "bg-background",
       )}
     >
-      <BrandLink />
+      <div className="flex min-w-0 items-center gap-2">
+        <BrandLink />
+        {dataMode === "mock" ? (
+          <Badge
+            variant="warning"
+            title="Serving deterministic mock fixtures — not live source systems"
+          >
+            Mock data
+          </Badge>
+        ) : null}
+      </div>
       <nav aria-label="Primary" className="hidden items-center justify-center gap-1 md:flex">
         {nav.map((item) => (
           <TopNavLink key={item.to} item={item} />

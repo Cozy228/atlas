@@ -8,6 +8,7 @@ import {
   createRootRouteWithContext,
 } from "@tanstack/react-router";
 
+import { getDataMode } from "@/api/server/dataMode";
 import { PortalShell } from "@/components/portal-shell";
 import { themeInitScript } from "@/lib/theme-script";
 import globalsCss from "@/styles/globals.css?url";
@@ -63,6 +64,10 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       { rel: "sitemap", type: "application/xml", href: "/sitemap.xml" },
     ],
   }),
+  // Dev-only data-mode signal for the top-nav badge (plan 026 WU-B). Resolved
+  // server-side from the same predicate that gates the MSW boot; serialized into
+  // the SSR payload so server and client render the badge identically.
+  loader: async () => ({ dataMode: await getDataMode() }),
   component: RootComponent,
   notFoundComponent: NotFoundComponent,
 });
@@ -101,6 +106,7 @@ function NotFoundComponent() {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const { dataMode } = Route.useLoaderData();
   // Defer mounting the Toaster (and fetching the sonner chunk) until after the
   // initial client render.
   const [showToaster, setShowToaster] = useState(false);
@@ -108,7 +114,7 @@ function RootComponent() {
   return (
     <RootDocument>
       <QueryClientProvider client={queryClient}>
-        <PortalShell>
+        <PortalShell dataMode={dataMode}>
           <Outlet />
         </PortalShell>
         {showToaster ? (

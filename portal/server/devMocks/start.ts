@@ -16,11 +16,9 @@
  */
 import { server, setDevDiscoveryEnv } from "@atlas/context-layer/devMocks";
 
-const explicit = process.env.DEV_MOCKS; // '1' = force mock, '0' = force real
-const hasRealCreds = !!process.env.CONFLUENCE_TOKEN && !!process.env.CONFLUENCE_BASE_URL;
-const shouldMock = explicit != null ? explicit !== "0" : !hasRealCreds;
+import { shouldMockData } from "./shouldMock";
 
-if (shouldMock) {
+if (shouldMockData()) {
   setDevDiscoveryEnv();
   server.listen({ onUnhandledRequest: "bypass" });
 }
