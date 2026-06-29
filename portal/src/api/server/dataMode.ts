@@ -2,23 +2,18 @@
  * Data-mode signal for the top-nav badge (plan 026 WU-B).
  *
  * Reports whether the dev runtime is serving deterministic MSW fixtures ('mock')
- * or hitting real source systems ('live'), from the SAME `shouldMockData`
- * predicate that gates the MSW boot (`server/devMocks/start.ts`) — one source of
- * truth. MSW only ever boots in the dev runtime (`vite serve`); the prod build
- * never registers the plugin, so the prod bundle always reports 'live' and the
- * badge is absent (the smoke layer asserts this).
+ * or hitting real source systems ('live'). The decision itself is the
+ * `shouldMockData` predicate, evaluated ONCE by the dev-only MSW plugin
+ * (`server/devMocks/start.ts`), which records the result in `DEV_DATA_MODE` —
+ * one source of truth. The prod build never registers that plugin, so the marker
+ * is absent and prod reports 'live' (the badge stays hidden — smoke asserts this).
  */
 import { createServerFn } from "@tanstack/react-start";
-
-import { shouldMockData } from "../../../server/devMocks/shouldMock";
 
 export type DataMode = "mock" | "live";
 
 export function resolveDataMode(): DataMode {
-  // import.meta.env.DEV is statically `false` in the prod bundle, so the mock
-  // predicate is only ever consulted in the dev runtime where MSW can boot.
-  if (!import.meta.env.DEV) return "live";
-  return shouldMockData() ? "mock" : "live";
+  return process.env.DEV_DATA_MODE === "mock" ? "mock" : "live";
 }
 
 export const getDataMode = createServerFn({ method: "GET", strict: { output: false } }).handler(

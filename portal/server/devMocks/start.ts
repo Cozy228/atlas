@@ -18,7 +18,13 @@ import { server, setDevDiscoveryEnv } from "@atlas/context-layer/devMocks";
 
 import { shouldMockData } from "./shouldMock";
 
-if (shouldMockData()) {
+const mock = shouldMockData();
+// Record the resolved mode for the data-mode badge (dataMode.ts reads it). Set
+// it BEFORE setDevDiscoveryEnv() mutates the discovery env, so the marker
+// reflects the original creds, not the injected fixtures. The prod build never
+// registers this plugin → the marker is absent → the badge reports 'live'.
+process.env.DEV_DATA_MODE = mock ? "mock" : "live";
+if (mock) {
   setDevDiscoveryEnv();
   server.listen({ onUnhandledRequest: "bypass" });
 }
