@@ -35,12 +35,12 @@ describe("robots.txt", () => {
 
 describe("sitemap.xml", () => {
   it("is a valid urlset of canonical pages, excluding mutation flows and the support page", async () => {
-    const [topics, sources] = await Promise.all([
-      serverContextApiClient.discoverTopics(),
+    const [catalog, sources] = await Promise.all([
+      serverContextApiClient.discoverResources(),
       serverContextApiClient.discoverSources(),
     ]);
     const xml = buildSitemapXml({
-      topics: topics.topics,
+      resourceIds: catalog.resources.map((resource) => resource.id),
       sourceIds: sources.sources.map((source) => source.id),
       guidanceIds: (await loadGuidance()).map((guidance) => guidance.id),
     });

@@ -4,18 +4,17 @@ import {
   FeedbackResponseSchema,
   FeedbackSchema,
   FeedbackSubmissionSchema,
+  ResourceCatalogResponseSchema,
   ResourceContextResponseSchema,
+  ResourceRecordResponseSchema,
   ServiceIdentitySchema,
   SourceDiscoveryRequestSchema,
   SourceSchema,
-  SourceTopicMappingSchema,
-  TopicDiscoveryRequestSchema,
-  TopicSchema,
   apiErrorCodes,
   authorityLevels,
   docTypes,
+  resourceKinds,
   sourceClasses,
-  topicTypes,
 } from "./index";
 
 const source = {
@@ -32,10 +31,15 @@ const source = {
   review_frequency: "P90D",
 };
 
-const topic = {
-  id: "aws-textract",
+// A valid resource record — the presentation projection that replaced the Topic
+// as the catalog/identity unit (resource-first collapse).
+const resourceRecord = {
+  kind: "service",
+  id: "service/aws/textract",
+  slug: "aws/textract",
+  provider: "aws",
   name: "AWS Textract",
-  topic_type: "service",
+  aliases: ["AWS Textract", "textract"],
   category: "ai-ml",
   status: "active",
   description: "Managed OCR service for document workflows.",
@@ -59,8 +63,8 @@ describe("contract enums", () => {
     ]);
   });
 
-  it("matches the V1 topic types exactly", () => {
-    expect(topicTypes).toEqual(["service", "security-policy"]);
+  it("matches the resource kinds exactly", () => {
+    expect(resourceKinds).toEqual(["service", "guardrail", "landing-zone"]);
   });
 
   it("matches the V1 authority levels exactly", () => {
@@ -79,7 +83,6 @@ describe("contract enums", () => {
       "anchor_broken",
       "source_unavailable",
       "access_denied",
-      "topic_not_found",
       "resource_not_found",
       "invalid_request",
     ]);
@@ -124,40 +127,51 @@ describe("entity schemas", () => {
     expect(() => SourceSchema.parse({ ...source, source_class: "sharepoint-page" })).toThrow();
   });
 
-  it("keeps governance fields off Topic", () => {
-    expect(() => TopicSchema.parse({ ...topic, authority_level: "authoritative" })).toThrow();
-  });
-
-  it("keeps governance fields off SourceTopicMapping", () => {
+  it("rejects unknown fields on a resource record (strict schema)", () => {
     expect(() =>
-      SourceTopicMappingSchema.parse({
-        id: "textract-module-to-topic",
-        source_id: "textract-module-readme",
-        topic_id: "aws-textract",
-        authority_level: "authoritative",
-      }),
+      ResourceRecordResponseSchema.parse({ ...resourceRecord, authority_level: "authoritative" }),
     ).toThrow();
   });
 
-  it("requires non-nullable Topic identity fields", () => {
-    expect(() => TopicSchema.parse({ ...topic, owner_team: null })).toThrow();
+  it("rejects a null presentation field on a resource record", () => {
+    expect(() =>
+      ResourceRecordResponseSchema.parse({ ...resourceRecord, owner_team: null }),
+    ).toThrow();
+  });
+
+  it("treats resource presentation metadata as honest-gap (optional)", () => {
+    const minimal = {
+      kind: "service",
+      id: "service/aws/textract",
+      slug: "aws/textract",
+      name: "AWS Textract",
+      aliases: [],
+    };
+    const parsed = ResourceRecordResponseSchema.parse(minimal);
+    expect(parsed.category).toBeUndefined();
+    expect(parsed.owner_team).toBeUndefined();
+    expect(parsed.status).toBeUndefined();
   });
 });
 
 describe("request and response schemas", () => {
-  it("accepts source and topic discovery requests", () => {
+  it("accepts source discovery requests", () => {
     expect(SourceDiscoveryRequestSchema.parse({ query: "textract" })).toEqual({
       query: "textract",
     });
-    expect(TopicDiscoveryRequestSchema.parse({ topic_type: "service" })).toEqual({
-      topic_type: "service",
-    });
+  });
+
+  it("lists resource records in the catalog response", () => {
+    const parsed = ResourceCatalogResponseSchema.parse({ resources: [resourceRecord] });
+    expect(parsed.resources).toHaveLength(1);
+    expect(parsed.resources[0].slug).toBe("aws/textract");
+    expect(parsed.resources[0].kind).toBe("service");
   });
 
   it("accepts feedback submissions and feedback responses", () => {
     const submission = FeedbackSubmissionSchema.parse({
-      target_type: "topic",
-      target_id: "aws-textract",
+      target_type: "resource",
+      target_id: "service/aws/textract",
       feedback_type: "stale",
       message: "The getting started guidance needs a new review.",
     });
@@ -167,7 +181,7 @@ describe("request and response schemas", () => {
       ...submission,
     };
 
-    expect(submission.target_id).toBe("aws-textract");
+    expect(submission.target_id).toBe("service/aws/textract");
     expect(FeedbackResponseSchema.parse({ feedback })).toEqual({ feedback });
   });
 });
@@ -247,10 +261,9 @@ describe("reference discovery schemas", () => {
 });
 
 describe("resource context response — discovery merge container", () => {
-  it("requires resource-level governance, a flat references list, and a discovery state", () => {
+  it("requires a flat references list and a discovery state", () => {
     const spineOnly = {
       resource: resourceSummary,
-      governance: "unconfigured" as const,
       requestedSections: [],
       sections: {},
       missingSections: [],
@@ -264,14 +277,10 @@ describe("resource context response — discovery merge container", () => {
     };
 
     const parsed = ResourceContextResponseSchema.parse(spineOnly);
-    expect(parsed.governance).toBe("unconfigured");
     expect(parsed.references).toHaveLength(1);
     expect(parsed.referenceDiscovery?.status).toBe("fresh");
 
-    // The new fields are mandatory — a producer cannot silently omit them.
-    const { governance, ...withoutGovernance } = spineOnly;
-    void governance;
-    expect(() => ResourceContextResponseSchema.parse(withoutGovernance)).toThrow();
+    // The discovery-merge fields are mandatory — a producer cannot silently omit them.
     const { references, ...withoutReferences } = spineOnly;
     void references;
     expect(() => ResourceContextResponseSchema.parse(withoutReferences)).toThrow();
@@ -283,7 +292,6 @@ describe("resource context response — discovery merge container", () => {
   it("allows a null discovery state (no discovery ran) but rejects an unknown status", () => {
     const base = {
       resource: resourceSummary,
-      governance: "configured" as const,
       requestedSections: [],
       sections: {},
       missingSections: [],
@@ -301,17 +309,17 @@ describe("resource context response — discovery merge container", () => {
     ).toThrow();
   });
 
-  it("rejects an unknown governance state", () => {
+  it("rejects an unknown resource-context field (strict schema)", () => {
     expect(() =>
       ResourceContextResponseSchema.parse({
         resource: resourceSummary,
-        governance: "partial",
         requestedSections: [],
         sections: {},
         missingSections: [],
         references: [],
         referenceDiscovery: null,
         resolvedAt: "2026-06-28T00:00:00.000Z",
+        governance: "configured",
       }),
     ).toThrow();
   });

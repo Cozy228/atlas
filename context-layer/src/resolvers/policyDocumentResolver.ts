@@ -10,9 +10,9 @@ export const policyDocumentResolver: AnchorResolver = {
     // confluence-page resolver. Token order: the caller's Bearer first (so the
     // page resolves under the caller's own ACL), else the service token.
     const env = readProcessEnv();
-    const token = request.ctx.token ?? env.ATLAS_CONFLUENCE_TOKEN;
-    const baseUrl = env.ATLAS_CONFLUENCE_BASE_URL;
-    const email = env.ATLAS_CONFLUENCE_EMAIL;
+    const token = request.ctx.token ?? env.CONFLUENCE_TOKEN;
+    const baseUrl = env.CONFLUENCE_BASE_URL;
+    const email = env.CONFLUENCE_EMAIL;
 
     // No Confluence channel configured = honest gap, never a fabricated fallback.
     if (!token || !baseUrl) {

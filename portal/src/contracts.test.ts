@@ -13,7 +13,6 @@ describe("portal contract boundary", () => {
         resourceUrl: "/api/resources/service/aws/textract",
         markdownUrl: "/resources/service/aws/textract.md",
       },
-      governance: "unconfigured",
       requestedSections: [],
       sections: {},
       missingSections: [],
@@ -24,6 +23,6 @@ describe("portal contract boundary", () => {
 
     expect(projection.sections).toEqual({});
     expect(projection.references).toEqual([]);
-    expect(projection.governance).toBe("unconfigured");
+    expect(Object.keys(projection.sections)).toHaveLength(0);
   });
 });

@@ -13,8 +13,8 @@ export const terraformModuleResolver: AnchorResolver = {
     // resolves under the caller's own TFC/TFE identity), else the service token;
     // baseUrl is deployment config, the public registry only the default.
     const env = readProcessEnv();
-    const token = request.ctx.token ?? env.ATLAS_TERRAFORM_TOKEN;
-    const baseUrl = env.ATLAS_TERRAFORM_BASE_URL ?? "https://registry.terraform.io";
+    const token = request.ctx.token ?? env.TERRAFORM_TOKEN;
+    const baseUrl = env.TERRAFORM_BASE_URL ?? "https://registry.terraform.io";
 
     // No credential = honest gap, never a fabricated fallback. The single live
     // path cannot fetch without a token, so surface `source_unavailable` with

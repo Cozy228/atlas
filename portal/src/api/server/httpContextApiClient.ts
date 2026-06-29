@@ -2,16 +2,14 @@ import {
   ApiErrorResponseSchema,
   AvailabilityReadResponseSchema,
   FeedbackResponseSchema,
+  ResourceCatalogResponseSchema,
   ResourceContextResponseSchema,
   ResourceRecordResponseSchema,
   ResourceSearchResponseSchema,
   SourceDiscoveryResponseSchema,
   SourceResponseSchema,
-  TopicDiscoveryResponseSchema,
-  TopicResponseSchema,
   type FeedbackSubmission,
   type SourceDiscoveryRequest,
-  type TopicDiscoveryRequest,
 } from "@atlas/schema";
 
 import type { ContextApiClient } from "../contextApiClient";
@@ -31,7 +29,7 @@ export function createServerContextApiClient(
     token?: string;
   } = {},
 ): ServerContextApiClient {
-  const baseUrl = input.env?.ATLAS_CONTEXT_API_BASE_URL ?? process.env.ATLAS_CONTEXT_API_BASE_URL;
+  const baseUrl = input.env?.CONTEXT_API_BASE_URL ?? process.env.CONTEXT_API_BASE_URL;
   if (baseUrl) {
     return {
       ...createFetchContextApiClient({ baseUrl, fetch: input.fetch, token: input.token }),
@@ -64,13 +62,6 @@ export function createFetchContextApiClient(input: {
     });
 
   return {
-    async getTopic(id: string) {
-      return requestJson({
-        fetch: fetchImpl,
-        schema: TopicResponseSchema,
-        url: `${baseUrl}/topics/${encodeURIComponent(id)}`,
-      });
-    },
     async getSource(id: string) {
       return requestJson({
         fetch: fetchImpl,
@@ -123,11 +114,11 @@ export function createFetchContextApiClient(input: {
         url: withQuery(`${baseUrl}/sources`, request),
       });
     },
-    async discoverTopics(request: TopicDiscoveryRequest = {}) {
+    async discoverResources() {
       return requestJson({
         fetch: fetchImpl,
-        schema: TopicDiscoveryResponseSchema,
-        url: withQuery(`${baseUrl}/topics`, request),
+        schema: ResourceCatalogResponseSchema,
+        url: `${baseUrl}/resources/catalog`,
       });
     },
     async submitFeedback(request: FeedbackSubmission) {

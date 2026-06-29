@@ -44,9 +44,7 @@ export const forbiddenV1Services = [
   "bedrock-knowledge-base",
 ] as const;
 
-export function buildEnvironmentConfig(
-  environment: EnvironmentName,
-): EnvironmentConfig {
+export function buildEnvironmentConfig(environment: EnvironmentName): EnvironmentConfig {
   if (environment === "production-like") {
     return {
       environment,
@@ -62,9 +60,7 @@ export function buildEnvironmentConfig(
   };
 }
 
-export function buildAtlasInfraPlan(
-  environment: EnvironmentConfig,
-): AtlasInfraPlan {
+export function buildAtlasInfraPlan(environment: EnvironmentConfig): AtlasInfraPlan {
   return {
     environment,
     resources: [
@@ -206,8 +202,8 @@ resource "aws_lambda_function" "atlas_context_api" {
 
   environment {
     variables = {
-      ATLAS_REGISTRY_TABLE = aws_dynamodb_table.atlas_registry.name
-      ATLAS_RUNTIME_SECRET = aws_secretsmanager_secret.atlas_runtime.name
+      REGISTRY_TABLE = aws_dynamodb_table.atlas_registry.name
+      RUNTIME_SECRET = aws_secretsmanager_secret.atlas_runtime.name
     }
   }
 }

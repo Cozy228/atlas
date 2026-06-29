@@ -14,7 +14,7 @@ import {
 } from "@tabler/icons-react";
 import Fuse from "fuse.js";
 
-import { sourceDiscoveryQueryOptions, topicDiscoveryQueryOptions } from "@/api/queries";
+import { resourceCatalogQueryOptions, sourceDiscoveryQueryOptions } from "@/api/queries";
 import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
 
@@ -75,12 +75,12 @@ const CONTACT_SUPPORT: SearchResult = {
   category: "Help",
 };
 
-const TOPIC_ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
+const RESOURCE_ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   service: IconLayoutGrid,
 };
 
-function topicIcon(type: string) {
-  return TOPIC_ICON_MAP[type] ?? IconLayoutGrid;
+function resourceIcon(kind: string) {
+  return RESOURCE_ICON_MAP[kind] ?? IconLayoutGrid;
 }
 
 export function getNextSearchIndex(current: number, itemCount: number, direction: SearchDirection) {
@@ -96,8 +96,8 @@ export function AskAtlasSearch({ onOpenChange, onSwitchToAsk }: AskAtlasSearchPr
   const deferredQuery = useDeferredValue(query);
   const [selectedIndex, setSelectedIndex] = useState(0);
 
-  const { data: topicsData, isLoading: topicsLoading } = useQuery({
-    ...topicDiscoveryQueryOptions,
+  const { data: catalogData, isLoading: catalogLoading } = useQuery({
+    ...resourceCatalogQueryOptions,
     placeholderData: keepPreviousData,
   });
 
@@ -109,15 +109,18 @@ export function AskAtlasSearch({ onOpenChange, onSwitchToAsk }: AskAtlasSearchPr
   const allResults = useMemo<ReadonlyArray<SearchResult>>(() => {
     const dynamic: SearchResult[] = [];
 
-    if (topicsData) {
-      for (const topic of topicsData.topics) {
+    if (catalogData) {
+      for (const resource of catalogData.resources) {
+        const isService = resource.kind === "service";
         dynamic.push({
-          id: `topic:${topic.id}`,
-          label: topic.name,
-          description: `${topic.topic_type} · ${topic.category}`,
-          to: `/catalog/${topic.id}`,
-          icon: topicIcon(topic.topic_type),
-          category: topic.topic_type === "security-policy" ? "Security policies" : "Services",
+          id: `resource:${resource.id}`,
+          label: resource.name,
+          description: resource.category
+            ? `${resource.kind} · ${resource.category}`
+            : resource.kind,
+          to: isService ? `/service/${resource.slug}` : `/policies/${resource.slug}`,
+          icon: resourceIcon(resource.kind),
+          category: isService ? "Services" : "Security policies",
         });
       }
     }
@@ -136,7 +139,7 @@ export function AskAtlasSearch({ onOpenChange, onSwitchToAsk }: AskAtlasSearchPr
     }
 
     return [...STATIC_NAV, ...dynamic];
-  }, [topicsData, sourcesData]);
+  }, [catalogData, sourcesData]);
 
   const fuse = useMemo(
     () =>
@@ -173,7 +176,7 @@ export function AskAtlasSearch({ onOpenChange, onSwitchToAsk }: AskAtlasSearchPr
   }, [items]);
 
   const flatItems = items;
-  const isLoading = topicsLoading || sourcesLoading;
+  const isLoading = catalogLoading || sourcesLoading;
 
   function go(to: string) {
     onOpenChange(false);

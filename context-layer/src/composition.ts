@@ -5,9 +5,9 @@
  *
  * Since plan 018 G5 the registry + resource records are the OUTPUT of discovery,
  * not the `data/*.yaml` seed: we probe every spine service's Terraform module and
- * crawl the security-policy Confluence space, then derive the Sources/Topics/
- * resource records from what was found. Discovery is the SINGLE live path — dev/
- * integration point `ATLAS_CONFLUENCE_*` / `ATLAS_TERRAFORM_*` at the MSW
+ * crawl the security-policy Confluence space, then derive the Sources + resource
+ * records from what was found. Discovery is the SINGLE live path — dev/
+ * integration point `CONFLUENCE_*` / `TERRAFORM_*` at the MSW
  * fixtures; prod points them at the real systems. An unconfigured channel yields
  * an honest-empty catalog, never a fabricated in-code fixture.
  */
@@ -47,14 +47,16 @@ let discoveryCache: { key: string; promise: Promise<Discovered> } | undefined;
 
 function discoveryKey(env: Record<string, string | undefined>): string {
   return [
-    env.ATLAS_TERRAFORM_BASE_URL,
-    env.ATLAS_TERRAFORM_TOKEN,
-    env.ATLAS_CONFLUENCE_BASE_URL,
-    env.ATLAS_CONFLUENCE_TOKEN,
-    env.ATLAS_CONFLUENCE_EMAIL,
-    env.ATLAS_CONFLUENCE_SECURITY_SPACE_KEY,
-    env.ATLAS_CONFLUENCE_AVAILABILITY_PAGE_AWSF,
-    env.ATLAS_CONFLUENCE_AVAILABILITY_PAGE_AZURE,
+    env.TERRAFORM_BASE_URL,
+    env.TERRAFORM_TOKEN,
+    env.CONFLUENCE_BASE_URL,
+    env.CONFLUENCE_TOKEN,
+    env.CONFLUENCE_EMAIL,
+    env.CONFLUENCE_SECURITY_SPACE_KEY,
+    env.CONFLUENCE_SECURITY_BASE_URL,
+    env.CONFLUENCE_SECURITY_TOKEN,
+    env.CONFLUENCE_AVAILABILITY_PAGE_AWSF,
+    env.CONFLUENCE_AVAILABILITY_PAGE_AZURE,
   ].join("|");
 }
 
@@ -68,17 +70,19 @@ async function runDiscovery(
     availabilityProvider,
     ctx,
     terraform: {
-      baseUrl: env.ATLAS_TERRAFORM_BASE_URL ?? "",
-      token: env.ATLAS_TERRAFORM_TOKEN ?? "",
+      baseUrl: env.TERRAFORM_BASE_URL ?? "",
+      token: env.TERRAFORM_TOKEN ?? "",
     },
   });
   const guardrails = await discoverGuardrails({
     ctx,
     confluence: {
-      baseUrl: env.ATLAS_CONFLUENCE_BASE_URL ?? "",
-      token: env.ATLAS_CONFLUENCE_TOKEN ?? "",
-      email: env.ATLAS_CONFLUENCE_EMAIL,
-      spaceKey: env.ATLAS_CONFLUENCE_SECURITY_SPACE_KEY ?? "",
+      // Security policies may live in a separate Confluence instance — allow a
+      // dedicated base URL / token / email, each falling back to the main channel.
+      baseUrl: env.CONFLUENCE_SECURITY_BASE_URL ?? env.CONFLUENCE_BASE_URL ?? "",
+      token: env.CONFLUENCE_SECURITY_TOKEN ?? env.CONFLUENCE_TOKEN ?? "",
+      email: env.CONFLUENCE_SECURITY_EMAIL ?? env.CONFLUENCE_EMAIL,
+      spaceKey: env.CONFLUENCE_SECURITY_SPACE_KEY ?? "",
     },
   });
   return { services, guardrails };
@@ -112,9 +116,9 @@ function discoverAll(
 function createReferenceDiscoveryFromEnv(
   env: Record<string, string | undefined>,
 ): ResourceReferenceDiscovery | undefined {
-  const baseUrl = env.ATLAS_CONFLUENCE_BASE_URL;
-  const token = env.ATLAS_CONFLUENCE_TOKEN;
-  const spaceKeys = (env.ATLAS_CONFLUENCE_SPACE_KEYS ?? "")
+  const baseUrl = env.CONFLUENCE_BASE_URL;
+  const token = env.CONFLUENCE_TOKEN;
+  const spaceKeys = (env.CONFLUENCE_SPACE_KEYS ?? "")
     .split(",")
     .map((key) => key.trim())
     .filter((key) => key.length > 0);
@@ -122,7 +126,7 @@ function createReferenceDiscoveryFromEnv(
     return undefined;
   }
   return createConfluenceReferenceDiscovery(
-    { baseUrl, token, email: env.ATLAS_CONFLUENCE_EMAIL, spaceKeys },
+    { baseUrl, token, email: env.CONFLUENCE_EMAIL, spaceKeys },
     { fetch: liveFetch },
   );
 }
@@ -138,7 +142,7 @@ function readProcessEnv(): Record<string, string | undefined> {
  * Default Context Layer service for the routes. Async because the registry +
  * resource records come from live discovery (plan 018 G5): probe Terraform
  * modules over the availability spine, crawl the guardrail Confluence space, then
- * derive the Sources/Topics/resource records. Injected ports/registry/resources
+ * derive the Sources + resource records. Injected ports/registry/resources
  * still override discovery (the test/adapter seam).
  */
 export async function createDefaultContextService(

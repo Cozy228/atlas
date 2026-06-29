@@ -42,7 +42,7 @@ export type ContextApiUiState =
  */
 export function mapErrorCodeToUiState(code: ContextApiErrorCode): ContextApiUiState {
   switch (code) {
-    case "topic_not_found":
+    case "resource_not_found":
     case "source_not_found":
       return "not_found";
     case "anchor_broken":

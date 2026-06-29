@@ -8,29 +8,29 @@ import { handleHttpRequest } from "./httpRoute";
 
 // Single live path (plan 018 G2, plan 021 G3): textract's terraform-backed
 // `network`/`examples` sections fetch from the registry; its `availability`
-// section fetches the `awsf` Confluence page (the matrix). Point ATLAS_TERRAFORM_*
-// and ATLAS_CONFLUENCE_* at the MSW fixtures (the global devMocks/setup.ts keeps
+// section fetches the `awsf` Confluence page (the matrix). Point TERRAFORM_*
+// and CONFLUENCE_* at the MSW fixtures (the global devMocks/setup.ts keeps
 // the server listening).
 const savedEnv = {
-  terraformBaseUrl: process.env.ATLAS_TERRAFORM_BASE_URL,
-  terraformToken: process.env.ATLAS_TERRAFORM_TOKEN,
-  confluenceBaseUrl: process.env.ATLAS_CONFLUENCE_BASE_URL,
-  confluenceToken: process.env.ATLAS_CONFLUENCE_TOKEN,
-  availabilityPage: process.env.ATLAS_CONFLUENCE_AVAILABILITY_PAGE_AWSF,
+  terraformBaseUrl: process.env.TERRAFORM_BASE_URL,
+  terraformToken: process.env.TERRAFORM_TOKEN,
+  confluenceBaseUrl: process.env.CONFLUENCE_BASE_URL,
+  confluenceToken: process.env.CONFLUENCE_TOKEN,
+  availabilityPage: process.env.CONFLUENCE_AVAILABILITY_PAGE_AWSF,
 };
 beforeAll(() => {
-  process.env.ATLAS_TERRAFORM_BASE_URL = DEV_TERRAFORM_BASE_URL;
-  process.env.ATLAS_TERRAFORM_TOKEN = "dev-mock-token";
-  process.env.ATLAS_CONFLUENCE_BASE_URL = DEV_CONFLUENCE_BASE_URL;
-  process.env.ATLAS_CONFLUENCE_TOKEN = "dev-mock-token";
-  process.env.ATLAS_CONFLUENCE_AVAILABILITY_PAGE_AWSF = DEV_AVAILABILITY_PAGE_ID_AWSF;
+  process.env.TERRAFORM_BASE_URL = DEV_TERRAFORM_BASE_URL;
+  process.env.TERRAFORM_TOKEN = "dev-mock-token";
+  process.env.CONFLUENCE_BASE_URL = DEV_CONFLUENCE_BASE_URL;
+  process.env.CONFLUENCE_TOKEN = "dev-mock-token";
+  process.env.CONFLUENCE_AVAILABILITY_PAGE_AWSF = DEV_AVAILABILITY_PAGE_ID_AWSF;
 });
 afterAll(() => {
-  restoreEnv("ATLAS_TERRAFORM_BASE_URL", savedEnv.terraformBaseUrl);
-  restoreEnv("ATLAS_TERRAFORM_TOKEN", savedEnv.terraformToken);
-  restoreEnv("ATLAS_CONFLUENCE_BASE_URL", savedEnv.confluenceBaseUrl);
-  restoreEnv("ATLAS_CONFLUENCE_TOKEN", savedEnv.confluenceToken);
-  restoreEnv("ATLAS_CONFLUENCE_AVAILABILITY_PAGE_AWSF", savedEnv.availabilityPage);
+  restoreEnv("TERRAFORM_BASE_URL", savedEnv.terraformBaseUrl);
+  restoreEnv("TERRAFORM_TOKEN", savedEnv.terraformToken);
+  restoreEnv("CONFLUENCE_BASE_URL", savedEnv.confluenceBaseUrl);
+  restoreEnv("CONFLUENCE_TOKEN", savedEnv.confluenceToken);
+  restoreEnv("CONFLUENCE_AVAILABILITY_PAGE_AWSF", savedEnv.availabilityPage);
 });
 function restoreEnv(key: string, value: string | undefined): void {
   if (value === undefined) {

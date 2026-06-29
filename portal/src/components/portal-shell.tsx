@@ -27,7 +27,6 @@ const PRIMARY_NAV: ReadonlyArray<NavItem> = [
   { to: "/availability", label: "Availability" },
   { to: "/catalog", label: "Catalog" },
   { to: "/guidance", label: "Guidance" },
-  { to: "/skills", label: "Skills" },
   { to: "/sources", label: "Sources" },
 ];
 

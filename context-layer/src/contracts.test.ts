@@ -13,7 +13,6 @@ describe("context layer contract boundary", () => {
         resourceUrl: "/api/resources/service/aws/textract",
         markdownUrl: "/resources/service/aws/textract.md",
       },
-      governance: "unconfigured",
       requestedSections: [],
       sections: {},
       missingSections: [],
@@ -22,8 +21,9 @@ describe("context layer contract boundary", () => {
       resolvedAt: "2026-01-01T00:00:00.000Z",
     });
 
+    // Emptiness is read off the sections themselves, not a separate governance flag.
     expect(projection.sections).toEqual({});
     expect(projection.missingSections).toEqual([]);
-    expect(projection.governance).toBe("unconfigured");
+    expect(Object.keys(projection.sections)).toHaveLength(0);
   });
 });

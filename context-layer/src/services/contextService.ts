@@ -2,9 +2,6 @@ import type {
   Source,
   SourceDiscoveryRequest,
   SourceDiscoveryResponse,
-  Topic,
-  TopicDiscoveryRequest,
-  TopicDiscoveryResponse,
   ResourceContextRecord,
 } from "@atlas/schema";
 import type { FeedbackRepository } from "../repositories/feedbackRepository";
@@ -52,11 +49,6 @@ export function discoverSources(
     if (request.source_class && source.source_class !== request.source_class) {
       return false;
     }
-    if (request.topic_id) {
-      return service.registry.mappings
-        .findByTopicId(request.topic_id)
-        .some((mapping) => mapping.source_id === source.id);
-    }
     if (request.query) {
       return matchesText(source, request.query);
     }
@@ -64,38 +56,6 @@ export function discoverSources(
   });
 
   return { sources };
-}
-
-export function discoverTopics(
-  service: ContextService,
-  request: TopicDiscoveryRequest,
-): TopicDiscoveryResponse {
-  const topics = service.registry.topics.list().filter((topic) => {
-    if (request.topic_type && topic.topic_type !== request.topic_type) {
-      return false;
-    }
-    if (request.category && topic.category !== request.category) {
-      return false;
-    }
-    if (request.query) {
-      return matchesTopic(topic, request.query);
-    }
-    return true;
-  });
-
-  return { topics };
-}
-
-function matchesTopic(topic: Topic, query: string): boolean {
-  const haystack = [
-    topic.id,
-    topic.name,
-    topic.topic_type,
-    topic.category,
-    topic.description,
-    topic.owner_team,
-  ].join(" ");
-  return normalizedTokens(query).some((token) => haystack.toLowerCase().includes(token));
 }
 
 function matchesText(source: Source, query: string): boolean {

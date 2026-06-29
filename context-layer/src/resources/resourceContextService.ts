@@ -2,6 +2,7 @@ import {
   sectionIds,
   type ContextSection,
   type MissingSection,
+  type ResourceCatalogResponse,
   type ResourceCitation,
   type ResourceContextResponse,
   type ResourceKind,
@@ -112,12 +113,12 @@ export type GetResourceContextParams = {
 /**
  * Project a resource's Sections by live-resolving its Projection Plan. Identity
  * is spine-first for the `service` kind (plan 017 B4): the availability inventory
- * — not `resources.yaml` — establishes which services exist, so a service in the
- * grid with no governed overlay still renders (`governance: "unconfigured"`,
- * empty Sections, no per-section missing entries), never a 404 nor a faked
- * resolver failure. A governed overlay (any kind) yields `governance:
- * "configured"` and resolves Sections as before. Returns `null` only for a
- * genuine miss (no identity AND no overlay) → HTTP 404 → `searchResources`.
+ * establishes which services exist, so a service in the grid with no derived
+ * record still renders (empty Sections, no per-section missing entries), never a
+ * 404 nor a faked resolver failure. A derived record (any kind) resolves its
+ * Sections. Returns `null` only for a genuine miss (no identity AND no record) →
+ * HTTP 404 → `searchResources`. Emptiness is read off the Sections themselves
+ * (`Object.keys(sections).length === 0`), never a separate governance flag.
  *
  * A requested Section with no registered binding is reported in `missingSections`
  * (no_registered_source); a Section whose Sources all fail to resolve is returned
@@ -130,8 +131,8 @@ export async function getResourceContext(
 ): Promise<ResourceContextResponse | null> {
   const overlay = findRecord(deps.resources, params.kind, params.slug);
 
-  // A governed overlay always projects as "configured" — for non-service kinds it
-  // IS the identity (no spine, no discovery, unchanged behaviour, B4).
+  // A derived record projects its Sections — for non-service kinds it IS the
+  // identity (no spine, no discovery, unchanged behaviour, B4).
   if (overlay) {
     return projectConfigured(deps, overlay, params, ctx);
   }
@@ -151,13 +152,12 @@ export async function getResourceContext(
 }
 
 /**
- * Read a resource's presentation metadata (plan 020 15d, ADR-0015 §1/§2): the
- * Portal-facing identity/owner/entry fields migrated off the Topic. This is NOT
- * content — `getResourceContext` stays content-only; the resource-first page
- * composes this metadata read + that content read. Overlay-backed → the migrated
- * metadata + `governance: "configured"`; a spine-only service → identity-only +
- * `"unconfigured"` (no curated metadata yet); a genuine miss → `null` (404).
- * Synchronous: no Source resolution, no discovery.
+ * Read a resource's presentation metadata (ADR-0015 §1/§2): the Portal-facing
+ * identity/owner/entry fields derived from discovery. This is NOT content —
+ * `getResourceContext` stays content-only; the resource-first page composes this
+ * metadata read + that content read. A derived record → its presentation fields;
+ * a spine-only service not yet derived → identity-only; a genuine miss → `null`
+ * (404). No Source resolution, no discovery.
  */
 export async function getResourceRecord(
   deps: Pick<ResourceContextDeps, "resources" | "availabilityProvider">,
@@ -165,22 +165,7 @@ export async function getResourceRecord(
 ): Promise<ResourceRecordResponse | null> {
   const overlay = findRecord(deps.resources, params.kind, params.slug);
   if (overlay) {
-    return {
-      kind: overlay.kind,
-      id: `${overlay.kind}/${overlay.slug}`,
-      slug: overlay.slug,
-      ...(overlay.provider ? { provider: overlay.provider } : {}),
-      name: overlay.name,
-      aliases: overlay.aliases,
-      governance: "configured",
-      ...(overlay.category ? { category: overlay.category } : {}),
-      ...(overlay.status ? { status: overlay.status } : {}),
-      ...(overlay.description ? { description: overlay.description } : {}),
-      ...(overlay.owner_team ? { owner_team: overlay.owner_team } : {}),
-      ...(overlay.support_channel ? { support_channel: overlay.support_channel } : {}),
-      ...(overlay.entry_tools ? { entry_tools: overlay.entry_tools } : {}),
-      ...(overlay.topics ? { topics: overlay.topics } : {}),
-    };
+    return recordToResponse(overlay);
   }
 
   if (params.kind !== "service") {
@@ -197,7 +182,39 @@ export async function getResourceRecord(
     provider: identity.provider,
     name: identity.name,
     aliases: identity.admissionAliases,
-    governance: "unconfigured",
+  };
+}
+
+/**
+ * The discovery-derived catalog feed: every discovered Resource (services +
+ * guardrails) projected to its presentation record. The Portal catalog facets on
+ * `category`, tabs on `kind`, links by `slug`; an agent browses the inventory in
+ * one call. Spine-only services are already in `deps.resources` (derived from the
+ * availability spine), so this is a straight projection — no spine merge.
+ */
+export function listResourceCatalog(
+  deps: Pick<ResourceContextDeps, "resources">,
+): ResourceCatalogResponse {
+  return { resources: deps.resources.map(recordToResponse) };
+}
+
+/** Project a derived record to its Portal-facing presentation record (the shape
+ *  shared by the single-record read and the catalog list). Drops the section
+ *  bindings (internal) and surfaces only the honest-gap presentation fields. */
+function recordToResponse(record: ResourceContextRecord): ResourceRecordResponse {
+  return {
+    kind: record.kind,
+    id: `${record.kind}/${record.slug}`,
+    slug: record.slug,
+    ...(record.provider ? { provider: record.provider } : {}),
+    name: record.name,
+    aliases: record.aliases,
+    ...(record.category ? { category: record.category } : {}),
+    ...(record.status ? { status: record.status } : {}),
+    ...(record.description ? { description: record.description } : {}),
+    ...(record.owner_team ? { owner_team: record.owner_team } : {}),
+    ...(record.support_channel ? { support_channel: record.support_channel } : {}),
+    ...(record.entry_tools ? { entry_tools: record.entry_tools } : {}),
   };
 }
 
@@ -232,7 +249,6 @@ async function projectConfigured(
 
   return {
     resource: toResourceSummary(record, params.baseUrl),
-    governance: "configured",
     requestedSections: requested,
     sections: sectionsOut,
     missingSections,
@@ -245,10 +261,10 @@ async function projectConfigured(
 }
 
 /**
- * Project a spine-only service (in the availability inventory, no governed
- * overlay, B4/B6): the page exists and carries canonical identity, but has no
+ * Project a spine-only service (in the availability inventory, not yet derived
+ * into a record): the page exists and carries canonical identity, but has no
  * Section Projection Plan yet. Empty Sections + NO per-section missing entries —
- * "unconfigured" is one resource-level signal, never a faked per-section failure.
+ * emptiness is the signal, never a faked per-section failure.
  */
 async function projectSpineOnly(
   deps: ResourceContextDeps,
@@ -258,7 +274,6 @@ async function projectSpineOnly(
   const discovery = await runDiscovery(deps, identity);
   return {
     resource: identityToResourceSummary(identity, params.baseUrl),
-    governance: "unconfigured",
     requestedSections: [],
     sections: {},
     missingSections: [],

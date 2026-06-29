@@ -1,50 +1,46 @@
-import type { Topic } from "@atlas/schema";
+import type { ResourceRecordResponse } from "@atlas/schema";
 
 import type { AvailabilityRecord } from "@/api/server/availability";
 
 /**
- * Map a service Topic to its canonical Resource route params
- * (`/service/$provider/$id`, plan 020 15d). Post-flip (plan 018 G5) the service
- * Topic id IS the resource slug (`aws/<id>`, e.g. `aws/textract`), so the route
- * params are a straight split on "/": `provider` is the cloud, `id` the service
- * machine id. A bare id (no "/") degrades to the AWS provider.
+ * Map a service Resource to its canonical detail-route params
+ * (`/service/$provider/$id`, plan 020 15d). A service resource `slug` is
+ * `{provider}/{id}` (e.g. `aws/textract`), so the params are a straight split on
+ * "/": `provider` is the cloud, `id` the service machine id. A bare slug (no "/")
+ * degrades to the AWS provider.
  */
-export function serviceRouteParamsForTopic(topic: Pick<Topic, "id">): {
+export function serviceRouteParamsForResource(resource: Pick<ResourceRecordResponse, "slug">): {
   provider: string;
   id: string;
 } {
-  const [provider, id] = topic.id.split("/");
+  const [provider, id] = resource.slug.split("/");
   return id ? { provider, id } : { provider: "aws", id: provider };
 }
 
-export function findAvailabilityServiceForTopic(
-  topic: Pick<Topic, "id" | "name">,
+/** Resolve a service Resource to its availability record by canonical service id
+ *  (the resource slug tail, e.g. `aws/textract` → `textract`), with a name match
+ *  as a fallback. */
+export function findAvailabilityServiceForResource(
+  resource: Pick<ResourceRecordResponse, "slug" | "name">,
   services: ReadonlyArray<AvailabilityRecord>,
 ): AvailabilityRecord | null {
-  const serviceId = resolveServiceId(topic);
+  const serviceId = resource.slug.split("/").at(-1) ?? resource.slug;
 
   return (
     services.find((service) => service.id === serviceId) ??
-    services.find((service) => normalizeName(service.name) === normalizeName(topic.name)) ??
+    services.find((service) => normalizeName(service.name) === normalizeName(resource.name)) ??
     null
   );
 }
 
 /** Direct lookup by canonical availability service id (the resource slug tail).
  *  Used by the resource-first detail page (plan 020 15d), which already holds the
- *  exact `{provider}/{id}` slug and needs no topic-name fuzzy match. */
+ *  exact `{provider}/{id}` slug and needs no name fuzzy match. */
 export function findAvailabilityServiceById(
   services: ReadonlyArray<AvailabilityRecord>,
   id: string,
 ): AvailabilityRecord | null {
   return services.find((service) => service.id === id) ?? null;
-}
-
-function resolveServiceId(topic: Pick<Topic, "id" | "name">): string {
-  // The resource slug tail is the availability service id (`aws/textract` →
-  // `textract`); a bare id (no "/") is already the service id.
-  const tail = topic.id.split("/").at(-1);
-  return tail ?? topic.id;
 }
 
 function normalizeName(value: string): string {

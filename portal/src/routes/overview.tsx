@@ -1,27 +1,16 @@
 /**
  * Operations dashboard · route `/overview`
  * ================================================================================
- * Replaces the concept of the mainline `/overview` (a catalog/evidence ledger)
- * with an APPLICATION OPERATIONS snapshot: how the applications on the platform
- * are doing right now — health, delivery (CI/CD), security, and incidents.
- *
- * A single dense operator read (the earlier Ops-board / Delivery directions were
- * dropped). All data is fictional fixtures from `lib/ops.ts` (services, deploys,
- * incidents, pipelines, scans, tickets); the page carries the `demo snapshot`
- * badge + frozen timestamp (ship-state honesty). Motion is calm, first-paint only.
+ * Not available at the moment: the operations snapshot was driven entirely by
+ * fictional fixtures (`lib/ops.ts`), so the route is gated off — navigating here
+ * redirects home and there is no nav entry, so it is neither accessible nor
+ * visible. The dashboard component + its data are kept in the tree (NOT deleted),
+ * parked for when a real source is wired.
  */
-import { createFileRoute } from "@tanstack/react-router";
-
-import { OverviewDashboard } from "@/components/overview/dashboard";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/overview")({
-  component: OverviewRoute,
+  beforeLoad: () => {
+    throw redirect({ to: "/" });
+  },
 });
-
-function OverviewRoute() {
-  return (
-    <div className="mx-auto flex w-full max-w-[1180px] flex-col gap-8 px-6 py-8 sm:px-8">
-      <OverviewDashboard />
-    </div>
-  );
-}

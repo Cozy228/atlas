@@ -17,8 +17,8 @@ export type LandingZoneSource = {
 /**
  * Derive a landing zone's availability-source locator from environment config,
  * mirroring `createReferenceDiscoveryFromEnv` in `composition.ts`: the shared
- * `ATLAS_CONFLUENCE_*` connection plus a per-LZ availability-page var keyed by id
- * (`ATLAS_CONFLUENCE_AVAILABILITY_PAGE_<ID>`, e.g. `..._AWSF`). dev/integration
+ * `CONFLUENCE_*` connection plus a per-LZ availability-page var keyed by id
+ * (`CONFLUENCE_AVAILABILITY_PAGE_<ID>`, e.g. `..._AWSF`). dev/integration
  * point these at the MSW source-space fixture; prod points them at the real site.
  *
  * Returns `undefined` when the channel is unconfigured for this LZ — an honest
@@ -30,13 +30,13 @@ export function resolveLandingZoneSource(
   zone: LandingZone,
   env: Record<string, string | undefined> = readProcessEnv(),
 ): LandingZoneSource | undefined {
-  const baseUrl = env.ATLAS_CONFLUENCE_BASE_URL;
-  const token = env.ATLAS_CONFLUENCE_TOKEN;
-  const pageId = env[`ATLAS_CONFLUENCE_AVAILABILITY_PAGE_${zone.id.toUpperCase()}`];
+  const baseUrl = env.CONFLUENCE_BASE_URL;
+  const token = env.CONFLUENCE_TOKEN;
+  const pageId = env[`CONFLUENCE_AVAILABILITY_PAGE_${zone.id.toUpperCase()}`];
   if (!baseUrl || !token || !pageId) {
     return undefined;
   }
-  return { baseUrl, token, email: env.ATLAS_CONFLUENCE_EMAIL, pageId };
+  return { baseUrl, token, email: env.CONFLUENCE_EMAIL, pageId };
 }
 
 function readProcessEnv(): Record<string, string | undefined> {

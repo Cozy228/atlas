@@ -9,6 +9,10 @@ export {
   validateCitations,
   type LlmAdapter,
 } from "./ask/askAtlas";
-export { createStaticContextApiClient, type ContextApiClient } from "./api/contextApiClient";
-export { listGuidance, getGuidance, relatedGuidanceForTopic, type Guidance } from "./lib/guidance";
+export {
+  listGuidance,
+  getGuidance,
+  relatedGuidanceForResource,
+  type Guidance,
+} from "./lib/guidance";
 export { loadGuidance } from "./lib/loadGuidance";

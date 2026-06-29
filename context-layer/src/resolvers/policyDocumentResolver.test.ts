@@ -36,15 +36,15 @@ function pageFetch(storageHtml: string, status = 200) {
 // Single live path (plan 018 G4): the policy resolver always fetches from
 // Confluence, so a base url must be configured for the live branch to engage. The
 // injected `fetch` stands in for the network (unit-level); integration suites use MSW.
-const savedBaseUrl = process.env.ATLAS_CONFLUENCE_BASE_URL;
+const savedBaseUrl = process.env.CONFLUENCE_BASE_URL;
 beforeAll(() => {
-  process.env.ATLAS_CONFLUENCE_BASE_URL = "https://example.atlassian.net";
+  process.env.CONFLUENCE_BASE_URL = "https://example.atlassian.net";
 });
 afterAll(() => {
   if (savedBaseUrl === undefined) {
-    delete process.env.ATLAS_CONFLUENCE_BASE_URL;
+    delete process.env.CONFLUENCE_BASE_URL;
   } else {
-    process.env.ATLAS_CONFLUENCE_BASE_URL = savedBaseUrl;
+    process.env.CONFLUENCE_BASE_URL = savedBaseUrl;
   }
 });
 

@@ -1,10 +1,10 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { SourceDiscoveryResponseSchema, TopicDiscoveryResponseSchema } from "@atlas/schema";
+import { ResourceCatalogResponseSchema, SourceDiscoveryResponseSchema } from "@atlas/schema";
 import { setDevDiscoveryEnv } from "../devMocks";
+import { handleResourceCatalogRequest } from "./resourceRoutes";
 import { handleSourceDiscoveryRequest } from "./sourceDiscoveryRoute";
-import { handleTopicDiscoveryRequest } from "./topicDiscoveryRoute";
 
-// Post-flip (plan 018 G5) the registry is the OUTPUT of live discovery, so point
+// Post-collapse the registry + catalog are the OUTPUT of live discovery, so point
 // every channel at the MSW fixtures (the global devMocks/setup.ts keeps the
 // Node-mode server listening); with no env the catalog is honest-empty.
 const savedEnv = { ...process.env };
@@ -27,15 +27,15 @@ describe("discovery routes", () => {
     expect(sources.every((source) => source.source_class === "terraform-module")).toBe(true);
   });
 
-  it("discovers topics by type through the shared response schema", async () => {
-    const response = await handleTopicDiscoveryRequest({
-      topic_type: "security-policy",
-    });
+  it("lists discovered resources through the catalog response schema", async () => {
+    const response = await handleResourceCatalogRequest();
 
     expect(response.status).toBe(200);
-    const topics = TopicDiscoveryResponseSchema.parse(response.body).topics;
-    // The SECPOL space fixture carries four cross-cutting guardrails.
-    expect(topics.length).toBe(4);
-    expect(topics.every((topic) => topic.topic_type === "security-policy")).toBe(true);
+    const resources = ResourceCatalogResponseSchema.parse(response.body).resources;
+    // The SECPOL space fixture carries four cross-cutting guardrails; services are
+    // module-backed alongside them in the same catalog feed.
+    const guardrails = resources.filter((resource) => resource.kind === "guardrail");
+    expect(guardrails.length).toBe(4);
+    expect(resources.some((resource) => resource.kind === "service")).toBe(true);
   });
 });

@@ -86,17 +86,18 @@ describe("mcp protocol surface", () => {
 });
 
 describe("mcp tools against the pilot fixtures", () => {
-  it("atlas_search_service resolves a query to semantic topic ids", async () => {
+  it("atlas_search_service resolves a query to canonical resource ids", async () => {
     const result = await callTool("atlas_search_service", { query: "textract" });
     const data = result.structuredContent as {
-      topics: { id: string; name: string; description: string }[];
+      resources: { id: string; name: string; kind: string }[];
       total: number;
     };
-    expect(data.topics.map((topic) => topic.id)).toContain("aws/textract");
+    expect(data.resources.map((resource) => resource.id)).toContain("service/aws/textract");
     // CONCISE: high-signal fields only, no owner/support/entry_tools noise.
-    // Derived service topics carry no description (honest-gap), so the undefined
-    // field drops out over JSON — id/name/topic_type remain.
-    expect(Object.keys(data.topics[0]!).sort()).toEqual(["id", "name", "topic_type"]);
+    // Derived service resources carry no description (honest-gap), so the undefined
+    // field drops out over JSON — id/name/kind remain.
+    const textract = data.resources.find((resource) => resource.id === "service/aws/textract")!;
+    expect(Object.keys(textract).sort()).toEqual(["id", "kind", "name"]);
   });
 
   it("atlas_get_source returns the registry record by semantic id", async () => {

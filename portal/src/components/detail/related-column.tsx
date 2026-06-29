@@ -1,12 +1,12 @@
 import { Link } from "@tanstack/react-router";
-import type { Topic } from "@atlas/schema";
+import type { ResourceRecordResponse } from "@atlas/schema";
 
-import { serviceRouteParamsForTopic } from "@/lib/availability-service";
+import { serviceRouteParamsForResource } from "@/lib/availability-service";
 import { cn } from "@/lib/utils";
 
 type RelatedColumnProps = {
   title: string;
-  topics: ReadonlyArray<Topic>;
+  resources: ReadonlyArray<ResourceRecordResponse>;
 };
 
 const ROW_CLASS = cn(
@@ -14,16 +14,16 @@ const ROW_CLASS = cn(
   "hover:bg-muted",
 );
 
-export function RelatedColumn({ title, topics }: RelatedColumnProps) {
+export function RelatedColumn({ title, resources }: RelatedColumnProps) {
   return (
     <div className="rounded-lg border border-border bg-card p-3">
       <p className="mb-2 font-mono type-caption font-bold uppercase tracking-wider text-muted-foreground">
         {title}
       </p>
       <ul className="flex flex-col gap-0.5">
-        {topics.map((topic) => (
-          <li key={topic.id}>
-            <RelatedRow topic={topic} />
+        {resources.map((resource) => (
+          <li key={resource.id}>
+            <RelatedRow resource={resource} />
           </li>
         ))}
       </ul>
@@ -31,18 +31,18 @@ export function RelatedColumn({ title, topics }: RelatedColumnProps) {
   );
 }
 
-/** Each related topic links to its own surface by type: a security policy →
- *  `/policies`, a service → its canonical resource address (plan 020 15d). */
-function RelatedRow({ topic }: { topic: Topic }) {
+/** Each related resource links to its own surface by kind: a security policy
+ *  (guardrail) → `/policies`, a service → its canonical resource address. */
+function RelatedRow({ resource }: { resource: ResourceRecordResponse }) {
   const body = (
     <>
-      <span className="text-xs font-semibold text-foreground">{topic.name}</span>
-      <span className="font-mono type-caption text-muted-foreground">{topic.owner_team}</span>
+      <span className="text-xs font-semibold text-foreground">{resource.name}</span>
+      <span className="font-mono type-caption text-muted-foreground">{resource.owner_team}</span>
     </>
   );
-  if (topic.topic_type === "security-policy") {
+  if (resource.kind === "guardrail") {
     return (
-      <Link to="/policies/$policyId" params={{ policyId: topic.id }} className={ROW_CLASS}>
+      <Link to="/policies/$policyId" params={{ policyId: resource.slug }} className={ROW_CLASS}>
         {body}
       </Link>
     );
@@ -50,7 +50,7 @@ function RelatedRow({ topic }: { topic: Topic }) {
   return (
     <Link
       to="/service/$provider/$id"
-      params={serviceRouteParamsForTopic(topic)}
+      params={serviceRouteParamsForResource(resource)}
       className={ROW_CLASS}
     >
       {body}

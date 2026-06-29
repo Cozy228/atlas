@@ -1,7 +1,7 @@
 /**
  * Guidance loader — pure, server/node-safe (no react-start), single live path.
  *
- * Fetches the route-guidance manifests from the guidance store (`ATLAS_GUIDANCE_URL`,
+ * Fetches the route-guidance manifests from the guidance store (`GUIDANCE_URL`,
  * MSW-intercepted in dev, a real store in prod), validates each against
  * `@atlas/schema`'s `GuidanceSchema`, and maps the snake_case manifest to the
  * camelCase shape the portal lib consumes. This replaces the file-reading dev
@@ -57,12 +57,12 @@ function guidanceUrl(): string | undefined {
   const processLike = globalThis as typeof globalThis & {
     process?: { env?: Record<string, string | undefined> };
   };
-  return processLike.process?.env?.ATLAS_GUIDANCE_URL;
+  return processLike.process?.env?.GUIDANCE_URL;
 }
 
 /**
  * Fetch + validate every guidance manifest, in the display-order contract.
- * Honest-gap: with no `ATLAS_GUIDANCE_URL` configured (or an unavailable store),
+ * Honest-gap: with no `GUIDANCE_URL` configured (or an unavailable store),
  * returns `[]` rather than a fabricated fixture. Throws on manifest drift — same
  * gate as `validate:guidance`.
  */

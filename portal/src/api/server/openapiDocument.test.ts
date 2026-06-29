@@ -94,16 +94,14 @@ function mutationsOf(document: { paths: Record<string, Record<string, unknown>> 
  */
 describe("openapi route parity", () => {
   const PROBE_VALUES: Record<string, string> = {
-    topic_id: "aws-textract",
     source_id: "textract-module-readme",
     kind: "service",
     slug: "aws/textract",
   };
   const PROBE_BODIES: Record<string, unknown> = {
-    "/context-bundle": { topic_id: "aws-textract" },
     "/feedback": {
-      target_type: "topic",
-      target_id: "aws-textract",
+      target_type: "resource",
+      target_id: "service/aws/textract",
       feedback_type: "unclear",
       message: "probe",
     },
@@ -155,12 +153,12 @@ describe("openapi route parity", () => {
       "utf8",
     );
 
-    // Static dispatches: if (method === "GET" && path === "/topics")
+    // Static dispatches: if (method === "GET" && path === "/sources")
     const dispatched = new Set<string>();
     for (const match of source.matchAll(/method === "(\w+)" && path === "([^"]+)"/g)) {
       dispatched.add(`${match[1]} ${match[2]}`);
     }
-    // Regex dispatches: const m = path.match(/^\/topics\/([^/]+)$/); if (method === "GET" && m)
+    // Regex dispatches: const m = path.match(/^\/sources\/([^/]+)$/); if (method === "GET" && m)
     const patterns = new Map<string, string>();
     for (const match of source.matchAll(/const (\w+) = path\.match\(\/(.+?)\/\);/g)) {
       const template = match[2]

@@ -32,16 +32,15 @@ import type {
   EntryTool,
   ResourceContextResponse,
   ResourceRecordResponse,
-  Topic,
-  TopicStatus,
+  ResourceStatus,
 } from "@atlas/schema";
 
 import {
   availabilityQueryOptions,
   guidanceQueryOptions,
+  resourceCatalogQueryOptions,
   resourceContextQueryOptions,
   resourceRecordQueryOptions,
-  topicDiscoveryQueryOptions,
 } from "@/api/queries";
 import type { AvailabilityRecord, LandingZoneAvailability } from "@/api/server/availability";
 import { FeedbackInlineForm } from "@/components/evidence/feedback-inline-form";
@@ -56,9 +55,9 @@ import { DataNotAvailableForZone } from "@/components/landing-zone/data-not-avai
 import { useCurrentLandingZoneRecord } from "@/components/landing-zone/landing-zone-gate";
 import {
   findAvailabilityServiceById,
-  serviceRouteParamsForTopic,
+  serviceRouteParamsForResource,
 } from "@/lib/availability-service";
-import { relatedGuidanceForTopic, type Guidance } from "@/lib/guidance";
+import { relatedGuidanceForResource, type Guidance } from "@/lib/guidance";
 import { cn } from "@/lib/utils";
 
 /** A related service resource shown in "Related in domain": its canonical
@@ -88,10 +87,9 @@ export const Route = createFileRoute("/service/$provider/$id")({
       .catch(() => null);
     if (!record) throw notFound();
 
-    // Sibling services share this resource's category (a facet attribute). Post
-    // plan 018 G5 the catalog Topics are discovery-derived and `record.topics` is
-    // gone, so siblings come straight from the category, not a facet Topic.
-    const topicsResp = await context.queryClient.ensureQueryData(topicDiscoveryQueryOptions);
+    // Sibling services share this resource's category (a facet attribute).
+    // Siblings come straight from the discovered catalog by category.
+    const catalogResp = await context.queryClient.ensureQueryData(resourceCatalogQueryOptions);
 
     const guidances = await context.queryClient.ensureQueryData(guidanceQueryOptions);
 
@@ -121,11 +119,11 @@ export const Route = createFileRoute("/service/$provider/$id")({
     // Related in domain: sibling service resources sharing this resource's
     // category (a facet attribute), each addressed by its own canonical slug.
     const related: ReadonlyArray<RelatedService> = record.category
-      ? topicsResp.topics
+      ? catalogResp.resources
           .filter(
             (entry) =>
-              entry.id !== record.slug &&
-              entry.topic_type === "service" &&
+              entry.slug !== record.slug &&
+              entry.kind === "service" &&
               entry.category === record.category,
           )
           .map((sibling) => siblingService(sibling, params.provider))
@@ -137,8 +135,8 @@ export const Route = createFileRoute("/service/$provider/$id")({
       serviceId: params.id,
       related,
       // Guidance association is keyed by the resource slug (guidance
-      // `applies_to.services` holds slugs post plan 018 G5).
-      guidance: relatedGuidanceForTopic(guidances, record.slug),
+      // `applies_to.services` holds slugs).
+      guidance: relatedGuidanceForResource(guidances, record.slug),
       zone,
       projection,
     };
@@ -146,15 +144,15 @@ export const Route = createFileRoute("/service/$provider/$id")({
   component: ServiceDetailRoute,
 });
 
-/** Map a sibling service Topic to its canonical resource address (shared slug
+/** Map a sibling service Resource to its canonical resource address (shared slug
  *  mapping), keeping the current page's provider. */
-function siblingService(topic: Topic, provider: string): RelatedService {
-  const { id } = serviceRouteParamsForTopic(topic);
-  return { provider, id, name: topic.name, description: topic.description ?? "" };
+function siblingService(resource: ResourceRecordResponse, provider: string): RelatedService {
+  const { id } = serviceRouteParamsForResource(resource);
+  return { provider, id, name: resource.name, description: resource.description ?? "" };
 }
 
 const STATUS_CHIP: Record<
-  TopicStatus,
+  ResourceStatus,
   { variant: "success" | "info" | "critical"; label: string }
 > = {
   active: { variant: "success", label: "General availability" },
@@ -162,7 +160,7 @@ const STATUS_CHIP: Record<
   deprecated: { variant: "critical", label: "Deprecated" },
 };
 
-const DEFAULT_STATUS: TopicStatus = "active";
+const DEFAULT_STATUS: ResourceStatus = "active";
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("en-US", {
@@ -181,9 +179,8 @@ function ServiceDetailRoute() {
   const entryTools: ReadonlyArray<EntryTool> = record.entry_tools ?? [];
   const status = record.status ?? DEFAULT_STATUS;
   const category = record.category ?? "Service";
-  // Feedback targets the resource slug (= the derived service Topic id, the
-  // durable feedback key post plan 018 G5).
-  const feedbackTargetId = record.slug;
+  // Feedback targets the canonical resource id ({kind}/{slug}).
+  const feedbackTargetId = record.id;
 
   useRecordRecent({ kind: "service", slug, name: record.name });
 
@@ -312,7 +309,9 @@ function ServiceDetailRoute() {
       : []),
     {
       title: "Help Atlas stay accurate",
-      node: <FeedbackInlineForm target={{ target_type: "topic", target_id: feedbackTargetId }} />,
+      node: (
+        <FeedbackInlineForm target={{ target_type: "resource", target_id: feedbackTargetId }} />
+      ),
     },
   ];
 
@@ -611,11 +610,14 @@ function ReferenceDocs({ projection }: { projection: ResourceContextResponse | n
     );
   }
 
-  const { references, referenceDiscovery, governance } = projection;
+  const { references, referenceDiscovery } = projection;
   const status = referenceDiscovery?.status ?? null;
+  // Empty governed sections carry the same signal the old `governance:
+  // "unconfigured"` flag did: no curated evidence, only reference-only links.
+  const hasGovernedSections = Object.keys(projection.sections).length > 0;
 
   const notices: ReactNode[] = [];
-  if (governance === "unconfigured") {
+  if (!hasGovernedSections) {
     notices.push(
       <ReferenceNotice key="governance" tone="info">
         No governed sources are configured for this service yet. The links below are reference-only

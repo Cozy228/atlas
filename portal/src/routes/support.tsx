@@ -24,9 +24,9 @@ import {
   IconWorldOff,
 } from "@tabler/icons-react";
 import type { Icon } from "@tabler/icons-react";
-import type { SourceDiscoveryResponse, TopicDiscoveryResponse } from "@atlas/schema";
+import type { ResourceCatalogResponse, SourceDiscoveryResponse } from "@atlas/schema";
 
-import { sourceDiscoveryQueryOptions, topicDiscoveryQueryOptions } from "@/api/queries";
+import { resourceCatalogQueryOptions, sourceDiscoveryQueryOptions } from "@/api/queries";
 import { cn } from "@/lib/utils";
 import { SeedBadge } from "@/components/seed-badge";
 
@@ -34,33 +34,34 @@ type Domain = { domain: string; team: string; channel: string; areas: number };
 
 export const Route = createFileRoute("/support")({
   loader: async ({ context }) => {
-    const [topicsResp, sourcesResp] = await Promise.all([
+    const [catalogResp, sourcesResp] = await Promise.all([
       context.queryClient.ensureQueryData(
-        topicDiscoveryQueryOptions,
-      ) as Promise<TopicDiscoveryResponse>,
+        resourceCatalogQueryOptions,
+      ) as Promise<ResourceCatalogResponse>,
       context.queryClient.ensureQueryData(
         sourceDiscoveryQueryOptions,
       ) as Promise<SourceDiscoveryResponse>,
     ]);
-    const topics = topicsResp.topics;
-    // One row per domain (topic category) → the team that owns it + area count.
+    const resources = catalogResp.resources;
+    // One row per domain (resource category) → the team that owns it + area count.
     const map = new Map<string, Domain>();
-    for (const topic of topics) {
-      const entry = map.get(topic.category) ?? {
-        domain: topic.category,
-        // Owner/support are honest-gap on derived topics (plan 018 G5).
-        team: topic.owner_team ?? "—",
-        channel: topic.support_channel ?? "—",
+    for (const resource of resources) {
+      const category = resource.category ?? "Other";
+      const entry = map.get(category) ?? {
+        domain: category,
+        // Owner/support are honest-gap on derived resources.
+        team: resource.owner_team ?? "—",
+        channel: resource.support_channel ?? "—",
         areas: 0,
       };
       entry.areas += 1;
-      map.set(topic.category, entry);
+      map.set(category, entry);
     }
     const domains = [...map.values()].toSorted((a, b) => a.domain.localeCompare(b.domain));
     return {
       domains,
-      serviceCount: topics.filter((topic) => topic.topic_type === "service").length,
-      policyCount: topics.filter((topic) => topic.topic_type === "security-policy").length,
+      serviceCount: resources.filter((resource) => resource.kind === "service").length,
+      policyCount: resources.filter((resource) => resource.kind === "guardrail").length,
       sourceCount: sourcesResp.sources.length,
     };
   },

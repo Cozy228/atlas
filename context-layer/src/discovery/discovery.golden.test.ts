@@ -37,19 +37,19 @@ describe("service discovery → resource derivation (golden)", () => {
 
   beforeAll(async () => {
     // Point the live Terraform + availability adapters at the MSW-served fixtures.
-    process.env.ATLAS_TERRAFORM_BASE_URL = DEV_TERRAFORM_BASE_URL;
-    process.env.ATLAS_TERRAFORM_TOKEN = "dev-mock-token";
-    process.env.ATLAS_CONFLUENCE_BASE_URL = DEV_CONFLUENCE_BASE_URL;
-    process.env.ATLAS_CONFLUENCE_TOKEN = "dev-mock-token";
-    process.env.ATLAS_CONFLUENCE_AVAILABILITY_PAGE_AWSF = DEV_AVAILABILITY_PAGE_ID_AWSF;
+    process.env.TERRAFORM_BASE_URL = DEV_TERRAFORM_BASE_URL;
+    process.env.TERRAFORM_TOKEN = "dev-mock-token";
+    process.env.CONFLUENCE_BASE_URL = DEV_CONFLUENCE_BASE_URL;
+    process.env.CONFLUENCE_TOKEN = "dev-mock-token";
+    process.env.CONFLUENCE_AVAILABILITY_PAGE_AWSF = DEV_AVAILABILITY_PAGE_ID_AWSF;
 
     const ctx = defaultResolutionContext(); // late-bound fetch → MSW interceptor
     const deps: DiscoverServiceSourcesDeps = {
       availabilityProvider: createConfluenceAvailabilityProvider({ fetch: ctx.fetch }),
       ctx,
       terraform: {
-        baseUrl: process.env.ATLAS_TERRAFORM_BASE_URL!,
-        token: process.env.ATLAS_TERRAFORM_TOKEN!,
+        baseUrl: process.env.TERRAFORM_BASE_URL!,
+        token: process.env.TERRAFORM_TOKEN!,
       },
     };
 

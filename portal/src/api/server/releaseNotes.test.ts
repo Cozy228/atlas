@@ -14,9 +14,9 @@ import { cachedResolutionContext, resolveReleaseNotes } from "@atlas/context-lay
 const savedEnv = { ...process.env };
 beforeAll(() => {
   server.listen({ onUnhandledRequest: "bypass" });
-  process.env.ATLAS_CONFLUENCE_BASE_URL = DEV_CONFLUENCE_BASE_URL;
-  process.env.ATLAS_CONFLUENCE_TOKEN = "dev-mock-token";
-  process.env.ATLAS_RELEASE_NOTES_PAGE_ID = DEV_RELEASE_NOTES_PAGE_ID;
+  process.env.CONFLUENCE_BASE_URL = DEV_CONFLUENCE_BASE_URL;
+  process.env.CONFLUENCE_TOKEN = "dev-mock-token";
+  process.env.CONFLUENCE_RELEASE_NOTES_PAGE_ID = DEV_RELEASE_NOTES_PAGE_ID;
 });
 afterAll(() => {
   server.close();

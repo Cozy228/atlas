@@ -1,4 +1,4 @@
-import type { Source, Topic, Warning } from "@atlas/schema";
+import type { Source, Warning } from "@atlas/schema";
 
 export type FreshnessState = "current" | "needs-review" | "stale";
 
@@ -62,8 +62,4 @@ export function highestPriorityWarning(warnings: ReadonlyArray<Warning>): Warnin
   return warnings.reduce((min, w) =>
     WARNING_PRIORITY[w.code] < WARNING_PRIORITY[min.code] ? w : min,
   );
-}
-
-export function topicSlug(topic: Topic): string {
-  return topic.id;
 }

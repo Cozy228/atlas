@@ -1,49 +1,46 @@
 import {
   AvailabilityReadResponseSchema,
   FeedbackResponseSchema,
+  ResourceCatalogResponseSchema,
   ResourceContextResponseSchema,
   ResourceRecordResponseSchema,
   ResourceSearchResponseSchema,
   SourceDiscoveryResponseSchema,
   SourceResponseSchema,
-  TopicDiscoveryResponseSchema,
-  TopicResponseSchema,
   type AvailabilityReadResponse,
   type FeedbackResponse,
   type FeedbackSubmission,
+  type ResourceCatalogResponse,
   type ResourceContextResponse,
   type ResourceRecordResponse,
   type ResourceSearchResponse,
   type SourceDiscoveryRequest,
   type SourceDiscoveryResponse,
   type SourceResponse,
-  type TopicDiscoveryRequest,
-  type TopicDiscoveryResponse,
-  type TopicResponse,
 } from "@atlas/schema";
 
 export type ContextApiClient = {
-  getTopic(id: string): Promise<TopicResponse>;
   getSource(id: string): Promise<SourceResponse>;
   getAvailability(): Promise<AvailabilityReadResponse>;
   /** Live resource projection (plan 017): governed sections + reference-only
-   *  discovery links + governance state for a canonical `{kind}/{slug}`. */
+   *  discovery links for a canonical `{kind}/{slug}`. */
   getResourceContext(kind: string, slug: string): Promise<ResourceContextResponse>;
-  /** Resource presentation metadata (plan 020 15d, ADR-0015 §2): the identity /
-   *  owner / entry fields migrated off the Topic. Separate from
-   *  getResourceContext, which stays content-only — the resource-first page
-   *  composes this metadata read + that content read. */
+  /** Resource presentation metadata (ADR-0015 §2): the identity / owner / entry
+   *  fields. Separate from getResourceContext, which stays content-only — the
+   *  resource-first page composes this metadata read + that content read. */
   getResourceRecord(kind: string, slug: string): Promise<ResourceRecordResponse>;
   /** Resolve a free-text name to canonical resource ids (proposal §5.7). */
   searchResources(query: string): Promise<ResourceSearchResponse>;
   discoverSources(request?: SourceDiscoveryRequest): Promise<SourceDiscoveryResponse>;
-  discoverTopics(request?: TopicDiscoveryRequest): Promise<TopicDiscoveryResponse>;
+  /** The discovery-derived catalog: every discovered Resource (services +
+   *  guardrails) as a presentation record. The Portal catalog facets/tabs it. */
+  discoverResources(): Promise<ResourceCatalogResponse>;
   submitFeedback(request: FeedbackSubmission): Promise<FeedbackResponse>;
 };
 
 type StaticContextApiClientInput = {
   sourceDiscovery: unknown;
-  topicDiscovery: unknown;
+  resourceCatalog: unknown;
   /** Optional availability grid; defaults to an empty, cited response. */
   availability?: unknown;
   /** Optional resource projections keyed by canonical `{kind}/{slug}`. */
@@ -66,18 +63,12 @@ const EMPTY_AVAILABILITY: AvailabilityReadResponse = {
 
 export function createStaticContextApiClient({
   sourceDiscovery,
-  topicDiscovery,
+  resourceCatalog,
   availability,
   resourceContexts,
   resourceRecords,
 }: StaticContextApiClientInput): ContextApiClient {
   return {
-    async getTopic(id: string): Promise<TopicResponse> {
-      const discovery = TopicDiscoveryResponseSchema.parse(topicDiscovery);
-      const topic = discovery.topics.find((t) => t.id === id);
-      if (!topic) throw new Error(`Topic not found: ${id}`);
-      return TopicResponseSchema.parse({ topic });
-    },
     async getSource(id: string): Promise<SourceResponse> {
       const discovery = SourceDiscoveryResponseSchema.parse(sourceDiscovery);
       const source = discovery.sources.find((s) => s.id === id);
@@ -106,7 +97,6 @@ export function createStaticContextApiClient({
         ...(ctx.resource.provider ? { provider: ctx.resource.provider } : {}),
         name: ctx.resource.name,
         aliases: ctx.resource.aliases,
-        governance: ctx.governance,
       });
     },
     async searchResources(query: string): Promise<ResourceSearchResponse> {
@@ -128,8 +118,8 @@ export function createStaticContextApiClient({
     async discoverSources(): Promise<SourceDiscoveryResponse> {
       return SourceDiscoveryResponseSchema.parse(sourceDiscovery);
     },
-    async discoverTopics(): Promise<TopicDiscoveryResponse> {
-      return TopicDiscoveryResponseSchema.parse(topicDiscovery);
+    async discoverResources(): Promise<ResourceCatalogResponse> {
+      return ResourceCatalogResponseSchema.parse(resourceCatalog);
     },
     async submitFeedback(request: FeedbackSubmission): Promise<FeedbackResponse> {
       return FeedbackResponseSchema.parse({

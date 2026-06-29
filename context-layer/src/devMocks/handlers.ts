@@ -31,7 +31,7 @@ function listSpacePages(spaceKey: string) {
 
 /** Configurable injected latency (ms) so dev render shows real loading states. */
 export function devMockLatencyMs(): number {
-  const raw = readEnv().ATLAS_DEV_MOCK_LATENCY_MS;
+  const raw = readEnv().DEV_MOCK_LATENCY_MS;
   const parsed = raw ? Number(raw) : 0;
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
 }

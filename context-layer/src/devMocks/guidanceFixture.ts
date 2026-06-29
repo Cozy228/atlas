@@ -3,7 +3,7 @@
  * hosted in the MSW source-space (NOT a YAML file read off `data/`). These are the
  * snake_case manifests verbatim from the retired `data/guidance/*.yaml`, served as
  * a JSON array by the MSW guidance-store handler. The live `loadGuidance` loader
- * fetches this URL (`ATLAS_GUIDANCE_URL`), validates each against `@atlas/schema`'s
+ * fetches this URL (`GUIDANCE_URL`), validates each against `@atlas/schema`'s
  * `GuidanceSchema`, and maps to the portal camelCase `Guidance` — exactly like
  * every other source (single live path, 018 G1). Prod points the same env at a
  * real guidance store; dev/tests point it here. Fictional and public-safe.

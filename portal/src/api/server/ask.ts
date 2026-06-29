@@ -8,12 +8,12 @@ import {
   type AskAtlasClaim,
   type LlmAdapter,
 } from "@/ask/askAtlas";
-import { findAvailabilityServiceForTopic } from "@/lib/availability-service";
+import { findAvailabilityServiceById } from "@/lib/availability-service";
 import { createConfiguredClaimsAdapter } from "./llmProvider";
 import { serverContextApiClient } from "./serverContextApiClient";
 
 const askInputSchema = z.object({
-  topicId: z.string().min(1).optional(),
+  resourceSlug: z.string().min(1).optional(),
   question: z.string().min(1),
 });
 
@@ -52,7 +52,7 @@ export const askAtlas = createServerFn({ method: "POST" })
 export type AskAtlasClaimsAdapter = LlmAdapter;
 
 /**
- * Resolve an ask to one governed Resource projection (plan 019). A topic-anchored
+ * Resolve an ask to one governed Resource projection (plan 019). A resource-anchored
  * ask resolves its service through the availability spine; a free-text ask
  * resolves by resource search. Returns null when nothing matches — the caller
  * answers with an honest "no governed evidence" rather than inventing claims.
@@ -68,19 +68,19 @@ async function resolveProjection(data: AskInput): Promise<ResourceContextRespons
 }
 
 async function resolveResourceRef(data: AskInput): Promise<{ kind: string; slug: string } | null> {
-  if (data.topicId) {
+  if (data.resourceSlug) {
+    // The ask is anchored to a resource slug (e.g. "aws/textract"); confirm it
+    // against the availability spine and resolve the canonical service ref.
     try {
-      const [{ topic }, { zones }] = await Promise.all([
-        serverContextApiClient.getTopic(data.topicId),
-        serverContextApiClient.getAvailability(),
-      ]);
+      const { zones } = await serverContextApiClient.getAvailability();
       const zone = zones.find((entry) => entry.id === "aws") ?? zones[0];
-      const service = zone ? findAvailabilityServiceForTopic(topic, zone.services) : undefined;
+      const serviceId = data.resourceSlug.split("/").at(-1) ?? data.resourceSlug;
+      const service = zone ? findAvailabilityServiceById(zone.services, serviceId) : undefined;
       if (zone && service) {
         return { kind: "service", slug: `${zone.id}/${service.id}` };
       }
     } catch {
-      // Topic/availability resolution failed — fall through to free-text search.
+      // Spine resolution failed — fall through to free-text search.
     }
   }
 

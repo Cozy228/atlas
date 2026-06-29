@@ -62,7 +62,7 @@ describe("Ask Atlas LLM provider selection", () => {
     expect(() =>
       createConfiguredClaimsAdapter({
         projection: serviceProjection,
-        env: { ATLAS_LLM_PROVIDER: "RAI" },
+        env: { LLM_PROVIDER: "RAI" },
       }),
     ).toThrow("RAI_BASE_URL");
   });

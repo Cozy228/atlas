@@ -31,7 +31,7 @@ export const DEV_CONFLUENCE_SECURITY_SPACE_KEY = "SECPOL";
 
 /**
  * Fictional page id of the federated-platform "What's New" Confluence page. The
- * dev runtime points `ATLAS_RELEASE_NOTES_PAGE_ID` here so `resolveReleaseNotes`
+ * dev runtime points `CONFLUENCE_RELEASE_NOTES_PAGE_ID` here so `resolveReleaseNotes`
  * fetches it through the same v2 channel as every other page and extracts both
  * formal releases AND standalone announcements from the one page (plan 018 G6).
  */
@@ -307,7 +307,7 @@ export const CONFLUENCE_PAGES: Record<string, ConfluencePageFixture> = {
 
 /**
  * Fictional private Terraform Enterprise (TFE) host the dev adapter is pointed at
- * via `ATLAS_TERRAFORM_BASE_URL`. A non-public-registry base selects the TFE
+ * via `TERRAFORM_BASE_URL`. A non-public-registry base selects the TFE
  * `/api/registry/v1/modules` API path (the public `registry.terraform.io` would
  * select `/v1/modules`). Public-safe — no real registry host or token.
  */

@@ -5,7 +5,7 @@
  *   contract exposing only the four agent operations (getAtlasInstructions,
  *   getAtlasCapabilityCatalog, searchResources, getResourceContext).
  * - `buildInternalOpenApiDocument` → `/api/internal/openapi.json`: the complete
- *   internal contract (topics, sources, context, feedback, resources) — every
+ *   internal contract (resource catalog, sources, context, feedback, resources) — every
  *   route the Context Layer router dispatches, not advertised to blind agents.
  *
  * Component schemas are derived from `@atlas/schema` (zod) via `z.toJSONSchema()`,
@@ -21,6 +21,7 @@ import {
   FeedbackResponseSchema,
   FeedbackSubmissionSchema,
   MissingSectionSchema,
+  ResourceCatalogResponseSchema,
   ResourceCitationSchema,
   ResourceContextResponseSchema,
   ResourceRecordResponseSchema,
@@ -29,12 +30,9 @@ import {
   ResourceWarningSchema,
   SourceDiscoveryResponseSchema,
   SourceResponseSchema,
-  TopicDiscoveryResponseSchema,
-  TopicResponseSchema,
   resourceKinds,
   sectionIds,
   sourceClasses,
-  topicTypes,
 } from "@atlas/schema";
 import { listResourceKinds, resourceKindRegistry } from "@atlas/context-layer";
 import { DEFAULT_PORTAL_ORIGIN } from "./portalOrigin";
@@ -112,10 +110,6 @@ const RESOURCE_CONTEXT_EXAMPLE = {
     resourceUrl: "https://portal.example.com/api/resources/service/aws/textract",
     markdownUrl: "https://portal.example.com/resources/service/aws/textract.md",
   },
-  // Resource-level governance (plan 017 B6): a governed overlay exists for this
-  // service, so its Sections are projected. A spine-only service (no overlay)
-  // would carry "unconfigured" with empty Sections.
-  governance: "configured",
   requestedSections: ["network", "availability"],
   sections: {
     network: {
@@ -196,12 +190,12 @@ const READ_FACE_TAGS = [
   {
     name: READ_FACE.context,
     description:
-      "Live-resolve one resource/topic/Source's content from its registered Sources — every fact source-cited, never materialized.",
+      "Live-resolve one resource/Source's content from its registered Sources — every fact source-cited, never materialized.",
   },
   {
     name: READ_FACE.registry,
     description:
-      "Query or browse Atlas's own registry: resolve a name to a canonical id, discover topics/Sources, list capabilities. Identity and index, not content. `searchResources` is the agent-facing Discovery-read subset.",
+      "Query or browse Atlas's own registry: resolve a name to a canonical id, discover resources/Sources, list capabilities. Identity and index, not content. `searchResources` is the agent-facing Discovery-read subset.",
   },
   {
     name: READ_FACE.management,
@@ -320,7 +314,7 @@ function getResourceRecordOperation() {
       operationId: "getResourceRecord",
       summary: "Read a resource's presentation metadata (owner, support, entry tools)",
       description:
-        'The identity / presentation metadata migrated onto the Resource record (ADR-0015 §2): owner, support channel, category, status, entry tools, facet topics. `governance: "configured"` iff a curated overlay exists; a spine-only service returns identity-only.',
+        "The identity / presentation metadata migrated onto the Resource record (ADR-0015 §2): owner, support channel, category, status, and entry tools, all derived from discovery. Optional fields are honest-gap — a spine-only service returns identity only (kind, id, slug, name, aliases).",
       parameters: [
         {
           name: "kind",
@@ -351,39 +345,18 @@ function getResourceRecordOperation() {
 
 function internalPaths() {
   return {
-    "/topics": {
+    "/resources/catalog": {
       get: {
         tags: [READ_FACE.registry],
-        operationId: "discoverTopics",
-        summary: "Discover topics (services, landing zones, security policies)",
+        operationId: "discoverResources",
+        summary: "List the discovery-derived resource catalog (services + security policies)",
         description:
-          "Search the registered topics. Internal discovery; agents use searchResources instead.",
-        parameters: [
-          queryParam("query", "Free-text search over topic names and descriptions."),
-          queryParam("topic_type", "Filter by topic type.", {
-            type: "string",
-            enum: [...topicTypes],
-          }),
-          queryParam("category", "Filter by topic category."),
-        ],
+          "The full discovered resource inventory as presentation records — the Portal catalog facets on `category`, tabs on `kind` (service / guardrail), and links by `slug`. Returns every resource in one read; internal discovery, agents resolve a single resource via searchResources instead.",
         responses: {
           "200": {
-            description: "Matching topics.",
-            content: jsonContent("TopicDiscoveryResponse"),
+            description: "The resource catalog.",
+            content: jsonContent("ResourceCatalogResponse"),
           },
-          "400": errorResponse("`invalid_request` — malformed discovery filters."),
-        },
-      },
-    },
-    "/topics/{topic_id}": {
-      get: {
-        tags: [READ_FACE.registry],
-        operationId: "getTopic",
-        summary: "Get one topic's registry record",
-        parameters: [topicIdParam()],
-        responses: {
-          "200": { description: "The topic.", content: jsonContent("TopicResponse") },
-          "404": errorResponse("`topic_not_found` — no such topic is registered."),
         },
       },
     },
@@ -394,7 +367,6 @@ function internalPaths() {
         summary: "Discover registered Sources",
         parameters: [
           queryParam("query", "Free-text search over Source titles and scopes."),
-          queryParam("topic_id", "Only Sources mapped to this topic."),
           queryParam("source_class", "Filter by source class.", {
             type: "string",
             enum: [...sourceClasses],
@@ -447,7 +419,7 @@ function internalPaths() {
       post: {
         tags: [READ_FACE.management],
         operationId: "submitFeedback",
-        summary: "Submit feedback about a topic, Source, or Anchor",
+        summary: "Submit feedback about a resource, Source, or Anchor",
         description:
           "The single mutation endpoint. Records that registered context is missing, stale, broken, or unclear.",
         requestBody: {
@@ -456,10 +428,11 @@ function internalPaths() {
             "application/json": {
               schema: ref("FeedbackSubmission"),
               example: {
-                target_type: "source",
-                target_id: "textract-module-readme",
+                target_type: "resource",
+                target_id: "service/aws/textract",
                 feedback_type: "stale",
-                message: "The private subnet section no longer matches the module inputs.",
+                message:
+                  "The availability section no longer matches the regions this service supports.",
               },
             },
           },
@@ -467,7 +440,9 @@ function internalPaths() {
         responses: {
           "201": { description: "Feedback recorded.", content: jsonContent("FeedbackResponse") },
           "400": errorResponse("`invalid_request` — malformed feedback submission."),
-          "404": errorResponse("`topic_not_found` / `source_not_found` — unknown feedback target."),
+          "404": errorResponse(
+            "`resource_not_found` / `source_not_found` — unknown feedback target.",
+          ),
           "422": errorResponse("`anchor_broken` — unknown anchor feedback target."),
         },
       },
@@ -565,7 +540,7 @@ export function buildInternalOpenApiDocument(origin: string = DEFAULT_PORTAL_ORI
     info: {
       title: "Atlas Internal API",
       version: "1.0.0",
-      description: `${VOCABULARY}\n\n${WARNING_GLOSSARY}\n\n${BEARER_PIPE}\n\nThe complete internal contract: topic/source discovery, context bundles, the kind-first resource API, and feedback. Not advertised to blind agents — the slim agent contract is at \`/openapi.json\`. Every route is read-only except \`POST /feedback\`, the single mutation endpoint.`,
+      description: `${VOCABULARY}\n\n${WARNING_GLOSSARY}\n\n${BEARER_PIPE}\n\nThe complete internal contract: resource-catalog and Source discovery, the kind-first resource API, and feedback. Not advertised to blind agents — the slim agent contract is at \`/openapi.json\`. Every route is read-only except \`POST /feedback\`, the single mutation endpoint.`,
     },
     servers: [{ url: `${origin}/api`, description: "Atlas Portal origin" }],
     security: [{ bearerPipe: [] }, {}],
@@ -574,8 +549,7 @@ export function buildInternalOpenApiDocument(origin: string = DEFAULT_PORTAL_ORI
     components: {
       securitySchemes: bearerSecurityScheme,
       schemas: {
-        TopicDiscoveryResponse: toJsonSchema(TopicDiscoveryResponseSchema),
-        TopicResponse: toJsonSchema(TopicResponseSchema),
+        ResourceCatalogResponse: toJsonSchema(ResourceCatalogResponseSchema),
         SourceDiscoveryResponse: toJsonSchema(SourceDiscoveryResponseSchema),
         SourceResponse: toJsonSchema(SourceResponseSchema),
         AvailabilityReadResponse: toJsonSchema(AvailabilityReadResponseSchema),
@@ -586,16 +560,6 @@ export function buildInternalOpenApiDocument(origin: string = DEFAULT_PORTAL_ORI
         ResourceRecordResponse: toJsonSchema(ResourceRecordResponseSchema),
       },
     },
-  };
-}
-
-function topicIdParam() {
-  return {
-    name: "topic_id",
-    in: "path",
-    required: true,
-    description: "Registered topic id (semantic, e.g. `aws-textract`).",
-    schema: { type: "string" },
   };
 }
 

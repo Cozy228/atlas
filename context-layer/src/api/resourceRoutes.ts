@@ -1,5 +1,6 @@
 import type {
   ApiErrorResponse,
+  ResourceCatalogResponse,
   ResourceContextResponse,
   ResourceKind,
   ResourceRecordResponse,
@@ -11,10 +12,23 @@ import {
   getResourceContext,
   getResourceRecord,
   InvalidResourceRequestError,
+  listResourceCatalog,
   searchResources,
 } from "../resources/resourceContextService";
 import type { ResolutionContext } from "../resolvers/resolverTypes";
 import { errorResponse, type ApiResponse } from "./routeTypes";
+
+/**
+ * Resource catalog list: the discovery-derived catalog feed (services +
+ * guardrails) as presentation records. No params — the Portal facets/tabs the
+ * list client-side; an agent browses the full resource inventory in one call.
+ */
+export async function handleResourceCatalogRequest(): Promise<
+  ApiResponse<ResourceCatalogResponse>
+> {
+  const service = await createDefaultContextService();
+  return { status: 200, body: listResourceCatalog(service) };
+}
 
 /**
  * Resource search (proposal §5.7): resolve a free-text name to canonical

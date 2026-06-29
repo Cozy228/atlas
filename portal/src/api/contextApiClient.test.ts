@@ -5,7 +5,7 @@ import { serviceProjection } from "../fixtures/resourceContexts";
 function client() {
   return createStaticContextApiClient({
     sourceDiscovery: { sources: [] },
-    topicDiscovery: { topics: [] },
+    resourceCatalog: { resources: [] },
     resourceContexts: { "service/aws/textract": serviceProjection },
   });
 }

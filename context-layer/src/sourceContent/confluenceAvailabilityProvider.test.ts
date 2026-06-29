@@ -4,9 +4,9 @@ import { defaultResolutionContext } from "../resolvers/resolverTypes";
 import { createConfluenceAvailabilityProvider } from "./confluenceAvailabilityProvider";
 
 const env = {
-  ATLAS_CONFLUENCE_BASE_URL: DEV_CONFLUENCE_BASE_URL,
-  ATLAS_CONFLUENCE_TOKEN: "dev-mock-token",
-  ATLAS_CONFLUENCE_AVAILABILITY_PAGE_AWSF: DEV_AVAILABILITY_PAGE_ID_AWSF,
+  CONFLUENCE_BASE_URL: DEV_CONFLUENCE_BASE_URL,
+  CONFLUENCE_TOKEN: "dev-mock-token",
+  CONFLUENCE_AVAILABILITY_PAGE_AWSF: DEV_AVAILABILITY_PAGE_ID_AWSF,
 };
 
 function provider(envOverride: Record<string, string | undefined> = env) {

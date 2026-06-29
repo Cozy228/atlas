@@ -2,7 +2,7 @@
  * Shared dev/integration MSW surface (plan 018). Consumed by:
  *   - context-layer integration tests (via `setup.ts`),
  *   - portal integration tests + the portal dev-runtime Nitro plugin,
- * all of which point `ATLAS_CONFLUENCE_*` / `ATLAS_TERRAFORM_*` at this fixture
+ * all of which point `CONFLUENCE_*` / `TERRAFORM_*` at this fixture
  * and let the live adapters fetch through the Node-mode interceptor.
  *
  * Exposed under the `@atlas/context-layer/devMocks` subpath ONLY — never the main

@@ -1,10 +1,10 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { FeedbackResponseSchema, TopicDiscoveryResponseSchema } from "@atlas/schema";
+import { FeedbackResponseSchema, ResourceCatalogResponseSchema } from "@atlas/schema";
 import { setDevDiscoveryEnv } from "../devMocks";
 import { handleHttpRequest } from "./httpRoute";
 
-// Post-flip (plan 018 G5) the registry is the OUTPUT of live discovery; point
-// every channel at the MSW fixtures so topics/sources/feedback targets exist.
+// Post-collapse the registry/catalog are the OUTPUT of live discovery; point
+// every channel at the MSW fixtures so resources/sources/feedback targets exist.
 const savedEnv = { ...process.env };
 beforeAll(() => setDevDiscoveryEnv());
 afterAll(() => {
@@ -12,28 +12,26 @@ afterAll(() => {
 });
 
 describe("context API HTTP route adapter", () => {
-  it("maps GET /topics query parameters to topic discovery", async () => {
+  it("maps GET /resources/catalog to the resource catalog feed", async () => {
     const response = await handleHttpRequest({
       method: "GET",
-      path: "/topics",
-      query: { topic_type: "service" },
+      path: "/resources/catalog",
     });
 
     expect(response.status).toBe(200);
-    const body = TopicDiscoveryResponseSchema.parse(JSON.parse(response.body));
-    expect(body.topics.every((topic) => topic.topic_type === "service")).toBe(true);
+    const body = ResourceCatalogResponseSchema.parse(JSON.parse(response.body));
+    expect(body.resources.some((resource) => resource.kind === "service")).toBe(true);
   });
 
   it("maps API Gateway /api-prefixed routes to the same HTTP adapter", async () => {
     const response = await handleHttpRequest({
       method: "GET",
-      path: "/api/topics",
-      query: { topic_type: "security-policy" },
+      path: "/api/resources/catalog",
     });
 
     expect(response.status).toBe(200);
-    const body = TopicDiscoveryResponseSchema.parse(JSON.parse(response.body));
-    expect(body.topics.every((topic) => topic.topic_type === "security-policy")).toBe(true);
+    const body = ResourceCatalogResponseSchema.parse(JSON.parse(response.body));
+    expect(body.resources.some((resource) => resource.kind === "guardrail")).toBe(true);
   });
 
   it("maps POST /feedback to feedback submission", async () => {
@@ -41,8 +39,8 @@ describe("context API HTTP route adapter", () => {
       method: "POST",
       path: "/feedback",
       body: JSON.stringify({
-        target_type: "topic",
-        target_id: "aws/textract",
+        target_type: "resource",
+        target_id: "service/aws/textract",
         feedback_type: "unclear",
         message: "Clarify private subnet guidance.",
       }),
@@ -50,7 +48,7 @@ describe("context API HTTP route adapter", () => {
 
     expect(response.status).toBe(201);
     const body = FeedbackResponseSchema.parse(JSON.parse(response.body));
-    expect(body.feedback.target_id).toBe("aws/textract");
+    expect(body.feedback.target_id).toBe("service/aws/textract");
   });
 
   it("returns structured errors for unknown HTTP routes", async () => {

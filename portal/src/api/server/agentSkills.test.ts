@@ -103,8 +103,8 @@ describe("agent-skills RFC v0.2.0 shape", () => {
 
 describe("atlas-context-consumer bundle parity", () => {
   /**
-   * The behavior the skill instructs — resolve a topic, then consume the
-   * bundle — must hit the same Context API contract the Portal uses. The
+   * The behavior the skill instructs — resolve a resource, then read its
+   * context — must hit the same Context API contract the Portal uses. The
    * bridge below is the exact function served at `/api/*` on the Portal
    * origin; `serverContextApiClient` is what Portal loaders consume.
    */

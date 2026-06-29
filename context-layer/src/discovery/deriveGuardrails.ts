@@ -23,6 +23,10 @@ import type {
 import { SECTION_RULES, type SectionRule } from "../kernel/sectionRules";
 import type { DiscoveredGuardrail } from "./discoverGuardrails";
 
+/** The facet category every derived guardrail carries — security policies are a
+ *  single cross-cutting domain (absorbed from the retired guardrail Topic). */
+const GUARDRAIL_CATEGORY = "Security";
+
 // Fixed fictional, recent freshness stamps so a derived source is in-window (not
 // flagged stale) when this engine later backs the live path. Public-safe.
 const SOURCE_STEWARD = "cloud-security";
@@ -79,6 +83,10 @@ function deriveGuardrailRecord(guardrail: DiscoveredGuardrail): ResourceContextR
     slug: guardrail.slug,
     name: guardrail.name,
     aliases: dedupe([guardrail.name, guardrail.slug]),
+    // Presentation metadata absorbed from the retired guardrail Topic: security
+    // policies are one cross-cutting domain and are active once discovered.
+    category: GUARDRAIL_CATEGORY,
+    status: "active",
     sections,
   };
 }

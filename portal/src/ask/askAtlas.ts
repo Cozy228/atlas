@@ -121,7 +121,7 @@ export function createDailyRateLimiter(maxRequests: number): RateLimiter {
   };
 }
 
-/** Every citation id (`source_id#anchor_id`) across the projection's Sections. */
+/** Every citation id (`source_id#anchor`) across the projection's Sections. */
 export function sectionCitationIds(projection: ResourceContextResponse): string[] {
   return Object.values(projection.sections).flatMap((section) =>
     section.citations.map((citation) => citationId(citation.sourceId, citation.anchor)),

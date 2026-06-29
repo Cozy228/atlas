@@ -29,8 +29,8 @@ describe("guardrail discovery → derivation (golden)", () => {
   let sources: Source[];
 
   beforeAll(async () => {
-    process.env.ATLAS_CONFLUENCE_BASE_URL = DEV_CONFLUENCE_BASE_URL;
-    process.env.ATLAS_CONFLUENCE_TOKEN = "dev-mock-token";
+    process.env.CONFLUENCE_BASE_URL = DEV_CONFLUENCE_BASE_URL;
+    process.env.CONFLUENCE_TOKEN = "dev-mock-token";
 
     const ctx = defaultResolutionContext(); // late-bound fetch → MSW interceptor
     const deps: DiscoverGuardrailsDeps = {

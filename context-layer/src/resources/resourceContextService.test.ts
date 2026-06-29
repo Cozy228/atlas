@@ -309,8 +309,8 @@ describe("getResourceContext — name normalization (single-candidate fallback)"
 });
 
 describe("getResourceContext — identity-first spine (plan 017 B4/B6)", () => {
-  it("renders a spine-only service (in the grid, no overlay) as governance:unconfigured, not 404", async () => {
-    // With `resources: []` no service has a derived overlay, so aws/cloudwatch is
+  it("renders a spine-only service (in the grid, not yet derived) with empty sections, not 404", async () => {
+    // With `resources: []` no service has a derived record, so aws/cloudwatch is
     // spine-only (in the awsf grid) — the identity-first path still renders it.
     const response = await getResourceContext(
       await pilotService({ resources: [], referenceDiscovery: liveReferenceDiscovery() }),
@@ -318,7 +318,6 @@ describe("getResourceContext — identity-first spine (plan 017 B4/B6)", () => {
     );
 
     expect(response).not.toBeNull();
-    expect(response?.governance).toBe("unconfigured");
     expect(response?.resource.id).toBe("service/aws/cloudwatch");
     expect(response?.resource.slug).toBe("aws/cloudwatch");
     expect(response?.resource.provider).toBe("aws");
@@ -328,22 +327,22 @@ describe("getResourceContext — identity-first spine (plan 017 B4/B6)", () => {
     expect(response?.requestedSections).toEqual([]);
   });
 
-  it("marks a discovered service as governance:configured", async () => {
+  it("resolves a discovered service's requested sections", async () => {
     const response = await getResourceContext(await pilotService(), {
       kind: "service",
       slug: "aws/textract",
       sections: ["network"],
     });
-    expect(response?.governance).toBe("configured");
     expect(response?.sections.network?.status).toBe("available");
   });
 
-  it("marks a non-service overlay kind as governance:configured (no spine)", async () => {
+  it("renders a non-service kind from its derived record (no spine)", async () => {
     const response = await getResourceContext(await pilotService(), {
       kind: "guardrail",
       slug: "public-access-controls",
     });
-    expect(response?.governance).toBe("configured");
+    expect(response).not.toBeNull();
+    expect(response?.resource.kind).toBe("guardrail");
   });
 
   it("still 404s a service that is neither in the spine nor overlaid", async () => {
@@ -364,7 +363,6 @@ describe("getResourceContext — reference discovery merge (plan 017 B4)", () =>
     );
 
     // Governed content AND reference-only links coexist, clearly distinguished.
-    expect(response?.governance).toBe("configured");
     expect(response?.sections.network?.status).toBe("available");
     expect(response?.references.length).toBeGreaterThan(0);
     expect(response?.referenceDiscovery?.status).toBe("fresh");
@@ -389,7 +387,6 @@ describe("getResourceContext — reference discovery merge (plan 017 B4)", () =>
       await pilotService({ resources: [], referenceDiscovery: undefined }),
       { kind: "service", slug: "aws/cloudwatch" },
     );
-    expect(response?.governance).toBe("unconfigured");
     expect(response?.references).toEqual([]);
     expect(response?.referenceDiscovery).toBeNull();
   });

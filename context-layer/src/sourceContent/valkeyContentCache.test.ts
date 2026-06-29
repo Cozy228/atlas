@@ -85,10 +85,10 @@ describe("ValkeyContentCache (injected client)", () => {
 /**
  * Integration test against a real Valkey/ElastiCache, exercising the lazy
  * `@valkey/valkey-glide` import and a true network round-trip. Skipped unless
- * `ATLAS_CACHE_VALKEY_URL` is set (and the GLIDE package is installed) — e.g.
- *   ATLAS_CACHE_VALKEY_URL=redis://localhost:6379 pnpm --filter @atlas/context-layer test
+ * `CACHE_VALKEY_URL` is set (and the GLIDE package is installed) — e.g.
+ *   CACHE_VALKEY_URL=redis://localhost:6379 pnpm --filter @atlas/context-layer test
  */
-const liveUrl = process.env.ATLAS_CACHE_VALKEY_URL;
+const liveUrl = process.env.CACHE_VALKEY_URL;
 
 describe.skipIf(!liveUrl)("ValkeyContentCache (live server)", () => {
   it("stores and reads back a value, and expires it", async () => {

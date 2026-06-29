@@ -7,7 +7,7 @@
  * decision (reads first; any future mutation needs audit + human confirm).
  */
 import { z } from "zod";
-import { resourceKinds, topicTypes, type ResourceContextResponse } from "@atlas/schema";
+import { resourceKinds, type ResourceContextResponse } from "@atlas/schema";
 
 import type { ContextApiClient } from "../../contextApiClient";
 import { ContextApiError } from "../../contextApiError";
@@ -29,7 +29,7 @@ const NARROW_HINT = "Result was truncated; narrow your search (add query terms o
 
 const SearchServiceInput = z.object({
   query: z.string().min(1).optional().describe("Free-text search, e.g. 'textract ocr'."),
-  topic_type: z.enum(topicTypes).optional(),
+  kind: z.enum(resourceKinds).optional().describe("Filter by kind: service or guardrail."),
   category: z.string().min(1).optional(),
   response_format: ResponseFormatSchema,
   ...PageSchema,
@@ -93,7 +93,6 @@ function conciseProjection(projection: ResourceContextResponse) {
   });
   return {
     resource: projection.resource.id,
-    governance: projection.governance,
     sections,
     references: projection.references,
     ...(projection.missingSections.length > 0
@@ -107,29 +106,42 @@ export const mcpTools: McpToolDefinition[] = [
   {
     name: "atlas_search_service",
     description:
-      "Search Atlas's registered topics (services and security policies) by free text. Start here to resolve a question to a topic, then read its resource via atlas_get_resource_context.",
+      "Search Atlas's registered resources (services and security policies) by free text. Start here to resolve a question to a resource, then read its context via atlas_get_resource_context.",
     inputSchema: toInputSchema(SearchServiceInput),
     async run(args, client) {
       const input = SearchServiceInput.parse(args ?? {});
-      const { topics } = await client.discoverTopics({
-        query: input.query,
-        topic_type: input.topic_type,
-        category: input.category,
+      // The discovery-derived catalog returns every resource in one read; narrow
+      // it here by free-text query, kind, and category.
+      const { resources } = await client.discoverResources();
+      const query = input.query?.toLowerCase();
+      const matches = resources.filter((resource) => {
+        if (input.kind && resource.kind !== input.kind) return false;
+        if (input.category && resource.category !== input.category) return false;
+        if (!query) return true;
+        const haystack = [
+          resource.name,
+          ...resource.aliases,
+          resource.slug,
+          resource.description ?? "",
+        ]
+          .join(" ")
+          .toLowerCase();
+        return haystack.includes(query);
       });
-      const page = topics.slice(input.offset, input.offset + input.limit);
+      const page = matches.slice(input.offset, input.offset + input.limit);
       return {
-        total: topics.length,
+        total: matches.length,
         offset: input.offset,
         returned: page.length,
-        ...(topics.length > input.offset + page.length ? { hint: NARROW_HINT } : {}),
-        topics:
+        ...(matches.length > input.offset + page.length ? { hint: NARROW_HINT } : {}),
+        resources:
           input.response_format === "DETAILED"
             ? page
-            : page.map((topic) => ({
-                id: topic.id,
-                name: topic.name,
-                topic_type: topic.topic_type,
-                description: topic.description,
+            : page.map((resource) => ({
+                id: resource.id,
+                name: resource.name,
+                kind: resource.kind,
+                description: resource.description,
               })),
       };
     },

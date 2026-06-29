@@ -1,22 +1,29 @@
 /**
- * Dev-runtime MSW boot (plan 018 seam). Registered ONLY for `vite serve` via
- * `vite.config.ts` `nitro({ plugins })` — never the prod build — so `msw` (a
- * devDependency) never enters the production bundle. This file lives OUTSIDE the
- * auto-scanned `server/plugins/` dir on purpose: it loads only through that
- * conditional registration.
+ * Dev-runtime MSW boot (plan 018 seam · 026 three-state activation). Registered
+ * ONLY for `vite serve` via `vite.config.ts` `nitro({ plugins })` — never the prod
+ * build — so `msw` (a devDependency) never enters the production bundle. This file
+ * lives OUTSIDE the auto-scanned `server/plugins/` dir on purpose: it loads only
+ * through that conditional registration.
  *
- * It points the `ATLAS_*` discovery channels at the in-process MSW fixtures and
- * starts the Node-mode interceptor at module IMPORT TOP — before any route
- * handler's late-bound `ctx.fetch` captures `globalThis.fetch`. Without it the
- * dev portal's live discovery (Terraform / Confluence / guidance) hits nothing
- * and every surface degrades to an honest-empty catalog: this is the "dev = MSW"
- * half of plan 018's single live path (the "integration = MSW" half is the test
- * harnesses booting the same shared server).
+ * Activation is three-state: an explicit `DEV_MOCKS` override wins ('1' = force
+ * mock, '0' = force real); otherwise it auto-detects by the presence of real
+ * Confluence creds. When mocking, it points the discovery channels at the
+ * in-process MSW fixtures and starts the Node-mode interceptor at module IMPORT
+ * TOP — before any route handler's late-bound `ctx.fetch` captures
+ * `globalThis.fetch`. When NOT mocking (real creds in `.env.local`, or `=0`), it
+ * no-ops so live discovery (Terraform / Confluence / guidance) reaches the real
+ * source systems. A fresh clone with no creds still gets fixtures (zero-config).
  */
 import { server, setDevDiscoveryEnv } from "@atlas/context-layer/devMocks";
 
-setDevDiscoveryEnv();
-server.listen({ onUnhandledRequest: "bypass" });
+const explicit = process.env.DEV_MOCKS; // '1' = force mock, '0' = force real
+const hasRealCreds = !!process.env.CONFLUENCE_TOKEN && !!process.env.CONFLUENCE_BASE_URL;
+const shouldMock = explicit != null ? explicit !== "0" : !hasRealCreds;
+
+if (shouldMock) {
+  setDevDiscoveryEnv();
+  server.listen({ onUnhandledRequest: "bypass" });
+}
 
 // A plain Nitro plugin function (NOT `defineNitroPlugin` — that auto-import is
 // unavailable here because this file loads via the vite `nitro({ plugins })`

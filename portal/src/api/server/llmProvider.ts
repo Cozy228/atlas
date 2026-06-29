@@ -12,13 +12,13 @@ export type ConfiguredClaimsAdapterInput = {
 
 export function createConfiguredClaimsAdapter(input: ConfiguredClaimsAdapterInput): LlmAdapter {
   const env = input.env ?? readProcessEnv();
-  const provider = env.ATLAS_LLM_PROVIDER?.toLowerCase();
+  const provider = env.LLM_PROVIDER?.toLowerCase();
 
-  if (provider === "bedrock" || (!provider && env.ATLAS_BEDROCK_MODEL_ID)) {
-    const modelId = requiredEnv(env, "ATLAS_BEDROCK_MODEL_ID");
+  if (provider === "bedrock" || (!provider && env.BEDROCK_MODEL_ID)) {
+    const modelId = requiredEnv(env, "BEDROCK_MODEL_ID");
     return createBedrockClaimsAdapter({
       modelId,
-      region: env.ATLAS_BEDROCK_REGION ?? env.AWS_REGION,
+      region: env.BEDROCK_REGION ?? env.AWS_REGION,
       fetch: input.fetch,
     });
   }

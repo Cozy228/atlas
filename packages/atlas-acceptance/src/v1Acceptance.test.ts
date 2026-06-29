@@ -2,8 +2,8 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { ResourceContextResponseSchema, ResourceSearchResponseSchema } from "@atlas/schema";
 import {
   handleResourceContextRequest,
+  handleResourceRecordRequest,
   handleResourceSearchRequest,
-  handleTopicRequest,
 } from "@atlas/context-layer";
 import { server, setDevDiscoveryEnv } from "@atlas/context-layer/devMocks";
 import {
@@ -11,7 +11,7 @@ import {
   createDailyRateLimiter,
   getGuidance,
   loadGuidance,
-  relatedGuidanceForTopic,
+  relatedGuidanceForResource,
   type LlmAdapter,
 } from "@atlas/portal";
 
@@ -43,7 +43,7 @@ describe("Atlas V1 acceptance", () => {
     const projection = ResourceContextResponseSchema.parse(response.body);
 
     expect(projection.resource.name).toContain("Textract");
-    expect(projection.governance).toBe("configured");
+    expect(Object.keys(projection.sections).length).toBeGreaterThan(0);
 
     // "Give me terraform": the cited HCL starter is grounded in a registered
     // Source (an examples Section), never synthesized.
@@ -124,19 +124,22 @@ describe("Atlas V1 acceptance", () => {
     ];
 
     for (const hero of heroes) {
-      // The service is registered (its Topic id is the resource slug) and carries
-      // a derived Terraform-module entry tool on its datasheet.
-      const topicResponse = await handleTopicRequest(hero.slug);
-      expect(topicResponse.status, hero.slug).toBe(200);
-      const topic = "topic" in topicResponse.body ? topicResponse.body.topic : undefined;
-      expect(topic?.topic_type, hero.slug).toBe("service");
-      expect(topic?.entry_tools?.map((tool) => tool.label) ?? [], hero.slug).toContain(
+      // The service is a discovered Resource and carries a derived Terraform-module
+      // entry tool on its datasheet record.
+      const recordResponse = await handleResourceRecordRequest({
+        kind: "service",
+        slug: hero.slug,
+      });
+      expect(recordResponse.status, hero.slug).toBe(200);
+      const record = "kind" in recordResponse.body ? recordResponse.body : undefined;
+      expect(record?.kind, hero.slug).toBe("service");
+      expect(record?.entry_tools?.map((tool) => tool.label) ?? [], hero.slug).toContain(
         "Terraform module",
       );
 
       // A governed adoption guide exists, is a route, and is wired to the resource.
       expect(getGuidance(guidances, hero.guidanceId)?.type, hero.guidanceId).toBe("route");
-      expect(relatedGuidanceForTopic(guidances, hero.slug).map((g) => g.id)).toContain(
+      expect(relatedGuidanceForResource(guidances, hero.slug).map((g) => g.id)).toContain(
         hero.guidanceId,
       );
     }

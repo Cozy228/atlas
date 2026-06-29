@@ -45,7 +45,7 @@ export function EvidencePanel({ projection, className }: EvidencePanelProps) {
           className,
         )}
       >
-        {projection.governance === "unconfigured"
+        {projection.requestedSections.length === 0
           ? "No governed sources are configured for this resource yet."
           : "No sections resolved for this resource. Submit feedback to suggest a source."}
       </div>

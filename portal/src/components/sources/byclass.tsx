@@ -18,7 +18,7 @@ import { FreshnessIndicator } from "@/components/evidence/badges";
 import { type FreshnessState } from "@/lib/evidence";
 import { cn } from "@/lib/utils";
 
-import { CATEGORY_ORDER, sourceCategory } from "./scale";
+import { CATEGORY_ORDER, sourceCategory } from "./category";
 import { CLASS_LABEL, FRESHNESS_META, Header, freshnessMap } from "./shared";
 
 /**

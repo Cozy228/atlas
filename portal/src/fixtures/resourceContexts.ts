@@ -15,7 +15,6 @@ export const serviceProjection: ResourceContextResponse = {
     resourceUrl: "/api/resources/service/aws/textract",
     markdownUrl: "/resources/service/aws/textract.md",
   },
-  governance: "configured",
   requestedSections: ["network", "examples"],
   sections: {
     network: {
@@ -65,7 +64,6 @@ export const emptyProjection: ResourceContextResponse = {
     resourceUrl: "/api/resources/service/aws/mainframe",
     markdownUrl: "/resources/service/aws/mainframe.md",
   },
-  governance: "unconfigured",
   requestedSections: [],
   sections: {},
   missingSections: [],

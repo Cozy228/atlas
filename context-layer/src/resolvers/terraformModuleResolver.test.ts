@@ -91,8 +91,8 @@ describe("terraformModuleResolver (single live path)", () => {
         process: { env: Record<string, string | undefined> };
       }
     ).process.env;
-    const previousToken = env.ATLAS_TERRAFORM_TOKEN;
-    delete env.ATLAS_TERRAFORM_TOKEN;
+    const previousToken = env.TERRAFORM_TOKEN;
+    delete env.TERRAFORM_TOKEN;
 
     const fetch = registryFetch({ version: "1.4.0", root: { readme: "" } });
     const result = await terraformModuleResolver.resolve({
@@ -103,7 +103,7 @@ describe("terraformModuleResolver (single live path)", () => {
     });
 
     if (previousToken !== undefined) {
-      env.ATLAS_TERRAFORM_TOKEN = previousToken;
+      env.TERRAFORM_TOKEN = previousToken;
     }
 
     // No token = honest gap: never fetched, never a fake fallback.
@@ -154,8 +154,8 @@ describe("terraformModuleResolver (single live path)", () => {
         process: { env: Record<string, string | undefined> };
       }
     ).process.env;
-    const previousToken = env.ATLAS_TERRAFORM_TOKEN;
-    env.ATLAS_TERRAFORM_TOKEN = "fictional-registry-token";
+    const previousToken = env.TERRAFORM_TOKEN;
+    env.TERRAFORM_TOKEN = "fictional-registry-token";
 
     const fetch = registryFetch({
       version: "2.1.0",
@@ -170,9 +170,9 @@ describe("terraformModuleResolver (single live path)", () => {
     });
 
     if (previousToken === undefined) {
-      delete env.ATLAS_TERRAFORM_TOKEN;
+      delete env.TERRAFORM_TOKEN;
     } else {
-      env.ATLAS_TERRAFORM_TOKEN = previousToken;
+      env.TERRAFORM_TOKEN = previousToken;
     }
 
     expect(fetch).toHaveBeenCalledTimes(1);
@@ -185,8 +185,8 @@ describe("terraformModuleResolver (single live path)", () => {
         process: { env: Record<string, string | undefined> };
       }
     ).process.env;
-    const previousToken = env.ATLAS_TERRAFORM_TOKEN;
-    delete env.ATLAS_TERRAFORM_TOKEN;
+    const previousToken = env.TERRAFORM_TOKEN;
+    delete env.TERRAFORM_TOKEN;
 
     const fetch = registryFetch({
       version: "2.1.0",
@@ -201,7 +201,7 @@ describe("terraformModuleResolver (single live path)", () => {
     });
 
     if (previousToken !== undefined) {
-      env.ATLAS_TERRAFORM_TOKEN = previousToken;
+      env.TERRAFORM_TOKEN = previousToken;
     }
 
     expect(fetch).toHaveBeenCalledTimes(1);

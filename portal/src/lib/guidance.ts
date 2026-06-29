@@ -120,18 +120,18 @@ export function guidanceByFamily(guidances: ReadonlyArray<Guidance>): ReadonlyAr
   })).filter((group) => group.items.length > 0);
 }
 
-/** Guidance whose `appliesTo` references the given topic. */
-export function relatedGuidanceForTopic(
+/** Guidance whose `appliesTo` references the given resource slug. */
+export function relatedGuidanceForResource(
   guidances: ReadonlyArray<Guidance>,
-  topicId: string,
+  resourceSlug: string,
 ): ReadonlyArray<Guidance> {
   return guidances.filter((guidance) => {
     const applies = guidance.appliesTo;
     if (!applies) return false;
     return (
-      (applies.services?.includes(topicId) ?? false) ||
-      (applies.landingZones?.includes(topicId) ?? false) ||
-      (applies.securityPolicies?.includes(topicId) ?? false)
+      (applies.services?.includes(resourceSlug) ?? false) ||
+      (applies.landingZones?.includes(resourceSlug) ?? false) ||
+      (applies.securityPolicies?.includes(resourceSlug) ?? false)
     );
   });
 }

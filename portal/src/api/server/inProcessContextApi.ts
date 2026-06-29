@@ -9,37 +9,33 @@
 import {
   handleAvailabilityRequest,
   handleFeedbackRequest,
+  handleResourceCatalogRequest,
   handleResourceContextRequest,
   handleResourceRecordRequest,
   handleResourceSearchRequest,
   handleSourceDiscoveryRequest,
   handleSourceRequest,
-  handleTopicDiscoveryRequest,
-  handleTopicRequest,
 } from "@atlas/context-layer";
 import {
   ApiErrorResponseSchema,
   AvailabilityReadResponseSchema,
   FeedbackResponseSchema,
+  ResourceCatalogResponseSchema,
   ResourceContextResponseSchema,
   ResourceRecordResponseSchema,
   ResourceSearchResponseSchema,
   SourceDiscoveryResponseSchema,
   SourceResponseSchema,
-  TopicDiscoveryResponseSchema,
-  TopicResponseSchema,
   type AvailabilityReadResponse,
   type FeedbackResponse,
   type FeedbackSubmission,
+  type ResourceCatalogResponse,
   type ResourceContextResponse,
   type ResourceRecordResponse,
   type ResourceSearchResponse,
   type SourceDiscoveryRequest,
   type SourceDiscoveryResponse,
   type SourceResponse,
-  type TopicDiscoveryRequest,
-  type TopicDiscoveryResponse,
-  type TopicResponse,
 } from "@atlas/schema";
 
 import type { ContextApiClient } from "../contextApiClient";
@@ -66,9 +62,6 @@ function unwrap<TBody>(result: HandlerResult, schema: { parse(input: unknown): T
 }
 
 export const serverContextApiClient: ContextApiClient = {
-  async getTopic(id: string): Promise<TopicResponse> {
-    return unwrap(await handleTopicRequest(id), TopicResponseSchema);
-  },
   async getSource(id: string): Promise<SourceResponse> {
     return unwrap(await handleSourceRequest(id), SourceResponseSchema);
   },
@@ -90,8 +83,8 @@ export const serverContextApiClient: ContextApiClient = {
   async discoverSources(request: SourceDiscoveryRequest = {}): Promise<SourceDiscoveryResponse> {
     return unwrap(await handleSourceDiscoveryRequest(request), SourceDiscoveryResponseSchema);
   },
-  async discoverTopics(request: TopicDiscoveryRequest = {}): Promise<TopicDiscoveryResponse> {
-    return unwrap(await handleTopicDiscoveryRequest(request), TopicDiscoveryResponseSchema);
+  async discoverResources(): Promise<ResourceCatalogResponse> {
+    return unwrap(await handleResourceCatalogRequest(), ResourceCatalogResponseSchema);
   },
   async submitFeedback(request: FeedbackSubmission): Promise<FeedbackResponse> {
     return unwrap(await handleFeedbackRequest(request), FeedbackResponseSchema);

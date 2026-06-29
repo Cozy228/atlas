@@ -3,9 +3,8 @@ export { handleFeedbackRequest } from "./api/feedbackRoute";
 export { handleHttpRequest } from "./api/httpRoute";
 export { handleSourceDiscoveryRequest } from "./api/sourceDiscoveryRoute";
 export { handleSourceRequest } from "./api/sourceRoute";
-export { handleTopicDiscoveryRequest } from "./api/topicDiscoveryRoute";
-export { handleTopicRequest } from "./api/topicRoute";
 export {
+  handleResourceCatalogRequest,
   handleResourceContextRequest,
   handleResourceRecordRequest,
   handleResourceSearchRequest,

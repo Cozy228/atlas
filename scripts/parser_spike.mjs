@@ -102,7 +102,7 @@ const TARGETS = {
     // site: { baseUrl, email, token },   // optional: override the primary site
   },
   releaseNotes: {
-    pageId: "<RELEASE_NOTES_PAGE_ID>",    // the release-notes Confluence page (ATLAS_RELEASE_NOTES_PAGE_ID)
+    pageId: "<RELEASE_NOTES_PAGE_ID>",    // the release-notes Confluence page (CONFLUENCE_RELEASE_NOTES_PAGE_ID)
     // site: { baseUrl, email, token },   // optional: override the primary site
   },
 };

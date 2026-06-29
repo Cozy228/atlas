@@ -49,9 +49,9 @@ export const availabilityMatrixResolver: AnchorResolver = {
     // caller's Bearer first (so it resolves under the caller's ACL), else the
     // narrow-scoped service token. No channel = honest dead-end, never a fake.
     const env = readProcessEnv();
-    const token = ctx.token ?? env.ATLAS_CONFLUENCE_TOKEN;
-    const baseUrl = env.ATLAS_CONFLUENCE_BASE_URL;
-    const email = env.ATLAS_CONFLUENCE_EMAIL;
+    const token = ctx.token ?? env.CONFLUENCE_TOKEN;
+    const baseUrl = env.CONFLUENCE_BASE_URL;
+    const email = env.CONFLUENCE_EMAIL;
     if (!token || !baseUrl) {
       return unavailable(source.id);
     }

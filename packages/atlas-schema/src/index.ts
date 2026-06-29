@@ -7,8 +7,6 @@ export const sourceClasses = [
   "availability-matrix",
 ] as const;
 
-export const topicTypes = ["service", "security-policy"] as const;
-
 export const authorityLevels = [
   "authoritative",
   "reference",
@@ -19,8 +17,8 @@ export const authorityLevels = [
 
 export const visibilityLevels = ["internal", "restricted"] as const;
 
-export const topicStatuses = ["active", "deprecated", "planned"] as const;
-export const feedbackTargetTypes = ["topic", "source"] as const;
+export const resourceStatuses = ["active", "deprecated", "planned"] as const;
+export const feedbackTargetTypes = ["resource", "source"] as const;
 export const feedbackTypes = ["missing", "stale", "broken", "unclear"] as const;
 
 export const warningCodes = [
@@ -41,7 +39,6 @@ export const apiErrorCodes = [
   "anchor_broken",
   "source_unavailable",
   "access_denied",
-  "topic_not_found",
   // No such resource is registered on the kind-first resource surface; the
   // caller should resolve the canonical id via searchResources.
   "resource_not_found",
@@ -49,10 +46,9 @@ export const apiErrorCodes = [
 ] as const;
 
 export const SourceClassSchema = z.enum(sourceClasses);
-export const TopicTypeSchema = z.enum(topicTypes);
 export const AuthorityLevelSchema = z.enum(authorityLevels);
 export const VisibilitySchema = z.enum(visibilityLevels);
-export const TopicStatusSchema = z.enum(topicStatuses);
+export const ResourceStatusSchema = z.enum(resourceStatuses);
 export const FeedbackTargetTypeSchema = z.enum(feedbackTargetTypes);
 export const FeedbackTypeSchema = z.enum(feedbackTypes);
 export const WarningCodeSchema = z.enum(warningCodes);
@@ -89,32 +85,6 @@ export const SourceSchema = z
   })
   .strict();
 
-export const TopicSchema = z
-  .object({
-    id: z.string().min(1),
-    name: z.string().min(1),
-    topic_type: TopicTypeSchema,
-    category: z.string().min(1),
-    status: TopicStatusSchema,
-    // Presentation metadata is honest-gap: derived topics carry only what
-    // discovery can back (id/name/type/category/status). Owner/support/
-    // description/entry_tools are optional — omitted when undiscoverable
-    // (plan 018 G5), never fabricated.
-    description: z.string().min(1).optional(),
-    owner_team: z.string().min(1).optional(),
-    support_channel: z.string().min(1).optional(),
-    entry_tools: z.array(EntryToolSchema).optional(),
-  })
-  .strict();
-
-export const SourceTopicMappingSchema = z
-  .object({
-    id: z.string().min(1),
-    source_id: z.string().min(1),
-    topic_id: z.string().min(1),
-  })
-  .strict();
-
 export const FeedbackSchema = z
   .object({
     id: z.string().min(1),
@@ -137,12 +107,6 @@ export const FeedbackResponseSchema = z
   })
   .strict();
 
-export const TopicResponseSchema = z
-  .object({
-    topic: TopicSchema,
-  })
-  .strict();
-
 export const SourceResponseSchema = z
   .object({
     source: SourceSchema,
@@ -152,7 +116,6 @@ export const SourceResponseSchema = z
 export const SourceDiscoveryRequestSchema = z
   .object({
     query: z.string().min(1).optional(),
-    topic_id: z.string().min(1).optional(),
     source_class: SourceClassSchema.optional(),
   })
   .strict();
@@ -160,20 +123,6 @@ export const SourceDiscoveryRequestSchema = z
 export const SourceDiscoveryResponseSchema = z
   .object({
     sources: z.array(SourceSchema),
-  })
-  .strict();
-
-export const TopicDiscoveryRequestSchema = z
-  .object({
-    query: z.string().min(1).optional(),
-    topic_type: TopicTypeSchema.optional(),
-    category: z.string().min(1).optional(),
-  })
-  .strict();
-
-export const TopicDiscoveryResponseSchema = z
-  .object({
-    topics: z.array(TopicSchema),
   })
   .strict();
 
@@ -336,27 +285,21 @@ export const GuidanceSchema = z
 export const GuidanceResponseSchema = z.object({ guidance: GuidanceSchema }).strict();
 
 export type SourceClass = z.infer<typeof SourceClassSchema>;
-export type TopicType = z.infer<typeof TopicTypeSchema>;
 export type AuthorityLevel = z.infer<typeof AuthorityLevelSchema>;
 export type Visibility = z.infer<typeof VisibilitySchema>;
-export type TopicStatus = z.infer<typeof TopicStatusSchema>;
+export type ResourceStatus = z.infer<typeof ResourceStatusSchema>;
 export type FeedbackTargetType = z.infer<typeof FeedbackTargetTypeSchema>;
 export type FeedbackType = z.infer<typeof FeedbackTypeSchema>;
 export type WarningCode = z.infer<typeof WarningCodeSchema>;
 export type ApiErrorCode = z.infer<typeof ApiErrorCodeSchema>;
 export type EntryTool = z.infer<typeof EntryToolSchema>;
 export type Source = z.infer<typeof SourceSchema>;
-export type Topic = z.infer<typeof TopicSchema>;
-export type SourceTopicMapping = z.infer<typeof SourceTopicMappingSchema>;
 export type Feedback = z.infer<typeof FeedbackSchema>;
 export type FeedbackSubmission = z.infer<typeof FeedbackSubmissionSchema>;
 export type FeedbackResponse = z.infer<typeof FeedbackResponseSchema>;
-export type TopicResponse = z.infer<typeof TopicResponseSchema>;
 export type SourceResponse = z.infer<typeof SourceResponseSchema>;
 export type SourceDiscoveryRequest = z.infer<typeof SourceDiscoveryRequestSchema>;
 export type SourceDiscoveryResponse = z.infer<typeof SourceDiscoveryResponseSchema>;
-export type TopicDiscoveryRequest = z.infer<typeof TopicDiscoveryRequestSchema>;
-export type TopicDiscoveryResponse = z.infer<typeof TopicDiscoveryResponseSchema>;
 export type Citation = z.infer<typeof CitationSchema>;
 export type Warning = z.infer<typeof WarningSchema>;
 export type ApiErrorResponse = z.infer<typeof ApiErrorResponseSchema>;
@@ -501,10 +444,8 @@ export const ResourceSearchResponseSchema = z
  * `admissionAliases` (the gate that re-filters fuzzy recall, B8/B9).
  * -------------------------------------------------------------------------- */
 export const docTypes = ["design", "user-guide", "policy"] as const;
-export const resourceGovernanceStates = ["configured", "unconfigured"] as const;
 
 export const DocTypeSchema = z.enum(docTypes);
-export const ResourceGovernanceSchema = z.enum(resourceGovernanceStates);
 
 export const ServiceIdentitySchema = z
   .object({
@@ -557,10 +498,6 @@ export const ReferenceDiscoveryStateSchema = z
 export const ResourceContextResponseSchema = z
   .object({
     resource: ResourceSummarySchema,
-    // Resource-level governance (B6): whether a `resources.yaml` overlay exists.
-    // "unconfigured" is a property of the resource (no overlay), semantically
-    // distinct from a per-section `no_registered_source` — one clear UI signal.
-    governance: ResourceGovernanceSchema,
     requestedSections: z.array(z.string().min(1)),
     sections: z.record(z.string(), ContextSectionSchema),
     missingSections: z.array(MissingSectionSchema),
@@ -602,32 +539,26 @@ export const ResourceContextRecordSchema = z
     provider: z.string().min(1).optional(),
     name: z.string().min(1),
     aliases: z.array(z.string().min(1)),
-    // Identity / presentation metadata absorbed onto the Resource (ADR-0015 §2),
-    // migrated off the Topic (these fields reuse TopicSchema's shapes). Optional
-    // during migration; 15a tightens them to required once every Topic's metadata
-    // has moved across. A Facet-only Topic has no Resource, so it never needs them.
+    // Identity / presentation metadata derived from discovery (ADR-0015 §2).
+    // Optional = honest-gap: only what discovery can back is set (category from
+    // the availability domain, a module entry tool), never fabricated.
     category: z.string().min(1).optional(),
-    status: TopicStatusSchema.optional(),
+    status: ResourceStatusSchema.optional(),
     description: z.string().min(1).optional(),
     owner_team: z.string().min(1).optional(),
     support_channel: z.string().min(1).optional(),
     entry_tools: z.array(EntryToolSchema).optional(),
-    // Facet tags — which Topics (now facets) this Resource belongs to, by id
-    // reference only (ADR-0015 §3). The facet's labeled metadata stays on the
-    // Topic record; the Resource just points at it.
-    topics: z.array(z.string().min(1)).optional(),
     sections: z.record(z.string(), z.array(ResourceSectionBindingSchema).min(1)),
   })
   .strict();
 
 /**
- * Resource record read (plan 020 15a/15d, ADR-0015 §1/§2). The Portal-facing
- * presentation metadata for a Resource — the identity/owner/entry fields that
- * migrated off the Topic. Distinct from `ResourceContextResponse`, which stays
- * content-only (ADR-0015 §1): the resource-first page composes record-metadata
- * (THIS read) + resolved content (`getResourceContext`). `governance:
- * "configured"` iff a `resources.yaml` overlay exists; a spine-only service
- * returns identity-only (`unconfigured`, no curated metadata).
+ * Resource record read (ADR-0015 §1/§2). The Portal-facing presentation metadata
+ * for a Resource — identity/owner/entry fields derived from discovery. Distinct
+ * from `ResourceContextResponse`, which stays content-only (ADR-0015 §1): the
+ * resource-first page composes record-metadata (THIS read) + resolved content
+ * (`getResourceContext`). The same record shape lists in the catalog
+ * (`ResourceCatalogResponse`). Presentation fields are optional = honest-gap.
  */
 export const ResourceRecordResponseSchema = z
   .object({
@@ -637,14 +568,24 @@ export const ResourceRecordResponseSchema = z
     provider: z.string().min(1).optional(),
     name: z.string().min(1),
     aliases: z.array(z.string().min(1)),
-    governance: ResourceGovernanceSchema,
     category: z.string().min(1).optional(),
-    status: TopicStatusSchema.optional(),
+    status: ResourceStatusSchema.optional(),
     description: z.string().min(1).optional(),
     owner_team: z.string().min(1).optional(),
     support_channel: z.string().min(1).optional(),
     entry_tools: z.array(EntryToolSchema).optional(),
-    topics: z.array(z.string().min(1)).optional(),
+  })
+  .strict();
+
+/**
+ * Resource catalog list (the discovery-derived catalog feed). Returns the same
+ * per-resource presentation record as the single-record read — the Portal catalog
+ * facets on `category`, tabs on `kind`, and links by `slug`; an agent can browse
+ * the full resource inventory in one call.
+ */
+export const ResourceCatalogResponseSchema = z
+  .object({
+    resources: z.array(ResourceRecordResponseSchema),
   })
   .strict();
 
@@ -660,7 +601,6 @@ export type ResourceSummary = z.infer<typeof ResourceSummarySchema>;
 export type ResourceSearchItem = z.infer<typeof ResourceSearchItemSchema>;
 export type ResourceSearchResponse = z.infer<typeof ResourceSearchResponseSchema>;
 export type DocType = z.infer<typeof DocTypeSchema>;
-export type ResourceGovernance = z.infer<typeof ResourceGovernanceSchema>;
 export type ServiceIdentity = z.infer<typeof ServiceIdentitySchema>;
 export type DiscoveredReference = z.infer<typeof DiscoveredReferenceSchema>;
 export type ReferenceDiscoveryStatus = z.infer<typeof ReferenceDiscoveryStatusSchema>;
@@ -669,6 +609,7 @@ export type ResourceContextResponse = z.infer<typeof ResourceContextResponseSche
 export type ResourceSectionBinding = z.infer<typeof ResourceSectionBindingSchema>;
 export type ResourceContextRecord = z.infer<typeof ResourceContextRecordSchema>;
 export type ResourceRecordResponse = z.infer<typeof ResourceRecordResponseSchema>;
+export type ResourceCatalogResponse = z.infer<typeof ResourceCatalogResponseSchema>;
 
 /* -------------------------------------------------------------------------- *
  * Regional availability (plan 014)

@@ -19,12 +19,12 @@ export type { Announcement } from "./parseAnnouncements";
  * caller ACL), then renders the storage HTML to text and parses it
  * ({@link parseReleaseNotes}). Not a CLI: this runs in-process.
  *
- * The page id comes from `ATLAS_RELEASE_NOTES_PAGE_ID`, read lazily (per call,
+ * The page id comes from `CONFLUENCE_RELEASE_NOTES_PAGE_ID`, read lazily (per call,
  * not at import) so a runtime that sets the env after this module loads — dev
  * MSW, integration tests, ops — is always honoured.
  */
 export function releaseNotesPageId(): string {
-  return readEnv().ATLAS_RELEASE_NOTES_PAGE_ID ?? "CONFIGURE_RELEASE_NOTES_PAGE_ID";
+  return readEnv().CONFLUENCE_RELEASE_NOTES_PAGE_ID ?? "CONFIGURE_RELEASE_NOTES_PAGE_ID";
 }
 
 export type ReleaseNotesResult =
@@ -45,7 +45,7 @@ export async function resolveReleaseNotes(
       ok: false,
       code: "not_configured",
       message:
-        "Release notes need ATLAS_CONFLUENCE_BASE_URL, a token, and a configured page id (RELEASE_NOTES_PAGE_ID).",
+        "Release notes need CONFLUENCE_BASE_URL, a token, and a configured page id (RELEASE_NOTES_PAGE_ID).",
     };
   }
 
@@ -148,9 +148,9 @@ function collapse(text: string): string {
 function confluenceConfigFromEnv(ctx: ResolutionContext): Partial<ConfluenceLiveConfig> {
   const env = readEnv();
   return {
-    token: ctx.token ?? env.ATLAS_CONFLUENCE_TOKEN,
-    baseUrl: env.ATLAS_CONFLUENCE_BASE_URL,
-    email: env.ATLAS_CONFLUENCE_EMAIL,
+    token: ctx.token ?? env.CONFLUENCE_TOKEN,
+    baseUrl: env.CONFLUENCE_BASE_URL,
+    email: env.CONFLUENCE_EMAIL,
   };
 }
 

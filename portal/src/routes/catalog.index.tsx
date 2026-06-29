@@ -8,24 +8,24 @@
  * `/sources`.
  */
 import { createFileRoute } from "@tanstack/react-router";
-import type { Topic, TopicDiscoveryResponse } from "@atlas/schema";
+import type { ResourceCatalogResponse, ResourceRecordResponse } from "@atlas/schema";
 
-import { availabilityQueryOptions, topicDiscoveryQueryOptions } from "@/api/queries";
+import { availabilityQueryOptions, resourceCatalogQueryOptions } from "@/api/queries";
 import type { LandingZoneAvailability } from "@/api/server/availability";
 import { CatalogAdopted } from "@/components/catalog/adopted";
 import { DEFAULT_LANDING_ZONE_ID } from "@/components/landing-zone/context";
 import { LandingZoneGate } from "@/components/landing-zone/landing-zone-gate";
 
 type LoaderData = {
-  topics: ReadonlyArray<Topic>;
+  resources: ReadonlyArray<ResourceRecordResponse>;
   zone: Promise<LandingZoneAvailability>;
 };
 
 export const Route = createFileRoute("/catalog/")({
   loader: async ({ context }): Promise<LoaderData> => {
-    const topicsResp = (await context.queryClient.ensureQueryData(
-      topicDiscoveryQueryOptions,
-    )) as TopicDiscoveryResponse;
+    const catalogResp = (await context.queryClient.ensureQueryData(
+      resourceCatalogQueryOptions,
+    )) as ResourceCatalogResponse;
     // Slow: availability is a live Confluence fetch in the real adapter — defer it
     // (no await) so the catalog shell (header, tabs, search) paints immediately;
     // the workspace renders a skeleton until the zone lands.
@@ -37,18 +37,18 @@ export const Route = createFileRoute("/catalog/")({
         availability.zones.find((entry) => entry.id === DEFAULT_LANDING_ZONE_ID) ??
         availability.zones[0]!,
     );
-    return { topics: topicsResp.topics, zone };
+    return { resources: catalogResp.resources, zone };
   },
   component: CatalogIndex,
 });
 
 function CatalogIndex() {
-  const { topics, zone } = Route.useLoaderData();
+  const { resources, zone } = Route.useLoaderData();
 
   return (
     <div className="mx-auto flex w-full max-w-[1180px] flex-col gap-8 px-6 py-8 sm:px-8">
       <LandingZoneGate surface="catalog">
-        <CatalogAdopted topics={topics} zone={zone} />
+        <CatalogAdopted resources={resources} zone={zone} />
       </LandingZoneGate>
     </div>
   );

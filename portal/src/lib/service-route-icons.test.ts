@@ -12,9 +12,9 @@ describe("catalog route icons", () => {
 
     expect(listSurface).toContain("ServiceIcon");
     expect(detailRoute).toContain("ServiceIcon");
-    expect(listSurface).toContain("findAvailabilityServiceForTopic");
+    expect(listSurface).toContain("findAvailabilityServiceForResource");
     // The resource-first detail route looks the service up by its slug tail
-    // (plan 020 15d), not the topic-name fuzzy match.
+    // (plan 020 15d), not the catalog's name fuzzy match.
     expect(detailRoute).toContain("findAvailabilityServiceById");
     expect(listSurface).toContain('<ServiceIcon serviceId={service.id} size="xl" />');
     expect(detailRoute).toContain('<ServiceIcon serviceId={service.id} size="lg" />');

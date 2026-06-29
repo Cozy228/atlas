@@ -2,14 +2,13 @@ import type { ApiErrorResponse, ResourceContextResponse } from "@atlas/schema";
 import { handleAvailabilityRequest } from "./availabilityRoute";
 import { handleFeedbackRequest } from "./feedbackRoute";
 import {
+  handleResourceCatalogRequest,
   handleResourceContextRequest,
   handleResourceRecordRequest,
   handleResourceSearchRequest,
 } from "./resourceRoutes";
 import { handleSourceDiscoveryRequest } from "./sourceDiscoveryRoute";
 import { handleSourceRequest } from "./sourceRoute";
-import { handleTopicDiscoveryRequest } from "./topicDiscoveryRoute";
-import { handleTopicRequest } from "./topicRoute";
 import { renderResourceMarkdown } from "../resources/renderResourceMarkdown";
 import type { ResolutionContext } from "../resolvers/resolverTypes";
 import { cachedResolutionContext } from "../sourceContent/sourceContentCache";
@@ -41,15 +40,6 @@ export async function handleHttpRequest(request: HttpRequest): Promise<HttpRespo
   const path = normalizePath(request.path);
   const ctx = await resolutionContextFromHeaders(request.headers);
 
-  if (method === "GET" && path === "/topics") {
-    return jsonResponse(await handleTopicDiscoveryRequest(compactQuery(request.query)));
-  }
-
-  const topicIdMatch = path.match(/^\/topics\/([^/]+)$/);
-  if (method === "GET" && topicIdMatch) {
-    return jsonResponse(await handleTopicRequest(decodeURIComponent(topicIdMatch[1])));
-  }
-
   if (method === "GET" && path === "/sources") {
     return jsonResponse(await handleSourceDiscoveryRequest(compactQuery(request.query)));
   }
@@ -61,6 +51,10 @@ export async function handleHttpRequest(request: HttpRequest): Promise<HttpRespo
 
   if (method === "GET" && path === "/availability") {
     return jsonResponse(await handleAvailabilityRequest());
+  }
+
+  if (method === "GET" && path === "/resources/catalog") {
+    return jsonResponse(await handleResourceCatalogRequest());
   }
 
   if (method === "GET" && path === "/resources") {

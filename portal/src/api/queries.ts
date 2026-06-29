@@ -1,21 +1,20 @@
 import { queryOptions } from "@tanstack/react-query";
 import type {
   LandingZone,
+  ResourceCatalogResponse,
   ResourceContextResponse,
   ResourceRecordResponse,
   SourceDiscoveryRequest,
   SourceDiscoveryResponse,
-  TopicDiscoveryRequest,
-  TopicDiscoveryResponse,
 } from "@atlas/schema";
 
 import { fetchAvailability, type AvailabilityResponse } from "@/api/server/availability";
 import {
   fetchLandingZones,
+  fetchResourceCatalog,
   fetchResourceContext,
   fetchResourceRecord,
   fetchSourceDiscovery,
-  fetchTopicDiscovery,
 } from "@/api/server/contextApi";
 import { fetchReleaseNotes, type Release } from "@/api/server/releaseNotes";
 import { fetchAnnouncements, type Announcement } from "@/api/server/announcements";
@@ -55,15 +54,11 @@ export const landingZonesQueryOptions = queryOptions<LandingZone[]>({
   staleTime: Infinity,
 });
 
-export function topicDiscoveryQueryOptionsFor(request: TopicDiscoveryRequest = {}) {
-  return queryOptions<TopicDiscoveryResponse>({
-    queryKey: ["topics", request] as const,
-    queryFn: () => fetchTopicDiscovery({ data: request }),
-    staleTime: 60_000,
-  });
-}
-
-export const topicDiscoveryQueryOptions = topicDiscoveryQueryOptionsFor();
+export const resourceCatalogQueryOptions = queryOptions<ResourceCatalogResponse>({
+  queryKey: ["resource-catalog"] as const,
+  queryFn: () => fetchResourceCatalog(),
+  staleTime: 60_000,
+});
 
 export function sourceDiscoveryQueryOptionsFor(request: SourceDiscoveryRequest = {}) {
   return queryOptions<SourceDiscoveryResponse>({

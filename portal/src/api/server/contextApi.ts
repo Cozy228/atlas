@@ -10,11 +10,9 @@ import { createServerFn } from "@tanstack/react-start";
 import { getRequestHeader } from "@tanstack/react-start/server";
 import {
   SourceDiscoveryRequestSchema,
-  TopicDiscoveryRequestSchema,
   type AvailabilityResponse,
   type LandingZone,
   type SourceDiscoveryRequest,
-  type TopicDiscoveryRequest,
 } from "@atlas/schema";
 import { LANDING_ZONES } from "@atlas/context-layer";
 import { z } from "zod";
@@ -53,10 +51,6 @@ function callerBearerToken(): string | undefined {
 const SERVER_FN_OPTIONS = { method: "GET", strict: { output: false } } as const;
 
 const idSchema = z.string().min(1);
-
-export const fetchTopic = createServerFn(SERVER_FN_OPTIONS)
-  .validator((input: unknown): string => idSchema.parse(input))
-  .handler(async ({ data }) => contextApiForRequest().getTopic(data));
 
 export const fetchSource = createServerFn(SERVER_FN_OPTIONS)
   .validator((input: unknown): string => idSchema.parse(input))
@@ -107,11 +101,9 @@ export const fetchResourceRecord = createServerFn(SERVER_FN_OPTIONS)
   // (no live fetch), so it is awaited for the page shell — no dev delay.
   .handler(async ({ data }) => contextApiForRequest().getResourceRecord(data.kind, data.slug));
 
-export const fetchTopicDiscovery = createServerFn(SERVER_FN_OPTIONS)
-  .validator(
-    (input: unknown): TopicDiscoveryRequest => TopicDiscoveryRequestSchema.parse(input ?? {}),
-  )
-  .handler(async ({ data }) => contextApiForRequest().discoverTopics(data));
+export const fetchResourceCatalog = createServerFn(SERVER_FN_OPTIONS).handler(async () =>
+  contextApiForRequest().discoverResources(),
+);
 
 export const fetchSourceDiscovery = createServerFn(SERVER_FN_OPTIONS)
   .validator(

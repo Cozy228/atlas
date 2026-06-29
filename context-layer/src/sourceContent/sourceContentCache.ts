@@ -10,7 +10,7 @@ import {
  * Source-content cache (docs/architecture/source-content-cache.md). Removes the
  * repeat live fetch of the same Confluence page / Terraform README within a
  * short window. The default needs no infrastructure; an ElastiCache (Valkey)
- * adapter activates only when `ATLAS_CACHE_VALKEY_URL` is set.
+ * adapter activates only when `CACHE_VALKEY_URL` is set.
  */
 
 /**
@@ -184,29 +184,29 @@ function cacheKey(
 
 /**
  * Select the cache implementation from the environment, mirroring
- * `createFeedbackRepository`: a Valkey adapter when `ATLAS_CACHE_VALKEY_URL` is
+ * `createFeedbackRepository`: a Valkey adapter when `CACHE_VALKEY_URL` is
  * set, otherwise the in-memory default. The Valkey client defaults to GLIDE;
- * set `ATLAS_CACHE_VALKEY_CLIENT=iovalkey` to use the pure-JS fallback instead.
+ * set `CACHE_VALKEY_CLIENT=iovalkey` to use the pure-JS fallback instead.
  * Both client modules are imported lazily so the default install pulls none.
  */
 export async function createSourceContentCache(
   env: Record<string, string | undefined>,
 ): Promise<SourceContentCache> {
-  const valkeyUrl = env.ATLAS_CACHE_VALKEY_URL;
+  const valkeyUrl = env.CACHE_VALKEY_URL;
   if (valkeyUrl) {
-    if (env.ATLAS_CACHE_VALKEY_CLIENT === "iovalkey") {
+    if (env.CACHE_VALKEY_CLIENT === "iovalkey") {
       const { IoValkeyContentCache } = await import("./iovalkeyContentCache");
       return new IoValkeyContentCache({ url: valkeyUrl });
     }
     const { ValkeyContentCache } = await import("./valkeyContentCache");
     return new ValkeyContentCache({ url: valkeyUrl });
   }
-  const maxEntries = numberFromEnv(env.ATLAS_CACHE_MAX_ENTRIES, DEFAULT_MAX_ENTRIES);
+  const maxEntries = numberFromEnv(env.CACHE_MAX_ENTRIES, DEFAULT_MAX_ENTRIES);
   return new InMemoryContentCache({ maxEntries });
 }
 
 export function cacheTtlSeconds(env: Record<string, string | undefined>): number {
-  return numberFromEnv(env.ATLAS_CACHE_TTL_SECONDS, DEFAULT_TTL_SECONDS);
+  return numberFromEnv(env.CACHE_TTL_SECONDS, DEFAULT_TTL_SECONDS);
 }
 
 // One shared cache across every entry point — it is useless if rebuilt per

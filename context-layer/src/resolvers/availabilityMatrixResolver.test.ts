@@ -24,12 +24,12 @@ const source: Source = {
 };
 
 const saved = {
-  baseUrl: process.env.ATLAS_CONFLUENCE_BASE_URL,
-  token: process.env.ATLAS_CONFLUENCE_TOKEN,
+  baseUrl: process.env.CONFLUENCE_BASE_URL,
+  token: process.env.CONFLUENCE_TOKEN,
 };
 function setEnv(): void {
-  process.env.ATLAS_CONFLUENCE_BASE_URL = DEV_CONFLUENCE_BASE_URL;
-  process.env.ATLAS_CONFLUENCE_TOKEN = "dev-mock-token";
+  process.env.CONFLUENCE_BASE_URL = DEV_CONFLUENCE_BASE_URL;
+  process.env.CONFLUENCE_TOKEN = "dev-mock-token";
 }
 function restore(key: string, value: string | undefined): void {
   if (value === undefined) {
@@ -40,8 +40,8 @@ function restore(key: string, value: string | undefined): void {
 }
 beforeAll(setEnv);
 afterAll(() => {
-  restore("ATLAS_CONFLUENCE_BASE_URL", saved.baseUrl);
-  restore("ATLAS_CONFLUENCE_TOKEN", saved.token);
+  restore("CONFLUENCE_BASE_URL", saved.baseUrl);
+  restore("CONFLUENCE_TOKEN", saved.token);
 });
 
 function resolve(selector: Record<string, string>, citationLabel?: string) {
@@ -100,8 +100,8 @@ describe("availabilityMatrixResolver (single live path)", () => {
   });
 
   it("returns an honest dead-end (no data + warning) when no Confluence channel is configured", async () => {
-    delete process.env.ATLAS_CONFLUENCE_BASE_URL;
-    delete process.env.ATLAS_CONFLUENCE_TOKEN;
+    delete process.env.CONFLUENCE_BASE_URL;
+    delete process.env.CONFLUENCE_TOKEN;
     const result = await resolve({ service: "S3", region: "us-east-1" });
     setEnv();
 

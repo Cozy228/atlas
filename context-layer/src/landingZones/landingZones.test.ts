@@ -27,9 +27,9 @@ describe("resolveLandingZoneSource", () => {
 
   it("returns the per-LZ locator when env supplies connection + page id", () => {
     const source = resolveLandingZoneSource(awsf, {
-      ATLAS_CONFLUENCE_BASE_URL: "https://example.test/wiki",
-      ATLAS_CONFLUENCE_TOKEN: "sample-token",
-      ATLAS_CONFLUENCE_AVAILABILITY_PAGE_AWSF: "1234",
+      CONFLUENCE_BASE_URL: "https://example.test/wiki",
+      CONFLUENCE_TOKEN: "sample-token",
+      CONFLUENCE_AVAILABILITY_PAGE_AWSF: "1234",
     });
     expect(source).toEqual({
       baseUrl: "https://example.test/wiki",
@@ -42,9 +42,9 @@ describe("resolveLandingZoneSource", () => {
   it("does not fabricate a locator from another LZ's page var", () => {
     expect(
       resolveLandingZoneSource(awsf, {
-        ATLAS_CONFLUENCE_BASE_URL: "https://example.test/wiki",
-        ATLAS_CONFLUENCE_TOKEN: "sample-token",
-        ATLAS_CONFLUENCE_AVAILABILITY_PAGE_AZURE: "9999",
+        CONFLUENCE_BASE_URL: "https://example.test/wiki",
+        CONFLUENCE_TOKEN: "sample-token",
+        CONFLUENCE_AVAILABILITY_PAGE_AZURE: "9999",
       }),
     ).toBeUndefined();
   });
