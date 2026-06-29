@@ -35,7 +35,9 @@ export default defineConfig({
   // `VAR=value cmd` shell prefix) and the command is pnpm-only (no Unix shell).
   webServer: {
     command: "pnpm --filter @atlas/portal dev",
-    env: { DEV_MOCKS: "1", LLM_PROVIDER: "simulated" },
+    // DEV_MOCK_LATENCY_MS widens the deferred-loading window so the skeleton
+    // states are observable (WU8) without making the suite slow.
+    env: { DEV_MOCKS: "1", LLM_PROVIDER: "simulated", DEV_MOCK_LATENCY_MS: "250" },
     url: baseURL,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
