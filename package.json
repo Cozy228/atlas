@@ -7,7 +7,6 @@
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test",
     "validate:guidance": "pnpm --filter @atlas/context-layer validate:guidance",
-    "validate:registry": "pnpm --filter @atlas/schema validate:registry",
     "prepare": "husky"
   },
   "lint-staged": {

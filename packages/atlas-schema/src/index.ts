@@ -577,8 +577,8 @@ export const ResourceContextResponseSchema = z
   })
   .strict();
 
-// Persisted projection record (data/resources.yaml). Holds references + rules,
-// never Section content (ADR-0013 §2). snake_case matches the other manifests.
+// Resource projection record (derived from discovery, plan 018 G5). Holds
+// references + rules, never Section content (ADR-0013 §2); snake_case shape.
 export const ResourceSectionBindingSchema = z
   .object({
     source_id: z.string().min(1),
@@ -788,13 +788,3 @@ export {
   type GuidanceValidation,
   type ManifestIssue,
 } from "./guidanceManifest";
-
-export {
-  validateSourceDocument,
-  validateTopicDocument,
-  validateMappingDocument,
-  validateRegistryManifest,
-  type DocumentValidation,
-  type RegistryManifestInput,
-  type RegistryManifestValidation,
-} from "./registryManifest";

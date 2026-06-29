@@ -11,9 +11,9 @@
  *                      admission-eligible (B8): a title matching only the slug
  *                      recalls but is not admitted (B9 token-sequence gate).
  *
- * The normalizer consumes the spine tuple ALONE — `data/resources.yaml` is an
- * optional overlay that ADDS aliases to either tier downstream, never a
- * precondition for forming an identity. All aliases are emitted case-normalized
+ * The normalizer consumes the spine tuple ALONE — an optional governed overlay
+ * ADDS aliases to either tier downstream, never a precondition for forming an
+ * identity. All aliases are emitted case-normalized
  * (lowercased, separators collapsed to single spaces) so the discovery client
  * compares against an identically normalized title without re-normalizing here.
  */
