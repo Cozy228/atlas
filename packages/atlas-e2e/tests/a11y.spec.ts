@@ -7,37 +7,51 @@ import { firstHref, SAMPLE_SERVICE_PATH } from "./helpers";
  * Baseline accessibility (plan 026 WU10). The UI was not built a11y-first, so a
  * hard zero-violations gate on day one would force fix-all-or-suppress-all.
  * Instead we SNAPSHOT the current serious/critical violations as an accepted
- * baseline and gate only on NEW rule violations — the debt stays visible
- * (recorded below, not silently suppressed) and can shrink but never grow.
+ * baseline and gate on any INCREASE — the debt stays visible (recorded below, not
+ * silently suppressed) and can shrink but never grow.
  *
- * Known baseline = tracked a11y debt to burn down:
- *   home          definition-list
- *   catalog       color-contrast
- *   service       color-contrast
- *   availability  aria-conditional-attr, aria-prohibited-attr, nested-interactive
+ * The baseline records each rule's NODE COUNT per surface (not just the rule id),
+ * so a NEW node failing an already-listed rule (e.g. one more low-contrast element
+ * on catalog) is caught — not only a brand-new rule id. A count may legitimately
+ * DROP as debt is fixed; lower the number here when it does.
+ *
+ * Known debt to burn down (rule: node count):
+ *   home          definition-list:1
+ *   catalog       color-contrast:32
+ *   service       color-contrast:1
+ *   availability  aria-conditional-attr:18, aria-prohibited-attr:90, nested-interactive:1
  *   policy        (clean)
  *   ask overlay   (clean — the modal traps scope to the dialog)
  */
 const A11Y_BASELINE = {
-  home: ["definition-list"],
-  catalog: ["color-contrast"],
-  service: ["color-contrast"],
-  availability: ["aria-conditional-attr", "aria-prohibited-attr", "nested-interactive"],
-  policy: [] as string[],
-  ask: [] as string[],
-} satisfies Record<string, readonly string[]>;
+  home: { "definition-list": 1 },
+  catalog: { "color-contrast": 32 },
+  service: { "color-contrast": 1 },
+  availability: {
+    "aria-conditional-attr": 18,
+    "aria-prohibited-attr": 90,
+    "nested-interactive": 1,
+  },
+  policy: {},
+  ask: {},
+} satisfies Record<string, Record<string, number>>;
 
 async function expectNoNewViolations(page: Page, surface: keyof typeof A11Y_BASELINE) {
   const results = await new AxeBuilder({ page }).analyze();
-  const found = [
-    ...new Set(
-      results.violations
-        .filter((v) => v.impact === "serious" || v.impact === "critical")
-        .map((v) => v.id),
-    ),
-  ].sort();
-  const regressions = found.filter((id) => !A11Y_BASELINE[surface].includes(id));
-  expect(regressions, `NEW serious/critical a11y violations on "${surface}"`).toEqual([]);
+  const counts: Record<string, number> = {};
+  for (const v of results.violations) {
+    if (v.impact === "serious" || v.impact === "critical") {
+      counts[v.id] = (counts[v.id] ?? 0) + v.nodes.length;
+    }
+  }
+  const baseline: Record<string, number> = A11Y_BASELINE[surface];
+  // A regression is any rule whose node count EXCEEDS the snapshot (a brand-new
+  // rule has baseline 0). Counts may shrink (debt burndown) but never grow.
+  const regressions = Object.entries(counts)
+    .filter(([id, n]) => n > (baseline[id] ?? 0))
+    .map(([id, n]) => `${id}: ${n} > ${baseline[id] ?? 0}`)
+    .sort();
+  expect(regressions, `NEW or increased serious/critical a11y on "${surface}"`).toEqual([]);
 }
 
 test.describe("baseline accessibility (mock-forced)", () => {
