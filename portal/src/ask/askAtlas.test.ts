@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { emptyProjection, serviceProjection } from "../fixtures/resourceContexts";
 import {
   askAtlas,
@@ -134,5 +134,36 @@ describe("Ask Atlas", () => {
         rateLimiter,
       }),
     ).rejects.toThrow("Ask Atlas daily limit exceeded.");
+  });
+
+  describe("createDailyRateLimiter daily reset", () => {
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("clears the counter once the UTC day rolls over", () => {
+      vi.useFakeTimers();
+      const start = Date.UTC(2026, 5, 30, 12, 0, 0);
+      vi.setSystemTime(start);
+
+      const limiter = createDailyRateLimiter(1);
+      limiter.consume("user-1");
+      expect(() => limiter.consume("user-1")).toThrow("Ask Atlas daily limit exceeded.");
+
+      // Advance past the next UTC midnight.
+      vi.setSystemTime(start + 86_400_000 + 1);
+      expect(() => limiter.consume("user-1")).not.toThrow();
+    });
+
+    it("keeps independent counters per userId within a day", () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(Date.UTC(2026, 5, 30, 12, 0, 0));
+
+      const limiter = createDailyRateLimiter(1);
+      limiter.consume("user-a");
+      expect(() => limiter.consume("user-a")).toThrow("Ask Atlas daily limit exceeded.");
+      // user-b has its own bucket, unaffected by user-a hitting the limit.
+      expect(() => limiter.consume("user-b")).not.toThrow();
+    });
   });
 });

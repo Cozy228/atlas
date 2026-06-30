@@ -19,8 +19,8 @@ rejected/deferred sections so they are not re-audited.
 |------|-------|----------|--------|------------|-------|--------|
 | 001  | One-command verification gate + GitHub Actions CI | P1 | S | — | [#3](https://github.com/Cozy228/atlas/issues/3) | TODO |
 | 002  | Root README + `portal/.env.example` env documentation | P2 | S | — | [#4](https://github.com/Cozy228/atlas/issues/4) | TODO |
-| 003  | Ask Atlas rate limiter: actually reset daily | P1 | S | — | [#5](https://github.com/Cozy228/atlas/issues/5) | TODO |
-| 004  | Confluence live resolution: degrade transport failures to `source_unavailable` | P1 | S–M | — | [#6](https://github.com/Cozy228/atlas/issues/6) | TODO |
+| 003  | Ask Atlas rate limiter: actually reset daily | P1 | S | — | [#5](https://github.com/Cozy228/atlas/issues/5) | DONE — `createDailyRateLimiter` buckets by UTC day + `counts.clear()` on rollover (`askAtlas.ts`); error string + `"anonymous"` userId unchanged; +2 fake-timer tests (reset, per-user buckets) |
+| 004  | Confluence live resolution: degrade transport failures to `source_unavailable` | P1 | S–M | — | [#6](https://github.com/Cozy228/atlas/issues/6) | DONE — fetch + `response.json()` wrapped (code drifted to `fetchConfluenceStorageHtml`, so the hardening also covers the release-notes path); generic messages, no error leak; +2 tests (transport reject, unreadable body) |
 | 005  | `GET /feedback` by target (close the write-only feedback loop) | P3 | M | — | [#7](https://github.com/Cozy228/atlas/issues/7) | TODO |
 | 006  | Performance measurement baseline (bundle inventory · throttled trace · live external-call counter) | P1 | M | — | [#9](https://github.com/Cozy228/atlas/issues/9) | DONE — `docs/architecture/perf-baseline.md` + live harness; metrics ledger `docs/architecture/perf-iteration-log.md`; §4 throttled trace TODO (needs Chrome) |
 | 007  | `contextBundle` staleTime + detail-route loader parallelism | P1 | S | 006 | [#10](https://github.com/Cozy228/atlas/issues/10) | DONE — `staleTime: 5×60_000`; catalog+guidance loader waterfalls removed; fresh window 60s→5min |

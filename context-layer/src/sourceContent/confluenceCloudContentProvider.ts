@@ -184,13 +184,24 @@ export async function fetchConfluenceStorageHtml(
   const baseUrl = config.baseUrl.replace(/\/+$/, "");
   const url = `${baseUrl}/wiki/api/v2/pages/${encodeURIComponent(pageId)}?body-format=storage`;
 
-  const response = await ctx.fetch(url, {
-    method: "GET",
-    headers: {
-      Authorization: confluenceAuthorization(config),
-      Accept: "application/json",
-    },
-  });
+  let response: Awaited<ReturnType<typeof ctx.fetch>>;
+  try {
+    response = await ctx.fetch(url, {
+      method: "GET",
+      headers: {
+        Authorization: confluenceAuthorization(config),
+        Accept: "application/json",
+      },
+    });
+  } catch {
+    // Transport-level failure (DNS, timeout, connection reset). Degrade by
+    // contract; the message stays generic so no URL/token can leak.
+    return {
+      ok: false,
+      code: "source_unavailable",
+      message: "Confluence could not be reached at request time.",
+    };
+  }
 
   if (response.status === 401 || response.status === 403) {
     return {
@@ -214,7 +225,17 @@ export async function fetchConfluenceStorageHtml(
     };
   }
 
-  const page = (await response.json()) as ConfluencePageResponse;
+  let page: ConfluencePageResponse;
+  try {
+    page = (await response.json()) as ConfluencePageResponse;
+  } catch {
+    // Truncated/malformed body. Same generic degradation as a transport failure.
+    return {
+      ok: false,
+      code: "source_unavailable",
+      message: "Confluence returned an unreadable response.",
+    };
+  }
   return {
     ok: true,
     html: page.body?.storage?.value ?? "",

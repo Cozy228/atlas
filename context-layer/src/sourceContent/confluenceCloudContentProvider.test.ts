@@ -219,6 +219,52 @@ describe("resolveConfluencePageLive", () => {
     );
   });
 
+  it("degrades a transport failure to source_unavailable instead of throwing", async () => {
+    const fetch: FetchLike = vi.fn(async () => {
+      throw new Error("network down");
+    });
+
+    const result = await resolveConfluencePageLive(
+      {
+        source,
+        heading: "Environment matrix",
+        citationLabel: "Environment matrix",
+        ctx: { token: config.token, fetch },
+      },
+      config,
+    );
+
+    expect(result.excerpts).toEqual([]);
+    expect(result.warnings).toHaveLength(1);
+    expect(result.warnings[0]?.code).toBe("source_unavailable");
+    expect(result.warnings[0]?.message).toBe("Confluence could not be reached at request time.");
+  });
+
+  it("degrades an unreadable body to source_unavailable instead of throwing", async () => {
+    const fetch: FetchLike = vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      async json() {
+        throw new Error("bad json");
+      },
+    }));
+
+    const result = await resolveConfluencePageLive(
+      {
+        source,
+        heading: "Environment matrix",
+        citationLabel: "Environment matrix",
+        ctx: { token: config.token, fetch },
+      },
+      config,
+    );
+
+    expect(result.excerpts).toEqual([]);
+    expect(result.warnings).toHaveLength(1);
+    expect(result.warnings[0]?.code).toBe("source_unavailable");
+    expect(result.warnings[0]?.message).toBe("Confluence returned an unreadable response.");
+  });
+
   it("uses Basic auth (email:token) for a Confluence Cloud personal API token", async () => {
     const { fetch, calls } = jsonFetch({
       version: { number: 7 },

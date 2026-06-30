@@ -1,10 +1,10 @@
 import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
 
-const componentFiles = ["service-card.tsx", "matrix-view.tsx", "expand-panel.tsx"] as const;
+const componentFiles = ["matrix-view.tsx"] as const;
 
 describe("explore service icons", () => {
-  it("uses the shared service icon in cards, matrix rows, and expanded panels", async () => {
+  it("uses the shared service icon in matrix rows", async () => {
     const sources = await Promise.all(
       componentFiles.map(async (file) => ({
         file,

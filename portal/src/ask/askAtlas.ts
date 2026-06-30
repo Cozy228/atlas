@@ -107,11 +107,21 @@ export async function askAtlas(input: {
   };
 }
 
+const DAY_MS = 86_400_000;
+
 export function createDailyRateLimiter(maxRequests: number): RateLimiter {
   const counts = new Map<string, number>();
+  let currentDay = Math.floor(Date.now() / DAY_MS);
 
   return {
     consume(userId: string): void {
+      const day = Math.floor(Date.now() / DAY_MS);
+      if (day !== currentDay) {
+        // UTC day rolled over: clear all counters. This also bounds memory,
+        // so no separate pruning is needed.
+        currentDay = day;
+        counts.clear();
+      }
       const count = counts.get(userId) ?? 0;
       if (count >= maxRequests) {
         throw new Error("Ask Atlas daily limit exceeded.");

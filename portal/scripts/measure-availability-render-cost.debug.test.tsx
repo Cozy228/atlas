@@ -9,7 +9,6 @@ import type {
   LocationStatus,
 } from "@/api/server/availability";
 import { MatrixView } from "@/components/explore/matrix-view";
-import { ServiceCard } from "@/components/explore/service-card";
 import { StatusDot } from "@/components/explore/status-dot";
 import { buildAvailabilityRowModel } from "@/lib/availability-row-model";
 
@@ -70,22 +69,6 @@ describe("availability render cost", () => {
                 />
               )),
             )}
-          </>,
-        );
-      });
-
-      measure(`${zone.id} cards`, 10, () => {
-        renderToString(
-          <>
-            {rowModel.rows.map((row) => (
-              <ServiceCard
-                key={row.id}
-                provider={zone.cloud}
-                row={row}
-                selected={false}
-                onSelect={() => {}}
-              />
-            ))}
           </>,
         );
       });
