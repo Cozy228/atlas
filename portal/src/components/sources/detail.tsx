@@ -52,7 +52,7 @@ function nextReviewDate(source: Source): Date | null {
 const FRESHNESS_VERDICT: Record<FreshnessState, string> = {
   current: "On schedule — within the registered review window.",
   "needs-review": "Review due soon — approaching the registered window.",
-  stale: "Overdue — past the registered review window. The steward sees it too.",
+  stale: "Overdue — past the registered review window. The owning team sees it too.",
 };
 
 function BackLink() {
@@ -75,11 +75,11 @@ function RestrictedNotice() {
         Restricted source
       </p>
       <p className="mt-1 text-[12px] leading-[1.5] text-muted-foreground">
-        Atlas surfaces metadata only. Direct fetches return{" "}
+        Cloud DevEx Portal surfaces metadata only. Direct fetches return{" "}
         <code className="rounded-[2px] bg-card px-1 py-0.5 font-mono text-[11px]">
           access_denied
         </code>
-        . Contact the steward for access.
+        . Contact the source owner for access.
       </p>
     </div>
   );
@@ -206,7 +206,6 @@ export function SourceDossier({
         <aside className="flex min-w-0 flex-col gap-2.5">
           <SectionLabel>Record</SectionLabel>
           <dl className="flex flex-col rounded-[4px] border border-border bg-card px-4 py-1.5">
-            <MetaRow label="Steward" value={source.steward} />
             <MetaRow label="Class" value={CLASS_LABEL[source.source_class]} />
             <MetaRow label="Visibility" value={source.visibility} mono />
             <MetaRow label="Cadence" value={`every ${cadenceLabel(source.review_frequency)}`} />

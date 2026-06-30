@@ -1,25 +1,24 @@
 /**
  * Reach a team · route `/support`
  * ===================================================================
- * The reference behind the Ask Atlas overlay, reframed around its real job:
- * when Atlas can't answer, find the human who can — fast. The CENTRE of the
- * page is a support directory split BY DOMAIN, each domain showing its owning
- * team and a few ways to reach them (email · Teams · ServiceNow). A filter sits
- * on top; how Ask Atlas behaves (evidence rules) sits underneath as context.
- * The overlay's "Owning teams →" footer link lands here.
+ * When the portal can't answer, find the human who can — fast. The centre of the
+ * page is a directory of the platform's owning teams (the fictional {@link TEAMS}
+ * list), each with what it covers and its contact channels shown directly (email ·
+ * chat), each one-click copyable. How the portal answers (evidence rules) sits
+ * underneath as context.
  *
- * Data: real topic + source discovery projections; the contact channels are
- * fictional, public-safe mock derived from the owning team name.
+ * Data: the teams + contact channels are a fictional, public-safe directory
+ * defined inline; the footer grounding counts come from the live catalog/sources.
  */
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import {
   IconArrowRight,
+  IconCheck,
+  IconCopy,
   IconMail,
   IconMessages,
   IconScale,
-  IconSearch,
-  IconTicket,
   IconUsers,
   IconWorldOff,
 } from "@tabler/icons-react";
@@ -28,9 +27,63 @@ import type { ResourceCatalogResponse, SourceDiscoveryResponse } from "@atlas/sc
 
 import { resourceCatalogQueryOptions, sourceDiscoveryQueryOptions } from "@/api/queries";
 import { cn } from "@/lib/utils";
-import { SeedBadge } from "@/components/seed-badge";
 
-type Domain = { domain: string; team: string; channel: string; areas: number };
+/**
+ * One owning team's directory entry. Everything a row shows lives here, so adding
+ * a team is one object: a name, what it covers, and its contact methods.
+ *  - `email` → a real `mailto:` link, copyable.
+ *  - `chat`  → the chat channel handle (Teams has no deep link), copyable.
+ */
+type Team = {
+  name: string;
+  covers: string;
+  email: string;
+  chat: string;
+};
+
+/**
+ * The platform's owning teams — a small, fictional, public-safe directory. The
+ * derived resources carry no owner (honest gap), so the support page names the
+ * teams directly. To add a team, add an entry below.
+ */
+const TEAMS: ReadonlyArray<Team> = [
+  {
+    name: "Cloud Platform",
+    covers: "Compute, storage, networking, and the approved Terraform module library.",
+    email: "cloud-platform@clouddevex.example",
+    chat: "#cloud-platform",
+  },
+  {
+    name: "Security & Identity",
+    covers: "Security policies, IAM permission boundaries, and access reviews.",
+    email: "security@clouddevex.example",
+    chat: "#security",
+  },
+  {
+    name: "Data Platform",
+    covers: "Databases, analytics, and streaming services.",
+    email: "data-platform@clouddevex.example",
+    chat: "#data-platform",
+  },
+  {
+    name: "Integration & Messaging",
+    covers: "API Gateway, eventing, and message queues.",
+    email: "integration@clouddevex.example",
+    chat: "#integration",
+  },
+  {
+    name: "Developer Experience",
+    covers: "This portal, the guidance journeys, and new-application onboarding.",
+    email: "devex@clouddevex.example",
+    chat: "#developer-experience",
+  },
+  {
+    name: "Reliability Engineering",
+    covers: "Regional availability, incident response, and on-call.",
+    email: "reliability@clouddevex.example",
+    chat: "#reliability",
+  },
+];
 
 export const Route = createFileRoute("/support")({
   loader: async ({ context }) => {
@@ -43,23 +96,7 @@ export const Route = createFileRoute("/support")({
       ) as Promise<SourceDiscoveryResponse>,
     ]);
     const resources = catalogResp.resources;
-    // One row per domain (resource category) → the team that owns it + area count.
-    const map = new Map<string, Domain>();
-    for (const resource of resources) {
-      const category = resource.category ?? "Other";
-      const entry = map.get(category) ?? {
-        domain: category,
-        // Owner/support are honest-gap on derived resources.
-        team: resource.owner_team ?? "—",
-        channel: resource.support_channel ?? "—",
-        areas: 0,
-      };
-      entry.areas += 1;
-      map.set(category, entry);
-    }
-    const domains = [...map.values()].toSorted((a, b) => a.domain.localeCompare(b.domain));
     return {
-      domains,
       serviceCount: resources.filter((resource) => resource.kind === "service").length,
       policyCount: resources.filter((resource) => resource.kind === "guardrail").length,
       sourceCount: sourcesResp.sources.length,
@@ -82,24 +119,12 @@ const RULES: ReadonlyArray<{ icon: Icon; title: string; copy: string }> = [
   {
     icon: IconUsers,
     title: "Humans in the loop",
-    copy: "Every answer names its sources' stewards; escalation is one click.",
+    copy: "Every answer names its sources and where they came from; escalation is one click.",
   },
 ];
 
 function SupportRoute() {
   const data = Route.useLoaderData();
-  const [query, setQuery] = useState("");
-
-  const domains = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return data.domains;
-    return data.domains.filter(
-      (d) =>
-        d.domain.toLowerCase().includes(q) ||
-        d.team.toLowerCase().includes(q) ||
-        d.channel.toLowerCase().includes(q),
-    );
-  }, [data.domains, query]);
 
   return (
     <div className="mx-auto flex w-full max-w-[1180px] flex-col gap-8 px-6 py-12 sm:px-8">
@@ -111,50 +136,25 @@ function SupportRoute() {
           Find the team that owns it
         </h1>
         <p className="w-fit max-w-[58ch] text-[14px] leading-[1.55] text-muted-foreground">
-          Ask Atlas answers most questions with citations — when you need a human, here&rsquo;s who
+          The portal answers most questions with citations — when you need a human, here&rsquo;s who
           owns each part of the platform and how to reach them.
         </p>
       </header>
 
-      <section aria-label="Owning teams by domain" className="flex flex-col gap-4">
-        <label className="flex items-center gap-2.5 rounded-[5px] border border-border-strong bg-card px-3.5 py-2.5 focus-within:border-primary focus-within:ring-2 focus-within:ring-ring">
-          <IconSearch aria-hidden className="size-4 shrink-0 text-muted-foreground" />
-          <input
-            type="text"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Filter by domain, team, or channel…"
-            className="w-full bg-transparent text-[14px] text-foreground outline-none placeholder:text-muted-foreground"
-          />
-          <span className="shrink-0 font-mono text-[11px] tabular-nums text-muted-foreground">
-            {domains.length}
-          </span>
-        </label>
-
-        <p className="flex flex-wrap items-center gap-2 text-[12px] text-muted-foreground">
-          <SeedBadge label="demo contacts" />
-          <span>Team ownership is real; the contact channels are illustrative.</span>
-        </p>
-
-        {domains.length === 0 ? (
-          <p className="border-t border-border py-6 text-center text-[13px] text-muted-foreground">
-            No domain matches “{query}”. Try “network”, “identity”, or “storage”.
-          </p>
-        ) : (
-          <ul className="grid gap-x-8 gap-y-6 border-t border-border pt-5 sm:grid-cols-2 lg:grid-cols-3">
-            {domains.map((domain) => (
-              <DomainCell key={domain.domain} domain={domain} />
-            ))}
-          </ul>
-        )}
+      <section aria-label="Owning teams">
+        <ul className="grid gap-x-8 gap-y-6 border-t border-border pt-6 sm:grid-cols-2 lg:grid-cols-3">
+          {TEAMS.map((team) => (
+            <TeamCell key={team.name} team={team} />
+          ))}
+        </ul>
       </section>
 
       <section
-        aria-label="How Ask Atlas behaves"
+        aria-label="How the portal answers"
         className="flex flex-col gap-4 border-t border-border pt-6"
       >
         <h2 className="w-fit font-mono text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-          How Ask Atlas behaves
+          How the portal answers
         </h2>
         <div className="grid gap-5 sm:grid-cols-3">
           {RULES.map((rule) => {
@@ -178,52 +178,79 @@ function SupportRoute() {
   );
 }
 
-function DomainCell({ domain }: { domain: Domain }) {
-  const email = `${domain.team}@atlas.example`;
+function TeamCell({ team }: { team: Team }) {
   return (
     <li className="flex flex-col gap-2.5">
-      <div className="flex flex-col gap-0.5">
-        <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-          {domain.domain}
+      <div className="flex flex-col gap-1">
+        <span className="text-[15px] font-bold tracking-[-0.01em] text-foreground">
+          {team.name}
         </span>
-        <span className="truncate text-[15px] font-bold tracking-[-0.01em] text-foreground">
-          {domain.team}
-        </span>
-        <span className="font-mono text-[11px] tabular-nums text-muted-foreground">
-          {domain.channel} · {domain.areas} {domain.areas === 1 ? "area" : "areas"}
-        </span>
+        <span className="text-[12.5px] leading-[1.5] text-muted-foreground">{team.covers}</span>
       </div>
-      {/* Contacts collapse to icons; each expands its label on hover. */}
-      <div className="flex items-center gap-3">
-        <Contact icon={IconMail} label={email} href={`mailto:${email}`} />
-        <Contact icon={IconMessages} label="Teams chat" />
-        <Contact icon={IconTicket} label="ServiceNow ticket" />
+      {/* Contacts are the payload of this page, so show them outright — stacked,
+          full value visible, each one-click copyable (and email is a mailto). */}
+      <div className="flex flex-col gap-1.5">
+        <ContactChip icon={IconMail} value={team.email} href={`mailto:${team.email}`} />
+        <ContactChip icon={IconMessages} value={team.chat} suffix="Teams" />
       </div>
     </li>
   );
 }
 
-function Contact({ icon: ContactIcon, label, href }: { icon: Icon; label: string; href?: string }) {
-  const className = cn(
-    "group/c inline-flex items-center text-muted-foreground",
-    href ? "transition-colors hover:text-brand-ink" : "hover:text-foreground",
-  );
-  const content = (
-    <>
-      <ContactIcon aria-hidden className="size-4 shrink-0" />
-      <span className="max-w-0 overflow-hidden whitespace-nowrap font-mono text-[11px] transition-[max-width,padding] duration-200 group-hover/c:max-w-[200px] group-hover/c:pl-1.5">
-        {label}
-      </span>
-    </>
-  );
-  return href ? (
-    <a href={href} title={label} className={className}>
-      {content}
-    </a>
-  ) : (
-    <span title={label} className={className}>
-      {content}
-    </span>
+function ContactChip({
+  icon: ContactIcon,
+  value,
+  href,
+  suffix,
+}: {
+  icon: Icon;
+  value: string;
+  href?: string;
+  suffix?: string;
+}) {
+  const [copied, setCopied] = useState(false);
+  const copy = () => {
+    void navigator.clipboard?.writeText(value);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1200);
+  };
+  return (
+    <div className="group/contact inline-flex items-center gap-1.5 text-[12px] text-muted-foreground">
+      <ContactIcon aria-hidden className="size-3.5 shrink-0" />
+      {href ? (
+        <a
+          href={href}
+          className="font-mono text-foreground transition-colors hover:text-brand-ink hover:underline"
+        >
+          {value}
+        </a>
+      ) : (
+        <span className="font-mono text-foreground">{value}</span>
+      )}
+      {suffix ? (
+        <span className="font-mono text-[10px] uppercase tracking-[0.04em] text-muted-foreground">
+          {suffix}
+        </span>
+      ) : null}
+      <button
+        type="button"
+        onClick={copy}
+        aria-label={copied ? "Copied" : `Copy ${value}`}
+        title={copied ? "Copied" : "Copy"}
+        className={cn(
+          "inline-flex size-6 shrink-0 items-center justify-center rounded-[4px] transition-colors",
+          "text-muted-foreground hover:bg-muted hover:text-foreground",
+          "opacity-0 group-hover/contact:opacity-100 focus-visible:opacity-100",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        )}
+      >
+        {copied ? (
+          <IconCheck aria-hidden className="size-3.5 text-success" />
+        ) : (
+          <IconCopy aria-hidden className="size-3.5" />
+        )}
+      </button>
+    </div>
   );
 }
 
@@ -244,7 +271,7 @@ function GroundingLine({
   ];
   return (
     <p className="flex flex-wrap items-baseline gap-x-2 gap-y-1 border-t border-border pt-4 text-[12px] text-muted-foreground">
-      <span>Atlas is grounded in</span>
+      <span>Cloud DevEx Portal is grounded in</span>
       {facts.map((fact, i) => (
         <span key={fact.label} className="whitespace-nowrap">
           {i > 0 ? (

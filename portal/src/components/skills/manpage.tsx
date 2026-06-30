@@ -71,7 +71,7 @@ function MasterList({ selectedId }: { selectedId: string }) {
 
   return (
     <nav aria-label="Skill index" className="flex flex-col gap-2.5 lg:sticky lg:top-[76px]">
-      <label className="flex h-9 items-center gap-2 rounded-[4px] border border-border bg-card px-3 focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/30">
+      <label className="flex h-9 items-center gap-2 rounded-[4px] border border-border bg-card px-3 focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/50">
         <IconSearch aria-hidden className="size-3.5 shrink-0 text-muted-foreground" />
         <input
           value={query}
