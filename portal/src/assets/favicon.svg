@@ -1,0 +1,7 @@
+<!-- PLACEHOLDER browser favicon. Swap this file's contents for the real favicon
+     SVG; nothing else needs to change. Intentionally simpler/bolder than
+     logo.svg so it stays legible at 16px. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none" role="img">
+  <rect width="32" height="32" rx="8" fill="#001aff" />
+  <circle cx="16" cy="16" r="6.5" fill="#fff" />
+</svg>

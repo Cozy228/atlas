@@ -11,6 +11,7 @@ import {
 import { getDataMode } from "@/api/server/dataMode";
 import { PortalShell } from "@/components/portal-shell";
 import { themeInitScript } from "@/lib/theme-script";
+import faviconSvg from "@/assets/favicon.svg?url";
 import globalsCss from "@/styles/globals.css?url";
 // Preload the latin Inter Variable file so the brand font is discovered in the
 // first HTML response instead of only after globals.css parses — one fewer serial
@@ -36,11 +37,12 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       { name: "color-scheme", content: "light dark" },
       {
         name: "description",
-        content: "Atlas Portal: governed cloud platform context for application teams.",
+        content: "Cloud DevEx Portal: governed cloud platform context for application teams.",
       },
-      { title: "Atlas Portal" },
+      { title: "Cloud DevEx Portal" },
     ],
     links: [
+      { rel: "icon", type: "image/svg+xml", href: faviconSvg },
       {
         rel: "preload",
         as: "font",
@@ -79,7 +81,7 @@ function NotFoundComponent() {
         404 · not in registry
       </span>
       <h1 className="type-heading font-semibold tracking-[-0.03em] text-foreground">
-        Atlas could not resolve that record.
+        Cloud DevEx Portal could not resolve that record.
       </h1>
       <p className="text-sm leading-[1.6] text-muted-foreground">
         The topic, source, or path you followed is not registered in the Context API. Browse the
