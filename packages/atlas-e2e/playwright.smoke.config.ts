@@ -25,7 +25,7 @@ export default defineConfig({
     channel,
     trace: "on-first-retry",
     screenshot: "only-on-failure",
-    video: "retain-on-failure",
+    // No video: zero-download skips ffmpeg, which a recording context needs.
     colorScheme: "light",
   },
   webServer: {

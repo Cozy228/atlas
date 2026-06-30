@@ -25,7 +25,9 @@ export default defineConfig({
     channel,
     trace: "on-first-retry",
     screenshot: "only-on-failure",
-    video: "retain-on-failure",
+    // No video: the zero-download policy (decision 2) skips Playwright's ffmpeg,
+    // and a video-recording context throws at newPage without it. Trace +
+    // screenshot already cover failures and need no ffmpeg.
     // Pin the emulated scheme so axe's color-contrast results (theme-dependent)
     // match the committed baseline across local + CI headless runs.
     colorScheme: "light",
