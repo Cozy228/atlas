@@ -45,17 +45,15 @@ export default async function warmAndVerifyMockServer(): Promise<void> {
         .catch(() => {});
     }
 
-    // The Ask chat is a lazy dynamic import (markdown + highlighter); open it once
-    // so its deps optimize before a test races the same import.
+    // Open the search overlay once so Vite dev pre-optimizes its deps before a
+    // test races the same dynamic import. (The conversational Ask chat path is
+    // hidden behind a feature flag, so there's nothing further to warm here.)
     await page
       .goto(`${baseURL}/`, { waitUntil: "domcontentloaded", timeout: 60_000 })
       .catch(() => {});
     await page
-      .getByRole("button", { name: "Search Atlas catalog" })
-      .click({ timeout: 10_000 })
-      .catch(() => {});
-    await page
-      .getByRole("button", { name: "Ask Atlas" })
+      .locator("header")
+      .getByRole("button", { name: "Search the catalog" })
       .click({ timeout: 10_000 })
       .catch(() => {});
     await page.waitForLoadState("networkidle").catch(() => {});

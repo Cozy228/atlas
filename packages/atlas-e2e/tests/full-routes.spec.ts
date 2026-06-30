@@ -60,9 +60,11 @@ test.describe("full-route smoke (mock-forced)", () => {
     await page.goto("/guidance");
     const guidanceHref = await firstHref(page, "/guidance/");
 
-    // source ← a guidance detail's source references. (The /sources index lists
-    // sources without /sources/<id> anchors; guidance details cite them directly.)
-    await page.goto(guidanceHref);
+    // source ← the /sources index, whose rows link directly to /sources/<id>.
+    // (Guidance details cite sources too, but not every manifest does — e.g. the
+    // Confluence-sourced onboarding journey carries external links, not /sources
+    // anchors — so the index is the reliable discovery surface.)
+    await page.goto("/sources");
     const sourceHref = await firstHref(page, "/sources/");
 
     // release ← /whatsnew (the release-notes fixture is now wired into the dev

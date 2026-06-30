@@ -27,7 +27,7 @@ test.describe("production smoke (mock-free)", () => {
       page.on("pageerror", (error) => pageErrors.push(error.message));
       const response = await page.goto(path);
       expect(response?.status(), `${path} HTTP status`).toBeLessThan(400);
-      await expect(page.getByRole("link", { name: "Atlas Portal home" })).toBeVisible(); // SSR shell/nav
+      await expect(page.getByRole("link", { name: "Cloud DevEx Portal home" })).toBeVisible(); // SSR shell/nav
       // Badge ABSENT in prod — by stable testid, not copy, so a label rename can't
       // make this seam-contract check pass vacuously.
       await expect(page.getByTestId("data-mode-badge")).toHaveCount(0);

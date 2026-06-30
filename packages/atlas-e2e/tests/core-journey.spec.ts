@@ -4,10 +4,12 @@ import { expectShellWithMockBadge } from "./helpers";
 
 /**
  * The core journey (plan 026 WU5): the product spine end-to-end on deterministic
- * mock data — home → catalog search → a service → availability → a policy → Ask
- * (simulated LLM). Role/label/href selectors, never brittle positional CSS.
+ * mock data — home → catalog search → a service → availability → a policy →
+ * search overlay. Role/label/href selectors, never brittle positional CSS.
  */
-test("core journey: home → catalog → service → availability → policy → ask", async ({ page }) => {
+test("core journey: home → catalog → service → availability → policy → search", async ({
+  page,
+}) => {
   // 1. Home renders.
   await page.goto("/");
   await expectShellWithMockBadge(page);
@@ -42,21 +44,15 @@ test("core journey: home → catalog → service → availability → policy →
   await expect(page).toHaveURL(/\/policies\//);
   await expectShellWithMockBadge(page);
 
-  // 6. Ask: the simulated provider yields a deterministic response region.
-  await page.getByRole("button", { name: "Search Atlas catalog" }).click(); // open the overlay
-  // Scope to the dialog: the always-mounted FAB shares the accessible name
-  // "Ask Atlas", so an unscoped getByRole would be a strict-mode 2-match if the
-  // overlay's modal aria-hide ever changes.
-  await page.getByRole("dialog").getByRole("button", { name: "Ask Atlas" }).click(); // switch to the Ask tab
-  await page.getByPlaceholder("How do I get started?").fill("How do I use Textract?");
-  await page.getByRole("button", { name: "Send question" }).click();
-  await expect(page.getByText("How do I use Textract?")).toBeVisible(); // question echoed
-  // pending shimmer clears (or never shows — simulated is instant), then a
-  // non-empty assistant response region is present.
-  await expect(page.getByText("Atlas is consulting registered sources…")).toBeHidden({
-    timeout: 15_000,
-  });
-  const assistantReply = page.locator(".is-assistant").last();
-  await expect(assistantReply).toBeVisible();
-  await expect(assistantReply).not.toBeEmpty();
+  // 6. Search overlay: the ⌘K catalog jump finds a service and navigates to it.
+  // (The conversational Ask mode is built but hidden behind a feature flag, so
+  // the overlay is search-only for now — see SHOW_AI in ask-overlay.tsx.)
+  await page.locator("header").getByRole("button", { name: "Search the catalog" }).click();
+  const overlay = page.getByRole("dialog");
+  await overlay.getByPlaceholder("Search for anything…").fill("Textract");
+  const result = overlay.getByRole("button", { name: /textract/i }).first();
+  await expect(result).toBeVisible();
+  await result.click();
+  await expect(page).toHaveURL(/\/service\/aws\/textract/);
+  await expectShellWithMockBadge(page);
 });

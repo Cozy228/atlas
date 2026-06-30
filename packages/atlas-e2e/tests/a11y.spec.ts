@@ -21,7 +21,7 @@ import { firstHref, SAMPLE_SERVICE_PATH } from "./helpers";
  *   service       color-contrast:1
  *   availability  aria-conditional-attr:18, aria-prohibited-attr:90, nested-interactive:1
  *   policy        (clean)
- *   ask overlay   (clean — the modal traps scope to the dialog)
+ *   search overlay (clean — the modal traps scope to the dialog)
  */
 const A11Y_BASELINE = {
   home: { "definition-list": 1 },
@@ -33,7 +33,7 @@ const A11Y_BASELINE = {
     "nested-interactive": 1,
   },
   policy: {},
-  ask: {},
+  search: {},
 } satisfies Record<string, Record<string, number>>;
 
 async function expectNoNewViolations(page: Page, surface: keyof typeof A11Y_BASELINE) {
@@ -88,11 +88,11 @@ test.describe("baseline accessibility (mock-forced)", () => {
     await expectNoNewViolations(page, "policy");
   });
 
-  test("ask overlay", async ({ page }) => {
+  test("search overlay", async ({ page }) => {
     await page.goto("/");
     await page.waitForLoadState("networkidle");
-    await page.locator("header").getByRole("button", { name: "Search Atlas catalog" }).click();
-    await page.getByRole("dialog").getByRole("button", { name: "Ask Atlas" }).click();
-    await expectNoNewViolations(page, "ask");
+    await page.locator("header").getByRole("button", { name: "Search the catalog" }).click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await expectNoNewViolations(page, "search");
   });
 });
