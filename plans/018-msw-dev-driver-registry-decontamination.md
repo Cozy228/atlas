@@ -133,7 +133,7 @@ schema/test changes 018 must make:
 | portal dev runtime | `server/devMocks/start.ts` (Nitro plugin, **conditionally registered** for `command==='serve'`); `setupServer().listen()` at import top. | same outbound source-system fetch (in the Nitro process where context-layer runs) |
 | **prod** | `command==='build'` → plugin not registered → `msw` (devDependency) never in the graph → **zero config, zero mock** | — |
 
-Shared: `context-layer/src/devMocks/{handlers,fixtures,server}.ts`; latency via `delay(ATLAS_DEV_MOCK_LATENCY_MS)`.
+Shared: `context-layer/src/devMocks/{handlers,fixtures,server}.ts`; latency via `delay(DEV_MOCK_LATENCY_MS)`.
 
 ## Goals & execution (goal-driven · opus subagents on disjoint lanes · main agent verifies)
 
@@ -295,7 +295,7 @@ agent is not limited to the canonical vocabulary. `ResourceCitation.anchor` stay
 1. `pnpm -r typecheck && pnpm -r lint && pnpm -r test` green after each goal.
 2. **Prod-clean proof:** `rg -n "devMocks|msw" --glob '!**/devMocks/**' --glob '!**/*.test.*' context-layer/src portal/src portal/server` → 0 in app code; a prod build's bundle contains no `msw`/handlers.
 3. `rm -rf data/` → `pnpm -r test` → no ENOENT (no file dependency remains).
-4. Dev runtime: `ATLAS_DEV_MOCKS=1 pnpm --filter portal dev` → catalog renders reference block + derived sections, latency visible, all sourced from MSW.
+4. Dev runtime: `DEV_MOCKS=1 pnpm --filter portal dev` → catalog renders reference block + derived sections, latency visible, all sourced from MSW.
 5. Real Confluence/Terraform/GitHub env (no MSW) → same surfaces resolve against real source systems.
 
 ## Risks

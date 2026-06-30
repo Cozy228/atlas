@@ -32,7 +32,7 @@ stores one.
 Both entry points build that context through one shared
 `cachedResolutionContext()` (memoized so the cache is a single instance, not
 rebuilt per request): the HTTP router (`handleHttpRequest`, used by external
-Skill consumers and the Portal when `ATLAS_CONTEXT_API_BASE_URL` is set) and the
+Skill consumers and the Portal when `CONTEXT_API_BASE_URL` is set) and the
 in-process route (`handleContextRequest`, the Portal's default path). A repeat
 fetch is therefore served from cache regardless of entry point.
 `offlineResolutionContext()` stays cache-free for tests and callers that pass
@@ -91,7 +91,7 @@ non-GET methods pass through uncached.
 
 Caching and Atlas's freshness/drift honesty are reconciled by two rules:
 
-1. **Short TTL.** Default 300s (`ATLAS_CACHE_TTL_SECONDS`). Long enough to absorb
+1. **Short TTL.** Default 300s (`CACHE_TTL_SECONDS`). Long enough to absorb
    a burst of repeat queries, short enough that drift surfaces on the next
    window. TTL expiry = re-fetch, never serve-stale-on-error.
 2. **Drift detection is unaffected.** Review-frequency drift (`stale_source`) is
@@ -125,18 +125,18 @@ on — acceptable given ElastiCache itself is operator/live territory.
 **Fallback: `iovalkey` (present, not enabled).** A full pure-JS adapter
 (`iovalkeyContentCache.ts`) is kept for runtimes where GLIDE's native binaries
 are a problem. It is **not** active by default — `createSourceContentCache`
-selects it only when `ATLAS_CACHE_VALKEY_CLIENT=iovalkey`. The seam is identical
+selects it only when `CACHE_VALKEY_CLIENT=iovalkey`. The seam is identical
 (both implement `SourceContentCache`), so the switch is config-only and touches
 no callers. `iovalkey` reads `rediss://` from the URL and enables TLS itself, so
 it needs no `parseValkeyUrl`.
 
 **Optional dependency.** `@valkey/valkey-glide` stays a non-hard dependency: the
 adapter `await import("@valkey/valkey-glide")` lazily, only when
-`ATLAS_CACHE_VALKEY_URL` is set, and throws a clear "install @valkey/valkey-glide"
+`CACHE_VALKEY_URL` is set, and throws a clear "install @valkey/valkey-glide"
 error if configured-on but absent. The default install pulls no Valkey client
 ("leave it when config is on").
 
-**Connection (GLIDE target).** `ATLAS_CACHE_VALKEY_URL` is a `rediss://host:6379`
+**Connection (GLIDE target).** `CACHE_VALKEY_URL` is a `rediss://host:6379`
 URL parsed into GLIDE's `{ addresses: [{host, port}], useTLS }` config
 (`rediss://` ⇒ `useTLS: true`, required for ElastiCache in-transit encryption,
 [AWS](https://docs.aws.amazon.com/AmazonElastiCache/latest/dg/connect-tls.html)).
@@ -148,10 +148,10 @@ Values are JSON-serialized `CachedResponse`s.
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `ATLAS_CACHE_VALKEY_URL` | _(unset)_ | `rediss://…`. When set, use the Valkey adapter; else in-memory. |
-| `ATLAS_CACHE_VALKEY_CLIENT` | `glide` | Valkey client when the URL is set: `glide` (default) or `iovalkey` (pure-JS fallback). |
-| `ATLAS_CACHE_TTL_SECONDS` | `300` | Entry TTL for both adapters. |
-| `ATLAS_CACHE_MAX_ENTRIES` | `500` | In-memory adapter bound (ignored by Valkey). |
+| `CACHE_VALKEY_URL` | _(unset)_ | `rediss://…`. When set, use the Valkey adapter; else in-memory. |
+| `CACHE_VALKEY_CLIENT` | `glide` | Valkey client when the URL is set: `glide` (default) or `iovalkey` (pure-JS fallback). |
+| `CACHE_TTL_SECONDS` | `300` | Entry TTL for both adapters. |
+| `CACHE_MAX_ENTRIES` | `500` | In-memory adapter bound (ignored by Valkey). |
 
 ## Build plan
 
@@ -161,9 +161,9 @@ Values are JSON-serialized `CachedResponse`s.
 4. `createSourceContentCache(env)` selector + a memoized `cachedResolutionContext()`
    wired into both the HTTP router and the in-process `handleContextRequest`.
 5. `ValkeyContentCache` (lazy `@valkey/valkey-glide` import, gated by
-   `ATLAS_CACHE_VALKEY_URL`).
+   `CACHE_VALKEY_URL`).
 6. Tests: in-memory hit/miss/expiry/auth-isolation; decorator caches GET and
    skips non-OK; selector returns in-memory without config. Valkey adapter:
    `parseValkeyUrl` + a roundtrip against an injected fake client (always run),
-   plus a real-server integration block gated by `ATLAS_CACHE_VALKEY_URL`
+   plus a real-server integration block gated by `CACHE_VALKEY_URL`
    (skipped unless a live Valkey + the GLIDE package are present).

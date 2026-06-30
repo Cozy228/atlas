@@ -2,11 +2,11 @@
 
 ## Purpose
 
-The V1 feedback table stores Portal feedback submitted against topics, sources, and anchors. It is owned by the Context API runtime and is not read directly by browser code.
+The V1 feedback table stores Portal feedback submitted against resources and sources. It is owned by the Context API runtime and is not read directly by browser code.
 
 ## Table
 
-- Table name: provided by `ATLAS_FEEDBACK_TABLE`
+- Table name: provided by `FEEDBACK_TABLE`
 - Primary key: `pk` string, `sk` string
 - GSI: `gsi1` with `gsi1pk` string, `gsi1sk` string
 
@@ -21,7 +21,7 @@ Each feedback record is stored as one item:
 | `gsi1pk` | `TARGET#<target_type>#<target_id>` |
 | `gsi1sk` | `SUBMITTED#<submitted_at>#<feedback_id>` |
 | `id` | Shared feedback id |
-| `target_type` | `topic`, `source`, or `anchor` |
+| `target_type` | `resource` or `source` |
 | `target_id` | Shared target id |
 | `feedback_type` | Shared feedback category |
 | `message` | User-submitted feedback text |
@@ -38,4 +38,4 @@ Each feedback record is stored as one item:
 
 ## Runtime Boundary
 
-The repository implementation lives in `context-layer/src/repositories/dynamoFeedbackRepository.ts`. The default Context API service uses DynamoDB only when `ATLAS_FEEDBACK_TABLE` is set; otherwise local and test runs continue to use the in-memory repository seeded from pilot data.
+The repository implementation lives in `context-layer/src/repositories/dynamoFeedbackRepository.ts`. The default Context API service uses DynamoDB only when `FEEDBACK_TABLE` is set; otherwise local and test runs continue to use the in-memory repository seeded from pilot data.

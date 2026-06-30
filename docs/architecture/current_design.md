@@ -43,7 +43,7 @@ Portal is Atlas's first consumer, not Atlas's parent. The Context Layer API simu
 ├───────┴──────────────┴──────────────┴────────┤
 │           Atlas Context Layer API            │
 │  ┌─────────────────────────────────────────┐ │
-│  │ Source Registry  │ Topic Registry       │ │
+│  │ Source Registry  │ Resource Catalog     │ │
 │  │ Authority Mapping│ Visibility Signals   │ │
 │  │ Locator Resolution │ Context Packaging  │ │
 │  └─────────────────────────────────────────┘ │
@@ -58,8 +58,8 @@ Portal is Atlas's first consumer, not Atlas's parent. The Context Layer API simu
 Atlas owns:
 
 - Source registry and governance metadata
-- Topic registry (navigation entities for Portal)
-- Source-Topic mapping
+- Resource catalog (discovery-derived navigation entities for Portal)
+- Source-Resource mapping
 - Authority mapping and routing
 - Type-specific locator and anchoring strategies
 - Source selection interfaces
@@ -84,7 +84,7 @@ Atlas owns deterministic work:
 - Authority mapping
 - Visibility signal packaging
 - Locator and anchor resolution
-- Context bundle assembly
+- Resource context projection assembly
 - Citation and provenance packaging
 
 Consumers own latent work:
@@ -96,7 +96,9 @@ Consumers own latent work:
 
 ## Data Model
 
-Atlas keeps governance, navigation, location, and user feedback separate. Governance lives on Source. Navigation lives on Topic. Source-native addressability lives on Anchor. Operational feedback lives on Feedback. These concerns do not contaminate each other.
+Atlas keeps governance, navigation, location, and user feedback separate. Governance lives on Source. Navigation lives on Resource. Source-native addressability lives on Anchor. Operational feedback lives on Feedback. These concerns do not contaminate each other.
+
+> NOTE (needs human conceptual rewrite): this data model still describes the retired **Topic-as-hand-registered-navigation-entity** shape. In the current resource-first model the catalog is **discovery-derived** (resources are projected from source-system discovery, not authored as registry records), `kind` replaces `topic_type` (`service` / `guardrail` / `landing-zone`), and presentation fields are optional honest-gaps. The sections below have had names updated but the conceptual framing still needs a rewrite against `packages/atlas-schema/src/index.ts` (`ResourceRecordResponse` / `ResourceContextResponse`).
 
 ### Source (Governance Entity)
 
@@ -116,21 +118,26 @@ A Source represents a registered, governed piece of cloud knowledge.
 | last_reviewed_at | timestamp | Last human review |
 | review_frequency | duration | Suggested review cycle |
 
-### Topic (Navigation Entity)
+### Resource (Navigation Entity)
 
-A Topic is what users look for — a service, a landing zone, or a guardrail area.
+A Resource is what users look for — a service, a landing zone, or a guardrail.
 
 | Field | Type | Description |
 |---|---|---|
-| id | string | Stable unique identifier |
+| id | string | Canonical `{kind}/{slug}` identifier |
+| kind | enum | `service` / `guardrail` / `landing-zone` |
+| slug | string | Kind-relative slug (e.g. `aws/textract`) |
+| provider | string | Provider, when applicable (e.g. `aws`) |
 | name | string | Display name (e.g. "AWS Textract", "Central Landing Zone") |
-| topic_type | enum | `service` / `landing-zone` / `security-policy` |
+| aliases | string[] | Alternate names resolving to this resource |
 | category | string | Domain classification (e.g. `ai-ml`, `compute`, `network`, `security`) |
 | status | enum | `active` / `deprecated` / `planned` |
 | description | string | One-line summary |
 | owner_team | string | Responsible team |
 | support_channel | string | Support path |
 | entry_tools | object[] | Related operational tool entry points (TFE link, Harness link) |
+
+> NOTE (needs human conceptual rewrite): the canonical shape is `ResourceRecordResponse` in `packages/atlas-schema/src/index.ts`. Every field except `id` / `kind` / `slug` / `name` / `aliases` is **optional honest-gap** (only set when discovery can back it), not a required registration field as the prose implies.
 
 ### Anchor (Addressability Entity)
 
@@ -168,20 +175,20 @@ Example selectors:
 }
 ```
 
-### Source-Topic Mapping
+### Source-Resource Mapping
 
-Many-to-many. A source can serve multiple topics. A topic aggregates multiple sources.
+Many-to-many. A source can serve multiple resources. A resource aggregates multiple sources.
 
-Authority and governance metadata stay on the Source, never duplicated onto the Topic.
-Topic-specific default anchors may be referenced from the mapping, but anchor selectors remain owned by Anchor records.
+Authority and governance metadata stay on the Source, never duplicated onto the Resource.
+Resource-specific default anchors may be referenced from the mapping, but anchor selectors remain owned by Anchor records.
 
 ```
-Topic: AWS Textract (service)
+Resource: AWS Textract (service)
   ├── Source: textract-module-readme    (authority: module-usage, level: authoritative)
   ├── Source: textract-security-policy  (authority: security-guardrail, level: authoritative)
   └── Source: textract-arch-guidance    (authority: reference-guidance, level: reference)
 
-Topic: S3 Guardrails (security-policy)
+Resource: S3 Guardrails (guardrail)
   ├── Source: s3-policy-doc             (authority: security-guardrail, level: authoritative)
   ├── Source: textract-security-policy  (authority: security-guardrail, level: authoritative)  ← shared
   └── Source: s3-module-readme          (authority: module-usage, level: authoritative)
@@ -189,13 +196,13 @@ Topic: S3 Guardrails (security-policy)
 
 ### Feedback (Operational Signal)
 
-Feedback records user-reported missing, stale, broken, or unclear guidance. It is not authoritative source content and does not change Source, Topic, or Anchor truth by itself.
+Feedback records user-reported missing, stale, broken, or unclear guidance. It is not authoritative source content and does not change Source, Resource, or Anchor truth by itself.
 
 | Field | Type | Description |
 |---|---|---|
 | id | string | Stable or generated identifier |
-| target_type | enum | `topic` / `source` / `anchor` |
-| target_id | string | Referenced Topic, Source, or Anchor |
+| target_type | enum | `resource` / `source` |
+| target_id | string | Referenced Resource or Source |
 | feedback_type | enum | `missing` / `stale` / `broken` / `unclear` |
 | message | string | Free-text user message |
 | submitted_at | timestamp | Submission time |
@@ -210,9 +217,9 @@ Atlas distinguishes between new source instances and new source classes.
 
 ## Context Delivery Model
 
-Atlas's primary output is a **context bundle**, not a page and not a recommendation.
+Atlas's primary output is a **resource context projection**, not a page and not a recommendation.
 
-A context bundle contains:
+A resource context projection contains:
 
 - Selected sources and why they were selected
 - Selected anchors and why they were selected
@@ -224,7 +231,7 @@ A context bundle contains:
 
 ### Two Access Paths
 
-1. **Discovery path.** Consumer provides a topic, question, or keyword. Atlas returns relevant sources ranked by authority.
+1. **Discovery path.** Consumer provides a resource, question, or keyword. Atlas returns relevant sources ranked by authority.
 2. **Expansion path.** Consumer provides a known source or anchor. Atlas returns precise excerpts plus surrounding context.
 
 ### Progressive Disclosure
@@ -248,7 +255,7 @@ V1 proves the full chain — source registry → authority mapping → locator r
 
 **Portal surface:** Service card list filtered by category → detail page with overview, how-to-start steps, authoritative sources with badges, support path, tool entry points.
 
-**Context Layer path:** Query topic registry (topic_type=service) → select associated sources → retrieve authority metadata → package context bundle.
+**Context Layer path:** Query the resource catalog (kind=service) → select associated sources → retrieve authority metadata → package resource context projection.
 
 ### Scenario 2: Landing Zone Navigation
 
@@ -256,7 +263,7 @@ V1 proves the full chain — source registry → authority mapping → locator r
 
 **Portal surface:** Landing zone cards → environment matrix, onboarding path, guardrail summary, tool entry points.
 
-**Context Layer path:** Query topic registry (topic_type=landing-zone) → select associated sources → retrieve guardrail excerpts → package context bundle.
+**Context Layer path:** Query the resource catalog (kind=landing-zone) → select associated sources → retrieve guardrail excerpts → package resource context projection.
 
 ### Scenario 3: AI Consumer Discovery
 
@@ -264,9 +271,9 @@ V1 proves the full chain — source registry → authority mapping → locator r
 
 **Consumer surface:** Portal Ask UI, local AI agent skill, CLI assistant, MCP tool, or automation workflow with inline citations, authority badges, source freshness indicators, and expansion links.
 
-**Context Layer path:** Source selection → excerpt retrieval → authority packaging → context bundle returned to consumer.
+**Context Layer path:** Source selection → excerpt retrieval → authority packaging → resource context projection returned to consumer.
 
-**AI consumer path:** Receive context bundle → send bundle + user question to LLM → LLM reasons over governed context → present cited answer or take a bounded follow-up action.
+**AI consumer path:** Receive resource context projection → send projection + user question to LLM → LLM reasons over governed context → present cited answer or take a bounded follow-up action.
 
 ## AI Consumer Design
 
@@ -277,8 +284,8 @@ LLM reasoning is a consumer responsibility, not an Atlas responsibility. Atlas p
 ```
 AI Consumer (Portal Ask UI / local agent skill / CLI / MCP tool)
   1. Receive user question
-  2. Call Atlas API → get context bundle
-  3. Send context bundle + question → LLM
+  2. Call Atlas API → get resource context projection
+  3. Send resource context projection + question → LLM
   4. LLM reasons over governed context, generates answer
   5. Present answer or action with citations + authority badges
 
@@ -286,7 +293,7 @@ Atlas Context Layer API
   - Deterministically select relevant sources
   - Resolve anchors, extract excerpts
   - Package authority + provenance
-  - Return context bundle
+  - Return resource context projection
   - No reasoning, no recommendations, no judgment
 ```
 
@@ -309,7 +316,7 @@ V1 prefers request-time resolution. No pre-ingested content index, no async inge
 2. Select candidate sources for the request
 3. Resolve source-native locators or anchors
 4. Retrieve exact excerpts and adjacent context
-5. Return context bundle with citation and expansion paths
+5. Return resource context projection with citation and expansion paths
 
 If caching becomes necessary for performance, treat it as an implementation optimization, not as the architectural model.
 
@@ -327,7 +334,7 @@ If caching becomes necessary for performance, treat it as an implementation opti
 
 ### Quality Signal Propagation
 
-Context bundles do not pretend evidence is complete. If a source is stale, an anchor is broken, or authority is unclear, the bundle carries these warnings. Consumers decide how to handle them.
+Resource context projections do not pretend evidence is complete. If a source is stale, an anchor is broken, or authority is unclear, the projection carries these warnings. Consumers decide how to handle them.
 
 ### Upstream Impact
 
@@ -344,28 +351,28 @@ V1 minimizes workflow change for source owners:
 | Component | Description |
 |---|---|
 | Source Registry | Register and manage Terraform repos, Confluence pages, policy docs |
-| Topic Registry | Register services and landing zones as navigation entities |
-| Source-Topic Mapping | Many-to-many mapping with authority scope |
+| Resource Catalog | Discovery-derived services, guardrails, and landing zones as navigation entities |
+| Source-Resource Mapping | Many-to-many mapping with authority scope |
 | Authority Mapping | Authority scope and level per source |
 | Locator Resolution | Anchor strategies for 3 source classes |
-| Context Bundle API | Consumer-neutral context delivery interface |
-| Portal: Service Discovery | Browse and detail view for topic_type=service |
-| Portal: Landing Zone Navigator | Navigation, environment matrix, guardrail summary for topic_type=landing-zone |
-| AI Consumer Contract | Context bundle contract usable by Portal Ask UI, local agent skills, CLI tools, MCP tools, and automation workflows |
+| Resource Context API | Consumer-neutral context delivery interface |
+| Portal: Service Discovery | Browse and detail view for kind=service |
+| Portal: Landing Zone Navigator | Navigation, environment matrix, guardrail summary for kind=landing-zone |
+| AI Consumer Contract | Resource context projection contract usable by Portal Ask UI, local agent skills, CLI tools, MCP tools, and automation workflows |
 | No Auth operating model | Trusted internal V1 surface with no user registration, login, SSO, or identity-based application access |
-| Pilot content | 10-15 core topics with registered sources |
+| Pilot content | 10-15 core resources with registered sources |
 
 ### Out of Scope
 
 | Not in V1 | Reason |
 |---|---|
 | Provisioning portal | Boundary conflict with TFE / Harness |
-| Full CMDB / Service Catalog | Too heavy; V1 has topic registry only |
+| Full CMDB / Service Catalog | Too heavy; V1 has the resource catalog only |
 | Shadow content store | Violates source-native principle |
 | AI-generated doc modifications | Authority risk |
 | Full document migration | Ownership problems |
 | Pre-computed content index | V1 uses request-time resolution |
-| Full platform service coverage | Pilot scope; 10-15 core topics first |
+| Full platform service coverage | Pilot scope; 10-15 core resources first |
 | Write-back memory layer | No synthesized content written to source systems |
 | Background ingest pipeline | Not needed for request-time model |
 | User authentication or registration | V1 intentionally uses a trusted internal operating model |
@@ -380,7 +387,7 @@ V1 minimizes workflow change for source owners:
 | Source permission mismatch | Flag the source as restricted or unavailable; do not add a user auth flow |
 | Weak anchoring for source class | Flag "weak anchoring"; provide source-level context only |
 | AI answer has no registered source support | Do not fabricate; state "beyond registered knowledge scope" |
-| Context bundle too broad or narrow | Provide expansion / narrowing paths for consumer adjustment |
+| Resource context projection too broad or narrow | Provide expansion / narrowing paths for consumer adjustment |
 
 ## Success Criteria
 
@@ -390,9 +397,9 @@ V1 minimizes workflow change for source owners:
 |---|---|
 | Source selection precision | Are returned sources relevant to the query? |
 | Anchor resolution success rate | Do anchors resolve to valid content? |
-| Citation completeness | Does the context bundle include full provenance? |
+| Citation completeness | Does the resource context projection include full provenance? |
 | Visibility warning correctness | Are restricted or unavailable source signals accurate? |
-| Context bundle size | Is returned context precise and bounded? |
+| Resource context projection size | Is returned context precise and bounded? |
 
 ### Portal Experience (External)
 
@@ -401,5 +408,5 @@ V1 minimizes workflow change for source owners:
 | Time to find right source | Has discovery time decreased? |
 | AI answer citation rate | What percentage of AI answers include citations? |
 | Stale/broken source visibility | Are quality issues effectively flagged? |
-| Topic authority coverage | Do core topics have authoritative source coverage? |
+| Resource authority coverage | Do core resources have authoritative source coverage? |
 | User return rate | Do users come back? |
