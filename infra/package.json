@@ -4,13 +4,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "lint": "oxlint",
-    "typecheck": "tsc --noEmit --pretty false",
+    "fmt:check": "terraform fmt -recursive -check",
+    "validate": "terraform init -backend=false && terraform validate",
     "test": "vitest run"
   },
   "devDependencies": {
-    "typescript": "6.0.3",
-    "vite": "8.0.16",
     "vitest": "4.1.9"
   }
 }
