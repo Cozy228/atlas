@@ -14,7 +14,6 @@ const source: Source = {
   title: "Regional Availability Matrix",
   source_class: "availability-matrix",
   location: DEV_AVAILABILITY_PAGE_ID_AWSF,
-  steward: "cloud-platform",
   visibility: "internal",
   authority_scope: ["regional-availability"],
   authority_level: "authoritative",

@@ -44,7 +44,6 @@ function withUnresolvableSource(base: ContextService): ContextService {
       title: "Platform Reference Guide",
       source_class: "confluence-page",
       location: "999999", // not in the fixtures → 404 → source_unavailable
-      steward: "cloud-platform",
       visibility: "internal",
       last_observed_at: "2026-05-05T00:00:00.000Z",
       last_reviewed_at: "2026-05-01T00:00:00.000Z",

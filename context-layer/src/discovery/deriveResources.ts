@@ -33,7 +33,6 @@ const AVAILABILITY_MATRIX_SOURCE_ID = "availability-matrix";
 
 // Fixed fictional, recent freshness stamps so a derived source is in-window (not
 // flagged stale) when this engine later backs the live path. Public-safe.
-const SOURCE_STEWARD = "cloud-platform";
 const REVIEW_FREQUENCY = "quarterly";
 const FIXED_OBSERVED_AT = "2026-06-20T09:00:00.000Z";
 const FIXED_REVIEWED_AT = "2026-06-20T09:00:00.000Z";
@@ -93,10 +92,13 @@ function deriveServiceRecord(service: DiscoveredService): ResourceContextRecord 
   }
 
   // Presentation metadata (plan 018 G5): only what discovery can honestly back —
-  // `category` from the availability domain, a default `status`, and (when a module
-  // was found) ONE entry tool. `owner_team`/`support_channel`/`description` are not
-  // discoverable, so they stay unset (honest gap, never fabricated).
+  // `category` from the availability domain, a default `status`, a `description`
+  // from the module README's lead paragraph (when a module was found), and ONE
+  // entry tool. `owner_team`/`support_channel` are not discoverable, so they stay
+  // unset (honest gap, never fabricated); a module-less service also has no
+  // `description`.
   const entryTools = service.module ? [moduleEntryTool(service.module.address)] : undefined;
+  const description = service.module?.summary;
 
   return {
     kind: "service",
@@ -106,6 +108,7 @@ function deriveServiceRecord(service: DiscoveredService): ResourceContextRecord 
     aliases: service.identity.admissionAliases,
     category: service.domain,
     status: "active",
+    ...(description ? { description } : {}),
     ...(entryTools ? { entry_tools: entryTools } : {}),
     sections,
   };
@@ -139,7 +142,7 @@ export function deriveServiceSourceRecords(discovered: DiscoveredService[]): Sou
       title: `${service.identity.name} Terraform Module`,
       source_class: "terraform-module",
       location: service.module.address,
-      steward: SOURCE_STEWARD,
+      category: service.domain,
       visibility: "internal",
       authority_scope: ["module-usage"],
       authority_level: "authoritative",
@@ -153,7 +156,7 @@ export function deriveServiceSourceRecords(discovered: DiscoveredService[]): Sou
     title: "Regional Availability Matrix",
     source_class: "availability-matrix",
     location: "availability",
-    steward: SOURCE_STEWARD,
+    category: "Platform",
     visibility: "internal",
     authority_scope: ["regional-availability"],
     authority_level: "authoritative",

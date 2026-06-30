@@ -8,7 +8,6 @@ const source: Source = {
   title: "Central Landing Zone Guide",
   source_class: "confluence-page",
   location: "123456",
-  steward: "cloud-foundation",
   visibility: "internal",
   authority_scope: ["landing-zone-guidance"],
   authority_level: "authoritative",

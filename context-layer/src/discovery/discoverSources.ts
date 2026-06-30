@@ -24,6 +24,8 @@ export type DiscoveredModule = {
   address: string;
   /** The README's full ordered heading list (raw TOC). */
   headings: string[];
+  /** The README's lead paragraph — the service's one-line description, if present. */
+  summary?: string;
   /** The module's published version, if the registry reported one. */
   version?: string;
 };
@@ -83,6 +85,7 @@ export async function discoverServiceSources(
             sourceId: `${identity.id}-module-readme`,
             address,
             headings: found.headings,
+            summary: found.summary,
             version: found.version,
           }
         : null;

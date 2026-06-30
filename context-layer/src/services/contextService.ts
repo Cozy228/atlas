@@ -59,7 +59,7 @@ export function discoverSources(
 }
 
 function matchesText(source: Source, query: string): boolean {
-  const haystack = [source.id, source.title, source.source_class, source.steward].join(" ");
+  const haystack = [source.id, source.title, source.source_class].join(" ");
   return normalizedTokens(query).some((token) => haystack.toLowerCase().includes(token));
 }
 

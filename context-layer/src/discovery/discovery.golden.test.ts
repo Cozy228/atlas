@@ -89,7 +89,8 @@ describe("service discovery → resource derivation (golden)", () => {
       },
     ]);
     // Presentation metadata: category = availability domain, default status, one
-    // Terraform-module entry tool. Non-discoverable fields stay unset (honest gap).
+    // Terraform-module entry tool, and a description from the README lead paragraph.
+    // The remaining non-discoverable fields stay unset (honest gap).
     expect(textract!.category).toBe("AI Services");
     expect(textract!.status).toBe("active");
     expect(textract!.entry_tools).toEqual([
@@ -98,9 +99,11 @@ describe("service discovery → resource derivation (golden)", () => {
         url: "https://app.terraform.io/example/registry/modules/example/textract/aws",
       },
     ]);
+    expect(textract!.description).toBe(
+      "Run Textract document OCR privately from workloads in private subnets.",
+    );
     expect(textract!.owner_team).toBeUndefined();
     expect(textract!.support_channel).toBeUndefined();
-    expect(textract!.description).toBeUndefined();
   });
 
   it("derives network + examples + availability for s3 (network heading 'VPC endpoint access')", () => {
@@ -213,7 +216,8 @@ describe("service discovery → resource derivation (golden)", () => {
       ]);
       // Uniform presentation: every record carries a category (= availability domain)
       // + default status, one Terraform-module entry tool (the fixture spine is fully
-      // module-backed), and NO fabricated owner/support/description.
+      // module-backed), and a description from the README lead paragraph. No
+      // fabricated owner/support.
       expect(record.category).toBeTruthy();
       expect(record.status).toBe("active");
       expect(record.entry_tools).toEqual([
@@ -222,9 +226,9 @@ describe("service discovery → resource derivation (golden)", () => {
           url: `https://app.terraform.io/example/registry/modules/example/${serviceId}/${record.provider}`,
         },
       ]);
+      expect(record.description).toBeTruthy();
       expect(record.owner_team).toBeUndefined();
       expect(record.support_channel).toBeUndefined();
-      expect(record.description).toBeUndefined();
       // Content-level golden: the derived record is schema-valid (no empty sections).
       expect(() => ResourceContextRecordSchema.parse(record)).not.toThrow();
     }

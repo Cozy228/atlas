@@ -15,6 +15,7 @@ import {
   DEV_AVAILABILITY_PAGE_ID_AWSF,
   renderAvailabilityPageStorage,
 } from "./availabilityFixture";
+import { DEV_GUIDANCE_PAGES } from "./guidanceFixture";
 
 /** Fictional Confluence site base (without `/wiki`) the dev adapter is pointed at. */
 export const DEV_CONFLUENCE_BASE_URL = "https://atlas-dev.example.atlassian.net";
@@ -303,6 +304,10 @@ export const CONFLUENCE_PAGES: Record<string, ConfluencePageFixture> = {
     body: { storage: { value: renderAvailabilityPageStorage() } },
     _links: { webui: "/spaces/CLOUD/pages/200001/AWS+Foundation+Availability" },
   },
+  // Guidance journeys authored as Confluence pages (under the GUIDE space). The
+  // live `confluenceGuidanceProvider` crawls the space and parses each page; the
+  // space-listing handler recalls them by their `/spaces/GUIDE/` webui.
+  ...DEV_GUIDANCE_PAGES,
 };
 
 /**
@@ -343,6 +348,7 @@ export const TERRAFORM_MODULES: Record<string, TerraformModuleFixture> = {
     root: {
       readme: [
         "# S3 Module",
+        "Provision a hardened S3 bucket with block-public-access, default KMS encryption, and versioning.",
         "## VPC endpoint access",
         "Bucket traffic stays on the private network through a gateway VPC endpoint, so requests never traverse the public internet.",
         "## Terraform starter",
@@ -365,6 +371,7 @@ export const TERRAFORM_MODULES: Record<string, TerraformModuleFixture> = {
     root: {
       readme: [
         "# EFS Module",
+        "Provision an encrypted, multi-AZ EFS file system with private subnet mount targets.",
         "## Private subnet mount targets",
         "Mount targets are placed in each private subnet so instances and pods reach the file system over the VPC only.",
         "## Usage example",
@@ -384,6 +391,7 @@ export const TERRAFORM_MODULES: Record<string, TerraformModuleFixture> = {
     root: {
       readme: [
         "# EC2 Module",
+        "Launch EC2 instances into private subnets with no public IP and shared NAT egress.",
         "## Subnet placement",
         "Instances launch into the workload private subnets with no public IP; egress flows through the shared NAT gateway.",
         "## Getting started",
@@ -403,6 +411,7 @@ export const TERRAFORM_MODULES: Record<string, TerraformModuleFixture> = {
     root: {
       readme: [
         "# Lambda Module",
+        "Deploy a VPC-attached Lambda function with private egress to in-account data stores.",
         "## VPC connector",
         "Functions attach to the managed VPC connector for private egress to in-account data stores.",
         "## Usage example",
@@ -422,6 +431,7 @@ export const TERRAFORM_MODULES: Record<string, TerraformModuleFixture> = {
     root: {
       readme: [
         "# EKS Module",
+        "Stand up an EKS cluster with a private control-plane endpoint and private worker nodes.",
         "## Private cluster networking",
         "The control-plane endpoint is private and worker nodes join from the VPC's private subnets.",
         "## Terraform starter",
@@ -441,6 +451,7 @@ export const TERRAFORM_MODULES: Record<string, TerraformModuleFixture> = {
     root: {
       readme: [
         "# ECS Fargate Module",
+        "Run containers on ECS Fargate in private subnets behind an internal load balancer.",
         "## VPC networking",
         "Tasks run in awsvpc mode on private subnets behind an internal load balancer.",
         "## Usage example",
@@ -460,6 +471,7 @@ export const TERRAFORM_MODULES: Record<string, TerraformModuleFixture> = {
     root: {
       readme: [
         "# Aurora Module",
+        "Provision an Aurora Serverless v2 PostgreSQL cluster in a private DB subnet group.",
         "## Subnet group",
         "The cluster is provisioned into a private DB subnet group spanning every availability zone.",
         "## Quickstart",
@@ -479,6 +491,7 @@ export const TERRAFORM_MODULES: Record<string, TerraformModuleFixture> = {
     root: {
       readme: [
         "# DynamoDB Module",
+        "Create a DynamoDB table reached privately through a gateway VPC endpoint.",
         "## VPC endpoint",
         "Application access routes through a gateway VPC endpoint; no table traffic leaves the private network.",
         "## Usage example",
@@ -498,6 +511,7 @@ export const TERRAFORM_MODULES: Record<string, TerraformModuleFixture> = {
     root: {
       readme: [
         "# Kinesis Module",
+        "Provision a Kinesis data stream reached over a private interface VPC endpoint.",
         "## Interface VPC endpoint",
         "Producers and consumers reach the stream over an interface VPC endpoint kept on the private network.",
         "## Getting started",
@@ -516,6 +530,7 @@ export const TERRAFORM_MODULES: Record<string, TerraformModuleFixture> = {
     root: {
       readme: [
         "# SQS Module",
+        "Create an SQS queue whose operations stay on the private network via a VPC endpoint.",
         "## VPC endpoint access",
         "Queue operations use an interface VPC endpoint so messages stay on the private network.",
         "## Usage example",
@@ -534,6 +549,7 @@ export const TERRAFORM_MODULES: Record<string, TerraformModuleFixture> = {
     root: {
       readme: [
         "# SNS Module",
+        "Create an SNS topic with private-endpoint delivery and policy-gated subscriptions.",
         "## Private endpoint delivery",
         "Publishers reach the topic through an interface VPC endpoint; cross-account subscriptions are policy-gated.",
         "## Getting started",
@@ -551,6 +567,7 @@ export const TERRAFORM_MODULES: Record<string, TerraformModuleFixture> = {
     root: {
       readme: [
         "# API Gateway Module",
+        "Expose an HTTP API privately through an interface VPC endpoint fronting your Lambda.",
         "## Private API networking",
         "Expose the API privately through an interface VPC endpoint so only in-VPC clients can invoke it.",
         "## Terraform starter",
@@ -578,6 +595,7 @@ export const TERRAFORM_MODULES: Record<string, TerraformModuleFixture> = {
     root: {
       readme: [
         "# EventBridge Module",
+        "Provision an EventBridge bus whose PutEvents traffic stays on the private network.",
         "## VPC endpoint",
         "PutEvents calls route through an interface VPC endpoint, keeping bus traffic on the private network.",
         "## Usage example",
@@ -595,6 +613,7 @@ export const TERRAFORM_MODULES: Record<string, TerraformModuleFixture> = {
     root: {
       readme: [
         "# Bedrock Module",
+        "Invoke Bedrock foundation models over a private interface VPC endpoint.",
         "## Private model endpoint",
         "Model invocations stay on the private network through an interface VPC endpoint; public routing is disabled.",
         "## Usage example",
@@ -613,6 +632,7 @@ export const TERRAFORM_MODULES: Record<string, TerraformModuleFixture> = {
     root: {
       readme: [
         "# Textract Module",
+        "Run Textract document OCR privately from workloads in private subnets.",
         "## Private subnet usage",
         "Use the Textract module with private endpoint configuration for private subnet workloads.",
         "## Terraform starter",
@@ -632,6 +652,7 @@ export const TERRAFORM_MODULES: Record<string, TerraformModuleFixture> = {
     root: {
       readme: [
         "# ELB Module",
+        "Provision an Elastic Load Balancer attached to private subnets, internal by default.",
         "## Subnet attachments",
         "The load balancer attaches to private subnets; internet-facing schemes require explicit public subnet ids.",
         "## Getting started",
@@ -651,6 +672,7 @@ export const TERRAFORM_MODULES: Record<string, TerraformModuleFixture> = {
     root: {
       readme: [
         "# CloudWatch Module",
+        "Publish metrics and logs to CloudWatch privately over interface VPC endpoints.",
         "## VPC endpoint",
         "Agents publish metrics and logs through interface VPC endpoints so telemetry stays on the private network.",
         "## Usage example",
@@ -668,6 +690,7 @@ export const TERRAFORM_MODULES: Record<string, TerraformModuleFixture> = {
     root: {
       readme: [
         "# KMS Module",
+        "Provision a KMS key with rotation, accessed privately via an interface VPC endpoint.",
         "## Private endpoint",
         "Encrypt and decrypt calls use an interface VPC endpoint; key access is gated by a key policy and grants.",
         "## Quickstart",

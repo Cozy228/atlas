@@ -156,7 +156,7 @@ export async function discoverTerraformModule(
   ctx: ResolutionContext,
   config: TerraformLiveConfig,
   address: string,
-): Promise<{ readme: string; headings: string[]; version?: string } | null> {
+): Promise<{ readme: string; headings: string[]; summary?: string; version?: string } | null> {
   const mod = parseModuleAddress(address);
   if (!mod) {
     return null;
@@ -166,7 +166,33 @@ export async function discoverTerraformModule(
     return null;
   }
   const readme = fetched.body.root?.readme ?? "";
-  return { readme, headings: parseReadmeHeadings(readme), version: fetched.body.version };
+  return {
+    readme,
+    headings: parseReadmeHeadings(readme),
+    summary: parseReadmeIntro(readme),
+    version: fetched.body.version,
+  };
+}
+
+/**
+ * The README's lead paragraph: the first prose line after the H1 title and
+ * before the first sub-heading (the service's one-line description). A README
+ * with no lead paragraph (prose starts inside a section) yields `undefined` — an
+ * honest gap, never a fabricated summary.
+ */
+function parseReadmeIntro(markdown: string): string | undefined {
+  let seenTitle = false;
+  for (const line of markdown.split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    if (/^#\s/.test(trimmed)) {
+      seenTitle = true;
+      continue;
+    }
+    if (/^#{2,6}\s/.test(trimmed)) break; // reached the first section heading
+    if (seenTitle) return trimmed;
+  }
+  return undefined;
 }
 
 /** Collect the human text of every Markdown ATX heading, in document order — the

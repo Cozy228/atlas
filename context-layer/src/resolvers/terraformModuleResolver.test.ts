@@ -8,7 +8,6 @@ const source: Source = {
   title: "Textract Terraform Module",
   source_class: "terraform-module",
   location: "example/textract/aws",
-  steward: "cloud-platform",
   visibility: "internal",
   authority_scope: ["module-usage"],
   authority_level: "authoritative",

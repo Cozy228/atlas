@@ -9,7 +9,6 @@ const source: Source = {
   source_class: "confluence-page",
   // For the live path, location is the Confluence page id.
   location: "123456",
-  steward: "cloud-foundation",
   visibility: "internal",
   authority_scope: ["landing-zone-guidance"],
   authority_level: "authoritative",

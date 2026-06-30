@@ -9,7 +9,6 @@ const source: Source = {
   source_class: "policy-document",
   // For the single-live path, location is the Confluence page id.
   location: "300001",
-  steward: "cloud-security",
   visibility: "internal",
   authority_scope: ["security-guardrail"],
   authority_level: "authoritative",

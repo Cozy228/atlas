@@ -11,7 +11,7 @@
  * fixtures; prod points them at the real systems. An unconfigured channel yields
  * an honest-empty catalog, never a fabricated in-code fixture.
  */
-import type { ResourceContextRecord } from "@atlas/schema";
+import type { Guidance, ResourceContextRecord } from "@atlas/schema";
 import { deriveGuardrailResources } from "./discovery/deriveGuardrails";
 import { deriveRegistry } from "./discovery/deriveRegistry";
 import { deriveServiceResources } from "./discovery/deriveResources";
@@ -26,6 +26,7 @@ import { createResolverRegistry } from "./resolvers/resolverRegistry";
 import { terraformModuleResolver } from "./resolvers/terraformModuleResolver";
 import { defaultResolutionContext, type FetchLike } from "./resolvers/resolverTypes";
 import { createConfluenceReferenceDiscovery } from "./sourceContent/confluenceReferenceDiscovery";
+import { createConfluenceGuidanceSource } from "./sourceContent/confluenceGuidanceProvider";
 import { createConfluenceAvailabilityProvider } from "./sourceContent/confluenceAvailabilityProvider";
 import type { AvailabilityProvider } from "./services/availabilityProvider";
 import type { ResourceReferenceDiscovery } from "./services/resourceReferenceDiscovery";
@@ -129,6 +130,28 @@ function createReferenceDiscoveryFromEnv(
     { baseUrl, token, email: env.CONFLUENCE_EMAIL, spaceKeys },
     { fetch: liveFetch },
   );
+}
+
+/**
+ * One source of guidance: the journeys authored as Confluence pages, addressed
+ * by configured page id over the shared Confluence channel (today: the
+ * onboarding journey, `CONFLUENCE_GUIDANCE_ONBOARDING_PAGE_ID`). Returns `[]`
+ * when the channel is unconfigured — an honest empty result the portal loader
+ * merges with the guidance store, never a fabricated in-code fixture.
+ */
+export async function loadConfluenceGuidance(
+  env: Record<string, string | undefined> = readProcessEnv(),
+): Promise<Guidance[]> {
+  const baseUrl = env.CONFLUENCE_BASE_URL;
+  const token = env.CONFLUENCE_TOKEN;
+  const pageIds = [env.CONFLUENCE_GUIDANCE_ONBOARDING_PAGE_ID].filter((id): id is string => !!id);
+  if (!baseUrl || !token || pageIds.length === 0) {
+    return [];
+  }
+  return createConfluenceGuidanceSource(
+    { baseUrl, token, email: env.CONFLUENCE_EMAIL, pageIds },
+    { fetch: liveFetch },
+  ).load();
 }
 
 function readProcessEnv(): Record<string, string | undefined> {

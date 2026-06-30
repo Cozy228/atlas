@@ -16,7 +16,6 @@ import {
   TERRAFORM_MODULES,
 } from "./fixtures";
 import { DEV_GUIDANCE_MANIFESTS, DEV_GUIDANCE_URL } from "./guidanceFixture";
-
 /**
  * Space-only listing recall (plan 018 G5): all pages under a space, used by
  * guardrail discovery's `space = SECPOL AND type = page` crawl. Sourced from the
@@ -111,12 +110,13 @@ const terraformModuleHandlers = [
 ];
 
 /**
- * Guidance store — the live `loadGuidance` loader's fetch target. Returns the
- * route-guidance manifests as a JSON array; the loader validates each against
- * `GuidanceSchema` and maps to the portal `Guidance`. The single live path for
- * guidance (plan 018 G6): in prod the same env points at a real store.
+ * Guidance STORE — the `GUIDANCE_URL` loader's fetch target. Returns the
+ * non-onboarding journeys as a JSON array; the loader validates each against
+ * `GuidanceSchema`. The onboarding journey is NOT here — it is a Confluence page
+ * served by the v2 page handler above and fetched by id. Prod points the same
+ * env at a real store.
  */
-const guidanceHandlers = [
+const guidanceStoreHandlers = [
   http.get(DEV_GUIDANCE_URL, async () => {
     await delay(devMockLatencyMs());
     return HttpResponse.json(DEV_GUIDANCE_MANIFESTS);
@@ -128,5 +128,5 @@ export const handlers = [
   ...confluencePageHandlers,
   ...cqlSearchHandlers,
   ...terraformModuleHandlers,
-  ...guidanceHandlers,
+  ...guidanceStoreHandlers,
 ];

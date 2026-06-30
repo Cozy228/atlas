@@ -18,7 +18,7 @@ import {
   DEV_RELEASE_NOTES_PAGE_ID,
   DEV_TERRAFORM_BASE_URL,
 } from "./fixtures";
-import { DEV_GUIDANCE_URL } from "./guidanceFixture";
+import { DEV_GUIDANCE_ONBOARDING_PAGE_ID, DEV_GUIDANCE_URL } from "./guidanceFixture";
 
 /**
  * Set every discovery env var to the MSW fixture endpoints (idempotent).
@@ -46,8 +46,10 @@ export function setDevDiscoveryEnv(
   // it resolveReleaseNotes bails on the unconfigured sentinel and /whatsnew is
   // honest-empty — so the release-detail route would never get dev/e2e coverage.
   env.CONFLUENCE_RELEASE_NOTES_PAGE_ID = DEV_RELEASE_NOTES_PAGE_ID;
-  // Guidance store: the live loadGuidance loader fetches this URL (MSW-served).
+  // Guidance is multi-source: the store (GUIDANCE_URL) serves the non-onboarding
+  // journeys, and the onboarding journey is a Confluence page fetched by id.
   env.GUIDANCE_URL = DEV_GUIDANCE_URL;
+  env.CONFLUENCE_GUIDANCE_ONBOARDING_PAGE_ID = DEV_GUIDANCE_ONBOARDING_PAGE_ID;
   // Reference-discovery space (optional): on by default.
   if (options.referenceSpace !== false) {
     env.CONFLUENCE_SPACE_KEYS = DEV_CONFLUENCE_SPACE_KEYS.join(",");

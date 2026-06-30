@@ -9,7 +9,6 @@ const source: Source = {
   source_class: "terraform-module",
   // For the live path, location is the host-less registry address.
   location: "example/s3/aws",
-  steward: "cloud-platform",
   visibility: "internal",
   authority_scope: ["module-usage", "storage"],
   authority_level: "authoritative",

@@ -102,7 +102,6 @@ describe("guardrail discovery → derivation (golden)", () => {
       title: "Data Encryption Standard",
       source_class: "policy-document",
       location: "310001",
-      steward: "cloud-security",
       visibility: "internal",
       authority_scope: ["security-guardrail"],
       authority_level: "authoritative",

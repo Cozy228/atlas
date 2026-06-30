@@ -29,7 +29,6 @@ const GUARDRAIL_CATEGORY = "Security";
 
 // Fixed fictional, recent freshness stamps so a derived source is in-window (not
 // flagged stale) when this engine later backs the live path. Public-safe.
-const SOURCE_STEWARD = "cloud-security";
 const REVIEW_FREQUENCY = "quarterly";
 const FIXED_OBSERVED_AT = "2026-06-20T09:00:00.000Z";
 const FIXED_REVIEWED_AT = "2026-06-20T09:00:00.000Z";
@@ -102,7 +101,7 @@ export function deriveGuardrailSourceRecords(discovered: DiscoveredGuardrail[]):
     title: guardrail.name,
     source_class: "policy-document",
     location: guardrail.pageId,
-    steward: SOURCE_STEWARD,
+    category: GUARDRAIL_CATEGORY,
     visibility: "internal",
     authority_scope: ["security-guardrail"],
     authority_level: "authoritative",
