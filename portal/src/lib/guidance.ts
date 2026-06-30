@@ -9,13 +9,9 @@
  * array into these helpers. No user progress is tracked; step status is computed
  * from the definition and the currently selected step only.
  */
-export type GuidanceType = "route" | "decision" | "checklist";
-
 export type ScenarioFamily = "onboard" | "decide" | "enable" | "validate";
 
-export type StepKind = "action" | "decision" | "checklist" | "support" | "destination";
-
-export type StepStatus = "available" | "selected" | "blocked" | "needs_support" | "destination";
+export type StepStatus = "available" | "selected";
 
 export type GuidanceStatus = "draft" | "published" | "needs_review" | "deprecated";
 
@@ -45,35 +41,20 @@ export type GuidanceTask = {
   action?: GuidanceAction;
 };
 
-export type DecisionOption = {
-  id: string;
-  title: string;
-  description?: string;
-  /** atlas_page path the option routes to. */
-  to?: string;
-};
-
 export type GuidanceStep = {
   id: string;
   title: string;
-  kind: StepKind;
   description?: string;
   /** Why this step matters, shown above the task list. */
   why?: string;
   tasks?: ReadonlyArray<GuidanceTask>;
   /** source registry ids cited by this step. */
   sources?: ReadonlyArray<string>;
-  support?: { team: string; channel: string };
-  /** decision step branch options. */
-  options?: ReadonlyArray<DecisionOption>;
-  /** intrinsic marker independent of selection. */
-  marker?: Extract<StepStatus, "blocked" | "needs_support">;
 };
 
 export type Guidance = {
   id: string;
   title: string;
-  type: GuidanceType;
   scenario: string;
   family: ScenarioFamily;
   objective: string;
@@ -137,10 +118,7 @@ export function relatedGuidanceForResource(
 }
 
 export function stepStatus(step: GuidanceStep, selectedStepId: string): StepStatus {
-  if (step.id === selectedStepId) return "selected";
-  if (step.kind === "destination") return "destination";
-  if (step.marker) return step.marker;
-  return "available";
+  return step.id === selectedStepId ? "selected" : "available";
 }
 
 /** First step a workspace should land on by default. */

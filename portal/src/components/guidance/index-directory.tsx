@@ -42,9 +42,15 @@ export function GuidanceDirectory({ guidances }: { guidances: ReadonlyArray<Guid
         </p>
       </header>
 
-      <NextStops resumable={resumable} groups={groups} />
+      {/* Ongoing flows sit between two rules when present; with nothing in
+          flight only the rule above the list below remains. */}
+      {resumable.length > 0 ? (
+        <div className="border-t border-border pt-6">
+          <NextStops resumable={resumable} groups={groups} />
+        </div>
+      ) : null}
 
-      <div className="flex flex-col gap-6 md:grid md:grid-cols-[14rem_minmax(0,1fr)] md:items-start md:gap-8">
+      <div className="flex flex-col gap-6 border-t border-border pt-6 md:grid md:grid-cols-[14rem_minmax(0,1fr)] md:items-start md:gap-8">
         <nav aria-label="Categories" className="md:sticky md:top-6">
           <ol className="flex flex-col gap-0.5">
             {groups.map((group, i) => {

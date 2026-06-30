@@ -12,25 +12,15 @@ import {
   IconFileText,
   IconFlagFilled,
   IconLifebuoy,
-  IconListCheck,
-  IconRoute,
-  IconSitemap,
   IconTool,
 } from "@tabler/icons-react";
-import type { Icon } from "@tabler/icons-react";
 import type { Source } from "@atlas/schema";
 
 import { FreshnessIndicator } from "@/components/evidence/badges";
 import { Badge } from "@/components/ui/badge";
-import type { Guidance, GuidanceAction, GuidanceStep, GuidanceType } from "@/lib/guidance";
+import type { Guidance, GuidanceAction, GuidanceStep } from "@/lib/guidance";
 import { taskKey, type GuidanceProgress } from "@/lib/guidance-progress";
 import { cn } from "@/lib/utils";
-
-export const TYPE_META: Record<GuidanceType, { icon: Icon; label: string }> = {
-  route: { icon: IconRoute, label: "Route" },
-  decision: { icon: IconSitemap, label: "Decision" },
-  checklist: { icon: IconListCheck, label: "Checklist" },
-};
 
 export const STATUS_CHIP: Record<
   Guidance["status"],
@@ -52,9 +42,9 @@ export function GuidanceStatusBadge({ status }: { status: Guidance["status"] }) 
   );
 }
 
-/** Steps that count toward completion (everything but the destination). */
+/** Steps that count toward completion (every step of the linear journey). */
 export function completableSteps(guidance: Guidance): ReadonlyArray<GuidanceStep> {
-  return guidance.steps.filter((step) => step.kind !== "destination");
+  return guidance.steps;
 }
 
 export function DestinationFlag({ title, className }: { title: string; className?: string }) {
@@ -129,6 +119,17 @@ export function TaskChecklist({
 }) {
   const tasks = step.tasks ?? [];
   if (tasks.length === 0) return null;
+  const allKeys = tasks.map((task) => taskKey(step.id, task.id));
+  // Tasks drive the step: toggling one keeps the step's completion in sync —
+  // all checked auto-completes it, unchecking any reverts it. (The Mark button
+  // stays an independent manual toggle for steps without tasks.)
+  const toggleTaskAndStep = (key: string) => {
+    progress.toggleTask(key);
+    const willAllBeDone = allKeys.every((k) =>
+      k === key ? !progress.completedTasks.has(k) : progress.completedTasks.has(k),
+    );
+    if (willAllBeDone !== progress.completedSteps.has(step.id)) progress.toggleStep(step.id);
+  };
   return (
     <ul className="flex flex-col divide-y divide-border rounded-[4px] border border-border bg-card">
       {tasks.map((task) => {
@@ -143,7 +144,7 @@ export function TaskChecklist({
               type="button"
               role="checkbox"
               aria-checked={done}
-              onClick={() => progress.toggleTask(key)}
+              onClick={() => toggleTaskAndStep(key)}
               className="flex min-w-0 flex-1 items-center gap-2.5 rounded-sm text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <span
@@ -221,49 +222,22 @@ export function EvidenceRows({
 }
 
 /* ========================================================================== *
- * Step support / marker notes
+ * Mark-complete control
  * ========================================================================== */
 
-export function stepSupport(
-  guidance: Guidance,
-  step: GuidanceStep,
-): { team: string; channel: string } {
-  return step.support ?? { team: guidance.owner.team, channel: guidance.owner.support };
-}
-
-export function MarkerNote({
-  marker,
-  support,
-}: {
-  marker: "blocked" | "needs_support";
-  support: { team: string; channel: string };
-}) {
-  const isBlocked = marker === "blocked";
-  return (
-    <div
-      className={cn(
-        "rounded-[4px] border px-3.5 py-2.5 text-xs",
-        isBlocked ? "border-critical/40 bg-critical/10" : "border-warning/40 bg-warning/10",
-      )}
-    >
-      <p className="font-semibold text-foreground">
-        {isBlocked ? "This step is blocked." : "This step may need support."}
-      </p>
-      <p className="mt-0.5 text-muted-foreground">
-        Reach {support.team} on <span className="font-mono">{support.channel}</span> before
-        continuing.
-      </p>
-    </div>
-  );
-}
-
-/** Quiet "mark complete" toggle shared by the detail directions. */
+/**
+ * "Mark complete" toggle shared by the detail directions. Only the current step
+ * (the first incomplete one) wears the primary brand fill — the rest are quiet
+ * outlines, so the page has a single obvious call to action at a time.
+ */
 export function MarkStepButton({
   step,
   progress,
+  isCurrent = false,
 }: {
   step: GuidanceStep;
   progress: GuidanceProgress;
+  isCurrent?: boolean;
 }) {
   const done = progress.completedSteps.has(step.id);
   return (
@@ -276,7 +250,9 @@ export function MarkStepButton({
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         done
           ? "border border-success/40 bg-success/10 text-success-ink hover:bg-success/15"
-          : "bg-primary text-primary-foreground hover:bg-primary/90",
+          : isCurrent
+            ? "bg-primary text-primary-foreground hover:bg-primary/90"
+            : "border border-border bg-card text-foreground hover:border-border-strong hover:bg-muted",
       )}
     >
       <IconCheck className="size-3.5" strokeWidth={3} aria-hidden />
@@ -352,24 +328,5 @@ export function ActionControl({
       <Icon className="size-3.5" aria-hidden />
       {action.label}
     </a>
-  );
-}
-
-/** Branch options of a decision step (orientation, not navigation). */
-export function DecisionOptions({ step }: { step: GuidanceStep }) {
-  if (!step.options || step.options.length === 0) return null;
-  return (
-    <div className="grid gap-2.5 sm:grid-cols-2">
-      {step.options.map((option) => (
-        <div key={option.id} className="rounded-[4px] border border-border bg-card p-3.5">
-          <p className="text-[13px] font-bold text-foreground">{option.title}</p>
-          {option.description ? (
-            <p className="mt-1 text-[12px] leading-[1.5] text-muted-foreground">
-              {option.description}
-            </p>
-          ) : null}
-        </div>
-      ))}
-    </div>
   );
 }
