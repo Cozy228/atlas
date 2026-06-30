@@ -24,19 +24,20 @@ describe("explore service icons", () => {
     expect(source).not.toContain("border border-border");
   });
 
-  it("loads Azure service icons through a lazy provider module", async () => {
+  it("keeps both icon packs out of the eager chunk via dynamic import", async () => {
     const serviceIconSource = await readFile(
       new URL("./service-icon.tsx", import.meta.url),
       "utf8",
     );
-    const azureIconSource = await readFile(
-      new URL("./azure-service-icon.tsx", import.meta.url),
-      "utf8",
-    );
 
+    // Both providers preload + lazy-load symmetrically.
     expect(serviceIconSource).toContain("preloadAzureServiceIcons");
-    expect(serviceIconSource).not.toContain("AZURE_ICON_MAP");
-    expect(azureIconSource).toContain("AZURE_ICON_MAP");
+    expect(serviceIconSource).toContain("preloadAwsServiceIcons");
+    // The icon maps are loaded on demand, never statically imported at the top
+    // (a static import would pull the whole pack into the eager entry chunk).
+    expect(serviceIconSource).toContain('import("@/lib/azure-icon-map")');
+    expect(serviceIconSource).toContain('import("@/lib/aws-icon-map")');
+    expect(serviceIconSource).not.toMatch(/from\s+["']@\/lib\/(aws|azure)-icon-map["']/);
   });
 
   it("supports larger icon sizes for service identity surfaces", async () => {
