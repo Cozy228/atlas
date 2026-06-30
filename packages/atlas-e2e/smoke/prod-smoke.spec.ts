@@ -8,14 +8,14 @@ import { expect, test } from "@playwright/test";
  * without creds is expected, and console errors from failed live fetches are not
  * a smoke failure (only uncaught exceptions are).
  */
+// NOTE: /overview and /skills are intentionally omitted — both are gated
+// (beforeLoad redirects to "/"), so listing them here would silently re-test home.
 const TOP_ROUTES = [
   "/",
-  "/overview",
   "/availability",
   "/catalog",
   "/guidance",
   "/sources",
-  "/skills",
   "/whatsnew",
   "/support",
 ] as const;
@@ -28,7 +28,9 @@ test.describe("production smoke (mock-free)", () => {
       const response = await page.goto(path);
       expect(response?.status(), `${path} HTTP status`).toBeLessThan(400);
       await expect(page.getByRole("link", { name: "Atlas Portal home" })).toBeVisible(); // SSR shell/nav
-      await expect(page.getByText("Mock data")).toHaveCount(0); // badge ABSENT in prod
+      // Badge ABSENT in prod — by stable testid, not copy, so a label rename can't
+      // make this seam-contract check pass vacuously.
+      await expect(page.getByTestId("data-mode-badge")).toHaveCount(0);
       expect(pageErrors, `pageerror on ${path}`).toEqual([]);
     });
   }

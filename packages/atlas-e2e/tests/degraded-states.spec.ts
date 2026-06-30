@@ -16,13 +16,14 @@ test.describe("degraded states (mock-forced)", () => {
     await expect(page.getByRole("table").first()).toBeVisible();
   });
 
-  // Honest-empty: the mock What's New feed has no updates — assert the empty
-  // state renders with NO fabricated release links, and the page does not crash.
-  test("whatsnew renders an honest-empty state, no fabricated releases", async ({ page }) => {
+  // Honest data: the mock What's New feed is served from the MSW release-notes
+  // fixture — assert it renders the real updates (each linking to a detail route),
+  // not a crash and not fabricated content.
+  test("whatsnew renders the wired releases, each linking to a detail", async ({ page }) => {
     await page.goto("/whatsnew");
     await expectShellWithMockBadge(page);
-    await expect(page.locator('a[href^="/releases/"]')).toHaveCount(0);
     await expect(page.getByRole("heading", { name: /what.s new/i }).first()).toBeVisible();
+    await expect(page.locator('a[href^="/releases/"]').first()).toBeVisible();
   });
 
   // Route error boundary: a not-found dynamic slug renders a graceful, status-aware

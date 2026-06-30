@@ -1,5 +1,7 @@
 import { defineConfig } from "@playwright/test";
 
+import { baseURL, channel } from "./pw-env.mjs";
+
 /**
  * Smoke layer config (plan 026 WU11): the REAL production build, mock-free. No
  * DEV_MOCKS — the prod build never registers the MSW plugin — so this validates
@@ -7,12 +9,11 @@ import { defineConfig } from "@playwright/test";
  * specific data (honest-empty without creds is expected). `pnpm e2e:smoke` runs
  * the portal build BEFORE this config's webServer starts `pnpm start`.
  *
- * Channel + diagnostics mirror playwright.config.ts (kept self-contained so the
- * two layers never share mutable state); a .mjs/.ts split rules out importing.
+ * Channel + baseURL come from ./pw-env.mjs (shared with the primary config + the
+ * doctor). A separate file from playwright.config.ts because the webServer
+ * lifecycle differs (prod build + `pnpm start` vs `vite dev`) and both bind :3000,
+ * so they cannot co-exist as one config's webServer.
  */
-const channel = process.env.PW_CHANNEL ?? (process.platform === "darwin" ? "chrome" : "msedge");
-const baseURL = process.env.PW_BASE_URL ?? "http://localhost:3000";
-
 export default defineConfig({
   testDir: "./smoke",
   fullyParallel: true,
@@ -25,12 +26,16 @@ export default defineConfig({
     trace: "on-first-retry",
     screenshot: "only-on-failure",
     video: "retain-on-failure",
+    colorScheme: "light",
   },
   webServer: {
     command: "pnpm --filter @atlas/portal start",
     env: { PORT: "3000" }, // NO DEV_MOCKS → prod is mock-free
     url: baseURL,
     reuseExistingServer: !process.env.CI,
+    // Bound teardown (parity with the primary config) so a wedged server never
+    // hangs the run past the SIGKILL fallback.
+    gracefulShutdown: { signal: "SIGTERM", timeout: 15_000 },
     timeout: 120_000,
   },
 });

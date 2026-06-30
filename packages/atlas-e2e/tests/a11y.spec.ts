@@ -1,7 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 
-import { firstHref } from "./helpers";
+import { firstHref, SAMPLE_SERVICE_PATH } from "./helpers";
 
 /**
  * Baseline accessibility (plan 026 WU10). The UI was not built a11y-first, so a
@@ -54,7 +54,7 @@ test.describe("baseline accessibility (mock-forced)", () => {
   });
 
   test("service detail", async ({ page }) => {
-    await page.goto("/service/aws/textract");
+    await page.goto(SAMPLE_SERVICE_PATH);
     await page.waitForLoadState("networkidle");
     await expectNoNewViolations(page, "service");
   });

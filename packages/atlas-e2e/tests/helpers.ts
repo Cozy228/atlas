@@ -1,6 +1,14 @@
 import { expect, type Page } from "@playwright/test";
 
 /**
+ * A known fixture service-detail path. Specs that just need "some service detail"
+ * (mobile overflow, a11y) reference this ONE constant instead of re-hardcoding the
+ * slug, so a fixture rename is a single edit. Specs that discover slugs black-box
+ * use {@link firstHref} instead.
+ */
+export const SAMPLE_SERVICE_PATH = "/service/aws/textract";
+
+/**
  * Record uncaught exceptions (`pageerror`) and `console.error`s for the life of a
  * page. A route smoke fails if either fires — a healthy render emits neither.
  */
@@ -35,14 +43,15 @@ export async function firstHref(page: Page, prefix: string): Promise<string> {
 }
 
 /**
- * Assert the app shell rendered + the deterministic "Mock data" badge (WU-B) is
+ * Assert the app shell rendered + the deterministic mock-data badge (WU-B) is
  * present — the primary-layer signal that MSW fixtures, not real source systems,
- * are being served.
+ * are being served. Targets the badge by `data-testid`, not its copy, so a label
+ * change can't make this assertion silently pass/fail.
  */
 export async function expectShellWithMockBadge(page: Page): Promise<void> {
   // .first() — some pages nest their own <header>/<main> inside the shell's;
   // we assert the outer shell landmark.
   await expect(page.locator("header").first()).toBeVisible();
   await expect(page.locator("main").first()).toBeVisible();
-  await expect(page.getByText("Mock data")).toBeVisible();
+  await expect(page.getByTestId("data-mode-badge")).toBeVisible();
 }

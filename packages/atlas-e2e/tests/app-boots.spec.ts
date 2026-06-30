@@ -10,5 +10,5 @@ import { expect, test } from "@playwright/test";
 test("the app boots on the mock-forced dev server", async ({ page }) => {
   const response = await page.goto("/");
   expect(response?.status()).toBe(200);
-  await expect(page.getByText("Mock data")).toBeVisible();
+  await expect(page.getByTestId("data-mode-badge")).toBeVisible();
 });

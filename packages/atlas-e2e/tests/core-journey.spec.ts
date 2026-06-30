@@ -44,7 +44,10 @@ test("core journey: home → catalog → service → availability → policy →
 
   // 6. Ask: the simulated provider yields a deterministic response region.
   await page.getByRole("button", { name: "Search Atlas catalog" }).click(); // open the overlay
-  await page.getByRole("button", { name: "Ask Atlas" }).click(); // switch to the Ask tab
+  // Scope to the dialog: the always-mounted FAB shares the accessible name
+  // "Ask Atlas", so an unscoped getByRole would be a strict-mode 2-match if the
+  // overlay's modal aria-hide ever changes.
+  await page.getByRole("dialog").getByRole("button", { name: "Ask Atlas" }).click(); // switch to the Ask tab
   await page.getByPlaceholder("How do I get started?").fill("How do I use Textract?");
   await page.getByRole("button", { name: "Send question" }).click();
   await expect(page.getByText("How do I use Textract?")).toBeVisible(); // question echoed

@@ -6,15 +6,14 @@
  * drift ("Edge moved / not installed") fails fast and legibly instead of as an
  * opaque mid-suite timeout.
  *
- * Resolves the SAME channel as playwright.config.ts (a .mjs cannot import the
- * .ts config, so the one-line rule is inlined): PW_CHANNEL override, else
- * `chrome` on macOS / `msedge` elsewhere (Windows + Linux CI images ship Edge).
- * `channel` drives the system browser, so an empty Playwright browser cache is
- * irrelevant — we never download or use a bundled Chromium.
+ * `channel` comes from ../pw-env.mjs — the SAME source the configs use — so the
+ * doctor can never green-light a channel the suite then fails on. It drives the
+ * system browser, so an empty Playwright browser cache is irrelevant — we never
+ * download or use a bundled Chromium.
  */
 import { chromium } from "@playwright/test";
 
-const channel = process.env.PW_CHANNEL ?? (process.platform === "darwin" ? "chrome" : "msedge");
+import { channel } from "../pw-env.mjs";
 
 try {
   const browser = await chromium.launch({ channel });

@@ -11,15 +11,17 @@ import { expectShellWithMockBadge, firstHref, trackJsErrors } from "./helpers";
 
 const STATIC_ROUTES = [
   "/",
-  "/overview",
   "/availability",
   "/catalog",
   "/guidance",
   "/sources",
-  "/skills",
   "/whatsnew",
   "/support",
 ] as const;
+
+// Gated routes: beforeLoad throws redirect to "/". Listed separately so the smoke
+// loop above doesn't silently re-test home under a "/overview" / "/skills" title.
+const GATED_ROUTES = ["/overview", "/skills"] as const;
 
 test.describe("full-route smoke (mock-forced)", () => {
   for (const path of STATIC_ROUTES) {
@@ -29,6 +31,14 @@ test.describe("full-route smoke (mock-forced)", () => {
       expect(response?.status(), `${path} HTTP status`).toBeLessThan(400);
       await expectShellWithMockBadge(page);
       expect(errors, `JS errors on ${path}`).toEqual([]);
+    });
+  }
+
+  for (const path of GATED_ROUTES) {
+    test(`gated ${path}: redirects to home`, async ({ page }) => {
+      await page.goto(path);
+      await expect(page).toHaveURL((url) => url.pathname === "/");
+      await expectShellWithMockBadge(page);
     });
   }
 
@@ -55,15 +65,17 @@ test.describe("full-route smoke (mock-forced)", () => {
     await page.goto(guidanceHref);
     const sourceHref = await firstHref(page, "/sources/");
 
-    // NOTE: /releases/$releaseId is intentionally omitted here — the mock
-    // "What's New" feed is honest-empty (0 updates), so there is no release
-    // detail to visit. WU8 exercises the not-found release path (error boundary).
+    // release ← /whatsnew (the release-notes fixture is now wired into the dev
+    // mock env, so the feed has updates and each links to a detail route).
+    await page.goto("/whatsnew");
+    const releaseHref = await firstHref(page, "/releases/");
 
     const discovered: Record<string, string> = {
       service: serviceHref,
       policy: policyHref,
       guidance: guidanceHref,
       source: sourceHref,
+      release: releaseHref,
     };
     for (const [name, href] of Object.entries(discovered)) {
       const response = await page.goto(href);
