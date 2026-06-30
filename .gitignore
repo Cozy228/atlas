@@ -9,6 +9,7 @@ dist/
 # Tool caches
 .vite/
 .cache/
+.terraform/
 
 # Test output
 coverage/
@@ -30,6 +31,10 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+
+# Terraform local state
+*.tfstate
+*.tfstate.*
 
 # OS and editor files
 .DS_Store
