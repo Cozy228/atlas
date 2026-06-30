@@ -146,11 +146,11 @@ Deploy the Context API first. Do not start with a full production platform.
 
 Expected outputs:
 
-- API Gateway + Lambda for the Atlas Context Layer.
+- Application Load Balancer + ECS Fargate for the Atlas Portal server and server-side Context API boundary.
 - DynamoDB for feedback and optionally registry storage.
 - Bundled/static manifest registry as an acceptable first deployment step if registry DynamoDB is deferred.
 - Secrets Manager or Parameter Store for Confluence and GitHub credentials.
-- Portal hosting path.
+- Portal container image and Terraform-defined service wiring.
 - CI/CD command that deploys the same tested build.
 
 Acceptance criteria:

@@ -8,14 +8,15 @@ portal is the self-service catalog application teams open mid-task to find which
 adopt, whether it is available in their landing zone, and what governance applies.
 
 This repo is a **pnpm workspace** (monorepo). The portal is a TanStack Start + React 19 app
-(Vite 8 / Nitro); the context layer is framework-agnostic domain logic deployed as a Lambda.
+(Vite 8 / Nitro); the context layer is framework-agnostic domain logic consumed through the
+Portal server-side Context API boundary.
 
 ## Repository layout
 
 | Path | Package | What it is |
 |---|---|---|
 | `portal/` | `@atlas/portal` | The web app — SSR portal UI (TanStack Start/Router, React 19, Vite 8 + Nitro, Tailwind v4). Dev server on **:3000**. |
-| `context-layer/` | `@atlas/context-layer` | Governed context domain: source discovery + live resolution + projections; ships as a Lambda bundle (`build:lambda`). Dev/integration source-system mocks live in `src/devMocks/` (MSW, Node mode). |
+| `context-layer/` | `@atlas/context-layer` | Governed context domain: source discovery + live resolution + projections; consumed by server-side Context API routes. Dev/integration source-system mocks live in `src/devMocks/` (MSW, Node mode). |
 | `packages/atlas-schema/` | `@atlas/schema` | Shared schema + types across portal and context layer. |
 | `packages/atlas-e2e/` | `@atlas/e2e` | End-to-end browser tests (Playwright, zero browser download). See [`packages/atlas-e2e/README.md`](packages/atlas-e2e/README.md). |
 | `packages/atlas-acceptance/` | `@atlas/acceptance` | Acceptance / black-box agent-discovery checks. |

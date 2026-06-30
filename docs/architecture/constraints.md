@@ -78,7 +78,7 @@ Rules that AI must follow when implementing the Atlas design. Check every code c
 
 29. Portal frontend: TanStack Start + Vite. Do not introduce additional frontend frameworks (no Next.js, no Remix, no Astro). V1 may use a static or SPA-mode build for delivery if the Context API remains the data boundary.
 
-30. Context Layer: AWS Lambda + API Gateway + DynamoDB. Do not introduce additional Context Layer services (no SQS, no Step Functions, no OpenSearch) in V1 without updating this constraint. Portal hosting can use the approved V1 hosting path as long as it is defined as infrastructure as code.
+30. Deployment target: Application Load Balancer + ECS Fargate + DynamoDB. Do not deploy the Context Layer through Lambda, API Gateway, or Lambda Web Adapter in V1 without updating this constraint. Do not introduce additional Context Layer services (no SQS, no Step Functions, no OpenSearch) in V1 without updating this constraint. Portal hosting must be defined as Terraform infrastructure as code.
 
 31. Infrastructure is defined as code. No manually provisioned production resources. If you cannot express it in Terraform or CDK, it does not go to production.
 
