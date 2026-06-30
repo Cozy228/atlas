@@ -2,19 +2,27 @@ import {
   sectionIds,
   type ContextSection,
   type MissingSection,
+  type ResourceCatalogResponse,
   type ResourceCitation,
   type ResourceContextResponse,
   type ResourceKind,
   type ResourceContextRecord,
+  type ResourceRecordResponse,
   type ResourceSearchResponse,
   type ResourceSectionBinding,
   type ResourceSummary,
   type ResourceWarning,
   type SectionStatus,
+  type ServiceIdentity,
 } from "@atlas/schema";
+import type { AvailabilityProvider } from "../services/availabilityProvider";
+import type { ResourceReferenceDiscovery } from "../services/resourceReferenceDiscovery";
+import {
+  applyOverlayAliases,
+  normalizeServiceIdentity,
+} from "../services/serviceIdentityNormalizer";
 import type { ResolverRegistry } from "../resolvers/resolverRegistry";
-import { offlineResolutionContext, type ResolutionContext } from "../resolvers/resolverTypes";
-import type { SourceContentProvider } from "../resolvers/sourceContentProvider";
+import { defaultResolutionContext, type ResolutionContext } from "../resolvers/resolverTypes";
 import { isStale } from "../services/freshness";
 import { getResourceKindDef } from "./resourceKindRegistry";
 
@@ -31,18 +39,25 @@ import { getResourceKindDef } from "./resourceKindRegistry";
  */
 
 /**
- * The slice of a ContextBundleService the projection facade needs. Declared
+ * The slice of a ContextService the projection facade needs. Declared
  * structurally so this module does not import the service (and cannot form an
- * import cycle); `ContextBundleService` satisfies it.
+ * import cycle); `ContextService` satisfies it.
  */
 export type ResourceContextDeps = {
   resources: ResourceContextRecord[];
+  /**
+   * The service spine (plan 017 B4). For `kind: service` the availability
+   * inventory — not `resources.yaml` — establishes Resource existence + canonical
+   * identity, so a service with no governed overlay still renders.
+   */
+  availabilityProvider: Pick<AvailabilityProvider, "listServices">;
+  /** Reference-only discovery port (plan 017 B4). Optional: absent → empty
+   *  `references` + `null` discovery state (never fabricated links). */
+  referenceDiscovery?: ResourceReferenceDiscovery;
   registry: {
     sources: { getById(id: string): import("@atlas/schema").Source | undefined };
-    anchors: { findBySourceId(sourceId: string): import("@atlas/schema").Anchor[] };
   };
   resolvers: ResolverRegistry;
-  contentProvider: SourceContentProvider;
   now: Date;
 };
 
@@ -96,22 +111,120 @@ export type GetResourceContextParams = {
 };
 
 /**
- * Project a resource's Sections by live-resolving its Projection Plan. Returns
- * `null` when no such resource is registered (HTTP maps this to 404 →
- * `searchResources`). A requested Section with no registered binding is reported
- * in `missingSections` (no_registered_source); a Section whose Sources all fail
- * to resolve is returned with `status: unresolved` + warnings — never stale data.
+ * Project a resource's Sections by live-resolving its Projection Plan. Identity
+ * is spine-first for the `service` kind (plan 017 B4): the availability inventory
+ * establishes which services exist, so a service in the grid with no derived
+ * record still renders (empty Sections, no per-section missing entries), never a
+ * 404 nor a faked resolver failure. A derived record (any kind) resolves its
+ * Sections. Returns `null` only for a genuine miss (no identity AND no record) →
+ * HTTP 404 → `searchResources`. Emptiness is read off the Sections themselves
+ * (`Object.keys(sections).length === 0`), never a separate governance flag.
+ *
+ * A requested Section with no registered binding is reported in `missingSections`
+ * (no_registered_source); a Section whose Sources all fail to resolve is returned
+ * with `status: unresolved` + warnings — never stale data.
  */
 export async function getResourceContext(
   deps: ResourceContextDeps,
   params: GetResourceContextParams,
-  ctx: ResolutionContext = offlineResolutionContext(),
+  ctx: ResolutionContext = defaultResolutionContext(),
 ): Promise<ResourceContextResponse | null> {
-  const record = findRecord(deps.resources, params.kind, params.slug);
-  if (!record) {
+  const overlay = findRecord(deps.resources, params.kind, params.slug);
+
+  // A derived record projects its Sections — for non-service kinds it IS the
+  // identity (no spine, no discovery, unchanged behaviour, B4).
+  if (overlay) {
+    return projectConfigured(deps, overlay, params, ctx);
+  }
+
+  // No overlay. Non-service kinds have no spine, so this is a genuine 404.
+  if (params.kind !== "service") {
     return null;
   }
 
+  // Service kind, spine-first: the availability inventory may still establish the
+  // resource's existence + canonical identity.
+  const identity = await findServiceIdentity(deps.availabilityProvider, params.slug);
+  if (!identity) {
+    return null;
+  }
+  return projectSpineOnly(deps, identity, params);
+}
+
+/**
+ * Read a resource's presentation metadata (ADR-0015 §1/§2): the Portal-facing
+ * identity/owner/entry fields derived from discovery. This is NOT content —
+ * `getResourceContext` stays content-only; the resource-first page composes this
+ * metadata read + that content read. A derived record → its presentation fields;
+ * a spine-only service not yet derived → identity-only; a genuine miss → `null`
+ * (404). No Source resolution, no discovery.
+ */
+export async function getResourceRecord(
+  deps: Pick<ResourceContextDeps, "resources" | "availabilityProvider">,
+  params: { kind: ResourceKind; slug: string },
+): Promise<ResourceRecordResponse | null> {
+  const overlay = findRecord(deps.resources, params.kind, params.slug);
+  if (overlay) {
+    return recordToResponse(overlay);
+  }
+
+  if (params.kind !== "service") {
+    return null;
+  }
+  const identity = await findServiceIdentity(deps.availabilityProvider, params.slug);
+  if (!identity) {
+    return null;
+  }
+  return {
+    kind: "service",
+    id: `service/${identity.key}`,
+    slug: identity.key,
+    provider: identity.provider,
+    name: identity.name,
+    aliases: identity.admissionAliases,
+  };
+}
+
+/**
+ * The discovery-derived catalog feed: every discovered Resource (services +
+ * guardrails) projected to its presentation record. The Portal catalog facets on
+ * `category`, tabs on `kind`, links by `slug`; an agent browses the inventory in
+ * one call. Spine-only services are already in `deps.resources` (derived from the
+ * availability spine), so this is a straight projection — no spine merge.
+ */
+export function listResourceCatalog(
+  deps: Pick<ResourceContextDeps, "resources">,
+): ResourceCatalogResponse {
+  return { resources: deps.resources.map(recordToResponse) };
+}
+
+/** Project a derived record to its Portal-facing presentation record (the shape
+ *  shared by the single-record read and the catalog list). Drops the section
+ *  bindings (internal) and surfaces only the honest-gap presentation fields. */
+function recordToResponse(record: ResourceContextRecord): ResourceRecordResponse {
+  return {
+    kind: record.kind,
+    id: `${record.kind}/${record.slug}`,
+    slug: record.slug,
+    ...(record.provider ? { provider: record.provider } : {}),
+    name: record.name,
+    aliases: record.aliases,
+    ...(record.category ? { category: record.category } : {}),
+    ...(record.status ? { status: record.status } : {}),
+    ...(record.description ? { description: record.description } : {}),
+    ...(record.owner_team ? { owner_team: record.owner_team } : {}),
+    ...(record.support_channel ? { support_channel: record.support_channel } : {}),
+    ...(record.entry_tools ? { entry_tools: record.entry_tools } : {}),
+  };
+}
+
+/** Project a governed (overlay-backed) resource: resolve its Section Plan. */
+async function projectConfigured(
+  deps: ResourceContextDeps,
+  record: ResourceContextRecord,
+  params: GetResourceContextParams,
+  ctx: ResolutionContext,
+): Promise<ResourceContextResponse> {
   const requested = resolveRequestedSections(record, params.sections);
 
   const sectionsOut: Record<string, ContextSection> = {};
@@ -130,14 +243,118 @@ export async function getResourceContext(
     sectionsOut[sectionId] = await resolveSection(deps, bindings, ctx);
   }
 
+  // Reference-only discovery runs ALONGSIDE the governed sections (service kind
+  // only): the spine identity enriched with the overlay's curated aliases (B8).
+  const discovery = await runDiscovery(deps, await discoveryIdentityForRecord(deps, record));
+
   return {
     resource: toResourceSummary(record, params.baseUrl),
     requestedSections: requested,
     sections: sectionsOut,
     missingSections,
+    references: discovery.references,
+    referenceDiscovery: discovery.referenceDiscovery,
     // Top-level: the moment THIS projection ran (ADR-0013 §3). Distinct from each
     // citation's resolvedAt, which is the excerpt's own parse time.
     resolvedAt: deps.now.toISOString(),
+  };
+}
+
+/**
+ * Project a spine-only service (in the availability inventory, not yet derived
+ * into a record): the page exists and carries canonical identity, but has no
+ * Section Projection Plan yet. Empty Sections + NO per-section missing entries —
+ * emptiness is the signal, never a faked per-section failure.
+ */
+async function projectSpineOnly(
+  deps: ResourceContextDeps,
+  identity: ServiceIdentity,
+  params: GetResourceContextParams,
+): Promise<ResourceContextResponse> {
+  const discovery = await runDiscovery(deps, identity);
+  return {
+    resource: identityToResourceSummary(identity, params.baseUrl),
+    requestedSections: [],
+    sections: {},
+    missingSections: [],
+    references: discovery.references,
+    referenceDiscovery: discovery.referenceDiscovery,
+    resolvedAt: deps.now.toISOString(),
+  };
+}
+
+/**
+ * Run reference-only discovery for a service identity, returning the merged
+ * references + an explicit cache state. No port or no identity → empty list +
+ * `null` state (honest absence, never fabricated links). Discovery failures are
+ * the adapter's job to model as `unavailable`; this facade only merges.
+ */
+async function runDiscovery(
+  deps: ResourceContextDeps,
+  identity: ServiceIdentity | undefined,
+): Promise<Pick<ResourceContextResponse, "references" | "referenceDiscovery">> {
+  if (!deps.referenceDiscovery || !identity) {
+    return { references: [], referenceDiscovery: null };
+  }
+  const result = await deps.referenceDiscovery.discover(identity);
+  return {
+    references: result.references,
+    referenceDiscovery: {
+      status: result.status,
+      last_observed_at: result.last_observed_at,
+      incomplete: result.incomplete,
+    },
+  };
+}
+
+/**
+ * The `ServiceIdentity` to hand discovery for a governed (overlay-backed)
+ * resource: the spine identity (when the service is in the inventory) enriched
+ * with the overlay's curated aliases (B8), falling back to an overlay-derived
+ * identity if the service is not in the spine. Non-service kinds → no discovery.
+ */
+async function discoveryIdentityForRecord(
+  deps: ResourceContextDeps,
+  record: ResourceContextRecord,
+): Promise<ServiceIdentity | undefined> {
+  if (record.kind !== "service") {
+    return undefined;
+  }
+  const provider = record.provider ?? record.slug.split("/")[0];
+  const id = record.slug.includes("/")
+    ? record.slug.slice(record.slug.indexOf("/") + 1)
+    : record.slug;
+  const spine = (await deps.availabilityProvider.listServices()).find(
+    (identity) => identity.key === record.slug,
+  );
+  const base = spine ?? normalizeServiceIdentity({ provider, id, name: record.name });
+  return applyOverlayAliases(base, [record.name, ...record.aliases]);
+}
+
+/** Resolve a requested service `slug` to its spine `ServiceIdentity` by canonical
+ *  `{provider}/{id}` key. Spine-only services are addressed canonically (the
+ *  availability grid links use the canonical id). */
+async function findServiceIdentity(
+  availabilityProvider: Pick<AvailabilityProvider, "listServices">,
+  slug: string,
+): Promise<ServiceIdentity | undefined> {
+  return (await availabilityProvider.listServices()).find((identity) => identity.key === slug);
+}
+
+/** Build a ResourceSummary from a spine identity (no overlay). The canonical id
+ *  is `service/{provider}/{id}`; aliases come from the normalized identity. */
+function identityToResourceSummary(identity: ServiceIdentity, baseUrl?: string): ResourceSummary {
+  const id = `service/${identity.key}`;
+  const base = baseUrl ?? "";
+  return {
+    kind: "service",
+    id,
+    slug: identity.key,
+    provider: identity.provider,
+    name: identity.name,
+    aliases: identity.admissionAliases,
+    resourceUrl: `${base}/api/resources/${id}`,
+    markdownUrl: `${base}/resources/${id}.md`,
   };
 }
 
@@ -189,9 +406,9 @@ async function resolveSection(
 
     const result = await resolver.resolve({
       source,
-      anchors: deps.registry.anchors.findBySourceId(source.id),
-      anchorId: binding.anchor_id,
-      contentProvider: deps.contentProvider,
+      heading: binding.heading,
+      selector: binding.selector,
+      citationLabel: binding.citation_label,
       ctx,
     });
 
@@ -207,9 +424,8 @@ async function resolveSection(
           sourceId: source.id,
           title: source.title,
           url: excerpt.citation.location,
-          ...((excerpt.anchor_id ?? binding.anchor_id)
-            ? { anchor: excerpt.anchor_id ?? binding.anchor_id }
-            : {}),
+          // The runtime-located slug (heading-slug scan), never a stored anchor.
+          ...(excerpt.anchor_id ? { anchor: excerpt.anchor_id } : {}),
           // Provenance clock: the moment this content was parsed from Source. For
           // the offline/recorded path that is the Source's last observation; the
           // live cache path stamps the real fetch time (kept separate from the

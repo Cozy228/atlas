@@ -6,14 +6,15 @@
  * tool, and the agent resource `availability` section all consume ONE cited
  * read. This module re-exports the shared wire types and the `fetchAvailability`
  * server function so the Explore/catalog consumers keep their imports stable.
- * The standalone fixture that used to live here is retired — the cited read now
- * owns the data (see `context-layer/src/sourceContent/availabilityFixture.ts`).
+ * The standalone dataset that used to live here is retired — the cited read is now
+ * LZ-aware and discovered per landing zone (plan 021 G3): the
+ * `confluenceAvailabilityProvider` fetch+parses each wired LZ's availability page.
  */
 export type {
   AvailabilityRecord,
   AvailabilityResponse,
-  LandingZoneData,
-  LandingZoneId,
+  LandingZoneAvailability,
+  LandingZoneCloud,
   Location,
   LocationAvailability,
   LocationKind,

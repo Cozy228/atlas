@@ -3,6 +3,12 @@
 Status: proposed
 Date: 2026-06-24
 
+> **Scope-seam update:** [ADR-0015](./0015-portal-resource-first-ia.md) §5 reserved a scope injection
+> point for this ADR's APP-scope (decision 5 below). [ADR-0017](./0017-landing-zone-discovery-root.md)
+> then **seats it at `ResolutionContext.scope` and fills it first with landing-zone**, keeping the
+> `app_id` slot reserved in the same object (still proposed/unbuilt) — layering APP later inserts into
+> that seam, no new mechanism.
+
 ## Context
 
 Post-MVP, Atlas's center of gravity shifts from platform-wide wayfinding to **"my APP"**:

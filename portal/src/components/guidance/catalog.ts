@@ -1,13 +1,12 @@
 /**
  * Guidance catalog axis — indexes the registry-backed guidances by category.
  *
- * Sources every flow from `lib/guidance` (the YAML-backed registry; no
- * fixtures), classifies each into ONE category (first keyword rule wins), and
- * maps a guidance's `type` to a flow-shape label + the metric that reads
- * naturally for that shape (Walkthrough · N steps / Decision · N paths /
- * Checklist · N checks). The detail route resolves through `resolveGuidanceFlow`.
+ * Sources every flow from `lib/guidance` (the Confluence-backed guidance
+ * pages; no fixtures), classifies each into ONE category (first keyword rule
+ * wins), and surfaces its journey length (N steps). The detail route resolves
+ * through `resolveGuidanceFlow`.
  */
-import { getGuidance, listGuidance, type Guidance, type GuidanceType } from "@/lib/guidance";
+import { getGuidance, listGuidance, type Guidance } from "@/lib/guidance";
 
 /** Resolve a guidance flow by id (the registry-backed guidances). */
 export function resolveGuidanceFlow(
@@ -182,31 +181,10 @@ export function recentlyUpdated(
     .slice(0, n);
 }
 
-/* -------------------------------------------------------------------------- *
- * Flow shape — the proto `type` vocabulary, still read by the detail view.
- * -------------------------------------------------------------------------- */
-
-export const FLOW_SHAPE: Record<GuidanceType, string> = {
-  route: "Walkthrough",
-  decision: "Decision",
-  checklist: "Checklist",
-};
-
-/** The metric that reads naturally for a flow's shape. */
+/** A flow's journey length, read as "N steps". */
 export function flowMetric(guidance: Guidance): { value: number; unit: string } {
-  const steps = guidance.steps.filter((s) => s.kind !== "destination");
-  switch (guidance.type) {
-    case "decision": {
-      const paths = guidance.steps.reduce((n, s) => n + (s.options?.length ?? 0), 0);
-      return { value: paths, unit: paths === 1 ? "path" : "paths" };
-    }
-    case "checklist": {
-      const checks = guidance.steps.reduce((n, s) => n + (s.tasks?.length ?? 0), 0);
-      return { value: checks, unit: checks === 1 ? "check" : "checks" };
-    }
-    default:
-      return { value: steps.length, unit: steps.length === 1 ? "step" : "steps" };
-  }
+  const steps = guidance.steps.length;
+  return { value: steps, unit: steps === 1 ? "step" : "steps" };
 }
 
 export function flowTotal(guidances: ReadonlyArray<Guidance>): number {

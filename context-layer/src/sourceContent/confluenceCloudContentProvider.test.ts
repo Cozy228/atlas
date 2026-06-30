@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import type { Anchor, Source } from "@atlas/schema";
+import type { Source } from "@atlas/schema";
 import { resolveConfluencePageLive } from "./confluenceCloudContentProvider";
 import type { FetchLike } from "../resolvers/resolverTypes";
 
@@ -9,24 +9,12 @@ const source: Source = {
   source_class: "confluence-page",
   // For the live path, location is the Confluence page id.
   location: "123456",
-  steward: "cloud-foundation",
   visibility: "internal",
   authority_scope: ["landing-zone-guidance"],
   authority_level: "authoritative",
   last_observed_at: "2026-05-05T00:00:00.000Z",
   last_reviewed_at: "2026-04-10T00:00:00.000Z",
   review_frequency: "P120D",
-};
-
-const anchor: Anchor = {
-  id: "environment-matrix",
-  source_id: "central-lz-confluence",
-  anchor_strategy: "confluence-section",
-  title: "Environment matrix",
-  selector: { locator: "environment-matrix" },
-  citation_label: "Environment matrix",
-  status: "valid",
-  last_validated_at: "2026-05-05T00:00:00.000Z",
 };
 
 const config = {
@@ -71,8 +59,8 @@ describe("resolveConfluencePageLive", () => {
     const result = await resolveConfluencePageLive(
       {
         source,
-        anchors: [anchor],
-        anchorId: "environment-matrix",
+        heading: "Environment matrix",
+        citationLabel: "Environment matrix",
         ctx: { token: config.token, fetch },
       },
       config,
@@ -98,8 +86,8 @@ describe("resolveConfluencePageLive", () => {
     const result = await resolveConfluencePageLive(
       {
         source,
-        anchors: [anchor],
-        anchorId: "environment-matrix",
+        heading: "Environment matrix",
+        citationLabel: "Environment matrix",
         ctx: { token: config.token, fetch },
       },
       config,
@@ -115,8 +103,8 @@ describe("resolveConfluencePageLive", () => {
     const result = await resolveConfluencePageLive(
       {
         source,
-        anchors: [anchor],
-        anchorId: "environment-matrix",
+        heading: "Environment matrix",
+        citationLabel: "Environment matrix",
         ctx: { token: config.token, fetch },
       },
       config,
@@ -135,8 +123,8 @@ describe("resolveConfluencePageLive", () => {
     const result = await resolveConfluencePageLive(
       {
         source,
-        anchors: [anchor],
-        anchorId: "environment-matrix",
+        heading: "Environment matrix",
+        citationLabel: "Environment matrix",
         ctx: { token: config.token, fetch },
       },
       config,
@@ -156,8 +144,8 @@ describe("resolveConfluencePageLive", () => {
     const result = await resolveConfluencePageLive(
       {
         source,
-        anchors: [anchor],
-        anchorId: "environment-matrix",
+        heading: "Environment matrix",
+        citationLabel: "Environment matrix",
         ctx: { token: config.token, fetch },
       },
       config,
@@ -176,8 +164,8 @@ describe("resolveConfluencePageLive", () => {
     const result = await resolveConfluencePageLive(
       {
         source: { ...source, observed_version: 7 },
-        anchors: [anchor],
-        anchorId: "environment-matrix",
+        heading: "Environment matrix",
+        citationLabel: "Environment matrix",
         ctx: { token: config.token, fetch },
       },
       config,
@@ -199,8 +187,8 @@ describe("resolveConfluencePageLive", () => {
     const result = await resolveConfluencePageLive(
       {
         source,
-        anchors: [anchor],
-        anchorId: "environment-matrix",
+        heading: "Environment matrix",
+        citationLabel: "Environment matrix",
         ctx: { token: config.token, fetch },
       },
       config,
@@ -218,8 +206,8 @@ describe("resolveConfluencePageLive", () => {
     const result = await resolveConfluencePageLive(
       {
         source,
-        anchors: [anchor],
-        anchorId: "environment-matrix",
+        heading: "Environment matrix",
+        citationLabel: "Environment matrix",
         ctx: { token: config.token, fetch },
       },
       config,
@@ -228,6 +216,52 @@ describe("resolveConfluencePageLive", () => {
     expect(result.excerpts[0]?.citation.location).toBe(
       "https://example.atlassian.net/wiki/pages/123456#environment-matrix",
     );
+  });
+
+  it("degrades a transport failure to source_unavailable instead of throwing", async () => {
+    const fetch: FetchLike = vi.fn(async () => {
+      throw new Error("network down");
+    });
+
+    const result = await resolveConfluencePageLive(
+      {
+        source,
+        heading: "Environment matrix",
+        citationLabel: "Environment matrix",
+        ctx: { token: config.token, fetch },
+      },
+      config,
+    );
+
+    expect(result.excerpts).toEqual([]);
+    expect(result.warnings).toHaveLength(1);
+    expect(result.warnings[0]?.code).toBe("source_unavailable");
+    expect(result.warnings[0]?.message).toBe("Confluence could not be reached at request time.");
+  });
+
+  it("degrades an unreadable body to source_unavailable instead of throwing", async () => {
+    const fetch: FetchLike = vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      async json() {
+        throw new Error("bad json");
+      },
+    }));
+
+    const result = await resolveConfluencePageLive(
+      {
+        source,
+        heading: "Environment matrix",
+        citationLabel: "Environment matrix",
+        ctx: { token: config.token, fetch },
+      },
+      config,
+    );
+
+    expect(result.excerpts).toEqual([]);
+    expect(result.warnings).toHaveLength(1);
+    expect(result.warnings[0]?.code).toBe("source_unavailable");
+    expect(result.warnings[0]?.message).toBe("Confluence returned an unreadable response.");
   });
 
   it("uses Basic auth (email:token) for a Confluence Cloud personal API token", async () => {
@@ -240,8 +274,8 @@ describe("resolveConfluencePageLive", () => {
     await resolveConfluencePageLive(
       {
         source,
-        anchors: [anchor],
-        anchorId: "environment-matrix",
+        heading: "Environment matrix",
+        citationLabel: "Environment matrix",
         ctx: { token: "api-token", fetch },
       },
       { ...config, token: "api-token", email: "dev@example.com" },

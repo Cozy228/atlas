@@ -4,8 +4,8 @@ import { DynamoFeedbackRepository } from "./dynamoFeedbackRepository";
 
 const feedback: Feedback = {
   id: "feedback-1",
-  target_type: "topic",
-  target_id: "aws-textract",
+  target_type: "resource",
+  target_id: "service/aws/textract",
   feedback_type: "missing",
   message: "Add region guidance.",
   submitted_at: "2026-05-11T00:00:00.000Z",
@@ -27,7 +27,7 @@ describe("DynamoFeedbackRepository", () => {
       Item: {
         pk: "FEEDBACK#feedback-1",
         sk: "METADATA",
-        gsi1pk: "TARGET#topic#aws-textract",
+        gsi1pk: "TARGET#resource#service/aws/textract",
         gsi1sk: "SUBMITTED#2026-05-11T00:00:00.000Z#feedback-1",
         ...feedback,
       },
@@ -41,7 +41,7 @@ describe("DynamoFeedbackRepository", () => {
           {
             pk: "FEEDBACK#feedback-1",
             sk: "METADATA",
-            gsi1pk: "TARGET#topic#aws-textract",
+            gsi1pk: "TARGET#resource#service/aws/textract",
             gsi1sk: "SUBMITTED#2026-05-11T00:00:00.000Z#feedback-1",
             ...feedback,
           },
@@ -53,7 +53,7 @@ describe("DynamoFeedbackRepository", () => {
       client: client as never,
     });
 
-    const result = await repository.findByTarget("topic", "aws-textract");
+    const result = await repository.findByTarget("resource", "service/aws/textract");
 
     expect(result).toEqual([feedback]);
     expect(client.commands[0]?.constructor.name).toBe("QueryCommand");
@@ -61,7 +61,7 @@ describe("DynamoFeedbackRepository", () => {
       TableName: "atlas-feedback",
       IndexName: "gsi1",
       ExpressionAttributeValues: {
-        ":target": "TARGET#topic#aws-textract",
+        ":target": "TARGET#resource#service/aws/textract",
       },
     });
   });

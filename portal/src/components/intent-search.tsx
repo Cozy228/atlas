@@ -19,7 +19,7 @@ export function IntentSearch({
       type="button"
       onClick={() => openOverlay("search")}
       aria-haspopup="dialog"
-      aria-label="Search Atlas catalog"
+      aria-label="Search the catalog"
       className={cn(
         "flex h-11 w-full max-w-150 items-center gap-2.5 rounded-lg border border-input bg-card px-3.5 text-left",
         "shadow-xs transition-[border-color,box-shadow]",

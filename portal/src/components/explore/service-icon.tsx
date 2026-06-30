@@ -19,19 +19,26 @@ type ProviderIconProps = {
 
 export type ServiceIconProvider = "aws" | "azure";
 
-let azureServiceIconModule: Promise<typeof import("./azure-service-icon")> | null = null;
+// The Azure icon pack is split off its own way: detail routes that render a
+// single Azure ServiceIcon load the map on demand, and the availability matrix
+// preloads it (`preloadAzureServiceIcons`) so its first paint keeps real icons.
+let azureIconMapModule: Promise<typeof import("@/lib/azure-icon-map")> | null = null;
 
-function loadAzureServiceIconModule() {
-  azureServiceIconModule ??= import("./azure-service-icon");
-  return azureServiceIconModule;
+function loadAzureIconMapModule() {
+  azureIconMapModule ??= import("@/lib/azure-icon-map");
+  return azureIconMapModule;
 }
 
 const AzureServiceIcon = lazy(() =>
-  loadAzureServiceIconModule().then((module) => ({ default: module.AzureServiceIcon })),
+  loadAzureIconMapModule().then((module) => ({
+    default: ({ serviceId, size }: ProviderIconProps) => (
+      <MappedServiceIcon serviceId={serviceId} iconMap={module.AZURE_ICON_MAP} size={size} />
+    ),
+  })),
 );
 
 export function preloadAzureServiceIcons() {
-  void loadAzureServiceIconModule();
+  void loadAzureIconMapModule();
 }
 
 // The AWS icon pack (~36 KB gzip) is split off the same way as Azure: detail

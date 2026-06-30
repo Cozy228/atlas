@@ -1,36 +1,41 @@
 ---
 name: atlas-context-consumer
-description: Resolve governed, citation-backed platform context from Atlas (services, sources, regional availability) through the Context API bundle. Use when an agent needs an authoritative, sourced answer about a cloud platform service instead of guessing.
+description: Resolve governed, citation-backed platform context from Atlas (services, security policies, sources, regional availability) through the resource Context API. Use when an agent needs an authoritative, sourced answer about a cloud platform service instead of guessing.
 ---
 
 # Consuming Atlas context
 
-Atlas is a governed context layer: it registers, validates, and serves
+Atlas is a governed context layer: it discovers, validates, and serves
 authoritative source excerpts with citations. Source systems remain the system
 of record; Atlas never mirrors them durably.
 
 Vocabulary (use these terms exactly):
 
+- **Resource** — the unit Atlas answers about, addressed by a canonical
+  `{kind}/{slug}` id (e.g. `service/aws/textract`, `guardrail/public-access-controls`).
 - **Source** — a registered system-of-record document Atlas can cite,
   identified by `source_class`.
-- **Anchor** — a registered, citable location within a Source.
-- **Excerpt** — the text Atlas returns for an Anchor at request time, always
-  paired with a Citation. Excerpts are ephemeral, resolved live.
-- **Citation** — the provenance attached to an Excerpt: `source_id`,
-  `anchor_id`, label, and location. An Excerpt without a Citation is never
-  returned — never present one without the other.
+- **Section** — a coarse, named slice of a Resource's governed context
+  (`overview`, `network`, `examples`, `enforced-controls`, …), live-resolved
+  from Sources at request time.
+- **Citation** — the provenance attached to resolved content: `sourceId`,
+  `title`, `url`, an optional located `anchor`, and `resolvedAt`. Content is
+  never returned without its Citation — never present one without the other.
 
 ## Steps
 
-1. **Discover the service.** `GET /api/topics?query=<terms>` returns
-   matching topics. Pick the topic whose `id` fits the question.
+1. **Discover the resource.** `GET /api/resources?query=<terms>` returns
+   matching resources; pick the one whose canonical `id` (`{kind}/{slug}`) fits
+   the question. Browse the full inventory with `GET /api/resources/catalog`.
    (MCP alternative: `Atlas:atlas_search_service`.)
-2. **Fetch the context bundle.** `GET /api/topics/{topic_id}/context` returns
-   a `ContextBundleResponse`: `sources[]` (each with `excerpts[]`),
-   `anchor_references[]`, `warnings[]`, and `expansion_paths[]`.
-   (MCP alternative: `Atlas:atlas_get_context_bundle`.)
-3. **Answer from the bundle only.** Surface each claim with its Citation
-   (label + location). Do not add claims the bundle does not support.
+2. **Read its context.** `GET /api/resources/{kind}/{slug}` returns a
+   `ResourceContextResponse`: `sections` (each with live `content`,
+   `citations[]`, and `warnings[]`), `references[]` (reference-only discovery
+   links), and `missingSections[]` (honest gaps). Append `Accept: text/markdown`
+   for a rendered datasheet. (MCP alternative: `Atlas:atlas_get_resource_context`.)
+3. **Answer from cited content only.** Surface each claim with its Citation
+   (title + location). Do not add claims the sections do not support; an empty
+   `sections` map means no governed context, not a negative answer.
 4. **Honor warnings verbatim.** Relay every `warnings[]` entry to the user
    unchanged — especially `restricted_source` ("this Source exists but the
    caller's identity is not allowed to see its content") and `stale_source`
@@ -42,34 +47,37 @@ Vocabulary (use these terms exactly):
 Question: "Can AWS Textract run in a private subnet?"
 
 ```text
-GET /api/topics?query=textract            -> topic id "aws-textract"
-GET /api/topics/aws-textract/context      -> ContextBundleResponse
+GET /api/resources?query=textract            -> resource id "service/aws/textract"
+GET /api/resources/service/aws/textract      -> ResourceContextResponse
 ```
 
-Each `sources[]` entry carries `excerpts[]` like:
+Each resolved Section carries `content` and `citations[]` like:
 
 ```json
 {
-  "anchor_id": "private-subnet-usage",
-  "text": "…",
-  "citation": {
-    "source_id": "textract-module-readme",
-    "anchor_id": "private-subnet-usage",
-    "label": "Private subnet usage",
-    "location": "github.com/acme/terraform-aws-textract"
-  }
+  "status": "available",
+  "content": "…",
+  "citations": [
+    {
+      "sourceId": "textract-module-readme",
+      "title": "Textract Module README",
+      "url": "github.com/acme/terraform-aws-textract",
+      "anchor": "private-subnet-usage",
+      "resolvedAt": "2026-01-01T00:00:00.000Z"
+    }
+  ]
 }
 ```
 
-Answer by quoting the Excerpt and citing "Private subnet usage,
+Answer by quoting the Section content and citing "Textract Module README,
 github.com/acme/terraform-aws-textract". If `warnings[]` contains
 `stale_source` for that source, say so in those words.
 
 ## Other reads
 
+- `GET /api/resources/catalog` — the full discovered catalog (services + security policies).
 - `GET /api/sources?query=<terms>` — discover registered Sources.
 - `GET /api/sources/{source_id}` — one Source's registry record.
-- `GET /api/sources/{source_id}/content` — bundle scoped to one Source.
 - The machine-readable contract is published at `/openapi.json`.
 
 ## Auth

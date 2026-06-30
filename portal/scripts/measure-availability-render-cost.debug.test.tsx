@@ -4,12 +4,11 @@ import { describe, it } from "vitest";
 
 import type {
   AvailabilityRecord,
-  LandingZoneData,
+  LandingZoneAvailability,
   Location,
   LocationStatus,
 } from "@/api/server/availability";
 import { MatrixView } from "@/components/explore/matrix-view";
-import { ServiceCard } from "@/components/explore/service-card";
 import { StatusDot } from "@/components/explore/status-dot";
 import { buildAvailabilityRowModel } from "@/lib/availability-row-model";
 
@@ -45,7 +44,7 @@ describe("availability render cost", () => {
       measure(`${zone.id} MatrixView`, 10, () => {
         renderToString(
           <MatrixView
-            provider={zone.id}
+            provider={zone.cloud}
             locations={zone.locations}
             rows={rowModel.rows}
             groups={rowModel.groups}
@@ -70,22 +69,6 @@ describe("availability render cost", () => {
                 />
               )),
             )}
-          </>,
-        );
-      });
-
-      measure(`${zone.id} cards`, 10, () => {
-        renderToString(
-          <>
-            {rowModel.rows.map((row) => (
-              <ServiceCard
-                key={row.id}
-                provider={zone.id}
-                row={row}
-                selected={false}
-                onSelect={() => {}}
-              />
-            ))}
           </>,
         );
       });
@@ -144,11 +127,13 @@ const AWS_SERVICE_IDS = [
   "elb",
 ] as const;
 
-function makeSyntheticZones(): ReadonlyArray<LandingZoneData> {
+function makeSyntheticZones(): ReadonlyArray<LandingZoneAvailability> {
   return [
     {
-      id: "aws",
+      id: "awsf",
       name: "AWS",
+      cloud: "aws",
+      dataStatus: "available",
       locations: AWS_LOCATIONS,
       services: AWS_SERVICE_IDS.map((id, index) =>
         makeService(id, `AWS Service ${index + 1}`, index, AWS_LOCATIONS),
@@ -157,6 +142,8 @@ function makeSyntheticZones(): ReadonlyArray<LandingZoneData> {
     {
       id: "azure",
       name: "Azure",
+      cloud: "azure",
+      dataStatus: "available",
       locations: AZURE_LOCATIONS,
       services: Array.from({ length: 30 }, (_, index) =>
         makeService(`azure-${index}`, `Azure Service ${index + 1}`, index, AZURE_LOCATIONS),

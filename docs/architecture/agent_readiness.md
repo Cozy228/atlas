@@ -192,8 +192,8 @@ Excerpt without its Citation. See `CONTEXT.md` vocabulary (Source, Anchor,
 Excerpt, Citation, restricted_source, stale_source).
 
 ## Steps
-1. Discover the service: `GET /api/topics?query=...`  (or MCP `atlas_search_service`)
-2. Fetch the context bundle for the chosen topic/source.
+1. Discover the service: `GET /api/resources?query=...`  (or MCP `atlas_search_service`)
+2. Fetch the resource context projection for the chosen resource/source.
 3. Surface each claim with its Citation; honor `restricted_source` / `stale_source`
    warnings verbatim — do not hide or soften them.
 
@@ -214,8 +214,8 @@ into the build, not by hand.
 - **No `public/` directory yet.** Truly static artifacts (`robots.txt`) can live in
   a new `public/`; anything dynamic or data-derived should be a server route.
 - **The real agent API is the Context Layer's Lambda HTTP contract**, not the
-  Portal. `context-layer/src/api/*` (`handleHttpRequest` plus topic-discovery,
-  topic, source-discovery, source, context-bundle, feedback routes) is deployed as
+  Portal. `context-layer/src/api/*` (`handleHttpRequest` plus resource-discovery,
+  resource context, source-discovery, source, availability, feedback routes) is deployed as
   an AWS API Gateway HTTP Lambda (`context-layer/src/lambda/handler.ts`) and has a
   typed contract (`contracts.ts`) with contract tests. `portal/src/api/server` is a
   BFF wrapper over the same contract. **OpenAPI / api-catalog / llms.txt should
@@ -291,10 +291,10 @@ already exists** before the web-crawler checklist.
 
 | Agent surface | Backed by | Notes |
 |---|---|---|
-| `llms.txt` links, `sitemap.xml` | Topic/Source discovery responses | Enumerate canonical detail URLs |
-| Markdown of a service/source/guidance page | Context bundle for that record | Render the same data the route loader uses, as clean Markdown |
-| `openapi.json` | `contextApiClient` interface + contract test | Describe discovery + bundle + feedback endpoints |
-| MCP `atlas_search_service` / `atlas_get_source` / `atlas_get_availability` | Topic discovery / Source response / availability projection | Read-only, namespaced, search-first; semantic ids + Citation in responses |
+| `llms.txt` links, `sitemap.xml` | Resource/Source discovery responses | Enumerate canonical detail URLs |
+| Markdown of a service/source/guidance page | Resource context projection for that record | Render the same data the route loader uses, as clean Markdown |
+| `openapi.json` | `contextApiClient` interface + contract test | Describe discovery + resource-context + feedback endpoints |
+| MCP `atlas_search_service` / `atlas_get_source` / `atlas_get_availability` | Resource discovery / Source response / availability projection | Read-only, namespaced, search-first; semantic ids + Citation in responses |
 
 ## Phased implementation
 
@@ -304,8 +304,8 @@ The Context API is already real, tested, and consumer-neutral; it just has no
 machine-readable description or discovery entry. Close that first.
 
 1. `/openapi.json` — generate from `context-layer/src/contracts.ts` (the typed
-   contract, with contract tests as the honesty check). Cover topic/source
-   discovery, the context bundle, and feedback; mark the bundle's auth (Bearer
+   contract, with contract tests as the honesty check). Cover resource/source
+   discovery, the resource context projection, and feedback; mark its auth (Bearer
    pipe, ADR 0001) and the one mutation endpoint (feedback).
 2. `/.well-known/api-catalog` (`application/linkset+json`) — `service-desc` →
    OpenAPI, `service-doc` → API docs Markdown, `status` → health endpoint.
@@ -329,10 +329,10 @@ curl -fsS  "$BASE/llms.txt" | head
    done (see the handoff constraints above). discovery v0.2 shape, `sha256:` digest.
 2. Read-only **MCP facade** over `handleHttpRequest` + `/.well-known/mcp/server-card.json`.
    A small, curated, namespaced, search-first tool set: `atlas_search_service`,
-   `atlas_get_source`, `atlas_get_availability`, `atlas_get_context_bundle` — not
+   `atlas_get_source`, `atlas_get_availability`, `atlas_get_resource_context` — not
    one-tool-per-endpoint. Responses carry semantic ids + the Citation; support
    `response_format` and pagination per the best-practices section. No write tools
-   in V1. Same contract as Portal and the skill — three consumers, one bundle.
+   in V1. Same contract as Portal and the skill — three consumers, one projection.
 
 ### Phase 3 — Web-crawler checklist (cheap, lower differentiation)
 
@@ -361,9 +361,9 @@ curl -fsS  "$BASE/llms.txt" | head
 
 ## Open questions
 
-- **Markdown source of truth:** render Markdown from the Context bundle on the fly,
-  or maintain `.md` doc files alongside? Bundle-rendering keeps one source of truth
-  and avoids drift; lean that way unless a curated narrative is needed.
+- **Markdown source of truth:** render Markdown from the resource context projection
+  on the fly, or maintain `.md` doc files alongside? Projection-rendering keeps one
+  source of truth and avoids drift; lean that way unless a curated narrative is needed.
 - **Hosting for well-known/static:** `public/` static vs Nitro server route per
   artifact. Default: static for `robots.txt`, server routes for anything
   data-derived or digest-bearing.

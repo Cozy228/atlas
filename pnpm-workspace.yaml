@@ -4,6 +4,11 @@ packages:
   - "portal"
   - "infra"
 
+allowBuilds:
+  # MSW's postinstall only copies the browser Service Worker; we use Node mode
+  # (msw/node) for dev/integration source-system mocking, so the build is skipped.
+  msw: false
+
 minimumReleaseAgeExclude:
   - vite@8.1.0
 

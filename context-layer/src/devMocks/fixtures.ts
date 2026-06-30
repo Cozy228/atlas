@@ -1,0 +1,707 @@
+/**
+ * Dev/integration MSW fixtures — fictional source-system responses.
+ *
+ * These stand in for the real Confluence / Terraform / GitHub responses the live
+ * adapters fetch. They are the *dev backing* for discovery: MSW serves them at the
+ * network layer so the live adapters run unchanged (single live path), and prod
+ * never imports this module. Everything here is fictional and public-safe — no real
+ * space keys, page ids, module sources, or credentials.
+ *
+ * Lane H extends this per source system (Confluence content / availability /
+ * What's New, Terraform README, GitHub guidance, CQL references). G0 seeds the
+ * Confluence v2 page read that proves the MSW seam.
+ */
+import {
+  DEV_AVAILABILITY_PAGE_ID_AWSF,
+  renderAvailabilityPageStorage,
+} from "./availabilityFixture";
+import { DEV_GUIDANCE_PAGES } from "./guidanceFixture";
+
+/** Fictional Confluence site base (without `/wiki`) the dev adapter is pointed at. */
+export const DEV_CONFLUENCE_BASE_URL = "https://atlas-dev.example.atlassian.net";
+
+/** Fictional Confluence space keys the dev reference-discovery scope crawls. */
+export const DEV_CONFLUENCE_SPACE_KEYS = ["CLOUD"];
+
+/**
+ * Fictional security-policy Confluence space key (plan 018 G5). Guardrails are
+ * discovered by crawling THIS space — the security-policy analog of the service
+ * spine — and every guardrail page lives under it (webui `/spaces/SECPOL/...`).
+ */
+export const DEV_CONFLUENCE_SECURITY_SPACE_KEY = "SECPOL";
+
+/**
+ * Fictional page id of the federated-platform "What's New" Confluence page. The
+ * dev runtime points `CONFLUENCE_RELEASE_NOTES_PAGE_ID` here so `resolveReleaseNotes`
+ * fetches it through the same v2 channel as every other page and extracts both
+ * formal releases AND standalone announcements from the one page (plan 018 G6).
+ */
+export const DEV_RELEASE_NOTES_PAGE_ID = "900001";
+
+/**
+ * Confluence CQL search corpus — candidate pages the `GET /wiki/rest/api/content/search`
+ * handler recalls by fuzzy `title ~` match. The live reference-discovery adapter then
+ * applies its own double-hit admission (identity token-sequence + doc-type pattern), so
+ * this corpus deliberately includes NOISE pages (recalled but not admitted) to exercise
+ * that filter. Titles carry a service token + a doc-type keyword so admission re-derives
+ * the same `doc_type` the retired in-code fixture hard-coded. Fictional, public-safe.
+ */
+export type CqlCandidate = { title: string; webui: string };
+
+export const CQL_REFERENCE_CORPUS: CqlCandidate[] = [
+  // aws/textract — design + user-guide + policy, plus one noise page.
+  {
+    title: "Textract — service design",
+    webui: "/wiki/spaces/CLOUD/pages/1201/Textract+Service+Design",
+  },
+  {
+    title: "Textract — onboarding & usage guide",
+    webui: "/wiki/spaces/CLOUD/pages/1202/Textract+Usage+Guide",
+  },
+  {
+    title: "Textract — data handling policy",
+    webui: "/wiki/spaces/CLOUD/pages/1203/Textract+Data+Policy",
+  },
+  {
+    title: "Textract — sprint meeting notes",
+    webui: "/wiki/spaces/CLOUD/pages/1209/Textract+Notes",
+  }, // noise: no doc-type
+  // aws/s3 — design + policy.
+  { title: "S3 — bucket design", webui: "/wiki/spaces/CLOUD/pages/1301/S3+Bucket+Design" },
+  {
+    title: "S3 — public access policy",
+    webui: "/wiki/spaces/CLOUD/pages/1302/S3+Public+Access+Policy",
+  },
+  // azure/aks — user-guide only (spine-only service path). Title carries the product
+  // name (not the bare "AKS" slug) so it clears the identity-admission gate (B8/B9).
+  {
+    title: "Azure Kubernetes Service — onboarding guide",
+    webui: "/wiki/spaces/CLOUD/pages/1401/AKS+Onboarding+Guide",
+  },
+  // aws/cloudwatch — user-guide only (a spine-only AWS service: in the `awsf`
+  // availability grid, no resources.yaml overlay). Title carries the product name
+  // so it clears the identity-admission gate (B8/B9).
+  {
+    title: "Amazon CloudWatch — operations & usage guide",
+    webui: "/wiki/spaces/CLOUD/pages/1501/CloudWatch+Operations+Guide",
+  },
+];
+
+/** Confluence Cloud REST v2 page payload shape the live content provider parses. */
+export type ConfluencePageFixture = {
+  id: string;
+  title: string;
+  version: { number: number; createdAt?: string };
+  body: { storage: { value: string } };
+  _links: { webui: string };
+};
+
+/**
+ * Confluence v2 pages keyed by page id, served at
+ * `${DEV_CONFLUENCE_BASE_URL}/wiki/api/v2/pages/:id?body-format=storage`.
+ * Storage-format HTML uses real headings so the runtime heading-slug scan
+ * (anchor "3 去") locates sections without pre-stored anchors.
+ */
+export const CONFLUENCE_PAGES: Record<string, ConfluencePageFixture> = {
+  "100001": {
+    id: "100001",
+    title: "Managed Compute — Service Guide",
+    version: { number: 7, createdAt: "2026-05-12T09:00:00.000Z" },
+    body: {
+      storage: {
+        value: [
+          "<h1>Managed Compute</h1>",
+          "<p>Run event-driven functions without provisioning servers.</p>",
+          "<h2>Network</h2>",
+          "<p>Functions attach to a managed VPC connector for private egress.</p>",
+          "<h2>Examples</h2>",
+          "<p>Deploy with the published module and a handler entry point.</p>",
+        ].join("\n"),
+      },
+    },
+    _links: { webui: "/spaces/COMPUTE/pages/100001/Managed+Compute" },
+  },
+  // Governance policy pages (plan 018 G4): policy sources now resolve single-live
+  // through Confluence, so each policy page carries the heading the binding
+  // references; the runtime heading-slug scan locates the section.
+  "300001": {
+    id: "300001",
+    title: "S3 Security Policy",
+    version: { number: 4, createdAt: "2026-04-01T09:00:00.000Z" },
+    body: {
+      storage: {
+        value: [
+          "<h1>S3 Security Policy</h1>",
+          "<h2>Public access controls</h2>",
+          "<p>S3 buckets must block public access and enforce encryption.</p>",
+        ].join("\n"),
+      },
+    },
+    _links: { webui: "/spaces/CLOUD/pages/300001/S3+Security+Policy" },
+  },
+  "300002": {
+    id: "300002",
+    title: "Legacy S3 Policy",
+    version: { number: 2, createdAt: "2024-01-15T09:00:00.000Z" },
+    body: {
+      storage: {
+        value: [
+          "<h1>Legacy S3 Policy</h1>",
+          "<h2>Legacy public access</h2>",
+          "<p>Legacy S3 exceptions are deprecated and retained for migration only.</p>",
+        ].join("\n"),
+      },
+    },
+    _links: { webui: "/spaces/CLOUD/pages/300002/Legacy+S3+Policy" },
+  },
+  // Cross-cutting security-policy pages (plan 018 G5) under the SECPOL space —
+  // the guardrail discovery corpus. Each carries an enforced-controls-matching
+  // heading AND an exceptions-matching heading so both sections derive; webui
+  // sits under `/spaces/SECPOL/` so the space-listing handler recalls them.
+  "310001": {
+    id: "310001",
+    title: "Data Encryption Standard",
+    version: { number: 6, createdAt: "2026-05-02T09:00:00.000Z" },
+    body: {
+      storage: {
+        value: [
+          "<h1>Data Encryption Standard</h1>",
+          "<h2>Encryption controls</h2>",
+          "<p>Data at rest must use customer-managed KMS keys with rotation enabled; data in transit requires TLS 1.2 or higher.</p>",
+          "<h2>Legacy exceptions</h2>",
+          "<p>Ephemeral scratch volumes may use provider-managed keys until the next review window.</p>",
+        ].join("\n"),
+      },
+    },
+    _links: { webui: "/spaces/SECPOL/pages/310001/Data+Encryption+Standard" },
+  },
+  "310002": {
+    id: "310002",
+    title: "Public Access Controls",
+    version: { number: 9, createdAt: "2026-05-18T09:00:00.000Z" },
+    body: {
+      storage: {
+        value: [
+          "<h1>Public Access Controls</h1>",
+          "<h2>Public access controls</h2>",
+          "<p>Storage buckets and managed databases must block public access at the account level; exposure requires an approved review.</p>",
+          "<h2>Legacy bucket waivers</h2>",
+          "<p>A small set of legacy buckets retain a documented waiver and are tracked for migration.</p>",
+        ].join("\n"),
+      },
+    },
+    _links: { webui: "/spaces/SECPOL/pages/310002/Public+Access+Controls" },
+  },
+  "310003": {
+    id: "310003",
+    title: "Private Networking Baseline",
+    version: { number: 4, createdAt: "2026-04-22T09:00:00.000Z" },
+    body: {
+      storage: {
+        value: [
+          "<h1>Private Networking Baseline</h1>",
+          "<h2>Baseline controls</h2>",
+          "<p>Workload subnets are private by default; egress flows through the shared inspection path and inbound exposure is gated.</p>",
+          "<h2>Deprecated allowances</h2>",
+          "<p>Direct public subnet placement is deprecated and retained only for migrating legacy edge workloads.</p>",
+        ].join("\n"),
+      },
+    },
+    _links: { webui: "/spaces/SECPOL/pages/310003/Private+Networking+Baseline" },
+  },
+  "310004": {
+    id: "310004",
+    title: "IAM Permission Boundary",
+    version: { number: 7, createdAt: "2026-06-03T09:00:00.000Z" },
+    body: {
+      storage: {
+        value: [
+          "<h1>IAM Permission Boundary</h1>",
+          "<h2>Mandatory boundaries</h2>",
+          "<p>Every workload role must attach the standard permission boundary; wildcard administrative actions are denied.</p>",
+          "<h2>Waiver process</h2>",
+          "<p>Break-glass roles obtain a time-boxed waiver approved by the security team and revoked automatically.</p>",
+        ].join("\n"),
+      },
+    },
+    _links: { webui: "/spaces/SECPOL/pages/310004/IAM+Permission+Boundary" },
+  },
+  [DEV_RELEASE_NOTES_PAGE_ID]: {
+    id: DEV_RELEASE_NOTES_PAGE_ID,
+    title: "What's New — Federated Platform",
+    version: { number: 23, createdAt: "2026-06-11T08:00:00.000Z" },
+    body: {
+      storage: {
+        // One page, two entry kinds: formal `Release Notes` sections (parsed into
+        // releases) and a standalone `Announcements` section (parsed into editorial
+        // notes). Mirrors the real page's shape so the live parser runs unchanged:
+        // numbered scope items with bracketed JIRA-style tickets, a `CHG…` change
+        // request, a "posted … on <day> <Month>, <year>" date; announcements are
+        // "<Kind> — <Title>" headings with a summary, a "Posted on …" line, and an
+        // anchor call-to-action (the renderer preserves the href). All fictional.
+        value: [
+          "<h1>What's New</h1>",
+          "<p>Highlights from the federated platform — releases land roughly twice a month, with standalone announcements below.</p>",
+
+          "<h2>Release Notes</h2>",
+          "<p>Release Scope:</p>",
+          "<p>Non-Compute:</p>",
+          "<ol>",
+          "<li>SCP: Enable Object Storage lifecycle tiering in all OUs [PLAT-201]</li>",
+          "<li>Config: Tighten the default bucket encryption baseline [PLAT-202]</li>",
+          "<li>Update OPA policy for the DATA_CLASS tag [PLAT-203]</li>",
+          "</ol>",
+          "<p>Compute:</p>",
+          "<ol>",
+          "<li>Managed Compute autoscaling capacity rebalancing [PLAT-204]</li>",
+          "<li>EC2 patch-compliance report Lambda production deployment [PLAT-205]</li>",
+          "</ol>",
+          "<p>For this release change CHG0010001 | Change Request | Service Management - Production</p>",
+          "<p>On Viva Engage: Conversation posted in the Cloud Platform community on 9th June, 2026.</p>",
+          "<p>Additional details:</p>",
+
+          "<h2>Release Notes</h2>",
+          "<p>Release Scope:</p>",
+          "<p>Non-Compute:</p>",
+          "<ol>",
+          "<li>Config: S3 access-log retention baseline [PLAT-210]</li>",
+          "<li>SCP: Enable Step Functions in the Federated LZ [PLAT-211]</li>",
+          "</ol>",
+          "<p>Compute:</p>",
+          "<ol>",
+          "<li>EC2 AMI hardening pipeline rollout [PLAT-212]</li>",
+          "</ol>",
+          "<p>For this release change CHG0010002 | Change Request | Service Management - Production</p>",
+          "<p>On Viva Engage: Conversation posted in the Cloud Platform community on 23rd June, 2026.</p>",
+          "<p>Additional details:</p>",
+
+          "<h2>Announcements</h2>",
+          "<h3>New — Object Storage lifecycle tiering is generally available</h3>",
+          "<p>Buckets can now tier cold objects to archive storage on a per-prefix schedule, with restore SLAs surfaced in the catalog entry.</p>",
+          "<p>Posted on 11th June, 2026.</p>",
+          '<p><a href="/catalog">View in catalog</a></p>',
+          "<h3>Policy — WebAuthn step-up now required for admin scopes</h3>",
+          "<p>Identity Gateway 4.18 enforces a hardware step-up before any admin-scoped token is issued. Service accounts are exempt until 1st July.</p>",
+          "<p>Posted on 7th June, 2026.</p>",
+          '<p><a href="/sources">Read the policy</a></p>',
+          "<h3>Deprecated — Legacy webhook signing v1 enters its deprecation window</h3>",
+          "<p>v1 HMAC signatures stop being accepted on 1st September. The migration guide covers rotating to v2 signing keys without dropping events.</p>",
+          "<p>Posted on 5th June, 2026.</p>",
+          '<p><a href="/guidance">Connect a pipeline</a></p>',
+        ].join("\n"),
+      },
+    },
+    _links: { webui: "/spaces/CLOUD/pages/900001/Whats+New" },
+  },
+  // Per-LZ availability page (plan 021 G3): the `awsf` landing zone's regional
+  // availability grid, rendered from the relocated availability fixture. The live
+  // `confluenceAvailabilityProvider` and the `availabilityMatrixResolver` both
+  // fetch + parse THIS page — the per-LZ form of plan 018's availability handler.
+  [DEV_AVAILABILITY_PAGE_ID_AWSF]: {
+    id: DEV_AVAILABILITY_PAGE_ID_AWSF,
+    title: "AWS Foundation — Regional Availability",
+    version: { number: 5, createdAt: "2026-05-05T09:00:00.000Z" },
+    body: { storage: { value: renderAvailabilityPageStorage() } },
+    _links: { webui: "/spaces/CLOUD/pages/200001/AWS+Foundation+Availability" },
+  },
+  // Guidance journeys authored as Confluence pages (under the GUIDE space). The
+  // live `confluenceGuidanceProvider` crawls the space and parses each page; the
+  // space-listing handler recalls them by their `/spaces/GUIDE/` webui.
+  ...DEV_GUIDANCE_PAGES,
+};
+
+/**
+ * Fictional private Terraform Enterprise (TFE) host the dev adapter is pointed at
+ * via `TERRAFORM_BASE_URL`. A non-public-registry base selects the TFE
+ * `/api/registry/v1/modules` API path (the public `registry.terraform.io` would
+ * select `/v1/modules`). Public-safe — no real registry host or token.
+ */
+export const DEV_TERRAFORM_BASE_URL = "https://tfe-dev.example.com";
+
+/** Terraform registry module-version payload the live content provider parses. */
+export type TerraformModuleVariable = { name?: string; default?: string; description?: string };
+export type TerraformModuleFixture = {
+  version: string;
+  root: {
+    readme: string;
+    inputs?: TerraformModuleVariable[];
+    outputs?: TerraformModuleVariable[];
+  };
+};
+
+/**
+ * Terraform modules keyed by registry address (`<namespace>/<name>/<provider>`),
+ * served at `${DEV_TERRAFORM_BASE_URL}/api/registry/v1/modules/:namespace/:name/:provider`.
+ * READMEs use real markdown headings so the runtime heading-slug scan locates a
+ * section by locator (a heading's slug equals the locator without `#`, e.g.
+ * `## Private subnet usage` → `private-subnet-usage`). Section wording mirrors the
+ * retired in-memory dev fixture so content assertions hold; `version` backs the
+ * `module-field` anchors (ADR-0010). Fictional, public-safe.
+ */
+export const TERRAFORM_MODULES: Record<string, TerraformModuleFixture> = {
+  // One module per service on the trimmed `awsf` availability spine, keyed at
+  // `example/<serviceId>/aws` so discovery finds a module for EVERY spine service
+  // (no empty service shells). Each README carries a network-matching heading and
+  // an examples-matching heading so the kernel SECTION_RULES bind both sections.
+  "example/s3/aws": {
+    version: "1.0.0",
+    root: {
+      readme: [
+        "# S3 Module",
+        "Provision a hardened S3 bucket with block-public-access, default KMS encryption, and versioning.",
+        "## VPC endpoint access",
+        "Bucket traffic stays on the private network through a gateway VPC endpoint, so requests never traverse the public internet.",
+        "## Terraform starter",
+        "```hcl",
+        'module "bucket" {',
+        '  source              = "app.terraform.io/example/s3/aws"',
+        '  name                = "orders-assets"',
+        "  versioning          = true",
+        "  block_public_access = true",
+        '  encryption          = "aws:kms"',
+        "}",
+        "```",
+        "## Bucket setup",
+        "Declare the bucket through the module: it enforces block-public-access, default KMS encryption, and versioning, and emits the bucket name and ARN as outputs.",
+      ].join("\n"),
+    },
+  },
+  "example/efs/aws": {
+    version: "1.2.0",
+    root: {
+      readme: [
+        "# EFS Module",
+        "Provision an encrypted, multi-AZ EFS file system with private subnet mount targets.",
+        "## Private subnet mount targets",
+        "Mount targets are placed in each private subnet so instances and pods reach the file system over the VPC only.",
+        "## Usage example",
+        "```hcl",
+        'module "efs" {',
+        '  source             = "app.terraform.io/example/efs/aws"',
+        '  name               = "shared-state"',
+        "  private_subnet_ids = var.private_subnet_ids",
+        "  encrypted          = true",
+        "}",
+        "```",
+      ].join("\n"),
+    },
+  },
+  "example/ec2/aws": {
+    version: "2.3.1",
+    root: {
+      readme: [
+        "# EC2 Module",
+        "Launch EC2 instances into private subnets with no public IP and shared NAT egress.",
+        "## Subnet placement",
+        "Instances launch into the workload private subnets with no public IP; egress flows through the shared NAT gateway.",
+        "## Getting started",
+        "```hcl",
+        'module "instance" {',
+        '  source        = "app.terraform.io/example/ec2/aws"',
+        '  name          = "batch-runner"',
+        '  instance_type = "m6i.large"',
+        "  subnet_id     = var.private_subnet_id",
+        "}",
+        "```",
+      ].join("\n"),
+    },
+  },
+  "example/lambda/aws": {
+    version: "1.5.0",
+    root: {
+      readme: [
+        "# Lambda Module",
+        "Deploy a VPC-attached Lambda function with private egress to in-account data stores.",
+        "## VPC connector",
+        "Functions attach to the managed VPC connector for private egress to in-account data stores.",
+        "## Usage example",
+        "```hcl",
+        'module "fn" {',
+        '  source             = "app.terraform.io/example/lambda/aws"',
+        '  name               = "orders-processor"',
+        '  handler            = "index.handler"',
+        "  private_subnet_ids = var.private_subnet_ids",
+        "}",
+        "```",
+      ].join("\n"),
+    },
+  },
+  "example/eks/aws": {
+    version: "3.1.0",
+    root: {
+      readme: [
+        "# EKS Module",
+        "Stand up an EKS cluster with a private control-plane endpoint and private worker nodes.",
+        "## Private cluster networking",
+        "The control-plane endpoint is private and worker nodes join from the VPC's private subnets.",
+        "## Terraform starter",
+        "```hcl",
+        'module "cluster" {',
+        '  source             = "app.terraform.io/example/eks/aws"',
+        '  name               = "platform"',
+        "  private_subnet_ids = var.private_subnet_ids",
+        "  endpoint_private   = true",
+        "}",
+        "```",
+      ].join("\n"),
+    },
+  },
+  "example/ecs-fargate/aws": {
+    version: "1.8.0",
+    root: {
+      readme: [
+        "# ECS Fargate Module",
+        "Run containers on ECS Fargate in private subnets behind an internal load balancer.",
+        "## VPC networking",
+        "Tasks run in awsvpc mode on private subnets behind an internal load balancer.",
+        "## Usage example",
+        "```hcl",
+        'module "service" {',
+        '  source             = "app.terraform.io/example/ecs-fargate/aws"',
+        '  name               = "checkout"',
+        "  private_subnet_ids = var.private_subnet_ids",
+        "  desired_count      = 3",
+        "}",
+        "```",
+      ].join("\n"),
+    },
+  },
+  "example/aurora/aws": {
+    version: "2.0.0",
+    root: {
+      readme: [
+        "# Aurora Module",
+        "Provision an Aurora Serverless v2 PostgreSQL cluster in a private DB subnet group.",
+        "## Subnet group",
+        "The cluster is provisioned into a private DB subnet group spanning every availability zone.",
+        "## Quickstart",
+        "```hcl",
+        'module "db" {',
+        '  source             = "app.terraform.io/example/aurora/aws"',
+        '  name               = "ledger"',
+        '  engine             = "aurora-postgresql"',
+        "  private_subnet_ids = var.private_subnet_ids",
+        "}",
+        "```",
+      ].join("\n"),
+    },
+  },
+  "example/dynamodb/aws": {
+    version: "1.1.0",
+    root: {
+      readme: [
+        "# DynamoDB Module",
+        "Create a DynamoDB table reached privately through a gateway VPC endpoint.",
+        "## VPC endpoint",
+        "Application access routes through a gateway VPC endpoint; no table traffic leaves the private network.",
+        "## Usage example",
+        "```hcl",
+        'module "table" {',
+        '  source       = "app.terraform.io/example/dynamodb/aws"',
+        '  name         = "sessions"',
+        '  hash_key     = "pk"',
+        '  billing_mode = "PAY_PER_REQUEST"',
+        "}",
+        "```",
+      ].join("\n"),
+    },
+  },
+  "example/kinesis/aws": {
+    version: "1.0.3",
+    root: {
+      readme: [
+        "# Kinesis Module",
+        "Provision a Kinesis data stream reached over a private interface VPC endpoint.",
+        "## Interface VPC endpoint",
+        "Producers and consumers reach the stream over an interface VPC endpoint kept on the private network.",
+        "## Getting started",
+        "```hcl",
+        'module "stream" {',
+        '  source      = "app.terraform.io/example/kinesis/aws"',
+        '  name        = "events"',
+        "  shard_count = 4",
+        "}",
+        "```",
+      ].join("\n"),
+    },
+  },
+  "example/sqs/aws": {
+    version: "1.4.0",
+    root: {
+      readme: [
+        "# SQS Module",
+        "Create an SQS queue whose operations stay on the private network via a VPC endpoint.",
+        "## VPC endpoint access",
+        "Queue operations use an interface VPC endpoint so messages stay on the private network.",
+        "## Usage example",
+        "```hcl",
+        'module "queue" {',
+        '  source = "app.terraform.io/example/sqs/aws"',
+        '  name   = "orders"',
+        "  fifo   = false",
+        "}",
+        "```",
+      ].join("\n"),
+    },
+  },
+  "example/sns/aws": {
+    version: "1.2.0",
+    root: {
+      readme: [
+        "# SNS Module",
+        "Create an SNS topic with private-endpoint delivery and policy-gated subscriptions.",
+        "## Private endpoint delivery",
+        "Publishers reach the topic through an interface VPC endpoint; cross-account subscriptions are policy-gated.",
+        "## Getting started",
+        "```hcl",
+        'module "topic" {',
+        '  source = "app.terraform.io/example/sns/aws"',
+        '  name   = "alerts"',
+        "}",
+        "```",
+      ].join("\n"),
+    },
+  },
+  "example/api-gateway/aws": {
+    version: "1.0.0",
+    root: {
+      readme: [
+        "# API Gateway Module",
+        "Expose an HTTP API privately through an interface VPC endpoint fronting your Lambda.",
+        "## Private API networking",
+        "Expose the API privately through an interface VPC endpoint so only in-VPC clients can invoke it.",
+        "## Terraform starter",
+        "```hcl",
+        'module "api" {',
+        '  source     = "app.terraform.io/example/api-gateway/aws"',
+        '  name       = "orders-api"',
+        '  protocol   = "HTTP"',
+        '  stage_name = "prod"',
+        "  routes = {",
+        '    "POST /orders"     = { lambda_arn = module.orders_fn.arn }',
+        '    "GET /orders/{id}" = { lambda_arn = module.orders_fn.arn }',
+        "  }",
+        "}",
+        "```",
+        "## REST API setup",
+        "Declare the HTTP API, routes, and stage through the module inputs; it provisions the API Gateway v2 API, default stage, and access logging.",
+        "## Lambda integration",
+        "Set each route's lambda_arn to your application function; the module creates the AWS_PROXY integration and the invoke permission so API Gateway fronts your app.",
+      ].join("\n"),
+    },
+  },
+  "example/eventbridge/aws": {
+    version: "1.1.0",
+    root: {
+      readme: [
+        "# EventBridge Module",
+        "Provision an EventBridge bus whose PutEvents traffic stays on the private network.",
+        "## VPC endpoint",
+        "PutEvents calls route through an interface VPC endpoint, keeping bus traffic on the private network.",
+        "## Usage example",
+        "```hcl",
+        'module "bus" {',
+        '  source = "app.terraform.io/example/eventbridge/aws"',
+        '  name   = "domain-events"',
+        "}",
+        "```",
+      ].join("\n"),
+    },
+  },
+  "example/bedrock/aws": {
+    version: "1.0.0",
+    root: {
+      readme: [
+        "# Bedrock Module",
+        "Invoke Bedrock foundation models over a private interface VPC endpoint.",
+        "## Private model endpoint",
+        "Model invocations stay on the private network through an interface VPC endpoint; public routing is disabled.",
+        "## Usage example",
+        "```hcl",
+        'module "bedrock" {',
+        '  source         = "app.terraform.io/example/bedrock/aws"',
+        '  name           = "doc-assistant"',
+        '  allowed_models = ["text-generation-v1"]',
+        "}",
+        "```",
+      ].join("\n"),
+    },
+  },
+  "example/textract/aws": {
+    version: "1.4.0",
+    root: {
+      readme: [
+        "# Textract Module",
+        "Run Textract document OCR privately from workloads in private subnets.",
+        "## Private subnet usage",
+        "Use the Textract module with private endpoint configuration for private subnet workloads.",
+        "## Terraform starter",
+        "```hcl",
+        'module "textract" {',
+        '  source             = "app.terraform.io/example/textract/aws"',
+        '  name               = "doc-ocr"',
+        '  endpoint_type      = "interface"',
+        "  private_subnet_ids = var.private_subnet_ids",
+        "}",
+        "```",
+      ].join("\n"),
+    },
+  },
+  "example/elb/aws": {
+    version: "2.2.0",
+    root: {
+      readme: [
+        "# ELB Module",
+        "Provision an Elastic Load Balancer attached to private subnets, internal by default.",
+        "## Subnet attachments",
+        "The load balancer attaches to private subnets; internet-facing schemes require explicit public subnet ids.",
+        "## Getting started",
+        "```hcl",
+        'module "alb" {',
+        '  source             = "app.terraform.io/example/elb/aws"',
+        '  name               = "edge"',
+        "  private_subnet_ids = var.private_subnet_ids",
+        "  internal           = true",
+        "}",
+        "```",
+      ].join("\n"),
+    },
+  },
+  "example/cloudwatch/aws": {
+    version: "1.3.0",
+    root: {
+      readme: [
+        "# CloudWatch Module",
+        "Publish metrics and logs to CloudWatch privately over interface VPC endpoints.",
+        "## VPC endpoint",
+        "Agents publish metrics and logs through interface VPC endpoints so telemetry stays on the private network.",
+        "## Usage example",
+        "```hcl",
+        'module "dashboard" {',
+        '  source = "app.terraform.io/example/cloudwatch/aws"',
+        '  name   = "platform-overview"',
+        "}",
+        "```",
+      ].join("\n"),
+    },
+  },
+  "example/kms/aws": {
+    version: "1.6.0",
+    root: {
+      readme: [
+        "# KMS Module",
+        "Provision a KMS key with rotation, accessed privately via an interface VPC endpoint.",
+        "## Private endpoint",
+        "Encrypt and decrypt calls use an interface VPC endpoint; key access is gated by a key policy and grants.",
+        "## Quickstart",
+        "```hcl",
+        'module "key" {',
+        '  source              = "app.terraform.io/example/kms/aws"',
+        '  alias               = "orders"',
+        "  enable_key_rotation = true",
+        "}",
+        "```",
+      ].join("\n"),
+    },
+  },
+};

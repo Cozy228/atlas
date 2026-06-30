@@ -134,7 +134,7 @@ function DeferredError({
         {canRetry
           ? "Retry, or check back shortly."
           : presentation.restricted
-            ? "Contact the steward for access."
+            ? "Contact the source owner for access."
             : "The rest of the page is unaffected."}
       </p>
       {canRetry ? (

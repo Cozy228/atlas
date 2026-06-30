@@ -78,7 +78,7 @@ export function FeedbackInlineForm({ target, className }: FeedbackInlineFormProp
         <span className="font-mono">
           {target.target_type}:{target.target_id}
         </span>
-        . Atlas does not edit source content; the steward will follow up.
+        . Cloud DevEx Portal does not edit source content; the owning team will follow up.
       </p>
 
       <FieldGroup>
@@ -128,11 +128,12 @@ export function FeedbackInlineForm({ target, className }: FeedbackInlineFormProp
                   rows={3}
                   required
                   aria-invalid={isInvalid}
-                  placeholder="What is missing or wrong? Be specific so the steward can act."
+                  placeholder="What is missing or wrong? Be specific so the owning team can act."
                   className="resize-y"
                 />
                 <FieldDescription>
-                  The steward owns the source content; Atlas only forwards the signal.
+                  The owning team owns the source content; Cloud DevEx Portal only forwards the
+                  signal.
                 </FieldDescription>
                 {isInvalid ? <FieldError errors={field.state.meta.errors} /> : null}
               </Field>

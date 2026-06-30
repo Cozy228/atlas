@@ -1,119 +1,116 @@
 /**
- * Sources direction "By class", scaled.
+ * Sources registry — two-level register.
  *
- * The original by-class view grouped on a single fixed axis (source class).
- * At a handful of sources that read fine; at dozens, each class block becomes a
- * wall of rows with no way to narrow it. This version keeps the grouped
- * register but makes the grouping a *tool*: a free-text search, a switchable
- * grouping axis (Class / Steward / Authority / Freshness), and facet filters
- * (authority level · freshness · restricted) that narrow live. Grouping buys
- * one level of structure; search + facets carry the rest.
+ * A two-level grouping of the registered sources: primary axis (Type · Category)
+ * as the big section, a secondary axis as the sub-section, the sources beneath.
+ * A free-text search narrows the list; a restricted-visibility facet appears only
+ * when a restricted source is present. Rows show the clean subject name only — the
+ * grouping headers already carry the type and category, so no per-row tags repeat
+ * them.
  */
 import { useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { IconArrowRight, IconLock, IconSearch, IconX } from "@tabler/icons-react";
-import type { AuthorityLevel, Source } from "@atlas/schema";
+import type { Source } from "@atlas/schema";
 
-import { AuthorityBadge, FreshnessIndicator } from "@/components/evidence/badges";
-import { AUTHORITY_ORDER, type FreshnessState } from "@/lib/evidence";
 import { cn } from "@/lib/utils";
 
-import { CATEGORY_ORDER, sourceCategory } from "./scale";
-import { AUTHORITY_BAR, CLASS_LABEL, FRESHNESS_META, Header, freshnessMap } from "./shared";
+import { CLASS_LABEL, Header } from "./shared";
 
-/**
- * "class" is the default and renders a two-level register (class → category);
- * the others are flat single-axis groupings.
- */
-type Axis = "class" | "steward" | "authority" | "freshness";
+/** Primary grouping axis. The other dimension becomes the sub-section. */
+type Axis = "type" | "category";
 
 const AXES: ReadonlyArray<{ id: Axis; label: string }> = [
-  { id: "class", label: "Class" },
-  { id: "steward", label: "Steward" },
-  { id: "authority", label: "Authority" },
-  { id: "freshness", label: "Freshness" },
+  { id: "type", label: "Type" },
+  { id: "category", label: "Category" },
 ];
 
-const CLASS_ORDER = ["terraform-module", "confluence-page", "policy-document"] as const;
-const FRESHNESS_ORDER: ReadonlyArray<FreshnessState> = ["current", "needs-review", "stale"];
+const CLASS_ORDER: ReadonlyArray<Source["source_class"]> = [
+  "terraform-module",
+  "confluence-page",
+  "policy-document",
+  "availability-matrix",
+];
+
+const UNCATEGORIZED = "Other";
+
+function classKey(source: Source): string {
+  return CLASS_LABEL[source.source_class] ?? source.source_class;
+}
+
+function categoryKey(source: Source): string {
+  return source.category ?? UNCATEGORIZED;
+}
+
+/** The clean subject a source documents — the module's service or the policy
+ *  name — with the redundant "… Terraform Module" suffix stripped. */
+function subjectName(source: Source): string {
+  if (source.source_class === "terraform-module") {
+    return source.title.replace(/\s+Terraform Module$/i, "");
+  }
+  return source.title;
+}
 
 export function SourcesByClass({ sources }: { sources: ReadonlyArray<Source> }) {
   const [query, setQuery] = useState("");
-  const [axis, setAxis] = useState<Axis>("class");
-  const [authorityFilter, setAuthorityFilter] = useState<ReadonlySet<AuthorityLevel>>(new Set());
-  const [freshnessFilter, setFreshnessFilter] = useState<ReadonlySet<FreshnessState>>(new Set());
+  const [axis, setAxis] = useState<Axis>("type");
+  const [classFilter, setClassFilter] = useState<ReadonlySet<Source["source_class"]>>(new Set());
   const [restrictedOnly, setRestrictedOnly] = useState(false);
-
-  const freshOf = useMemo(() => freshnessMap(sources), [sources]);
 
   const q = query.trim().toLowerCase();
   const searchFiltered = useMemo(
-    () =>
-      q
-        ? sources.filter((s) => `${s.title} ${s.id} ${s.steward}`.toLowerCase().includes(q))
-        : sources,
+    () => (q ? sources.filter((s) => s.title.toLowerCase().includes(q)) : sources),
     [sources, q],
   );
 
   const filtered = useMemo(
     () =>
       searchFiltered.filter((s) => {
-        if (authorityFilter.size && !authorityFilter.has(s.authority_level)) return false;
-        if (freshnessFilter.size && !freshnessFilter.has(freshOf.get(s.id) ?? "needs-review"))
-          return false;
+        if (classFilter.size && !classFilter.has(s.source_class)) return false;
         if (restrictedOnly && s.visibility !== "restricted") return false;
         return true;
       }),
-    [searchFiltered, authorityFilter, freshnessFilter, restrictedOnly, freshOf],
+    [searchFiltered, classFilter, restrictedOnly],
   );
 
-  const groups = useMemo(() => groupTwoLevel(filtered, axis, freshOf), [filtered, axis, freshOf]);
+  const groups = useMemo(() => groupTwoLevel(filtered, axis), [filtered, axis]);
 
   // Facet counts reflect the search-filtered set so chips never all collapse.
-  const authorityCounts = useMemo(
+  // Class is the one source dimension with real spread, so it makes the useful filter.
+  const classCounts = useMemo(
     () =>
-      AUTHORITY_ORDER.map((level) => ({
-        level,
-        count: searchFiltered.filter((s) => s.authority_level === level).length,
+      CLASS_ORDER.map((cls) => ({
+        cls,
+        count: searchFiltered.filter((s) => s.source_class === cls).length,
       })).filter((e) => e.count > 0),
     [searchFiltered],
-  );
-  const freshnessCounts = useMemo(
-    () =>
-      FRESHNESS_ORDER.map((state) => ({
-        state,
-        count: searchFiltered.filter((s) => (freshOf.get(s.id) ?? "needs-review") === state).length,
-      })).filter((e) => e.count > 0),
-    [searchFiltered, freshOf],
   );
   const restrictedCount = useMemo(
     () => searchFiltered.filter((s) => s.visibility === "restricted").length,
     [searchFiltered],
   );
 
-  const anyFilter =
-    q !== "" || authorityFilter.size > 0 || freshnessFilter.size > 0 || restrictedOnly;
+  const anyFilter = q !== "" || classFilter.size > 0 || restrictedOnly;
   const clearAll = () => {
     setQuery("");
-    setAuthorityFilter(new Set());
-    setFreshnessFilter(new Set());
+    setClassFilter(new Set());
     setRestrictedOnly(false);
   };
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-7">
       <Header sources={sources} />
 
-      {/* Toolbar: search + grouping axis */}
+      {/* Toolbar: search · primary-axis switch · (when present) restricted facet */}
       <div className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2.5">
-          <label className="flex min-w-[220px] flex-1 items-center gap-2 rounded-[4px] border border-border bg-card px-3 py-2 focus-within:border-border-strong">
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2.5">
+          <label className="flex w-full max-w-[340px] items-center gap-2 rounded-[4px] border border-border bg-card px-3 py-2 focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/50">
             <IconSearch aria-hidden className="size-3.5 shrink-0 text-muted-foreground" />
             <input
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search title, id, or steward…"
+              placeholder="Search sources…"
               className="min-w-0 flex-1 bg-transparent text-[13px] text-foreground outline-none placeholder:text-muted-foreground"
             />
           </label>
@@ -121,7 +118,7 @@ export function SourcesByClass({ sources }: { sources: ReadonlyArray<Source> }) 
             <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
               Group by
             </span>
-            <div className="flex flex-wrap gap-1">
+            <div className="flex gap-1">
               {AXES.map((a) => (
                 <Segment key={a.id} active={axis === a.id} onClick={() => setAxis(a.id)}>
                   {a.label}
@@ -131,51 +128,37 @@ export function SourcesByClass({ sources }: { sources: ReadonlyArray<Source> }) 
           </div>
         </div>
 
-        {/* Facet filters — one labelled row per facet so chips align */}
-        <div className="flex flex-col gap-1.5">
-          <FacetRow label="Authority">
-            {authorityCounts.map(({ level, count }) => (
-              <Chip
-                key={level}
-                active={authorityFilter.has(level)}
-                onClick={() => setAuthorityFilter(toggle(authorityFilter, level))}
-                dot={AUTHORITY_BAR[level]}
-                count={count}
-              >
-                <span className="capitalize">{level}</span>
-              </Chip>
-            ))}
-          </FacetRow>
-          <FacetRow label="Freshness">
-            {freshnessCounts.map(({ state, count }) => (
-              <Chip
-                key={state}
-                active={freshnessFilter.has(state)}
-                onClick={() => setFreshnessFilter(toggle(freshnessFilter, state))}
-                dot={FRESHNESS_META[state].dot}
-                count={count}
-              >
-                {FRESHNESS_META[state].label}
-              </Chip>
-            ))}
-          </FacetRow>
+        {/* Facet filters — by source type + (when present) restricted visibility */}
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
+          <span className="w-[68px] shrink-0 font-mono text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+            Type
+          </span>
+          {classCounts.map(({ cls, count }) => (
+            <Chip
+              key={cls}
+              active={classFilter.has(cls)}
+              onClick={() => setClassFilter(toggle(classFilter, cls))}
+              count={count}
+            >
+              {CLASS_LABEL[cls]}
+            </Chip>
+          ))}
           {restrictedCount > 0 ? (
-            <FacetRow label="Visibility">
-              <Chip
-                active={restrictedOnly}
-                onClick={() => setRestrictedOnly((v) => !v)}
-                count={restrictedCount}
-              >
-                <IconLock aria-hidden className="size-3" />
-                Restricted
-              </Chip>
-            </FacetRow>
+            <Chip
+              active={restrictedOnly}
+              onClick={() => setRestrictedOnly((v) => !v)}
+              count={restrictedCount}
+            >
+              <IconLock aria-hidden className="size-3" />
+              Restricted
+            </Chip>
           ) : null}
         </div>
 
         <div className="flex items-center gap-3 border-t border-border pt-2.5">
           <p className="font-mono text-[11px] tabular-nums text-muted-foreground">
-            {filtered.length} of {sources.length} sources · {groups.length} {axisNoun(axis)}
+            {filtered.length} of {sources.length} sources · {groups.length}{" "}
+            {axis === "type" ? "types" : "categories"}
           </p>
           {anyFilter ? (
             <button
@@ -198,19 +181,7 @@ export function SourcesByClass({ sources }: { sources: ReadonlyArray<Source> }) 
         groups.map((group) => (
           <section key={group.key} className="flex flex-col gap-4">
             <div className="flex items-baseline gap-2.5 border-b-2 border-border-strong pb-2">
-              {group.dot ? (
-                <span
-                  aria-hidden
-                  className={cn("size-2 shrink-0 self-center rounded-full", group.dot)}
-                />
-              ) : null}
-              <h2
-                className={cn(
-                  "text-[1.0625rem] font-bold tracking-[-0.015em] text-foreground",
-                  axis === "authority" && "capitalize",
-                  axis === "steward" && "font-mono text-[15px]",
-                )}
-              >
+              <h2 className="text-[1.0625rem] font-bold tracking-[-0.015em] text-foreground">
                 {group.label}
               </h2>
               <span className="ml-auto font-mono text-[11px] tabular-nums text-muted-foreground">
@@ -219,7 +190,23 @@ export function SourcesByClass({ sources }: { sources: ReadonlyArray<Source> }) 
             </div>
             <div className="flex flex-col gap-5">
               {group.subs.map((sub) => (
-                <SubGroup key={sub.key} label={sub.label} items={sub.items} />
+                <div key={sub.key} className="flex flex-col gap-2">
+                  <div className="flex items-baseline gap-2 border-b border-border pb-1.5">
+                    <h3 className="text-[12.5px] font-semibold tracking-[-0.005em] text-foreground">
+                      {sub.label}
+                    </h3>
+                    <span className="ml-auto font-mono text-[10px] tabular-nums text-muted-foreground">
+                      {sub.items.length}
+                    </span>
+                  </div>
+                  <ul className="grid gap-x-6 gap-y-px sm:grid-cols-2">
+                    {sub.items.map((source) => (
+                      <li key={source.id}>
+                        <SourceRow source={source} />
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               ))}
             </div>
           </section>
@@ -229,100 +216,51 @@ export function SourcesByClass({ sources }: { sources: ReadonlyArray<Source> }) 
   );
 }
 
-/** A category sub-block within a class (the second level of the nested view). */
-function SubGroup({ label, items }: { label: string; items: ReadonlyArray<Source> }) {
-  return (
-    <div className="flex flex-col gap-2">
-      <div className="flex items-baseline gap-2 border-b border-border pb-1.5">
-        <h3 className="text-[12.5px] font-semibold tracking-[-0.005em] text-foreground">{label}</h3>
-        <span className="ml-auto font-mono text-[10px] tabular-nums text-muted-foreground">
-          {items.length}
-        </span>
-      </div>
-      <ul className="grid gap-x-6 gap-y-px sm:grid-cols-2">
-        {items.map((source) => (
-          <li key={source.id}>
-            <ClassRow source={source} />
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-/* -------------------------------------------------------------------------- *
- * Grouping
- * -------------------------------------------------------------------------- */
-
 type SubBlock = { key: string; label: string; items: ReadonlyArray<Source> };
-type Group = {
-  key: string;
-  label: string;
-  dot?: string;
-  count: number;
-  subs: ReadonlyArray<SubBlock>;
-};
-
-/** A grouping dimension — how to key a source, order the keys, and label them. */
-type LevelKind = "class" | "category" | "steward" | "authority" | "freshness";
+type Group = { key: string; label: string; count: number; subs: ReadonlyArray<SubBlock> };
 
 type LevelSpec = {
   keyOf: (s: Source) => string;
-  /** Order the present keys (a key set) into display order. */
   order: (present: ReadonlyArray<string>) => ReadonlyArray<string>;
-  label: (key: string) => string;
-  dot?: (key: string) => string | undefined;
 };
 
-function levelSpec(kind: LevelKind, freshOf: ReadonlyMap<string, FreshnessState>): LevelSpec {
-  switch (kind) {
-    case "class":
-      return {
-        keyOf: (s) => s.source_class,
-        order: (p) => CLASS_ORDER.filter((k) => p.includes(k)),
-        label: (k) => CLASS_LABEL[k as Source["source_class"]],
-      };
-    case "category":
-      return {
-        keyOf: (s) => sourceCategory(s),
-        order: (p) => CATEGORY_ORDER.filter((k) => p.includes(k)),
-        label: (k) => k,
-      };
-    case "steward":
-      return {
-        keyOf: (s) => s.steward,
-        order: (p) => [...p].sort((a, b) => a.localeCompare(b)),
-        label: (k) => k,
-      };
-    case "authority":
-      return {
-        keyOf: (s) => s.authority_level,
-        order: (p) => AUTHORITY_ORDER.filter((k) => p.includes(k)),
-        label: (k) => k,
-        dot: (k) => AUTHORITY_BAR[k],
-      };
-    case "freshness":
-      return {
-        keyOf: (s) => freshOf.get(s.id) ?? "needs-review",
-        order: (p) => FRESHNESS_ORDER.filter((k) => p.includes(k)),
-        label: (k) => FRESHNESS_META[k as FreshnessState].label,
-        dot: (k) => FRESHNESS_META[k as FreshnessState].dot,
-      };
-  }
+const CLASS_LABEL_ORDER = CLASS_ORDER.map((c) => CLASS_LABEL[c]);
+
+const typeSpec: LevelSpec = {
+  keyOf: classKey,
+  order: (present) =>
+    [...present].sort((a, b) => {
+      const ia = CLASS_LABEL_ORDER.indexOf(a);
+      const ib = CLASS_LABEL_ORDER.indexOf(b);
+      return (ia === -1 ? Infinity : ia) - (ib === -1 ? Infinity : ib) || a.localeCompare(b);
+    }),
+};
+
+const categorySpec: LevelSpec = {
+  keyOf: categoryKey,
+  order: (present) =>
+    [...present].sort((a, b) =>
+      a === UNCATEGORIZED ? 1 : b === UNCATEGORIZED ? -1 : a.localeCompare(b),
+    ),
+};
+
+/** Group sources two levels deep: by `axis`, then by the other dimension. */
+function groupTwoLevel(sources: ReadonlyArray<Source>, axis: Axis): ReadonlyArray<Group> {
+  const primary = axis === "type" ? typeSpec : categorySpec;
+  const secondary = axis === "type" ? categorySpec : typeSpec;
+
+  const byPrimary = bucket(sources, primary.keyOf);
+  return primary.order([...byPrimary.keys()]).map((key) => {
+    const items = byPrimary.get(key)!;
+    const bySub = bucket(items, secondary.keyOf);
+    const subs = secondary.order([...bySub.keys()]).map((sk) => ({
+      key: sk,
+      label: sk,
+      items: bySub.get(sk)!.toSorted((a, b) => subjectName(a).localeCompare(subjectName(b))),
+    }));
+    return { key, label: key, count: items.length, subs };
+  });
 }
-
-/**
- * Second level per primary axis. The chosen axis is level 1; a sensible
- * structural sub-axis breaks each block so no single group is a wall of rows.
- * Stewards are class-bound in the fixture, so they nest by category (class
- * would be a single sub-block); the cross-cutting axes nest by class.
- */
-const SECONDARY: Record<Axis, LevelKind> = {
-  class: "category",
-  steward: "category",
-  authority: "class",
-  freshness: "class",
-};
 
 function bucket(
   sources: ReadonlyArray<Source>,
@@ -335,49 +273,6 @@ function bucket(
   }
   return map;
 }
-
-/** Group sources two levels deep: by `axis`, then by its secondary sub-axis. */
-function groupTwoLevel(
-  sources: ReadonlyArray<Source>,
-  axis: Axis,
-  freshOf: ReadonlyMap<string, FreshnessState>,
-): ReadonlyArray<Group> {
-  const primary = levelSpec(axis, freshOf);
-  const secondary = levelSpec(SECONDARY[axis], freshOf);
-
-  const byPrimary = bucket(sources, primary.keyOf);
-  return primary.order([...byPrimary.keys()]).map((key) => {
-    const items = byPrimary.get(key)!;
-    const bySub = bucket(items, secondary.keyOf);
-    const subs = secondary.order([...bySub.keys()]).map((sk) => ({
-      key: sk,
-      label: secondary.label(sk),
-      items: bySub.get(sk)!.toSorted((a, b) => a.title.localeCompare(b.title)),
-    }));
-    return { key, label: primary.label(key), dot: primary.dot?.(key), count: items.length, subs };
-  });
-}
-
-function axisNoun(axis: Axis): string {
-  return axis === "class"
-    ? "classes"
-    : axis === "steward"
-      ? "stewards"
-      : axis === "authority"
-        ? "authority levels"
-        : "freshness bands";
-}
-
-function toggle<T>(set: ReadonlySet<T>, value: T): ReadonlySet<T> {
-  const next = new Set(set);
-  if (next.has(value)) next.delete(value);
-  else next.add(value);
-  return next;
-}
-
-/* -------------------------------------------------------------------------- *
- * Controls
- * -------------------------------------------------------------------------- */
 
 function Segment({
   active,
@@ -406,27 +301,14 @@ function Segment({
   );
 }
 
-function FacetRow({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
-      <span className="w-[68px] shrink-0 font-mono text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
-        {label}
-      </span>
-      {children}
-    </div>
-  );
-}
-
 function Chip({
   active,
   onClick,
-  dot,
   count,
   children,
 }: {
   active: boolean;
   onClick: () => void;
-  dot?: string;
   count: number;
   children: React.ReactNode;
 }) {
@@ -436,50 +318,49 @@ function Chip({
       aria-pressed={active}
       onClick={onClick}
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[12px] transition-colors",
+        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[12px] font-medium transition-colors",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         active
           ? "border-brand-ink/30 bg-brand-tint/60 font-semibold text-brand-ink"
-          : "border-border text-muted-foreground hover:border-border-strong hover:text-foreground",
+          : "border-border bg-card text-foreground hover:border-border-strong hover:bg-muted",
       )}
     >
-      {dot ? <span aria-hidden className={cn("size-2 shrink-0 rounded-full", dot)} /> : null}
       {children}
       <span className="font-mono text-[10px] tabular-nums opacity-70">{count}</span>
     </button>
   );
 }
 
-function ClassRow({ source }: { source: Source }) {
+function toggle<T>(set: ReadonlySet<T>, value: T): ReadonlySet<T> {
+  const next = new Set(set);
+  if (next.has(value)) next.delete(value);
+  else next.add(value);
+  return next;
+}
+
+/** A source row: the clean subject name + a restricted lock when applicable. */
+function SourceRow({ source }: { source: Source }) {
   return (
     <Link
       to="/sources/$sourceId"
       params={{ sourceId: source.id }}
       className={cn(
-        "group flex h-full flex-col gap-1.5 rounded-[4px] px-3 py-2.5",
+        "group flex items-center justify-between gap-2 rounded-[4px] px-3 py-2",
         "transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
       )}
     >
-      <span className="flex items-start justify-between gap-2">
-        <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <span className="text-[13.5px] font-bold tracking-[-0.01em] text-foreground group-hover:text-brand-ink">
-            {source.title}
-          </span>
-          {source.visibility === "restricted" ? (
-            <IconLock aria-hidden className="size-3 text-muted-foreground" />
-          ) : null}
+      <span className="flex min-w-0 items-center gap-2">
+        <span className="truncate text-[13.5px] font-semibold tracking-[-0.01em] text-foreground group-hover:text-brand-ink">
+          {subjectName(source)}
         </span>
-        <IconArrowRight
-          aria-hidden
-          className="mt-0.5 size-3.5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-brand-ink"
-        />
+        {source.visibility === "restricted" ? (
+          <IconLock aria-hidden className="size-3 shrink-0 text-muted-foreground" />
+        ) : null}
       </span>
-      <code className="font-mono text-[10.5px] text-muted-foreground">{source.id}</code>
-      <span className="flex flex-wrap items-center gap-2">
-        <AuthorityBadge level={source.authority_level} />
-        <FreshnessIndicator source={source} />
-        <span className="font-mono text-[10.5px] text-muted-foreground">{source.steward}</span>
-      </span>
+      <IconArrowRight
+        aria-hidden
+        className="size-3.5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-brand-ink"
+      />
     </Link>
   );
 }

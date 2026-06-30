@@ -1,13 +1,14 @@
-import type { Anchor, Source } from "@atlas/schema";
+import type { Source } from "@atlas/schema";
 import { parse, type HTMLElement } from "node-html-parser";
 import type { ResolutionContext, ResolveResult, ResolverWarning } from "../resolvers/resolverTypes";
 
 /**
  * Live, ACL-aware Confluence Cloud excerpt resolution.
  *
- * Resolves a registered Anchor into an Excerpt by fetching the page from the
- * Confluence Cloud REST v2 API at request time, threading the caller's opaque
- * Bearer token so Confluence's own ACL governs what comes back. Nothing is
+ * Locates a section by slugifying the binding's `heading` (a DEFAULT entry
+ * point, not a fixed address) and scanning the live page's headings at request
+ * time, fetched from the Confluence Cloud REST v2 API and threading the caller's
+ * opaque Bearer token so Confluence's own ACL governs what comes back. Nothing is
  * persisted; the excerpt is ephemeral.
  *
  * Server / Data Center is out of scope — this is a Cloud-only adapter. A
@@ -29,8 +30,8 @@ export type ConfluenceLiveConfig = {
 
 type ConfluenceLiveRequest = {
   source: Source;
-  anchors: Anchor[];
-  anchorId?: string;
+  heading?: string;
+  citationLabel?: string;
   ctx: ResolutionContext;
 };
 
@@ -45,14 +46,15 @@ export async function resolveConfluencePageLive(
   request: ConfluenceLiveRequest,
   config: ConfluenceLiveConfig,
 ): Promise<ResolveResult> {
-  const anchor = selectAnchor(request.anchors, request.anchorId);
-  const locator = anchor ? selectorLocator(anchor) : undefined;
+  // The heading is slugified into a runtime locator; an empty/missing heading
+  // cannot address a section, so it surfaces as a broken anchor.
+  const locator = request.heading ? slugify(request.heading) : undefined;
 
-  if (!anchor || !locator || !isValidLocator(locator)) {
+  if (!locator) {
     return brokenAnchor(
       request.source.id,
-      request.anchorId,
-      "Requested anchor is not registered or has an invalid locator.",
+      undefined,
+      "No section heading was supplied to locate in the live Confluence page.",
     );
   }
 
@@ -65,23 +67,23 @@ export async function resolveConfluencePageLive(
       code: loaded.code,
       message: loaded.message,
       source_id: request.source.id,
-      anchor_id: anchor.id,
+      anchor_id: locator,
     });
   }
 
-  // Extract this anchor's section from the page parsed ONCE per bundle.
+  // Locate the section by heading-slug scan on the page parsed ONCE per bundle.
   const sectionText = extractSectionFromRoot(loaded.root, locator);
 
   if (!sectionText) {
     return brokenAnchor(
       request.source.id,
-      anchor.id,
-      "Registered anchor heading could not be resolved in the live Confluence page.",
+      locator,
+      "Section heading could not be resolved in the live Confluence page.",
     );
   }
 
   const warnings: ResolverWarning[] = [];
-  const driftWarning = driftWarningFor(request.source, loaded.version, anchor.id);
+  const driftWarning = driftWarningFor(request.source, loaded.version, locator);
   if (driftWarning) {
     warnings.push(driftWarning);
   }
@@ -89,12 +91,12 @@ export async function resolveConfluencePageLive(
   return {
     excerpts: [
       {
-        anchor_id: anchor.id,
+        anchor_id: locator,
         text: sectionText,
         citation: {
           source_id: request.source.id,
-          anchor_id: anchor.id,
-          label: anchor.citation_label,
+          anchor_id: locator,
+          label: request.citationLabel ?? request.heading ?? locator,
           location: buildCitationLocation(baseUrl, pageId, loaded.webui, locator),
         },
       },
@@ -182,13 +184,24 @@ export async function fetchConfluenceStorageHtml(
   const baseUrl = config.baseUrl.replace(/\/+$/, "");
   const url = `${baseUrl}/wiki/api/v2/pages/${encodeURIComponent(pageId)}?body-format=storage`;
 
-  const response = await ctx.fetch(url, {
-    method: "GET",
-    headers: {
-      Authorization: confluenceAuthorization(config),
-      Accept: "application/json",
-    },
-  });
+  let response: Awaited<ReturnType<typeof ctx.fetch>>;
+  try {
+    response = await ctx.fetch(url, {
+      method: "GET",
+      headers: {
+        Authorization: confluenceAuthorization(config),
+        Accept: "application/json",
+      },
+    });
+  } catch {
+    // Transport-level failure (DNS, timeout, connection reset). Degrade by
+    // contract; the message stays generic so no URL/token can leak.
+    return {
+      ok: false,
+      code: "source_unavailable",
+      message: "Confluence could not be reached at request time.",
+    };
+  }
 
   if (response.status === 401 || response.status === 403) {
     return {
@@ -212,7 +225,17 @@ export async function fetchConfluenceStorageHtml(
     };
   }
 
-  const page = (await response.json()) as ConfluencePageResponse;
+  let page: ConfluencePageResponse;
+  try {
+    page = (await response.json()) as ConfluencePageResponse;
+  } catch {
+    // Truncated/malformed body. Same generic degradation as a transport failure.
+    return {
+      ok: false,
+      code: "source_unavailable",
+      message: "Confluence returned an unreadable response.",
+    };
+  }
   return {
     ok: true,
     html: page.body?.storage?.value ?? "",
@@ -224,9 +247,10 @@ export async function fetchConfluenceStorageHtml(
 /**
  * Confluence Cloud auth scheme. A personal API token authenticates with Basic
  * (email:token); an OAuth/PAT-style credential uses Bearer. Email presence
- * (ATLAS_CONFLUENCE_EMAIL) selects Basic.
+ * (CONFLUENCE_EMAIL) selects Basic. Exported so the reference-discovery
+ * CQL adapter authenticates identically to these v2 content reads (plan 017).
  */
-function confluenceAuthorization(config: ConfluenceLiveConfig): string {
+export function confluenceAuthorization(config: ConfluenceLiveConfig): string {
   if (config.email) {
     const basic = Buffer.from(`${config.email}:${config.token}`).toString("base64");
     return `Basic ${basic}`;
@@ -272,7 +296,12 @@ function buildCitationLocation(
  * body parses to a root with no headings, so it yields `undefined` as before.
  */
 function extractSectionFromRoot(root: HTMLElement, locator: string): string | undefined {
-  const headings = root.querySelectorAll("h1, h2, h3, h4, h5, h6");
+  // The page's `<h1>` is its title, not a bindable section (same rule discovery
+  // applies when it reads the TOC) — only `<h2>`–`<h6>` are locatable sections.
+  // This also avoids a title/section slug collision (an `<h1>` and an `<h2>` whose
+  // text slugifies identically): matching the title would collect no content (its
+  // next sibling is the section heading) and falsely report a broken anchor.
+  const headings = root.querySelectorAll("h2, h3, h4, h5, h6");
   const match = headings.find((heading) => slugify(heading.text) === locator);
   if (!match) {
     return undefined;
@@ -302,22 +331,6 @@ function slugify(value: string): string {
     .trim()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
-}
-
-function isValidLocator(locator: string): boolean {
-  return locator.length > 0 && !locator.startsWith("#");
-}
-
-function selectorLocator(anchor: Anchor): string | undefined {
-  const locator = anchor.selector.locator;
-  return typeof locator === "string" ? locator : undefined;
-}
-
-function selectAnchor(anchors: Anchor[], anchorId: string | undefined): Anchor | undefined {
-  if (anchorId) {
-    return anchors.find((anchor) => anchor.id === anchorId);
-  }
-  return anchors[0];
 }
 
 function brokenAnchor(

@@ -58,7 +58,7 @@ service token. Acquiring these is out of scope for the runtime-resolution goal.
 
 **Service-token fallback**:
 When no caller token is present, Atlas falls back to a server-side
-`ATLAS_CONFLUENCE_TOKEN`. This token is deliberately **narrow-scoped** (only
+`CONFLUENCE_TOKEN`. This token is deliberately **narrow-scoped** (only
 broadly-readable pages) so the fallback cannot leak content a user could not
 see. If even that is absent, resolution falls back to the offline pilot map.
 
@@ -115,7 +115,7 @@ matrix ([ADR-0009](docs/adr/0009-availability-matrix-resolver.md)).
 _Avoid_: Regions matrix, availability projection (when you mean the governed source).
 
 **Review-decay**:
-The visible aging of a human-curated claim (owner, `authority_level`, source↔topic mapping)
+The visible aging of a human-curated claim (owner, `authority_level`, source↔resource mapping)
 measured per-object as `now − last_reviewed_at` against that object's `review_frequency`, in
 **two stages**: **aging** past ~80% of the frequency, **overdue** past 100%. Derived at
 resolve time (no scanner). The UI shows the claim as unverified rather than asserting it
@@ -134,27 +134,61 @@ private-subnet configuration**: the module README (module owner) ⟷ a platform 
 runbook (platform team), both current, disagreeing.
 _Avoid_: Disagreement, ambiguity; calling current-vs-legacy a conflict.
 
+**Resource**:
+The canonical governed *thing*, addressed `{kind}/{slug}` (e.g. `service/aws/textract`,
+`guardrail/s3-public-access`). It owns **both** its Sections (each Section → [[Source]]/[[Anchor]]
+bindings) **and** its identity/presentation metadata (owner, status, version, entry tools). The
+accepted primary content object of the Portal per
+[ADR-0015](docs/adr/0015-portal-resource-first-ia.md); one canonical address
+shared by Portal and Agent.
+_Avoid_: Projection (the materialized-view connotation 0013/0014 retired), object, entity.
+
+**Topic** (retired):
+The catalog's *former* organizing unit and schema core type. The ADR-0015 resource-first
+collapse is now **complete**: [[Resource]] (`{kind}/{slug}`) is the schema core type, `kind`
+replaced `topic_type`, the `record.topics` field is gone, and the route is
+`/service/$provider/$id`. Per [ADR-0015](docs/adr/0015-portal-resource-first-ia.md) every
+former Topic resolved to exactly one disposition — a [[Resource]], a [[Facet]], or a
+[[Decompose|decomposition]] — and Topic stopped being a content object of its own.
+_Avoid_: Treating Topic as a live content object or current schema type; Category (was a Topic
+attribute, not the Topic itself).
+
+**Facet**:
+A cross-cutting label/view (e.g. `private-networking`, `logging-monitoring`) that **aggregates
+other [[Resource]]s' Sections rather than owning any**. Rendered as a filtered [[Resource]] list
+plus an optional **bounded-concurrency** aggregate of members' Sections — server-orchestrated,
+each block keeping its Resource boundary and [[Citation]]
+([ADR-0014](docs/adr/0014-resource-read-one-core-many-views.md) §2); never a content object or
+endpoint of its own.
+_Avoid_: Area, theme page, topic page (when you mean the page-less cross-cutting filter).
+
+**Decompose**:
+The disposition for an *umbrella* [[Topic]] that is really a **set** (e.g. `serverless-compute`,
+`s3-guardrails`): the Topic itself demotes to a [[Facet]] while its real [[Resource]]s (Lambda; a
+specific guardrail) are split out as their own `{kind}/{slug}` objects.
+_Avoid_: Group, grouping (drags in materialized-view baggage and hides the split-out step).
+
 **Service**:
 A catalog entry for an AWS service Atlas governs (S3, API Gateway, Textract). A presentation
-facet of a [[Topic]] — the schema core type stays `Topic`; "Service" is the catalog's word
-for the AWS-service subset, carried as the `topic_type` value **`service`** (renamed from the
+facet of a [[Resource]] — the schema core type is `Resource`; "Service" is the catalog's word
+for the AWS-service subset, carried as the `kind` value **`service`** (renamed from the
 former `capability`; goal `goal_prompt_capability_to_service_rename.md`). Landing Zones,
-[[Guardrail]]s, and [[Availability]] are **their own surfaces** — sibling `topic_type` values
-`landing-zone` / `guardrail-area`, never labeled Services. The hero slice governs three
+[[Guardrail]]s, and [[Availability]] are **their own surfaces** — sibling `kind` values
+`landing-zone` / `guardrail`, never labeled Services. The hero slice governs three
 Services deep (S3, API Gateway, Textract) in the Federated Landing Zone.
 _Avoid_: **Capability** anywhere — the word is purged from live code, schema, and UI; the
-`topic_type` value is `service`, and the schema type itself is `Topic`. Do not call a Landing
+`kind` value is `service`, and the schema type itself is `Resource`. Do not call a Landing
 Zone or Guardrail a Service.
 
 **Guardrail**:
 A platform rule projected from a **single** policy-document [[Source]] (via an anchor),
-carrying an authority + a **severity** (a governance attribute held on the source↔topic
+carrying an authority + a **severity** (a governance attribute held on the source↔resource
 mapping, not in the source doc). Single-truth: a Guardrail can only go [[stale_source]],
 **never** [[Authority conflict|conflict]]. No dedicated guardrails manifest.
 _Avoid_: Policy, control (when you mean the governed, severity-bearing rule).
 
 **Beyond registered scope**:
-The honest dead-end when no Source is registered for a topic: Atlas says so plainly and
+The honest dead-end when no Source is registered for a resource: Atlas says so plainly and
 offers a path to file [[Feedback]] (missing), never falling back to ungoverned search.
 _Avoid_: Not found, no results, empty state.
 

@@ -1,18 +1,33 @@
-import { describe, expect, it } from "vitest";
-import { ContextBundleResponseSchema, type ContextRequest } from "@atlas/schema";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { ResourceContextResponseSchema } from "@atlas/schema";
 import { handleHttpRequest } from "@atlas/context-layer";
+import { server, setDevDiscoveryEnv } from "@atlas/context-layer/devMocks";
 
 import { createFetchContextApiClient } from "./httpContextApiClient";
 
+// Post-flip (plan 018 G5) the catalog is the OUTPUT of live discovery, so boot
+// the MSW server + point the discovery channels at the fixtures. Reference space
+// stays off: the two-consumer parity proof compares live projections, and
+// reference discovery stamps a per-call timestamp (kept an honest empty list).
+const savedEnv = { ...process.env };
+beforeAll(() => {
+  server.listen({ onUnhandledRequest: "bypass" });
+  setDevDiscoveryEnv(process.env, { referenceSpace: false });
+});
+afterAll(() => {
+  server.close();
+  process.env = savedEnv;
+});
+
 /**
- * Bundle-equivalence proof (ADR-0011): the Portal and an external Skill are two
- * independent Context API consumers that obtain the *same* governed bundle from
- * the same HTTP surface, with no deployed endpoint (the public-safe proof
- * boundary, ADR-0004). The Portal side uses its real client library; the Skill
- * side drives the documented raw-HTTP sequence from SKILL.md by hand (discover
- * the topic, then fetch its context) — so this is genuinely two consumers, not
- * the same client called twice. It also proves the caller Bearer is forwarded
- * when present and never appears in any browser-facing output.
+ * Projection-equivalence proof (ADR-0011): the Portal and an external Skill are
+ * two independent Context API consumers that obtain the *same* governed resource
+ * projection from the same HTTP surface, with no deployed endpoint (the
+ * public-safe proof boundary, ADR-0004). The Portal side uses its real client
+ * library; the Skill side drives the documented raw-HTTP sequence from SKILL.md
+ * by hand (search the resource, then read its context) — so this is genuinely
+ * two consumers, not the same client called twice. It also proves the caller
+ * Bearer is forwarded when present and never appears in browser-facing output.
  */
 
 const BASE_URL = "http://contract.local/api";
@@ -98,8 +113,8 @@ async function rawHttpGet(input: {
 }
 
 /**
- * The literal SKILL.md consumption sequence (ADR-0011): discover the topic id by
- * query, then fetch that topic's context bundle. No Portal client library is
+ * The literal SKILL.md consumption sequence (ADR-0011): resolve the resource id
+ * by name search, then read that resource's context. No Portal client library is
  * involved — this is the path an independent external agent would follow from
  * the published instructions, so the equivalence proof is genuinely two
  * consumers rather than the same client called twice.
@@ -109,30 +124,34 @@ async function consumeViaDocumentedSkillSequence(input: {
   token?: string;
   seen: SeenRequest[];
 }): Promise<unknown> {
-  // Step 1 (SKILL.md): GET /api/topics?query=<terms> -> pick the matching topic id.
-  const discovery = (await rawHttpGet({
-    path: "/api/topics",
+  // Step 1 (SKILL.md): GET /api/resources?query=<terms> -> pick {kind, slug}.
+  const search = (await rawHttpGet({
+    path: "/api/resources",
     query: { query: input.query },
     token: input.token,
     seen: input.seen,
-  })) as { topics?: Array<{ id: string }> };
-  const topicId = discovery.topics?.[0]?.id;
-  if (!topicId) {
-    throw new Error(`No topic discovered for query "${input.query}".`);
+  })) as { items?: Array<{ kind: string; slug: string }> };
+  const match = search.items?.[0];
+  if (!match) {
+    throw new Error(`No resource discovered for query "${input.query}".`);
   }
 
-  // Step 2 (SKILL.md): GET /api/topics/{topic_id}/context -> the bundle.
+  // Step 2 (SKILL.md): GET /api/resources/{kind}/{slug} -> the projection.
   return rawHttpGet({
-    path: `/api/topics/${encodeURIComponent(topicId)}/context`,
+    path: `/api/resources/${encodeURIComponent(match.kind)}/${match.slug}`,
     token: input.token,
     seen: input.seen,
   });
 }
 
-const request: ContextRequest = { topic_id: "aws-textract", disclosure_level: 1 };
+/** Top-level resolvedAt is the moment THIS projection ran, so it differs per
+ *  call; normalize it before asserting two consumers got the same projection. */
+function stripResolvedAt(projection: unknown): unknown {
+  return { ...(projection as Record<string, unknown>), resolvedAt: "x" };
+}
 
 describe("Context API consumer contract", () => {
-  it("the Portal client and the documented Skill HTTP sequence return the same governed bundle", async () => {
+  it("the Portal client and the documented Skill HTTP sequence return the same projection", async () => {
     const portalSeen: SeenRequest[] = [];
     const skillSeen: SeenRequest[] = [];
 
@@ -142,31 +161,32 @@ describe("Context API consumer contract", () => {
       token: CALLER_TOKEN,
       fetch: contextLayerBridge(portalSeen),
     });
-    const portalBundle = await portalClient.getContextBundle({ topic_id: "aws-textract" });
+    const portalProjection = await portalClient.getResourceContext("service", "aws/textract");
 
-    // Skill side: the literal, library-free SKILL.md sequence (discover, then fetch) —
+    // Skill side: the literal, library-free SKILL.md sequence (search, then read) —
     // an independent consumer, not the same client invoked twice.
-    const skillBundle = await consumeViaDocumentedSkillSequence({
+    const skillProjection = await consumeViaDocumentedSkillSequence({
       query: "textract",
       token: CALLER_TOKEN,
       seen: skillSeen,
     });
 
-    // Both bundles validate against the shared schema...
-    expect(ContextBundleResponseSchema.parse(portalBundle)).toEqual(portalBundle);
-    expect(ContextBundleResponseSchema.parse(skillBundle)).toEqual(skillBundle);
-    // ...and are byte-identical: one contract, two independent consumers (ADR-0011).
-    expect(skillBundle).toEqual(portalBundle);
+    // Both projections validate against the shared schema...
+    expect(ResourceContextResponseSchema.parse(portalProjection)).toEqual(portalProjection);
+    expect(ResourceContextResponseSchema.parse(skillProjection)).toEqual(skillProjection);
+    // ...and agree once the per-call projection timestamp is normalized: one
+    // contract, two independent consumers (ADR-0011).
+    expect(stripResolvedAt(skillProjection)).toEqual(stripResolvedAt(portalProjection));
 
-    // The Skill discovered the topic before fetching it: two documented GETs.
+    // The Skill searched the resource before reading it: two documented GETs.
     expect(skillSeen.map((seen) => seen.path)).toEqual([
-      "/api/topics",
-      "/api/topics/aws-textract/context",
+      "/api/resources",
+      "/api/resources/service/aws/textract",
     ]);
     // The caller Bearer is forwarded on every documented Skill call...
     expect(skillSeen.every((seen) => seen.authorization === `Bearer ${CALLER_TOKEN}`)).toBe(true);
-    // ...and on the Portal's context call, which hits the same endpoint.
-    expect(portalSeen[0]?.path).toBe("/api/topics/aws-textract/context");
+    // ...and on the Portal's resource call, which hits the same endpoint.
+    expect(portalSeen[0]?.path).toBe("/api/resources/service/aws/textract");
     expect(portalSeen[0]?.authorization).toBe(`Bearer ${CALLER_TOKEN}`);
   });
 
@@ -177,12 +197,12 @@ describe("Context API consumer contract", () => {
       fetch: contextLayerBridge(seen),
     });
 
-    await anonymousClient.getContextBundle(request);
+    await anonymousClient.getResourceContext("service", "aws/textract");
 
     expect(seen[0]?.authorization).toBeUndefined();
   });
 
-  it("never leaks the token into the browser-facing bundle output", async () => {
+  it("never leaks the token into the browser-facing projection output", async () => {
     const seen: SeenRequest[] = [];
     const client = createFetchContextApiClient({
       baseUrl: BASE_URL,
@@ -190,11 +210,9 @@ describe("Context API consumer contract", () => {
       fetch: contextLayerBridge(seen),
     });
 
-    const bundle = await client.getContextBundle(request);
+    const projection = await client.getResourceContext("service", "aws/textract");
 
-    // The bundle is what reaches the browser; the token must not be in it.
-    expect(JSON.stringify(bundle)).not.toContain(CALLER_TOKEN);
-    // And the browser-originated request payload carries no token field.
-    expect(Object.keys(request)).not.toContain("token");
+    // The projection is what reaches the browser; the token must not be in it.
+    expect(JSON.stringify(projection)).not.toContain(CALLER_TOKEN);
   });
 });

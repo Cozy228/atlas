@@ -12,11 +12,9 @@
     }
   },
   "scripts": {
-    "lint": "tsc --noEmit --pretty false",
+    "lint": "oxlint",
     "typecheck": "tsc --noEmit --pretty false",
-    "test": "vitest run",
-    "validate:guidance": "vitest run guidance-manifest",
-    "validate:registry": "vitest run registry-manifest"
+    "test": "vitest run"
   },
   "dependencies": {
     "zod": "4.4.3"

@@ -57,7 +57,7 @@
 - [x] catalog guardrails tab 的卡片/表格行改链到 `/guardrails/$id`；返回链接回到 `?tab=guardrails`
 - 偏差：Rule 为本地 mock（无 schema/API）；RelatedColumn 等共享组件仍链到 `/catalog/$topicId`（未改共享组件，避免波及其它类型）
 - [ ] `/skills`（`routes/skills.index.tsx`）：报告图标暗示有**安装命令 / CLI 片段 UI**（copy / download / terminal）。需 spec：页面布局、skill 数据字段、安装命令展示形式
-- [ ] `/guardrails/$id`（`routes/guardrails.$guardrailId.tsx`）：guardrail 详情（check / shield / x）。schema 已有 `guardrail-area` 概念。需 spec：详情页内容结构
+- [ ] `/guardrails/$id`（`routes/guardrails.$guardrailId.tsx`）：guardrail 详情（check / shield / x）。schema 已有 `security-policy` 概念。需 spec：详情页内容结构
 - [ ] 路由注册进 `routeTree.gen.ts`（生成），导航入口
 
 ---

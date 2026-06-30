@@ -7,7 +7,6 @@ const source: Source = {
   title: "Textract Terraform Module",
   source_class: "terraform-module",
   location: "example/textract/aws",
-  steward: "cloud-platform",
   visibility: "internal",
   authority_scope: ["module-usage", "private-networking"],
   authority_level: "authoritative",
@@ -24,15 +23,6 @@ describe("InMemorySourceRepository", () => {
 
     expect(repository.getById("textract-module-readme")).toEqual(source);
     expect(repository.getById("missing-source")).toBeUndefined();
-  });
-
-  it("queries sources by authority scope without topic embedding", () => {
-    const repository = new InMemorySourceRepository([source]);
-
-    const matches = repository.findByAuthorityScope("private-networking");
-
-    expect(matches).toEqual([source]);
-    expect(matches[0]).not.toHaveProperty("topic_ids");
   });
 
   it("rejects malformed source records", () => {

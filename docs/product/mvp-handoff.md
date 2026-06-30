@@ -49,8 +49,8 @@ items the next session should add.
 - **Current:** `context-layer/src/sourceContent/{confluenceCloudContentProvider,terraformModuleContentProvider}.ts`;
   runbook `../architecture/live-resolution.md`; offline default; mocked-fetch tests pass.
 - **Do:** register a Source whose `location` is a real Confluence page-id / GitHub repo, with an
-  anchor matching a real heading; export `ATLAS_CONFLUENCE_BASE_URL` / `ATLAS_CONFLUENCE_EMAIL` /
-  `ATLAS_CONFLUENCE_TOKEN` and/or `ATLAS_TERRAFORM_TOKEN`; run dev; confirm the cited excerpt comes
+  anchor matching a real heading; export `CONFLUENCE_BASE_URL` / `CONFLUENCE_EMAIL` /
+  `CONFLUENCE_TOKEN` and/or `TERRAFORM_TOKEN`; run dev; confirm the cited excerpt comes
   from the live source. Operator-run (real creds; tokens never committed).
 - **Done =** a real page/README excerpt resolves with a live citation.
 

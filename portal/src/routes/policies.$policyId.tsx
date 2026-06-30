@@ -1,8 +1,12 @@
 import { Link, createFileRoute, notFound } from "@tanstack/react-router";
 import { IconArrowLeft, IconArrowUpRight, IconLink } from "@tabler/icons-react";
-import type { ContextBundleResponse, Topic } from "@atlas/schema";
+import type {
+  ResourceContextResponse,
+  ResourceRecordResponse,
+  ResourceStatus,
+} from "@atlas/schema";
 
-import { contextBundleQueryOptions, topicDiscoveryQueryOptions } from "@/api/queries";
+import { resourceCatalogQueryOptions, resourceContextQueryOptions } from "@/api/queries";
 import { ContextApiError } from "@/api/contextApiError";
 import {
   DetailHeader,
@@ -14,6 +18,8 @@ import { EntryToolsGrid } from "@/components/detail/entry-tools-grid";
 import { EvidenceSection } from "@/components/detail/evidence-section";
 import { RelatedColumn } from "@/components/detail/related-column";
 import { DeferredRegion } from "@/components/deferred-region";
+import { DataNotAvailableForZone } from "@/components/landing-zone/data-not-available";
+import { useCurrentLandingZoneRecord } from "@/components/landing-zone/landing-zone-gate";
 import { FeedbackInlineForm } from "@/components/evidence/feedback-inline-form";
 import { PageBody } from "@/components/page-section";
 import { Badge } from "@/components/ui/badge";
@@ -21,61 +27,78 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
 type LoaderData = {
-  topic: Topic;
-  bundle: Promise<ContextBundleResponse | null>;
-  relatedServices: ReadonlyArray<Topic>;
-  relatedPolicies: ReadonlyArray<Topic>;
-  relatedLandingZones: ReadonlyArray<Topic>;
+  resource: ResourceRecordResponse;
+  projection: Promise<ResourceContextResponse | null>;
+  relatedServices: ReadonlyArray<ResourceRecordResponse>;
+  relatedPolicies: ReadonlyArray<ResourceRecordResponse>;
 };
 
 export const Route = createFileRoute("/policies/$policyId")({
   loader: async ({ context, params }): Promise<LoaderData> => {
-    const topicsResp = await context.queryClient.ensureQueryData(topicDiscoveryQueryOptions);
+    const catalogResp = await context.queryClient.ensureQueryData(resourceCatalogQueryOptions);
 
-    const topic = topicsResp.topics.find(
-      (entry) => entry.id === params.policyId && entry.topic_type === "security-policy",
+    const resource = catalogResp.resources.find(
+      (entry) => entry.slug === params.policyId && entry.kind === "guardrail",
     );
-    if (!topic) {
+    if (!resource) {
       throw notFound();
     }
 
-    // Slow: the live context bundle resolves every cited anchor through the
-    // resolver/parser. Defer it (no await) so navigation is instant and the
-    // "Policy documents" block renders a skeleton until it lands.
-    const bundle = context.queryClient
-      .ensureQueryData(contextBundleQueryOptions({ topic_id: topic.id }))
-      .catch((error: unknown): ContextBundleResponse | null => {
-        if (
-          error instanceof ContextApiError &&
-          (error.code === "topic_not_found" || error.code === "source_not_found")
-        ) {
+    // Policy = a discovered Resource (plan 019): a security policy's governed
+    // documents are a guardrail Resource's Sections, live-resolved + cited. An
+    // unconfigured policy resolves to no Resource and renders an honest gap.
+    // Slow live resolve — defer it so navigation is instant and the "Policy
+    // documents" block renders a skeleton until it lands.
+    const projection = context.queryClient
+      .ensureQueryData(resourceContextQueryOptions({ kind: "guardrail", slug: resource.slug }))
+      .catch((error: unknown): ResourceContextResponse | null => {
+        if (error instanceof ContextApiError && error.code === "resource_not_found") {
           return null;
         }
         throw error;
       });
 
-    const related = topicsResp.topics.filter(
-      (entry) => entry.id !== topic.id && entry.category === topic.category,
+    const related = catalogResp.resources.filter(
+      (entry) => entry.slug !== resource.slug && entry.category === resource.category,
     );
 
     return {
-      topic,
-      bundle,
-      relatedServices: related.filter((entry) => entry.topic_type === "service"),
-      relatedPolicies: related.filter((entry) => entry.topic_type === "security-policy"),
-      relatedLandingZones: related.filter((entry) => entry.topic_type === "landing-zone"),
+      resource,
+      projection,
+      relatedServices: related.filter((entry) => entry.kind === "service"),
+      relatedPolicies: related.filter((entry) => entry.kind === "guardrail"),
     };
   },
   component: PolicyDetailRoute,
 });
 
 function PolicyDetailRoute() {
-  const { topic, bundle, relatedServices, relatedPolicies, relatedLandingZones } =
-    Route.useLoaderData();
+  const { resource, projection, relatedServices, relatedPolicies } = Route.useLoaderData();
+  const landingZone = useCurrentLandingZoneRecord();
 
-  const primaryTool = topic.entry_tools[0];
-  const hasRelationships =
-    relatedServices.length > 0 || relatedPolicies.length > 0 || relatedLandingZones.length > 0;
+  const entryTools = resource.entry_tools ?? [];
+  const primaryTool = entryTools[0];
+  const hasRelationships = relatedServices.length > 0 || relatedPolicies.length > 0;
+
+  // Per-LZ honesty (plan 021 C2, ADR-0006): an unwired landing zone shows the
+  // honest dead-end here too, never the default zone's policy.
+  if (landingZone?.dataStatus === "not-available") {
+    return (
+      <PageBody width="comfortable" gap="compact">
+        <Link
+          to="/catalog"
+          search={{ tab: "policies" }}
+          className={cn(
+            "inline-flex w-fit items-center gap-1.5 rounded-sm text-xs font-medium text-muted-foreground transition-colors",
+            "hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          )}
+        >
+          <IconArrowLeft className="size-3.5" aria-hidden /> Back to security policies
+        </Link>
+        <DataNotAvailableForZone zoneName={landingZone.name} surface="policy" />
+      </PageBody>
+    );
+  }
 
   return (
     <PageBody width="comfortable" gap="compact">
@@ -92,18 +115,18 @@ function PolicyDetailRoute() {
       </Link>
 
       <DetailHeader
-        eyebrow={`Security policy · ${topic.category}`}
-        title={topic.name}
-        description={topic.description}
-        badges={<StatusBadge status={topic.status} />}
+        eyebrow={`Security policy · ${resource.category ?? "Security"}`}
+        title={resource.name}
+        description={resource.description}
+        badges={<StatusBadge status={resource.status} />}
       />
 
       <DetailLayout
         main={
           <>
-            {topic.entry_tools.length > 0 ? (
+            {entryTools.length > 0 ? (
               <DetailSection title="Entry tools">
-                <EntryToolsGrid tools={topic.entry_tools} />
+                <EntryToolsGrid tools={entryTools} />
               </DetailSection>
             ) : null}
 
@@ -111,13 +134,10 @@ function PolicyDetailRoute() {
               <DetailSection title="Related catalog">
                 <div className="grid gap-3 sm:grid-cols-2">
                   {relatedServices.length > 0 ? (
-                    <RelatedColumn title="Services" topics={relatedServices} />
+                    <RelatedColumn title="Services" resources={relatedServices} />
                   ) : null}
                   {relatedPolicies.length > 0 ? (
-                    <RelatedColumn title="Security policies" topics={relatedPolicies} />
-                  ) : null}
-                  {relatedLandingZones.length > 0 ? (
-                    <RelatedColumn title="Landing zones" topics={relatedLandingZones} />
+                    <RelatedColumn title="Security policies" resources={relatedPolicies} />
                   ) : null}
                 </div>
               </DetailSection>
@@ -128,38 +148,39 @@ function PolicyDetailRoute() {
              * hand-maintained rule list to drift from the source of record. */}
             <DetailSection title="Policy documents">
               <DeferredRegion
-                promise={bundle}
+                promise={projection}
                 fallback={<EvidenceSkeleton />}
                 label="the policy documents"
                 retry
               >
                 {(resolved) =>
                   resolved ? (
-                    <EvidenceSection bundle={resolved} />
+                    <EvidenceSection projection={resolved} />
                   ) : (
                     <div className="rounded-lg border border-dashed border-border bg-card p-3.5 text-xs text-muted-foreground">
-                      No registered policy documents resolved. Use feedback below to suggest one.
+                      No governed policy documents are configured for this policy yet. Use feedback
+                      below to suggest a source.
                     </div>
                   )
                 }
               </DeferredRegion>
             </DetailSection>
 
-            <DetailSection title="Help Atlas stay accurate">
-              <FeedbackInlineForm target={{ target_type: "topic", target_id: topic.id }} />
+            <DetailSection title="Help us keep this accurate">
+              <FeedbackInlineForm target={{ target_type: "resource", target_id: resource.id }} />
             </DetailSection>
           </>
         }
         side={
-          <DeferredRegion promise={bundle} fallback={<MetaCardSkeleton />} label="the details">
+          <DeferredRegion promise={projection} fallback={<MetaCardSkeleton />} label="the details">
             {() => (
               <DetailMetaCard
                 items={[
-                  { label: "Status", value: topic.status },
-                  { label: "Domain", value: topic.category },
-                  { label: "Owner", value: topic.owner_team },
-                  { label: "Support", value: topic.support_channel },
-                  { label: "ID", value: topic.id },
+                  { label: "Status", value: resource.status ?? "—" },
+                  { label: "Domain", value: resource.category ?? "—" },
+                  { label: "Owner", value: resource.owner_team ?? "—" },
+                  { label: "Support", value: resource.support_channel ?? "—" },
+                  { label: "ID", value: resource.slug },
                 ]}
                 actions={
                   <>
@@ -177,7 +198,7 @@ function PolicyDetailRoute() {
                         <IconArrowUpRight className="size-3.5" />
                       </a>
                     ) : null}
-                    {topic.entry_tools.slice(1, 3).map((tool) => (
+                    {entryTools.slice(1, 3).map((tool) => (
                       <a
                         key={tool.url}
                         href={tool.url}
@@ -205,10 +226,10 @@ function PolicyDetailRoute() {
   );
 }
 
-function StatusBadge({ status }: { status: Topic["status"] }) {
+function StatusBadge({ status }: { status?: ResourceStatus }) {
   const variant: React.ComponentProps<typeof Badge>["variant"] =
     status === "deprecated" ? "critical" : status === "planned" ? "info" : "success";
-  return <Badge variant={variant}>{status}</Badge>;
+  return <Badge variant={variant}>{status ?? "—"}</Badge>;
 }
 
 /** Placeholder for the deferred "Policy documents" block — mirrors the collapsed

@@ -9,9 +9,11 @@
  * here because the mainline route keeps them private — the mainline file is
  * not modified.
  *
- * Services, landing zones, and security policies all link to their detail
- * routes (`/catalog/$topicId`, `/policies/$policyId`). Sources are their
- * own surface at `/sources`, so the catalog carries no Sources tab.
+ * The catalog renders discovered Resources (kind=service / kind=guardrail):
+ * the type tabs are `resource.kind`, the facet rail is `resource.category`.
+ * Services link to their canonical Resource address (`/service/$provider/$id`);
+ * security policies keep `/policies/$policyId`. Sources are their own surface
+ * at `/sources`, so the catalog carries no Sources tab.
  */
 import { useCallback, useDeferredValue, useMemo, useState, type MouseEvent } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
@@ -22,11 +24,11 @@ import {
   IconLayoutGrid,
   IconTable,
 } from "@tabler/icons-react";
-import type { Topic } from "@atlas/schema";
+import type { ResourceRecordResponse, ResourceStatus } from "@atlas/schema";
 
 import type {
   AvailabilityRecord,
-  LandingZoneData,
+  LandingZoneAvailability,
   Location,
   LocationStatus,
 } from "@/api/server/availability";
@@ -43,28 +45,40 @@ import {
   PopoverTitle,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { findAvailabilityServiceForTopic } from "@/lib/availability-service";
+import {
+  findAvailabilityServiceForResource,
+  serviceRouteParamsForResource,
+} from "@/lib/availability-service";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DeferredRegion } from "@/components/deferred-region";
 import { cn } from "@/lib/utils";
 
 type ViewMode = "cards" | "table";
-type AdoptedTab = "services" | "landing-zones" | "policies";
+type AdoptedTab = "services" | "policies";
+
+/** The catalog renders services and security-policy guardrails. */
+type CatalogKind = "service" | "guardrail";
+type CatalogResource = ResourceRecordResponse;
 
 export function CatalogAdopted({
-  topics,
+  resources,
   zone,
 }: {
-  topics: ReadonlyArray<Topic>;
-  zone: Promise<LandingZoneData>;
+  resources: ReadonlyArray<CatalogResource>;
+  zone: Promise<LandingZoneAvailability>;
 }) {
   const [tab, setTab] = useState<AdoptedTab>("services");
   const [query, setQuery] = useState("");
-  const [view, setView] = useState<ViewMode>("cards");
+  // Per-tab layout: services read best as cards (icon + availability), security
+  // policies as a table (uniform metadata, no per-card art). Each tab remembers
+  // its own choice.
+  const [serviceView, setServiceView] = useState<ViewMode>("cards");
+  const [policyView, setPolicyView] = useState<ViewMode>("table");
+  const view = tab === "policies" ? policyView : serviceView;
+  const setView = tab === "policies" ? setPolicyView : setServiceView;
 
-  const serviceTopics = topics.filter((topic) => topic.topic_type === "service");
-  const landingZones = topics.filter((topic) => topic.topic_type === "landing-zone");
-  const securityPolicies = topics.filter((topic) => topic.topic_type === "security-policy");
+  const serviceResources = resources.filter((resource) => resource.kind === "service");
+  const securityPolicies = resources.filter((resource) => resource.kind === "guardrail");
 
   return (
     <div className="flex flex-col gap-6">
@@ -74,14 +88,14 @@ export function CatalogAdopted({
             Catalog
           </h1>
           <p className="w-fit max-w-[60ch] bg-background text-[13.5px] leading-[1.55] text-muted-foreground">
-            Approved services, landing zones, and security policies, with where they run and the
-            authoritative sources behind them.
+            Approved services and security policies, with where they run and the governed sources
+            behind them.
           </p>
         </header>
         <CatalogSearchField
           value={query}
           onChange={setQuery}
-          placeholder="Filter services, zones, policies…"
+          placeholder="Filter services, policies…"
           className="h-10 w-full rounded-md shadow-none sm:max-w-[420px]"
         />
       </div>
@@ -90,15 +104,9 @@ export function CatalogAdopted({
         <div role="tablist" aria-label="Catalog type" className="flex gap-0.5">
           <TypeTab
             label="Services"
-            count={serviceTopics.length}
+            count={serviceResources.length}
             active={tab === "services"}
             onSelect={() => setTab("services")}
-          />
-          <TypeTab
-            label="Landing zones"
-            count={landingZones.length}
-            active={tab === "landing-zones"}
-            onSelect={() => setTab("landing-zones")}
           />
           <TypeTab
             label="Security policies"
@@ -133,27 +141,18 @@ export function CatalogAdopted({
           {(resolvedZone) => (
             <>
               {tab === "services" ? (
-                <TopicWorkspace
+                <ResourceWorkspace
                   type="service"
-                  topics={serviceTopics}
-                  zone={resolvedZone}
-                  query={query}
-                  view={view}
-                />
-              ) : null}
-              {tab === "landing-zones" ? (
-                <TopicWorkspace
-                  type="landing-zone"
-                  topics={landingZones}
+                  resources={serviceResources}
                   zone={resolvedZone}
                   query={query}
                   view={view}
                 />
               ) : null}
               {tab === "policies" ? (
-                <TopicWorkspace
-                  type="security-policy"
-                  topics={securityPolicies}
+                <ResourceWorkspace
+                  type="guardrail"
+                  resources={securityPolicies}
                   zone={resolvedZone}
                   query={query}
                   view={view}
@@ -248,85 +247,89 @@ function capAvailStatus(
 }
 
 /* -------------------------------------------------------------------------- */
-/*  Topic workspace: facet rail + cards/table                                 */
+/*  Resource workspace: facet rail + cards/table                              */
 /* -------------------------------------------------------------------------- */
 
-const TYPE_NOUN: Record<Topic["topic_type"], string> = {
+const TYPE_NOUN: Record<CatalogKind, string> = {
   service: "services",
-  "landing-zone": "landing zones",
-  "security-policy": "security policies",
+  guardrail: "security policies",
 };
 
-const TYPE_COLUMN: Record<Topic["topic_type"], string> = {
+const TYPE_COLUMN: Record<CatalogKind, string> = {
   service: "Service",
-  "landing-zone": "Landing zone",
-  "security-policy": "Security policy",
+  guardrail: "Security policy",
 };
 
-const TOPIC_STATUS_LABEL: Record<Topic["status"], string> = {
+const STATUS_LABEL: Record<ResourceStatus, string> = {
   active: "Active",
   planned: "Planned",
   deprecated: "Deprecated",
 };
 
-function TopicWorkspace({
+function ResourceWorkspace({
   type,
-  topics,
+  resources,
   zone,
   query,
   view,
 }: {
-  type: Topic["topic_type"];
-  topics: ReadonlyArray<Topic>;
-  zone: LandingZoneData;
+  type: CatalogKind;
+  resources: ReadonlyArray<CatalogResource>;
+  zone: LandingZoneAvailability;
   query: string;
   view: ViewMode;
 }) {
   const isService = type === "service";
-  // Defer the text filter so typing stays responsive over large topic lists.
+  // Defer the text filter so typing stays responsive over large resource lists.
   const deferredQuery = useDeferredValue(query);
   const [domains, setDomains] = useState<ReadonlySet<string>>(new Set());
   const [status, setStatus] = useState("all");
   const [region, setRegion] = useState("all");
 
-  const serviceById = useMemo(() => {
+  const serviceBySlug = useMemo(() => {
     const map = new Map<string, AvailabilityRecord | null>();
-    for (const topic of topics) {
-      map.set(topic.id, findAvailabilityServiceForTopic(topic, zone.services));
+    for (const resource of resources) {
+      map.set(resource.slug, findAvailabilityServiceForResource(resource, zone.services));
     }
     return map;
-  }, [topics, zone.services]);
+  }, [resources, zone.services]);
 
   const serviceFor = useCallback(
-    (topic: Topic): AvailabilityRecord | null => serviceById.get(topic.id) ?? null,
-    [serviceById],
+    (resource: CatalogResource): AvailabilityRecord | null =>
+      serviceBySlug.get(resource.slug) ?? null,
+    [serviceBySlug],
   );
 
   const filtered = useMemo(() => {
     const q = deferredQuery.trim().toLowerCase();
-    return topics.filter((topic) => {
+    return resources.filter((resource) => {
       if (q) {
-        const haystack = [topic.name, topic.description, topic.category, topic.owner_team]
+        const haystack = [
+          resource.name,
+          resource.description,
+          resource.category,
+          resource.owner_team,
+        ]
           .join(" ")
           .toLowerCase();
         if (!haystack.includes(q)) return false;
       }
-      if (domains.size && !domains.has(topic.category)) return false;
+      if (domains.size && (!resource.category || !domains.has(resource.category))) return false;
       if (isService) {
-        const service = serviceById.get(topic.id) ?? null;
+        const service = serviceBySlug.get(resource.slug) ?? null;
         if (region !== "all") {
           const cell = service?.availability[region]?.status;
           if (cell == null || cell === "not-planned") return false;
         }
         if (status !== "all" && capAvailStatus(service, zone.locations) !== status) return false;
-      } else if (status !== "all" && topic.status !== status) {
+      } else if (status !== "all" && resource.status !== status) {
         return false;
       }
       return true;
     });
-  }, [topics, deferredQuery, domains, status, region, isService, serviceById, zone.locations]);
+  }, [resources, deferredQuery, domains, status, region, isService, serviceBySlug, zone.locations]);
 
-  const domainOptions = useMemo(() => buildDomainOptions(topics), [topics]);
+  const domainOptions = useMemo(() => buildDomainOptions(resources), [resources]);
   const statusOptions = useMemo<ReadonlyArray<StatusOption>>(
     () =>
       isService
@@ -334,8 +337,8 @@ function TopicWorkspace({
             { value: "available", label: "Available" },
             { value: "planned", label: "Planned" },
           ]
-        : buildTopicStatusOptions(topics),
-    [isService, topics],
+        : buildPolicyStatusOptions(resources),
+    [isService, resources],
   );
 
   const dirty = domains.size > 0 || status !== "all" || region !== "all";
@@ -374,9 +377,9 @@ function TopicWorkspace({
         ) : (
           <div key={view}>
             {view === "cards" ? (
-              <CardsView type={type} topics={filtered} zone={zone} serviceFor={serviceFor} />
+              <CardsView type={type} resources={filtered} zone={zone} serviceFor={serviceFor} />
             ) : (
-              <TableView type={type} topics={filtered} zone={zone} serviceFor={serviceFor} />
+              <TableView type={type} resources={filtered} zone={zone} serviceFor={serviceFor} />
             )}
           </div>
         )}
@@ -541,32 +544,32 @@ function FacetRadio({
 /*  Cards view                                                                */
 /* -------------------------------------------------------------------------- */
 
-type ServiceLookup = (topic: Topic) => AvailabilityRecord | null;
+type ServiceLookup = (resource: CatalogResource) => AvailabilityRecord | null;
 
 function CardsView({
   type,
-  topics,
+  resources,
   zone,
   serviceFor,
 }: {
-  type: Topic["topic_type"];
-  topics: ReadonlyArray<Topic>;
-  zone: LandingZoneData;
+  type: CatalogKind;
+  resources: ReadonlyArray<CatalogResource>;
+  zone: LandingZoneAvailability;
   serviceFor: ServiceLookup;
 }) {
   if (type === "service") {
-    const grouped = groupByCategory(topics);
+    const grouped = groupByCategory(resources);
     return (
       <div className="flex flex-col gap-8">
         {grouped.map(([category, items]) => (
           <section key={category} className="flex flex-col gap-3">
             <CategoryHeader category={category} count={items.length} />
             <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
-              {items.map((topic) => (
+              {items.map((resource) => (
                 <ServiceCard
-                  key={topic.id}
-                  topic={topic}
-                  service={serviceFor(topic)}
+                  key={resource.slug}
+                  resource={resource}
+                  service={serviceFor(resource)}
                   locations={zone.locations}
                 />
               ))}
@@ -577,12 +580,12 @@ function CardsView({
     );
   }
 
-  const sorted = topics.toSorted((a, b) => a.name.localeCompare(b.name));
+  const sorted = resources.toSorted((a, b) => a.name.localeCompare(b.name));
   return (
     <ul className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
-      {sorted.map((topic) => (
-        <li key={topic.id}>
-          <TopicCard topic={topic} />
+      {sorted.map((resource) => (
+        <li key={resource.slug}>
+          <PolicyCard resource={resource} />
         </li>
       ))}
     </ul>
@@ -595,21 +598,24 @@ function CardsView({
 
 function TableView({
   type,
-  topics,
+  resources,
   zone,
   serviceFor,
 }: {
-  type: Topic["topic_type"];
-  topics: ReadonlyArray<Topic>;
-  zone: LandingZoneData;
+  type: CatalogKind;
+  resources: ReadonlyArray<CatalogResource>;
+  zone: LandingZoneAvailability;
   serviceFor: ServiceLookup;
 }) {
   const navigate = useNavigate();
-  const open = (topicId: string) => {
-    if (type === "security-policy") {
-      void navigate({ to: "/policies/$policyId", params: { policyId: topicId } });
+  const open = (resource: CatalogResource) => {
+    if (type === "guardrail") {
+      void navigate({ to: "/policies/$policyId", params: { policyId: resource.slug } });
     } else {
-      void navigate({ to: "/catalog/$topicId", params: { topicId } });
+      void navigate({
+        to: "/service/$provider/$id",
+        params: serviceRouteParamsForResource(resource),
+      });
     }
   };
 
@@ -627,38 +633,38 @@ function TableView({
           </tr>
         </thead>
         <tbody>
-          {topics.map((topic) => (
+          {resources.map((resource) => (
             <tr
-              key={topic.id}
-              onClick={() => open(topic.id)}
+              key={resource.slug}
+              onClick={() => open(resource)}
               className="group cursor-pointer border-t border-border bg-card transition-colors hover:bg-muted/60"
             >
               <Td>
                 <div className="flex items-center gap-2.5">
-                  <TableServiceIcon topic={topic} service={serviceFor(topic)} />
+                  <TableServiceIcon resource={resource} service={serviceFor(resource)} />
                   <span className="flex min-w-0 flex-col">
-                    <TopicNameLink topic={topic} type={type} />
+                    <ResourceNameLink resource={resource} type={type} />
                     <span className="truncate font-mono type-caption text-muted-foreground">
-                      {topic.id}
+                      {resource.slug}
                     </span>
                   </span>
                 </div>
               </Td>
-              <Td className="text-muted-foreground">{topic.category}</Td>
+              <Td className="text-muted-foreground">{resource.category}</Td>
               <Td>
                 {type === "service" ? (
                   <AvailabilityStatusCell
-                    topic={topic}
-                    service={serviceFor(topic)}
+                    resource={resource}
+                    service={serviceFor(resource)}
                     locations={zone.locations}
                   />
                 ) : (
-                  <TopicStatusChip status={topic.status} />
+                  <PolicyStatusChip status={resource.status} />
                 )}
               </Td>
-              <Td className="text-foreground">{topic.owner_team}</Td>
+              <Td className="text-foreground">{resource.owner_team ?? "—"}</Td>
               <Td className="font-mono type-caption text-muted-foreground">
-                {topic.support_channel}
+                {resource.support_channel ?? "—"}
               </Td>
               <Td className="text-center text-muted-foreground">
                 <IconArrowRight className="inline size-3.5 transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />
@@ -671,30 +677,30 @@ function TableView({
   );
 }
 
-function TopicNameLink({ topic, type }: { topic: Topic; type: Topic["topic_type"] }) {
+function ResourceNameLink({ resource, type }: { resource: CatalogResource; type: CatalogKind }) {
   const className =
     "truncate font-semibold text-foreground focus-visible:underline focus-visible:outline-none";
   const stop = (event: MouseEvent<HTMLAnchorElement>) => event.stopPropagation();
-  if (type === "security-policy") {
+  if (type === "guardrail") {
     return (
       <Link
         to="/policies/$policyId"
-        params={{ policyId: topic.id }}
+        params={{ policyId: resource.slug }}
         onClick={stop}
         className={className}
       >
-        {topic.name}
+        {resource.name}
       </Link>
     );
   }
   return (
     <Link
-      to="/catalog/$topicId"
-      params={{ topicId: topic.id }}
+      to="/service/$provider/$id"
+      params={serviceRouteParamsForResource(resource)}
       onClick={stop}
       className={className}
     >
-      {topic.name}
+      {resource.name}
     </Link>
   );
 }
@@ -718,16 +724,16 @@ function Td({ children, className }: { children?: React.ReactNode; className?: s
 }
 
 function TableServiceIcon({
-  topic,
+  resource,
   service,
 }: {
-  topic: Topic;
+  resource: CatalogResource;
   service: AvailabilityRecord | null;
 }) {
   return service ? (
     <ServiceIcon serviceId={service.id} size="sm" />
   ) : (
-    <ServiceIconFallback serviceId={topic.id} size="sm" />
+    <ServiceIconFallback serviceId={resource.slug} size="sm" />
   );
 }
 
@@ -736,11 +742,11 @@ function TableServiceIcon({
 /* -------------------------------------------------------------------------- */
 
 function AvailabilityStatusCell({
-  topic,
+  resource,
   service,
   locations,
 }: {
-  topic: Topic;
+  resource: CatalogResource;
   service: AvailabilityRecord | null;
   locations: ReadonlyArray<Location>;
 }) {
@@ -752,7 +758,7 @@ function AvailabilityStatusCell({
       <PopoverTrigger
         className="inline-flex items-center gap-1.5 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         onClick={(event: React.MouseEvent) => event.stopPropagation()}
-        aria-label={`Availability for ${topic.name}, by region`}
+        aria-label={`Availability for ${resource.name}, by region`}
       >
         <ServiceStatusChip status={status} regionCount={active.length} />
         <IconChevronDown className="size-3 text-muted-foreground" aria-hidden />
@@ -829,12 +835,12 @@ function ServiceStatusChip({
   return <Badge variant="neutral">No availability yet</Badge>;
 }
 
-function TopicStatusChip({ status }: { status: Topic["status"] }) {
+function PolicyStatusChip({ status }: { status?: ResourceStatus }) {
   const variant = status === "deprecated" ? "critical" : status === "planned" ? "info" : "success";
   return (
     <Badge variant={variant}>
       <span aria-hidden className="size-[5px] rounded-full bg-current" />
-      {TOPIC_STATUS_LABEL[status]}
+      {status ? STATUS_LABEL[status] : "—"}
     </Badge>
   );
 }
@@ -843,29 +849,35 @@ function TopicStatusChip({ status }: { status: Topic["status"] }) {
 /*  Shared building blocks                                                    */
 /* -------------------------------------------------------------------------- */
 
-function buildDomainOptions(topics: ReadonlyArray<Topic>): ReadonlyArray<DomainOption> {
+function buildDomainOptions(
+  resources: ReadonlyArray<CatalogResource>,
+): ReadonlyArray<DomainOption> {
   const counts = new Map<string, number>();
-  for (const topic of topics) {
-    counts.set(topic.category, (counts.get(topic.category) ?? 0) + 1);
+  for (const resource of resources) {
+    const category = resource.category ?? "Uncategorized";
+    counts.set(category, (counts.get(category) ?? 0) + 1);
   }
   return [...counts.entries()]
     .map(([value, count]) => ({ value, count }))
     .toSorted((a, b) => a.value.localeCompare(b.value));
 }
 
-function buildTopicStatusOptions(topics: ReadonlyArray<Topic>): ReadonlyArray<StatusOption> {
-  const present = new Set(topics.map((topic) => topic.status));
+function buildPolicyStatusOptions(
+  resources: ReadonlyArray<CatalogResource>,
+): ReadonlyArray<StatusOption> {
+  const present = new Set(resources.map((resource) => resource.status).filter(Boolean));
   return (["active", "planned", "deprecated"] as const)
     .filter((value) => present.has(value))
-    .map((value) => ({ value, label: TOPIC_STATUS_LABEL[value] }));
+    .map((value) => ({ value, label: STATUS_LABEL[value] }));
 }
 
-function groupByCategory(topics: ReadonlyArray<Topic>) {
-  const map = new Map<string, Topic[]>();
-  for (const topic of topics) {
-    const list = map.get(topic.category);
-    if (list) list.push(topic);
-    else map.set(topic.category, [topic]);
+function groupByCategory(resources: ReadonlyArray<CatalogResource>) {
+  const map = new Map<string, CatalogResource[]>();
+  for (const resource of resources) {
+    const category = resource.category ?? "Uncategorized";
+    const list = map.get(category);
+    if (list) list.push(resource);
+    else map.set(category, [resource]);
   }
   return [...map.entries()]
     .map(([key, items]) => [key, items.toSorted((a, b) => a.name.localeCompare(b.name))] as const)
@@ -894,27 +906,29 @@ const CARD_BASE = cn(
   "after:pointer-events-none after:absolute after:bottom-[-1px] after:right-[-1px] after:size-[7px] after:border-b after:border-r after:border-primary/50 after:content-['']",
 );
 
-function CardHead({ icon, title, slug }: { icon: React.ReactNode; title: string; slug: string }) {
+function CardHead({ icon, title, slug }: { icon: React.ReactNode; title: string; slug?: string }) {
   return (
-    <div className="flex items-start gap-3">
+    <div className="flex items-center gap-3">
       {icon}
       <div className="flex min-w-0 flex-1 flex-col">
         <p className="truncate text-[15px] font-bold leading-tight tracking-[-0.01em] text-foreground">
           {title}
         </p>
-        <p className="truncate font-mono text-[11px] text-muted-foreground">{slug}</p>
+        {slug ? (
+          <p className="truncate font-mono text-[11px] text-muted-foreground">{slug}</p>
+        ) : null}
       </div>
-      <IconArrowRight className="mt-0.5 size-3.5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />
+      <IconArrowRight className="size-3.5 shrink-0 self-start text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />
     </div>
   );
 }
 
 function ServiceCard({
-  topic,
+  resource,
   service,
   locations,
 }: {
-  topic: Topic;
+  resource: CatalogResource;
   service: AvailabilityRecord | null;
   locations: ReadonlyArray<Location>;
 }) {
@@ -929,16 +943,17 @@ function ServiceCard({
           service ? (
             <ServiceIcon serviceId={service.id} size="xl" />
           ) : (
-            <ServiceIconFallback serviceId={topic.id} size="xl" />
+            <ServiceIconFallback serviceId={resource.slug} size="xl" />
           )
         }
-        title={topic.name}
-        slug={topic.id}
+        title={resource.name}
       />
       <p className="line-clamp-2 min-h-[2.5rem] text-[13px] leading-[1.5] text-muted-foreground">
-        {topic.description}
+        {resource.description ?? "No description available yet."}
       </p>
-      <div className="flex flex-wrap items-center gap-1.5">
+      {/* Region chips sit in the card's footer band (the former support-team
+          slot), so the card closes on where the service runs. */}
+      <div className="mt-auto flex flex-wrap items-center gap-1.5 border-t border-border pt-2.5">
         {visibleChips.map((location) => {
           const cell = service!.availability[location.id]!;
           return (
@@ -957,17 +972,15 @@ function ServiceCard({
           </span>
         ) : null}
       </div>
-      <div className="mt-auto flex items-center justify-between gap-2 border-t border-border pt-2.5 text-[11.5px]">
-        <span className="truncate font-semibold text-foreground">{topic.owner_team}</span>
-        <span className="shrink-0 font-mono text-[11px] text-muted-foreground">
-          {topic.support_channel}
-        </span>
-      </div>
     </>
   );
 
   return (
-    <Link to="/catalog/$topicId" params={{ topicId: topic.id }} className={CARD_BASE}>
+    <Link
+      to="/service/$provider/$id"
+      params={serviceRouteParamsForResource(resource)}
+      className={CARD_BASE}
+    >
       {body}
     </Link>
   );
@@ -1019,50 +1032,24 @@ function RegionChip({
   );
 }
 
-function TopicCard({ topic }: { topic: Topic }) {
+function PolicyCard({ resource }: { resource: CatalogResource }) {
   const content = (
     <>
       <CardHead
-        icon={<ServiceIconFallback serviceId={topic.id} size="xl" />}
-        title={topic.name}
-        slug={topic.id}
+        icon={<ServiceIconFallback serviceId={resource.slug} size="xl" />}
+        title={resource.name}
+        slug={resource.slug}
       />
-      <p className="line-clamp-2 min-h-[2.5rem] text-[13px] leading-[1.5] text-muted-foreground">
-        {topic.description}
+      <p className="line-clamp-3 text-[13px] leading-[1.5] text-muted-foreground">
+        {resource.description ?? "No description available yet."}
       </p>
-      <dl className="mt-auto grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 border-t border-border pt-2.5 text-xs">
-        <DefRow label="Domain" value={topic.category} />
-        <DefRow label="Status" value={topic.status} mono />
-        <DefRow label="Owner" value={topic.owner_team} />
-        <DefRow label="Support" value={topic.support_channel} mono />
-      </dl>
     </>
   );
 
-  if (topic.topic_type === "security-policy") {
-    return (
-      <Link to="/policies/$policyId" params={{ policyId: topic.id }} className={CARD_BASE}>
-        {content}
-      </Link>
-    );
-  }
   return (
-    <Link to="/catalog/$topicId" params={{ topicId: topic.id }} className={CARD_BASE}>
+    <Link to="/policies/$policyId" params={{ policyId: resource.slug }} className={CARD_BASE}>
       {content}
     </Link>
-  );
-}
-
-function DefRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
-  return (
-    <>
-      <dt className="font-mono text-[10.5px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">
-        {label}
-      </dt>
-      <dd className={cn("truncate text-right text-xs text-foreground", mono && "font-mono")}>
-        {value}
-      </dd>
-    </>
   );
 }
 

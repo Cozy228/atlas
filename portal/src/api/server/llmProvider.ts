@@ -1,26 +1,24 @@
-import type { ContextBundleResponse } from "@atlas/schema";
+import type { ResourceContextResponse } from "@atlas/schema";
 import type { LlmAdapter } from "@/ask/askAtlas";
 import { createBedrockClaimsAdapter } from "./bedrockClaimsProvider";
 import { type ClaimsAdapterFetch, createSimulatedClaimsAdapter } from "./claimsLlmShared";
 import { createRaiClaimsAdapter } from "./raiClaimsProvider";
 
 export type ConfiguredClaimsAdapterInput = {
-  bundle: ContextBundleResponse;
+  projection: ResourceContextResponse;
   env?: Record<string, string | undefined>;
   fetch?: ClaimsAdapterFetch;
 };
 
-export function createConfiguredClaimsAdapter(
-  input: ConfiguredClaimsAdapterInput,
-): LlmAdapter {
+export function createConfiguredClaimsAdapter(input: ConfiguredClaimsAdapterInput): LlmAdapter {
   const env = input.env ?? readProcessEnv();
-  const provider = env.ATLAS_LLM_PROVIDER?.toLowerCase();
+  const provider = env.LLM_PROVIDER?.toLowerCase();
 
-  if (provider === "bedrock" || (!provider && env.ATLAS_BEDROCK_MODEL_ID)) {
-    const modelId = requiredEnv(env, "ATLAS_BEDROCK_MODEL_ID");
+  if (provider === "bedrock" || (!provider && env.BEDROCK_MODEL_ID)) {
+    const modelId = requiredEnv(env, "BEDROCK_MODEL_ID");
     return createBedrockClaimsAdapter({
       modelId,
-      region: env.ATLAS_BEDROCK_REGION ?? env.AWS_REGION,
+      region: env.BEDROCK_REGION ?? env.AWS_REGION,
       fetch: input.fetch,
     });
   }
@@ -36,12 +34,10 @@ export function createConfiguredClaimsAdapter(
     });
   }
 
-  return createSimulatedClaimsAdapter(input.bundle);
+  return createSimulatedClaimsAdapter(input.projection);
 }
 
-export {
-  claimResponseSchema,
-} from "./claimsLlmShared";
+export { claimResponseSchema } from "./claimsLlmShared";
 
 export type { BedrockClaimsAdapterInput } from "./bedrockClaimsProvider";
 export { createBedrockClaimsAdapter } from "./bedrockClaimsProvider";

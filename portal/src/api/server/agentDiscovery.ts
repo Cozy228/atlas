@@ -76,7 +76,7 @@ export function buildApiCatalog(origin: string = DEFAULT_PORTAL_ORIGIN) {
 /**
  * llms.txt is DevEx for engineers pointing AI-IDE agents at Atlas — not SEO.
  * It teaches the live-projection resource flow (searchResources →
- * getResourceContext), not the internal Topic model, and is the plain-text
+ * getResourceContext), not an internal registry model, and is the plain-text
  * counterpart of the agent OpenAPI. Every URL here must resolve (proposal §13.2).
  */
 export function buildLlmsTxt(origin: string = DEFAULT_PORTAL_ORIGIN): string {
@@ -121,20 +121,41 @@ A missing or failed section is ABSENCE of data, never a negative answer:
 }
 
 type SitemapInput = {
-  topicIds: ReadonlyArray<string>;
   sourceIds: ReadonlyArray<string>;
   guidanceIds: ReadonlyArray<string>;
-  /** Canonical `{kind}/{slug}` ids for the agent-readable resource pages. */
-  resourceIds?: ReadonlyArray<string>;
+  /** Canonical `{kind}/{slug}` ids from the discovered catalog. Each id drives
+   *  both its HTML detail page (a service → its `/service/...` resource address,
+   *  a security policy → `/policies/...`) and its agent-readable Markdown page. */
+  resourceIds: ReadonlyArray<string>;
 };
 
+/** The crawlable HTML detail path for a canonical `{kind}/{slug}` resource id,
+ *  keyed off the kind prefix. Services link to their Resource address, guardrails
+ *  to /policies; other kinds (landing zones, gone from the catalog, plan 019) have
+ *  no detail page. */
+function resourceDetailPath(id: string): string | null {
+  const [kind, ...rest] = id.split("/");
+  const slug = rest.map(encodeURIComponent).join("/");
+  if (!slug) {
+    return null;
+  }
+  if (kind === "service") {
+    return `/service/${slug}`;
+  }
+  if (kind === "guardrail") {
+    return `/policies/${slug}`;
+  }
+  return null;
+}
+
 /**
- * Canonical, crawlable pages only: catalog/source/guidance browsing plus the
- * agent-readable resource Markdown pages (proposal §12). Mutation flows, the Ask
- * chat, and `/api/*` JSON endpoints are deliberately excluded.
+ * Canonical, crawlable pages only: catalog/source/guidance browsing plus, for
+ * every discovered resource, its HTML detail page and its agent-readable resource
+ * Markdown page (proposal §12). Mutation flows, the Ask chat, and `/api/*` JSON
+ * endpoints are deliberately excluded.
  */
 export function buildSitemapXml(
-  { topicIds, sourceIds, guidanceIds, resourceIds = [] }: SitemapInput,
+  { sourceIds, guidanceIds, resourceIds }: SitemapInput,
   origin: string = DEFAULT_PORTAL_ORIGIN,
 ): string {
   const paths = [
@@ -142,7 +163,7 @@ export function buildSitemapXml(
     "/catalog",
     "/sources",
     "/guidance",
-    ...topicIds.map((id) => `/catalog/${encodeURIComponent(id)}`),
+    ...resourceIds.map(resourceDetailPath).filter((path): path is string => path !== null),
     ...sourceIds.map((id) => `/sources/${encodeURIComponent(id)}`),
     ...guidanceIds.map((id) => `/guidance/${encodeURIComponent(id)}`),
     // {kind}/{slug} ids are pre-encoded path segments; encode each segment, not

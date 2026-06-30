@@ -8,6 +8,12 @@ on:
 permissions:
   contents: read
 
+# Belt & suspenders with the root .npmrc playwright_skip_browser_download: never
+# download Chromium in ANY job — E2E drives an already-installed system browser
+# via the `channel` option (plan 026 decision 2).
+env:
+  PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
+
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -49,3 +55,94 @@ jobs:
 
       - name: Build context-layer Lambda bundle
         run: pnpm --filter @atlas/context-layer build:lambda
+
+  e2e:
+    name: e2e (${{ matrix.os }})
+    needs: verify
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    env:
+      # Edge ships on both GitHub runner images; drive it via the channel — we
+      # NEVER run `playwright install`.
+      PW_CHANNEL: msedge
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      # First: prove the system browser actually launches + closes, so runner-image
+      # drift ("Edge moved / absent") fails fast and legibly, not as a mid-suite timeout.
+      - name: Browser doctor
+        run: pnpm --filter @atlas/e2e e2e:doctor
+
+      - name: E2E (primary — mock-forced dev server)
+        run: pnpm --filter @atlas/e2e e2e
+
+      - name: Upload report + traces
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ matrix.os }}
+          path: |
+            packages/atlas-e2e/playwright-report/
+            packages/atlas-e2e/test-results/
+          retention-days: 7
+
+  # Smoke layer: the REAL prod build, mock-free (badge ABSENT, route-200, SSR, no
+  # JS error). ubuntu-only — responsive/a11y/degraded specs are cross-platform
+  # isomorphic and already run on the windows primary leg, so the prod smoke does
+  # not need a second OS (revisit if a Windows prod-server bug appears).
+  e2e-smoke:
+    name: e2e-smoke (prod build)
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PW_CHANNEL: msedge
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Browser doctor
+        run: pnpm --filter @atlas/e2e e2e:doctor
+
+      # e2e:smoke builds the portal, then runs the mock-free prod-server smoke layer.
+      - name: E2E smoke (prod build, mock-free)
+        run: pnpm --filter @atlas/e2e e2e:smoke
+
+      - name: Upload report + traces
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-smoke
+          path: |
+            packages/atlas-e2e/playwright-report/
+            packages/atlas-e2e/test-results/
+          retention-days: 7

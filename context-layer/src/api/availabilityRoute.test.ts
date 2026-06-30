@@ -1,25 +1,48 @@
-import { describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { AvailabilityReadResponseSchema } from "@atlas/schema";
+import { setDevDiscoveryEnv } from "../devMocks";
 import { handleAvailabilityRequest } from "./availabilityRoute";
 import { handleHttpRequest } from "./httpRoute";
-import {
-  buildContextBundle,
-  createDefaultContextBundleService,
-} from "../services/contextBundleService";
 
 /**
- * The single availability read (plan 014): one cited Context Layer read backs
- * the Portal grid, the MCP tool, and the agent matrix row — all from ONE dataset.
+ * The LZ-aware availability read (plan 014, plan 021 G3): one cited Context Layer
+ * read backs the Portal grid, the MCP tool, and the agent matrix row. The wired
+ * `awsf` landing zone is discovered from its MSW availability page; the unwired
+ * `awsc`/`azure` zones return honest-empty grids (ADR-0006), never another LZ's data.
+ *
+ * Post-flip (plan 018 G5) the availability-matrix Source is itself a discovery
+ * output, so the whole discovery env must be pointed at the fixtures (probing the
+ * service modules over the spine runs as part of building the service).
  */
+const savedEnv = { ...process.env };
+beforeAll(() => setDevDiscoveryEnv());
+afterAll(() => {
+  process.env = savedEnv;
+});
+
 describe("availability read", () => {
-  it("returns both landing zones with the governing availability-matrix Citation", () => {
-    const result = handleAvailabilityRequest();
+  it("returns the landing zones with the governing availability-matrix Citation", async () => {
+    const result = await handleAvailabilityRequest();
     expect(result.status).toBe(200);
 
     const body = AvailabilityReadResponseSchema.parse(result.body);
-    expect(body.zones.map((zone) => zone.id)).toEqual(["aws", "azure"]);
+    // The LZ root drives the zones; `awsf` is wired, `awsc`/`azure` honest-empty.
+    expect(body.zones.map((zone) => zone.id)).toEqual(["awsf", "awsc", "azure"]);
+
+    const awsf = body.zones.find((zone) => zone.id === "awsf")!;
+    expect(awsf.cloud).toBe("aws");
+    expect(awsf.dataStatus).toBe("available");
+    expect(awsf.services.length).toBeGreaterThan(0);
+    expect(awsf.locations.length).toBeGreaterThan(0);
+
+    for (const id of ["awsc", "azure"]) {
+      const zone = body.zones.find((z) => z.id === id)!;
+      expect(zone.dataStatus).toBe("not-available");
+      expect(zone.services).toEqual([]);
+      expect(zone.locations).toEqual([]);
+    }
+
     expect(body.citation.source_id).toBe("availability-matrix");
-    expect(body.citation.location).toContain("Regional+Availability+Matrix");
     // The source is within its P90D review window at the real clock — no drift.
     expect(body.warnings).toEqual([]);
   });
@@ -30,22 +53,6 @@ describe("availability read", () => {
     expect(response.headers["content-type"]).toContain("application/json");
 
     const body = AvailabilityReadResponseSchema.parse(JSON.parse(response.body));
-    expect(body.zones).toHaveLength(2);
-  });
-
-  it("shares ONE dataset with the governed matrix resolver (no second source of facts)", async () => {
-    // The grid read and the agent-facing matrix row must agree cell-for-cell,
-    // because the markdown the resolver parses is projected from this same grid.
-    const read = AvailabilityReadResponseSchema.parse(handleAvailabilityRequest().body);
-    const s3 = read.zones
-      .find((zone) => zone.id === "aws")!
-      .services.find((service) => service.id === "s3")!;
-    expect(s3.availability["us-east-1"]?.status).toBe("available");
-
-    const bundle = await buildContextBundle(createDefaultContextBundleService(), {
-      source_id: "availability-matrix",
-      anchor_id: "availability-s3-us-east-1",
-    });
-    expect(bundle.sources[0]?.excerpts[0]?.text).toBe("S3 is available in us-east-1.");
+    expect(body.zones).toHaveLength(3);
   });
 });

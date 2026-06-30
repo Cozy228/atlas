@@ -15,6 +15,15 @@ const STORAGE_HTML = `
   </ol>
   <p>For this release change CHG0010001 | Change Request</p>
   <p>posted in AWS Federated Platform on 09th May, 2026.</p>
+  <h2>Announcements</h2>
+  <h3>New — Object Storage lifecycle tiering is generally available</h3>
+  <p>Buckets can now tier cold objects to archive storage on a per-prefix schedule.</p>
+  <p>Posted on 11th May, 2026.</p>
+  <p><a href="/catalog">View in catalog</a></p>
+  <h3>Policy — WebAuthn step-up now required for admin scopes</h3>
+  <p>Identity Gateway enforces a hardware step-up before admin tokens are issued.</p>
+  <p>Posted on 7th May, 2026.</p>
+  <p><a href="/sources">Read the policy</a></p>
 `;
 
 describe("renderStorageHtml", () => {
@@ -24,12 +33,17 @@ describe("renderStorageHtml", () => {
     expect(text).toContain("1. SCP: Enable DMS in all OUs [PLAT-101]");
     expect(text).toContain("1. EC2-Patch Compliance Report Lambda [PLAT-111]");
   });
+
+  it("preserves a call-to-action link's href inline as '<label> (<href>)'", () => {
+    const text = renderStorageHtml(`<p><a href="/catalog">View in catalog</a></p>`);
+    expect(text).toContain("View in catalog (/catalog)");
+  });
 });
 
 describe("resolveReleaseNotes", () => {
   const config = { token: "caller-or-service-token", baseUrl: "https://example.atlassian.net" };
 
-  it("fetches via the Confluence channel and parses the page into a release", async () => {
+  it("fetches via the Confluence channel and parses both releases and announcements", async () => {
     const fetch = vi.fn<FetchLike>(async () => ({
       ok: true,
       status: 200,
@@ -50,6 +64,16 @@ describe("resolveReleaseNotes", () => {
       expect(result.releases[0].postedAt).toBe("2026-05-09");
       expect(result.releases[0].month).toBe("May 2026");
       expect(result.releases[0].items).toHaveLength(3);
+
+      // Standalone announcements come off the same page, with their CTA link.
+      expect(result.announcements).toHaveLength(2);
+      expect(result.announcements[0]).toMatchObject({
+        kind: "New",
+        title: "Object Storage lifecycle tiering is generally available",
+        postedAt: "2026-05-11",
+        month: "May 2026",
+        link: { label: "View in catalog", href: "/catalog" },
+      });
     }
   });
 

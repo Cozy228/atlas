@@ -1,6 +1,6 @@
 import type { LanguageModel } from "ai";
 import { describe, expect, it, vi } from "vitest";
-import { serviceBundle } from "@/fixtures/contextBundles";
+import { serviceProjection } from "@/fixtures/resourceContexts";
 import {
   claimResponseSchema,
   createBedrockClaimsAdapter,
@@ -12,7 +12,7 @@ import {
 describe("Ask Atlas LLM provider selection", () => {
   it("falls back to the simulated adapter without provider configuration", async () => {
     const adapter = createConfiguredClaimsAdapter({
-      bundle: serviceBundle,
+      projection: serviceProjection,
       env: {},
     });
 
@@ -25,7 +25,10 @@ describe("Ask Atlas LLM provider selection", () => {
   });
 
   it("uses the Bedrock model with the shared claim schema", async () => {
-    const model = { provider: "bedrock", modelId: "us.anthropic.claude-sonnet-4-5" } as LanguageModel;
+    const model = {
+      provider: "bedrock",
+      modelId: "us.anthropic.claude-sonnet-4-5",
+    } as LanguageModel;
     const adapter = createBedrockClaimsAdapter({
       modelId: "us.anthropic.claude-sonnet-4-5",
       model,
@@ -58,18 +61,19 @@ describe("Ask Atlas LLM provider selection", () => {
   it("accepts uppercase RAI provider configuration", async () => {
     expect(() =>
       createConfiguredClaimsAdapter({
-        bundle: serviceBundle,
-        env: { ATLAS_LLM_PROVIDER: "RAI" },
+        projection: serviceProjection,
+        env: { LLM_PROVIDER: "RAI" },
       }),
     ).toThrow("RAI_BASE_URL");
   });
 
   it("exchanges RAI client credentials for a bearer token", async () => {
-    const fetch = vi.fn(async () =>
-      new Response(JSON.stringify({ access_token: "rai-token", expires_in: 3600 }), {
-        status: 200,
-        headers: { "content-type": "application/json" },
-      }),
+    const fetch = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ access_token: "rai-token", expires_in: 3600 }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
     );
     const provider = createRaiTokenProvider({
       tokenUrl: "https://rai.example.com/oauth/token",
@@ -95,11 +99,12 @@ describe("Ask Atlas LLM provider selection", () => {
   });
 
   it("uses RAI as an OpenAI-compatible provider after token exchange", async () => {
-    const fetch = vi.fn(async () =>
-      new Response(JSON.stringify({ access_token: "rai-token" }), {
-        status: 200,
-        headers: { "content-type": "application/json" },
-      }),
+    const fetch = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ access_token: "rai-token" }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
     );
     const model = { provider: "RAI", modelId: "rai-chat" } as LanguageModel;
     const adapter = createRaiClaimsAdapter({

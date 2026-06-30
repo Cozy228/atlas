@@ -1,42 +1,27 @@
 import { describe, expect, it } from "vitest";
 import {
-  AnchorSchema,
-  ContextBundleResponseSchema,
-  ContextRequestSchema,
-  ExpansionRequestSchema,
+  DiscoveredReferenceSchema,
   FeedbackResponseSchema,
   FeedbackSchema,
   FeedbackSubmissionSchema,
+  ResourceCatalogResponseSchema,
+  ResourceContextResponseSchema,
+  ResourceRecordResponseSchema,
+  ServiceIdentitySchema,
   SourceDiscoveryRequestSchema,
   SourceSchema,
-  SourceTopicMappingSchema,
-  TopicDiscoveryRequestSchema,
-  TopicSchema,
   apiErrorCodes,
   authorityLevels,
+  docTypes,
+  resourceKinds,
   sourceClasses,
-  topicTypes,
 } from "./index";
-
-const anchor = {
-  id: "textract-private-subnet",
-  source_id: "textract-module-readme",
-  anchor_strategy: "markdown-heading",
-  title: "Private subnet usage",
-  selector: {
-    locator: "#private-subnet-usage",
-  },
-  citation_label: "Private subnet usage",
-  status: "valid",
-  last_validated_at: "2026-05-05T00:00:00.000Z",
-};
 
 const source = {
   id: "textract-module-readme",
   title: "Textract Terraform Module",
   source_class: "terraform-module",
   location: "github.com/example/terraform-aws-textract",
-  steward: "cloud-platform",
   visibility: "internal",
   authority_scope: ["module-usage"],
   authority_level: "authoritative",
@@ -45,10 +30,15 @@ const source = {
   review_frequency: "P90D",
 };
 
-const topic = {
-  id: "aws-textract",
+// A valid resource record — the presentation projection that replaced the Topic
+// as the catalog/identity unit (resource-first collapse).
+const resourceRecord = {
+  kind: "service",
+  id: "service/aws/textract",
+  slug: "aws/textract",
+  provider: "aws",
   name: "AWS Textract",
-  topic_type: "service",
+  aliases: ["AWS Textract", "textract"],
   category: "ai-ml",
   status: "active",
   description: "Managed OCR service for document workflows.",
@@ -72,8 +62,8 @@ describe("contract enums", () => {
     ]);
   });
 
-  it("matches the V1 topic types exactly", () => {
-    expect(topicTypes).toEqual(["service", "landing-zone", "security-policy"]);
+  it("matches the resource kinds exactly", () => {
+    expect(resourceKinds).toEqual(["service", "guardrail", "landing-zone"]);
   });
 
   it("matches the V1 authority levels exactly", () => {
@@ -92,7 +82,6 @@ describe("contract enums", () => {
       "anchor_broken",
       "source_unavailable",
       "access_denied",
-      "topic_not_found",
       "resource_not_found",
       "invalid_request",
     ]);
@@ -100,33 +89,35 @@ describe("contract enums", () => {
 });
 
 describe("entity schemas", () => {
-  it("requires source governance fields on Source", () => {
+  it("carries optional, dormant authority fields on Source (plan 019)", () => {
     const parsed = SourceSchema.parse(source);
-
     expect(parsed.authority_level).toBe("authoritative");
     expect(parsed.authority_scope).toEqual(["module-usage"]);
-    expect(parsed.steward).toBe("cloud-platform");
+
+    // Authority is deferred end-to-end: a Source without it still validates.
+    const { authority_level, authority_scope, ...withoutAuthority } = source;
+    void authority_level;
+    void authority_scope;
+    const reparsed = SourceSchema.parse(withoutAuthority);
+    expect(reparsed.authority_level).toBeUndefined();
+    expect(reparsed.authority_scope).toBeUndefined();
   });
 
-  it("keeps source-native addressability in Anchor records, not Source records", () => {
-    const parsed = AnchorSchema.parse(anchor);
-
-    expect(parsed.source_id).toBe("textract-module-readme");
-    expect(parsed.anchor_strategy).toBe("markdown-heading");
-    expect(() => SourceSchema.parse({ ...source, available_anchors: [anchor] })).toThrow();
+  it("rejects unknown fields on a Source record (strict schema)", () => {
+    expect(() => SourceSchema.parse({ ...source, unexpected_field: [] })).toThrow();
   });
 
   it("accepts operational feedback as a separate non-authoritative signal", () => {
     const parsed = FeedbackSchema.parse({
       id: "feedback-1",
-      target_type: "anchor",
-      target_id: "textract-private-subnet",
+      target_type: "source",
+      target_id: "textract-module-readme",
       feedback_type: "broken",
       message: "The private subnet section is out of date.",
       submitted_at: "2026-05-06T00:00:00.000Z",
     });
 
-    expect(parsed.target_type).toBe("anchor");
+    expect(parsed.target_type).toBe("source");
     expect(parsed.feedback_type).toBe("broken");
   });
 
@@ -134,54 +125,51 @@ describe("entity schemas", () => {
     expect(() => SourceSchema.parse({ ...source, source_class: "sharepoint-page" })).toThrow();
   });
 
-  it("keeps governance fields off Topic", () => {
-    expect(() => TopicSchema.parse({ ...topic, authority_level: "authoritative" })).toThrow();
-  });
-
-  it("keeps governance fields off SourceTopicMapping", () => {
+  it("rejects unknown fields on a resource record (strict schema)", () => {
     expect(() =>
-      SourceTopicMappingSchema.parse({
-        id: "textract-module-to-topic",
-        source_id: "textract-module-readme",
-        topic_id: "aws-textract",
-        authority_level: "authoritative",
-      }),
+      ResourceRecordResponseSchema.parse({ ...resourceRecord, authority_level: "authoritative" }),
     ).toThrow();
   });
 
-  it("requires non-nullable Topic identity fields", () => {
-    expect(() => TopicSchema.parse({ ...topic, owner_team: null })).toThrow();
+  it("rejects a null presentation field on a resource record", () => {
+    expect(() =>
+      ResourceRecordResponseSchema.parse({ ...resourceRecord, owner_team: null }),
+    ).toThrow();
+  });
+
+  it("treats resource presentation metadata as honest-gap (optional)", () => {
+    const minimal = {
+      kind: "service",
+      id: "service/aws/textract",
+      slug: "aws/textract",
+      name: "AWS Textract",
+      aliases: [],
+    };
+    const parsed = ResourceRecordResponseSchema.parse(minimal);
+    expect(parsed.category).toBeUndefined();
+    expect(parsed.owner_team).toBeUndefined();
+    expect(parsed.status).toBeUndefined();
   });
 });
 
 describe("request and response schemas", () => {
-  it("accepts discovery, topic discovery, context, and expansion requests", () => {
+  it("accepts source discovery requests", () => {
     expect(SourceDiscoveryRequestSchema.parse({ query: "textract" })).toEqual({
       query: "textract",
     });
-    expect(TopicDiscoveryRequestSchema.parse({ topic_type: "service" })).toEqual({
-      topic_type: "service",
-    });
-    expect(ContextRequestSchema.parse({ topic_id: "aws-textract" })).toEqual({
-      topic_id: "aws-textract",
-    });
-    expect(
-      ExpansionRequestSchema.parse({
-        source_id: "textract-module-readme",
-        anchor_id: "textract-private-subnet",
-        disclosure_level: 2,
-      }),
-    ).toEqual({
-      source_id: "textract-module-readme",
-      anchor_id: "textract-private-subnet",
-      disclosure_level: 2,
-    });
+  });
+
+  it("lists resource records in the catalog response", () => {
+    const parsed = ResourceCatalogResponseSchema.parse({ resources: [resourceRecord] });
+    expect(parsed.resources).toHaveLength(1);
+    expect(parsed.resources[0].slug).toBe("aws/textract");
+    expect(parsed.resources[0].kind).toBe("service");
   });
 
   it("accepts feedback submissions and feedback responses", () => {
     const submission = FeedbackSubmissionSchema.parse({
-      target_type: "topic",
-      target_id: "aws-textract",
+      target_type: "resource",
+      target_id: "service/aws/textract",
       feedback_type: "stale",
       message: "The getting started guidance needs a new review.",
     });
@@ -191,64 +179,145 @@ describe("request and response schemas", () => {
       ...submission,
     };
 
-    expect(submission.target_id).toBe("aws-textract");
+    expect(submission.target_id).toBe("service/aws/textract");
     expect(FeedbackResponseSchema.parse({ feedback })).toEqual({ feedback });
   });
+});
 
-  it("requires sources, warnings, and expansion_paths on every context bundle", () => {
-    const response = {
-      bundle_id: "bundle-textract",
-      request: {
-        topic_id: "aws-textract",
+/* Convention-driven Confluence reference discovery (plan 017, ADR-0016). */
+
+const serviceIdentity = {
+  provider: "aws",
+  id: "textract",
+  name: "Amazon Textract",
+  key: "aws/textract",
+  recallAliases: ["amazon textract", "textract"],
+  admissionAliases: ["amazon textract", "textract"],
+};
+
+const discoveredReference = {
+  title: "Textract — design overview",
+  url: "https://wiki.example.com/wiki/spaces/CLOUD/pages/101/Textract+Design",
+  doc_type: "design" as const,
+  last_observed_at: "2026-06-28T00:00:00.000Z",
+  content_mode: "reference_only" as const,
+  access_mode: "service_credentials" as const,
+  agent_accessible: false as const,
+};
+
+const resourceSummary = {
+  kind: "service" as const,
+  id: "service/aws/s3",
+  slug: "aws/s3",
+  provider: "aws",
+  name: "S3",
+  aliases: ["S3", "Amazon S3"],
+  resourceUrl: "/api/resources/service/aws/s3",
+  markdownUrl: "/resources/service/aws/s3.md",
+};
+
+describe("reference discovery schemas", () => {
+  it("defines the controlled doc-type vocabulary", () => {
+    expect(docTypes).toEqual(["design", "user-guide", "policy"]);
+  });
+
+  it("carries a canonical key plus both alias tiers on ServiceIdentity", () => {
+    const parsed = ServiceIdentitySchema.parse(serviceIdentity);
+
+    expect(parsed.key).toBe("aws/textract");
+    expect(parsed.recallAliases).toContain("textract");
+    expect(parsed.admissionAliases).toContain("amazon textract");
+    // strict — no stray fields leak into the normalized identity.
+    expect(() => ServiceIdentitySchema.parse({ ...serviceIdentity, extra: true })).toThrow();
+  });
+
+  it("admits a reference-only link and keeps confidence optional", () => {
+    const parsed = DiscoveredReferenceSchema.parse(discoveredReference);
+
+    expect(parsed.content_mode).toBe("reference_only");
+    expect(parsed.access_mode).toBe("service_credentials");
+    expect(parsed.agent_accessible).toBe(false);
+    expect(parsed.confidence).toBeUndefined();
+    expect(
+      DiscoveredReferenceSchema.parse({ ...discoveredReference, confidence: 0.5 }).confidence,
+    ).toBe(0.5);
+  });
+
+  it("refuses to let a reference claim its body is obtainable", () => {
+    // The whole point of decision #1 / §Honesty: a reference is never readable
+    // content. The honesty literals cannot be relaxed by a producer.
+    expect(() =>
+      DiscoveredReferenceSchema.parse({ ...discoveredReference, agent_accessible: true }),
+    ).toThrow();
+    expect(() =>
+      DiscoveredReferenceSchema.parse({ ...discoveredReference, content_mode: "resolved" }),
+    ).toThrow();
+    expect(() =>
+      DiscoveredReferenceSchema.parse({ ...discoveredReference, doc_type: "runbook" }),
+    ).toThrow();
+  });
+});
+
+describe("resource context response — discovery merge container", () => {
+  it("requires a flat references list and a discovery state", () => {
+    const spineOnly = {
+      resource: resourceSummary,
+      requestedSections: [],
+      sections: {},
+      missingSections: [],
+      references: [discoveredReference],
+      referenceDiscovery: {
+        status: "fresh" as const,
+        last_observed_at: "2026-06-28T00:00:00.000Z",
+        incomplete: false,
       },
-      sources: [
-        {
-          source,
-          anchors: [AnchorSchema.parse(anchor)],
-          selection_rationale: "Authoritative module source for the topic.",
-          excerpts: [
-            {
-              anchor_id: "textract-private-subnet",
-              text: "Use the private endpoint configuration.",
-              citation: {
-                source_id: "textract-module-readme",
-                anchor_id: "textract-private-subnet",
-                label: "Private subnet usage",
-                location: "github.com/example/terraform-aws-textract#private-subnet-usage",
-              },
-            },
-          ],
-        },
-      ],
-      anchor_references: [
-        {
-          source_id: "textract-module-readme",
-          anchor_id: "textract-private-subnet",
-          citation_label: "Private subnet usage",
-          status: "valid",
-        },
-      ],
-      warnings: [],
-      expansion_paths: [
-        {
-          source_id: "textract-module-readme",
-          anchor_id: "textract-private-subnet",
-          disclosure_level: 2,
-          label: "Adjacent module examples",
-        },
-      ],
+      resolvedAt: "2026-06-28T00:00:00.000Z",
     };
 
-    expect(ContextBundleResponseSchema.parse(response)).toEqual(response);
+    const parsed = ResourceContextResponseSchema.parse(spineOnly);
+    expect(parsed.references).toHaveLength(1);
+    expect(parsed.referenceDiscovery?.status).toBe("fresh");
+
+    // The discovery-merge fields are mandatory — a producer cannot silently omit them.
+    const { references, ...withoutReferences } = spineOnly;
+    void references;
+    expect(() => ResourceContextResponseSchema.parse(withoutReferences)).toThrow();
+    const { referenceDiscovery, ...withoutDiscovery } = spineOnly;
+    void referenceDiscovery;
+    expect(() => ResourceContextResponseSchema.parse(withoutDiscovery)).toThrow();
+  });
+
+  it("allows a null discovery state (no discovery ran) but rejects an unknown status", () => {
+    const base = {
+      resource: resourceSummary,
+      requestedSections: [],
+      sections: {},
+      missingSections: [],
+      references: [],
+      resolvedAt: "2026-06-28T00:00:00.000Z",
+    };
+    expect(
+      ResourceContextResponseSchema.parse({ ...base, referenceDiscovery: null }).referenceDiscovery,
+    ).toBeNull();
     expect(() =>
-      ContextBundleResponseSchema.parse({
-        bundle_id: "bundle-textract",
-        request: {
-          topic_id: "aws-textract",
-        },
-        sources: [],
-        anchor_references: [],
-        warnings: [],
+      ResourceContextResponseSchema.parse({
+        ...base,
+        referenceDiscovery: { status: "expired", last_observed_at: null, incomplete: false },
+      }),
+    ).toThrow();
+  });
+
+  it("rejects an unknown resource-context field (strict schema)", () => {
+    expect(() =>
+      ResourceContextResponseSchema.parse({
+        resource: resourceSummary,
+        requestedSections: [],
+        sections: {},
+        missingSections: [],
+        references: [],
+        referenceDiscovery: null,
+        resolvedAt: "2026-06-28T00:00:00.000Z",
+        governance: "configured",
       }),
     ).toThrow();
   });

@@ -1,0 +1,11 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["node"],
+    // DOM lib so page.evaluate() callbacks (which run in the browser) can use
+    // `document`/`window`; the base lib is ES2022-only.
+    "lib": ["ES2022", "DOM"],
+    "noEmit": true
+  },
+  "include": ["**/*.ts"]
+}

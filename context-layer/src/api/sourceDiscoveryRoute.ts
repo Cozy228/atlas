@@ -3,16 +3,14 @@ import {
   type ApiErrorResponse,
   type SourceDiscoveryResponse,
 } from "@atlas/schema";
-import {
-  createDefaultContextBundleService,
-  discoverSources,
-} from "../services/contextBundleService";
+import { discoverSources } from "../services/contextService";
+import { createDefaultContextService } from "../composition";
 import type { ApiResponse } from "./routeTypes";
 import { errorResponse } from "./routeTypes";
 
-export function handleSourceDiscoveryRequest(
+export async function handleSourceDiscoveryRequest(
   input: unknown,
-): ApiResponse<ApiErrorResponse | SourceDiscoveryResponse> {
+): Promise<ApiResponse<ApiErrorResponse | SourceDiscoveryResponse>> {
   const parsed = SourceDiscoveryRequestSchema.safeParse(input);
   if (!parsed.success) {
     return errorResponse(400, "invalid_request", "Source discovery request is invalid.");
@@ -20,6 +18,6 @@ export function handleSourceDiscoveryRequest(
 
   return {
     status: 200,
-    body: discoverSources(createDefaultContextBundleService(), parsed.data),
+    body: discoverSources(await createDefaultContextService(), parsed.data),
   };
 }

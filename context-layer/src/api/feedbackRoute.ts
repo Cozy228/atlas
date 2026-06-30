@@ -5,8 +5,8 @@ import {
   type FeedbackResponse,
   type FeedbackSubmission,
 } from "@atlas/schema";
-import { createDefaultContextBundleService } from "../services/contextBundleService";
-import type { ContextBundleService } from "../services/contextBundleService";
+import { createDefaultContextService } from "../composition";
+import type { ContextService } from "../services/contextService";
 import type { ApiResponse } from "./routeTypes";
 import { errorResponse } from "./routeTypes";
 
@@ -18,7 +18,7 @@ export async function handleFeedbackRequest(
     return errorResponse(400, "invalid_request", "Feedback request is invalid.");
   }
 
-  const service = createDefaultContextBundleService();
+  const service = await createDefaultContextService();
   const targetError = validateFeedbackTarget(service, parsed.data);
   if (targetError) {
     return targetError;
@@ -32,20 +32,22 @@ export async function handleFeedbackRequest(
 }
 
 function validateFeedbackTarget(
-  service: ContextBundleService,
+  service: ContextService,
   feedback: FeedbackSubmission,
 ): ApiResponse<ApiErrorResponse> | undefined {
-  if (feedback.target_type === "topic" && !service.registry.topics.getById(feedback.target_id)) {
-    return errorResponse(404, "topic_not_found", "Feedback target topic was not found.");
+  if (feedback.target_type === "resource" && !resourceExists(service, feedback.target_id)) {
+    return errorResponse(404, "resource_not_found", "Feedback target resource was not found.");
   }
   if (feedback.target_type === "source" && !service.registry.sources.getById(feedback.target_id)) {
     return errorResponse(404, "source_not_found", "Feedback target source was not found.");
   }
-  if (feedback.target_type === "anchor" && !service.registry.anchors.getById(feedback.target_id)) {
-    return errorResponse(422, "anchor_broken", "Feedback target anchor was not found.");
-  }
 
   return undefined;
+}
+
+/** A feedback `resource` target is identified by its canonical `{kind}/{slug}` id. */
+function resourceExists(service: ContextService, targetId: string): boolean {
+  return service.resources.some((record) => `${record.kind}/${record.slug}` === targetId);
 }
 
 function toFeedback(submission: FeedbackSubmission): Feedback {

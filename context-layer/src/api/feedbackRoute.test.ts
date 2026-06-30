@@ -1,12 +1,22 @@
-import { describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { ApiErrorResponseSchema, FeedbackResponseSchema } from "@atlas/schema";
+import { setDevDiscoveryEnv } from "../devMocks";
 import { handleFeedbackRequest } from "./feedbackRoute";
+
+// Post-collapse the registry (incl. feedback targets) is the OUTPUT of live
+// discovery; point every channel at the MSW fixtures so the target resource
+// exists. A resource feedback target is the canonical `{kind}/{slug}` id.
+const savedEnv = { ...process.env };
+beforeAll(() => setDevDiscoveryEnv());
+afterAll(() => {
+  process.env = savedEnv;
+});
 
 describe("feedback route", () => {
   it("captures user feedback as a shared contract response", async () => {
     const response = await handleFeedbackRequest({
-      target_type: "topic",
-      target_id: "aws-textract",
+      target_type: "resource",
+      target_id: "service/aws/textract",
       feedback_type: "stale",
       message: "The getting started guidance needs a new review.",
     });
@@ -14,8 +24,8 @@ describe("feedback route", () => {
     expect(response.status).toBe(201);
     const parsed = FeedbackResponseSchema.parse(response.body);
     expect(parsed.feedback).toMatchObject({
-      target_type: "topic",
-      target_id: "aws-textract",
+      target_type: "resource",
+      target_id: "service/aws/textract",
       feedback_type: "stale",
       message: "The getting started guidance needs a new review.",
     });
@@ -24,7 +34,7 @@ describe("feedback route", () => {
 
   it("returns structured invalid_request errors", async () => {
     const response = await handleFeedbackRequest({
-      target_type: "topic",
+      target_type: "resource",
       target_id: "",
       feedback_type: "stale",
       message: "",
@@ -36,13 +46,13 @@ describe("feedback route", () => {
 
   it("returns structured not-found errors for unknown targets", async () => {
     const response = await handleFeedbackRequest({
-      target_type: "topic",
-      target_id: "missing-topic",
+      target_type: "resource",
+      target_id: "service/aws/missing",
       feedback_type: "missing",
-      message: "I expected this topic to exist.",
+      message: "I expected this resource to exist.",
     });
 
     expect(response.status).toBe(404);
-    expect(ApiErrorResponseSchema.parse(response.body).error.code).toBe("topic_not_found");
+    expect(ApiErrorResponseSchema.parse(response.body).error.code).toBe("resource_not_found");
   });
 });

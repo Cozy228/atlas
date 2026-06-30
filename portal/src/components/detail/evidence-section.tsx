@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { IconChevronDown } from "@tabler/icons-react";
-import type { ContextBundleResponse } from "@atlas/schema";
+import type { ResourceContextResponse, ResourceWarning } from "@atlas/schema";
 
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { EvidencePanel } from "@/components/evidence/evidence-panel";
@@ -8,17 +8,37 @@ import { WarningStack } from "@/components/evidence/warning-stack";
 import { cn } from "@/lib/utils";
 
 type EvidenceSectionProps = {
-  bundle: ContextBundleResponse;
+  projection: ResourceContextResponse;
   defaultOpen?: boolean;
 };
 
-export function EvidenceSection({ bundle, defaultOpen = false }: EvidenceSectionProps) {
+/** Aggregate every Section's warnings plus the missing-section gaps into one
+ *  deduped list for the header WarningStack. ResourceWarning ({code,message})
+ *  is structurally a Warning, so the stack renders it directly. */
+function projectionWarnings(projection: ResourceContextResponse): ResourceWarning[] {
+  const all: ResourceWarning[] = [
+    ...Object.values(projection.sections).flatMap((section) => section.warnings),
+    ...projection.missingSections.map((missing) => ({
+      code: missing.code,
+      message: missing.message,
+    })),
+  ];
+  const seen = new Set<string>();
+  return all.filter((warning) => {
+    const key = `${warning.code}::${warning.message}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+export function EvidenceSection({ projection, defaultOpen = false }: EvidenceSectionProps) {
   const [open, setOpen] = useState(defaultOpen);
-  const sourceCount = bundle.sources.length;
+  const sectionCount = Object.keys(projection.sections).length;
 
   return (
     <div className="flex flex-col gap-3">
-      <WarningStack warnings={bundle.warnings} />
+      <WarningStack warnings={projectionWarnings(projection)} />
 
       <Collapsible open={open} onOpenChange={setOpen}>
         <CollapsibleTrigger
@@ -30,12 +50,12 @@ export function EvidenceSection({ bundle, defaultOpen = false }: EvidenceSection
         >
           <div className="flex flex-col">
             <p className="type-detail font-bold tracking-[-0.01em] text-foreground">
-              {sourceCount === 0
-                ? "No registered sources"
-                : `${sourceCount} ${sourceCount === 1 ? "source" : "sources"} cited`}
+              {sectionCount === 0
+                ? "No resolved sections"
+                : `${sectionCount} ${sectionCount === 1 ? "section" : "sections"}`}
             </p>
             <p className="text-xs text-muted-foreground">
-              Authority, freshness, anchors, and excerpts expand inline.
+              Live-resolved content and citations expand inline.
             </p>
           </div>
           <span
@@ -49,7 +69,7 @@ export function EvidenceSection({ bundle, defaultOpen = false }: EvidenceSection
           </span>
         </CollapsibleTrigger>
         <CollapsibleContent>
-          <EvidencePanel bundle={bundle} />
+          <EvidencePanel projection={projection} />
         </CollapsibleContent>
       </Collapsible>
     </div>

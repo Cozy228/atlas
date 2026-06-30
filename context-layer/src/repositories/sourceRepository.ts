@@ -1,6 +1,11 @@
 import { SourceSchema, type Source } from "@atlas/schema";
 
-export class InMemorySourceRepository {
+export type SourceRepository = {
+  getById(id: string): Source | undefined;
+  list(): Source[];
+};
+
+export class InMemorySourceRepository implements SourceRepository {
   private readonly sources = new Map<string, Source>();
 
   constructor(sources: unknown[] = []) {
@@ -21,11 +26,5 @@ export class InMemorySourceRepository {
 
   list(): Source[] {
     return Array.from(this.sources.values());
-  }
-
-  findByAuthorityScope(authorityScope: string): Source[] {
-    return this.list().filter((source) =>
-      source.authority_scope.includes(authorityScope),
-    );
   }
 }

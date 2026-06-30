@@ -4,7 +4,7 @@ description: Authoritative self-service catalog for the company's cloud platform
 # Design system: "Blueprint" — an engineering-drawing aesthetic. Light is primary; "Ink" is the
 # dark scheme (same structure, recoloured). OKLCH-native; all neutrals tinted toward hue 264 (brand),
 # chroma reduced near the lightness extremes per OKLCH perceptual rules. No #000 / #fff anywhere.
-# The single hard brand requirement is #001AFF. Reference implementation: prototype/atlas-design-system.html
+# The single hard brand requirement is #001AFF. Reference implementation: the shipped portal (portal/src + globals.css).
 colors:
   # --- Brand (the one action & selection colour; ≤10% of any screen) ---
   brand:        "oklch(46.28% 0.3059 264.18)"   # #001AFF — fills (primary buttons, brand mark)
@@ -309,8 +309,8 @@ Stacking order (semantic z-scale): content → sticky top bar (30) → FAB (90) 
 
 ## 9. Agent Prompt Guide
 
-**Brand:** `#001AFF` (`oklch(46.28% 0.3059 264.18)`). Reference build:
-`prototype/atlas-design-system.html` (light = `#blueprint`, dark = `#blueprint-ink`).
+**Brand:** `#001AFF` (`oklch(46.28% 0.3059 264.18)`). Reference build: the shipped
+portal (`portal/src`, tokens in `globals.css`); light = `#blueprint`, dark = `#blueprint-ink`.
 
 Ready-to-use prompts:
 - "Build a service catalog page in the Atlas **Blueprint** system: faint 32px coordinate grid in

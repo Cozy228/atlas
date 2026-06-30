@@ -174,7 +174,8 @@ function releaseId(
   return `rel-${createHash("sha256").update(canonical).digest("hex").slice(0, 8)}`;
 }
 
-function monthLabel(iso: string | undefined): string | undefined {
+/** "2026-05" → "May 2026". Shared with the announcement parser. */
+export function monthLabel(iso: string | undefined): string | undefined {
   const match = iso?.match(/^(\d{4})-(\d{2})-\d{2}$/);
   if (!match) {
     return undefined;
@@ -192,7 +193,8 @@ function splitTicket(raw: string): { title: string; ticket?: string } {
   return { title, ticket };
 }
 
-function parsePostedDate(text: string): string | undefined {
+/** Extract `YYYY-MM-DD` from a "… on <day> <Month>, <year>" line; shared. */
+export function parsePostedDate(text: string): string | undefined {
   const match = text.match(/on\s+(\d{1,2})(?:st|nd|rd|th)?\s+([A-Za-z]+),?\s+(\d{4})/i);
   if (!match) {
     return undefined;

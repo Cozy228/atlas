@@ -28,13 +28,13 @@ each unlocks one surface.
 
 | Integration | Env vars | Unlocks | Adapter |
 |---|---|---|---|
-| Confluence Cloud | `ATLAS_CONFLUENCE_BASE_URL`, `ATLAS_CONFLUENCE_TOKEN`, `ATLAS_CONFLUENCE_EMAIL` (email ⇒ Basic auth for a personal API token; else Bearer) | Live excerpts for `confluence-page` **and** `policy-document` sources | `context-layer/src/sourceContent/confluenceCloudContentProvider.ts` |
-| Terraform / GitHub README | `ATLAS_TERRAFORM_TOKEN` (+ `ATLAS_TERRAFORM_BASE_URL`, default `api.github.com`) | Live excerpts for `terraform-module` sources | `context-layer/src/sourceContent/terraformModuleContentProvider.ts` |
-| Release notes (live) | `ATLAS_RELEASE_NOTES_PAGE_ID` (+ the Confluence vars above) | `/whatsnew` releases fetched from the live Confluence page | `context-layer/src/releaseNotes/resolveReleaseNotes.ts` |
-| Feedback store | `ATLAS_FEEDBACK_TABLE` (DynamoDB) | Persisted feedback (else in-memory) | `context-layer/src/services/contextBundleService.ts` |
-| LLM (Ask Atlas) | `ATLAS_BEDROCK_MODEL_ID` (Bedrock) / RAI vars | Real grounded answers (else a simulated adapter echoes the first authoritative excerpt) | `portal/src/api/server/llmProvider.ts` |
-| Content cache | `ATLAS_CACHE_VALKEY_URL` (optional) | Shared Valkey/Redis cache (else in-memory, 300s TTL) | `context-layer/src/sourceContent/sourceContentCache.ts` |
-| **Registry data dir** | `ATLAS_DATA_DIR` (optional override) | Points the loader at a data dir outside the tree (mounted volume). **Not required** — the loader self-locates `data/` (see §7). | `context-layer/src/dataDir.ts` |
+| Confluence Cloud | `CONFLUENCE_BASE_URL`, `CONFLUENCE_TOKEN`, `CONFLUENCE_EMAIL` (email ⇒ Basic auth for a personal API token; else Bearer) | Live excerpts for `confluence-page` **and** `policy-document` sources | `context-layer/src/sourceContent/confluenceCloudContentProvider.ts` |
+| Terraform / GitHub README | `TERRAFORM_TOKEN` (+ `TERRAFORM_BASE_URL`, default `api.github.com`) | Live excerpts for `terraform-module` sources | `context-layer/src/sourceContent/terraformModuleContentProvider.ts` |
+| Release notes (live) | `CONFLUENCE_RELEASE_NOTES_PAGE_ID` (+ the Confluence vars above) | `/whatsnew` releases fetched from the live Confluence page | `context-layer/src/releaseNotes/resolveReleaseNotes.ts` |
+| Feedback store | `FEEDBACK_TABLE` (DynamoDB) | Persisted feedback (else in-memory) | `context-layer/src/repositories/feedbackRepositoryFactory.ts` |
+| LLM (Ask Atlas) | `BEDROCK_MODEL_ID` (Bedrock) / RAI vars | Real grounded answers (else a simulated adapter echoes the first authoritative excerpt) | `portal/src/api/server/llmProvider.ts` |
+| Content cache | `CACHE_VALKEY_URL` (optional) | Shared Valkey/Redis cache (else in-memory, 300s TTL) | `context-layer/src/sourceContent/sourceContentCache.ts` |
+| **Registry data dir** | _(none — self-located)_ | The loader climbs to the first ancestor holding `data/sources.yaml`; there is no env override. | _(self-locating; no `dataDir.ts` env hook)_ |
 
 ### Data conventions required for live resolution
 
@@ -59,7 +59,7 @@ resolve **live**, its registry entry must follow these conventions:
   "Key sections" should show the live section text + a working "open source" link
   back to the page anchor. Restricted pages return metadata only.
 - [ ] **Terraform**: open a `terraform-module` source → README sections resolve.
-- [ ] **Release notes**: with `ATLAS_RELEASE_NOTES_PAGE_ID` set, `/whatsnew`
+- [ ] **Release notes**: with `CONFLUENCE_RELEASE_NOTES_PAGE_ID` set, `/whatsnew`
   "Platform releases" reflects the live page (same shape as the YAML fixture).
 - [ ] **ACL**: repeat a Confluence fetch as two different identities (Bearer tokens)
   → cache must not leak one identity's excerpt to another (key includes auth digest).
@@ -77,7 +77,7 @@ Legend — **Live path?**: ✅ flips live via env · ⚠️ partial / needs data
 > across data, code, tests, and docs (`github.com/example/…`, `app.terraform.io/example/…`).
 
 ### Content & registry
-- [ ] **Registry** `data/{sources,anchors,topics,source-topic-mappings}.yaml` — fictional
+- [ ] **Registry** `data/{sources,anchors,resources,source-resource-mappings}.yaml` — fictional
   sample seed. ❌ (the registry *is* the source of truth; entries are just fictional).
   Validated by `pnpm validate:registry`.
 - [ ] **Offline excerpts** `context-layer/src/sourceContent/pilotSourceContent.ts` —
@@ -90,7 +90,7 @@ Legend — **Live path?**: ✅ flips live via env · ⚠️ partial / needs data
 The newsletter holds two entry kinds from **one file**:
 - [ ] **Releases** (`releases:`) — ✅ live via `resolveReleaseNotes` (Confluence page id).
   Auto-wired in `portal/src/api/server/releaseNotes.ts`: with the Confluence env +
-  `ATLAS_RELEASE_NOTES_PAGE_ID` set it serves the live page; otherwise it falls back
+  `CONFLUENCE_RELEASE_NOTES_PAGE_ID` set it serves the live page; otherwise it falls back
   to the YAML fixture. No code change to flip.
 - [ ] **Announcements** (`announcements:`) — ❌ no live path yet; offline YAML only.
   Rendered as the `/whatsnew` broadsheet and the Home "What's new" ticker. **You will
@@ -110,7 +110,7 @@ The newsletter holds two entry kinds from **one file**:
 - [ ] **Lifecycle / JourneyGrid** — static nav scaffolding. ❌ (intentional).
 
 ### Source detail (`/sources/$id`)
-- [ ] **Key sections** — ✅ **real**: live-resolved excerpts from the context bundle.
+- [ ] **Key sections** — ✅ **real**: live-resolved excerpts from the resource context projection.
 
 ### Operations dashboard (`/overview`)
 - [ ] `lib/ops.ts` — ❌ entirely demo, **labeled** with a "demo snapshot" badge + frozen
@@ -118,7 +118,8 @@ The newsletter holds two entry kinds from **one file**:
 
 ### Ask Atlas
 - [ ] **Answers** — ✅ live via Bedrock/RAI; offline = simulated echo adapter. The MVP
-  router itself does **not** synthesize (no `ATLAS_ASK_LLM` references in the Ask UI).
+  router itself does **not** synthesize (Ask synthesis is gated by which provider
+  `LLM_PROVIDER` selects; when unset, the Ask UI does not synthesize).
 - [ ] **Contact channels** (`/ask`) — ❌ fictional, derived from the owning team name.
 
 ---
@@ -154,7 +155,7 @@ what they point to.
 | OpenAPI self-sufficient | spec `description`s carry the conduct rules | the skill is convenience, not a dependency |
 
 **Honest boundary:** no bespoke Terraform generation (returns a cited module + starter;
-behind `ATLAS_ASK_LLM`, not MVP); no write MCP tools; no auth (identity-agnostic Bearer
+behind `LLM_PROVIDER` set to a real provider, not MVP); no write MCP tools; no auth (identity-agnostic Bearer
 pipe, Confluence's ACL governs visibility).
 
 ---
@@ -175,9 +176,9 @@ curl -s localhost:3201/health                       # {"status":"ok"}
 ### Human-layer / Context API (grounded, cited)
 ```bash
 # discover a service
-curl -s "localhost:3201/api/topics?query=textract" | jq '.topics[].id'
-# the context bundle — cited excerpts + warnings[] (governed honesty)
-curl -s "localhost:3201/api/topics/aws-textract/context?disclosure_level=2" \
+curl -s "localhost:3201/api/resources?query=textract" | jq '.resources[].id'
+# the resource context projection — cited excerpts + warnings[] (governed honesty)
+curl -s "localhost:3201/api/resources/service/aws/textract?disclosure_level=2" \
   | jq '{excerpts:[.sources[].excerpts[]|{text:.text[0:60],cite:.citation.location}], warnings}'
 ```
 Expected: a cited Terraform starter (with `private_subnet_ids`), the
@@ -240,8 +241,8 @@ GET /                          → React HTML (homepage); <head> now carries the
  ├─ /openapi.json              → REST contract (base path /api)
  ├─ /.well-known/api-catalog   → linkset → openapi, llms.txt, mcp, agent-skills, health
    --- applying the discovered workflow ---
- GET /api/topics?query=textract                          → topic "aws-textract"
- GET /api/topics/aws-textract/context                    → cited excerpts + warnings[]
+ GET /api/resources?query=textract                       → resource "aws-textract"
+ GET /api/resources/service/aws/textract                 → cited excerpts + warnings[]
  GET /api/sources → "Regional Availability Matrix" → /api/sources/availability-matrix/content
    (followed the new llms.txt availability breadcrumb to the regions, governed-source path)
 ```
@@ -279,10 +280,10 @@ Run offline (fixtures) unless a step calls for live env.
   appears with real chips.
 - [ ] "What's new" ticker scrolls the newsletter announcements; clicking lands on `/whatsnew`.
 
-### Catalog `/catalog` → `/catalog/$topicId`
-- [ ] Topic detail "References" lists registered sources with **real excerpts** (multiple
+### Catalog `/catalog` → `/service/$provider/$id`
+- [ ] Resource detail "References" lists registered sources with **real excerpts** (multiple
   per source at `disclosure_level: 2`), selection rationale, authority + freshness badges.
-- [ ] A topic with no registered source shows the "claims unverifiable" empty state.
+- [ ] A resource with no registered source shows the "claims unverifiable" empty state.
 - [ ] **The moat:** the seeded Textract private-subnet authority conflict surfaces **both**
   sources, picks no side; a `stale_source` badge ages a curated claim honestly.
 
@@ -322,21 +323,19 @@ had **two real defects, now fixed** — both surfaced by the blind-agent run:
   `@atlas/schema` that rejects current manifests (`availability-matrix` source_class,
   `availability-cell` / `module-field` anchors). **Always `pnpm build` before serving;
   never demo off a checked-in `.output`.**
-- **Data-dir resolution didn't survive bundling.** `DATA_DIR` was a fixed
+- **Data-dir resolution didn't survive bundling.** The data dir was once a fixed
   `join(here,"..","..","..","data")` — correct in source, but the bundled server in
   `portal/.output/server/_chunks/` walked to a non-existent `portal/data`, and the build
-  did not copy `data/`. **Fixed** in `context-layer/src/dataDir.ts` (`resolveDataDir`):
-  `ATLAS_DATA_DIR` override → **self-locate** by climbing to the first ancestor holding
-  `data/sources.yaml` → relative default. Now `pnpm dev`, `node .output/server/index.mjs`,
-  and Docker all resolve data with **no env and no symlink**. The Dockerfile additionally
-  `COPY`s `data/` beside the bundle and sets `ATLAS_DATA_DIR=/var/task/data` (override to
-  a mounted volume to change data without a rebuild — ADR-0007).
+  did not copy `data/`. **Fixed**: the data dir now **self-locates** by climbing to the
+  first ancestor holding `data/sources.yaml` — there is no env override. Now `pnpm dev`,
+  `node .output/server/index.mjs`, and Docker all resolve data with **no env and no
+  symlink**. The Dockerfile additionally `COPY`s `data/` beside the bundle (ADR-0007).
 
 ### Pre-flight (run before any production-server demo)
 ```bash
 pnpm -r typecheck && pnpm -r test          # green (note: the S3/Textract hard gate may be WIP)
 pnpm validate:registry && pnpm validate:guidance
-echo "$ATLAS_ASK_LLM"                        # empty ⇒ Ask does not synthesize
+echo "$LLM_PROVIDER"                         # empty/unset ⇒ Ask does not synthesize
 cd portal && pnpm build                      # MANDATORY — fresh bundle
 PORT=3201 node .output/server/index.mjs &    # self-locating data; no env/symlink
 curl -s localhost:3201/health                # {"status":"ok"}

@@ -1,18 +1,16 @@
 export { handleAvailabilityRequest } from "./api/availabilityRoute";
-export { handleContextRequest } from "./api/contextRoute";
 export { handleFeedbackRequest } from "./api/feedbackRoute";
 export { handleHttpRequest } from "./api/httpRoute";
 export { handleSourceDiscoveryRequest } from "./api/sourceDiscoveryRoute";
 export { handleSourceRequest } from "./api/sourceRoute";
-export { handleTopicDiscoveryRequest } from "./api/topicDiscoveryRoute";
-export { handleTopicRequest } from "./api/topicRoute";
 export {
+  handleResourceCatalogRequest,
   handleResourceContextRequest,
+  handleResourceRecordRequest,
   handleResourceSearchRequest,
   type ResourceContextRouteParams,
 } from "./api/resourceRoutes";
 export { renderResourceMarkdown } from "./resources/renderResourceMarkdown";
-export { listResourceCanonicalIds } from "./resources/loadResources";
 export {
   getResourceContext,
   searchResources,
@@ -26,10 +24,9 @@ export {
   type ResourceKindDef,
   type SectionDef,
 } from "./resources/resourceKindRegistry";
-export { loadReleaseNotes } from "./releaseNotes/loadReleaseNotes";
-export { loadAnnouncements } from "./releaseNotes/loadAnnouncements";
-export type { Announcement } from "./releaseNotes/loadAnnouncements";
+export { LANDING_ZONES } from "./landingZones";
 export { resolveReleaseNotes } from "./releaseNotes/resolveReleaseNotes";
+export { loadConfluenceGuidance } from "./composition";
+export type { Announcement } from "./releaseNotes/parseAnnouncements";
 export { cachedResolutionContext } from "./sourceContent/sourceContentCache";
-export { resolveDataDir } from "./dataDir";
 export type { Release, ReleaseItem } from "./releaseNotes/parseReleaseNotes";

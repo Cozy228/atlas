@@ -6,6 +6,11 @@ Date: 2026-06-26
 > Refined by [ADR-0014](./0014-resource-read-one-core-many-views.md): retires the *Projection*
 > term at the code/naming layer and reframes the read surface by face (Context / Explore /
 > Management). The α live-not-materialized decision below is unchanged.
+>
+> **Addressing revised by [ADR-0015](./0015-portal-resource-first-ia.md):** the external read
+> address `{provider}/{resource}` used in this ADR's examples is superseded by a unified
+> `{kind}/{slug}` (provider folds into the `service`-kind slug; provider-less kinds like
+> `guardrail` gain a working address). The α decision is unchanged.
 
 ## Context
 

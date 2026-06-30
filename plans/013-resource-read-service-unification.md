@@ -162,6 +162,13 @@ decoupled from Agent-API correctness and must not be framed as its cost.
 
 ## Converged c-2 target model (post-MVP — grilled 2026-06-26)
 
+> **Superseded 2026-06-27.** A second grilling pass revised this section: a Topic now resolves
+> three ways (Resource / Facet / **Decompose**), Facets keep a bounded-concurrency **aggregate
+> view** (not "facets, not pages"), addressing unifies on `{kind}/{slug}`, and 0015 ships
+> **independently** of the ADR-0012 APP migration (decision 4 below is reversed). Authoritative
+> target: [ADR-0015](../docs/adr/0015-portal-resource-first-ia.md); execution plan:
+> [plans/015](./015-portal-resource-first-ia.md). The text below is kept for history.
+
 If/when Portal goes Resource-first, this is the agreed shape. It is one coherent migration —
 do **not** ship it piecemeal.
 

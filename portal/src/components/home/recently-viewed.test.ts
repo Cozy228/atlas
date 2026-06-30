@@ -9,9 +9,9 @@ describe("recently viewed item construction", () => {
   });
 
   it("reconstructs recent items from stable route primitives", () => {
-    expect(recentItemFromParts("service", "s3", "S3")).toEqual({
+    expect(recentItemFromParts("service", "aws/s3", "S3")).toEqual({
       kind: "service",
-      topicId: "s3",
+      slug: "aws/s3",
       name: "S3",
     });
 

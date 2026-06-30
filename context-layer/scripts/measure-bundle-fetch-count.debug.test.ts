@@ -82,8 +82,8 @@ describe("PERF BASELINE — live external round-trips", () => {
     // The live Confluence path only runs when a token AND base URL are set;
     // otherwise the resolver defers to the offline pilot map and never calls
     // ctx.fetch. Bearer auth (no email) keeps the canned response simple.
-    process.env.ATLAS_CONFLUENCE_BASE_URL = "https://example.atlassian.net";
-    delete process.env.ATLAS_CONFLUENCE_EMAIL;
+    process.env.CONFLUENCE_BASE_URL = "https://example.atlassian.net";
+    delete process.env.CONFLUENCE_EMAIL;
 
     // ---- Baseline 1: bundle live-fetch count (raw counting fetch, no cache) ----
     const service = createDefaultContextBundleService();

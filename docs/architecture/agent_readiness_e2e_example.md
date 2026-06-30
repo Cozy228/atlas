@@ -68,8 +68,8 @@ GET / (response headers)
    │       └─ npx -y skills add http://localhost:3201 \
    │            --skill atlas-context-consumer -y      → installed
    │           └─ follow SKILL.md steps:
-   │              GET /api/topics?query=textract       → "aws-textract"
-   │              GET /api/topics/aws-textract/context → bundle
+   │              GET /api/resources?query=textract            → "aws-textract"
+   │              GET /api/resources/service/aws/textract       → resource context
    ├─ /openapi.json                          rel="service-desc"
    │   └─ full contract: paths, Bearer pipe, warning glossary
    └─ /mcp                                   rel="mcp-server"
@@ -129,15 +129,15 @@ Same setup and question, but the agent is forbidden from touching
 not a dependency. First run: 2026-06-10, all checks passed. The agent learned
 every behavioral rule from the OpenAPI document alone and quoted where:
 
-- Citation pairing: `ContextBundleResponse.description` ("Every Excerpt
+- Citation pairing: `ResourceContextResponse.description` ("Every Excerpt
   carries its Citation — never present one without the other") plus the
   `Excerpt` schema's `required: ["text", "citation"]`.
 - Warning semantics: the `restricted_source` / `stale_source` glossary in
   `info.description`.
-- Verbatim relay: the bundle endpoint's 200 description ("Relay every
+- Verbatim relay: the resource-context endpoint's 200 description ("Relay every
   `warnings[]` entry verbatim").
 - Auth model: the Bearer-pipe paragraph (ADR 0001) in `info.description`.
-- Call order: the `/topics` description ("Start here…").
+- Call order: the `/resources` description ("Start here…").
 
 The regions half of the question was answered over MCP after confirming the
 server card's tool list matches `tools/list` exactly. Verdict from the agent:

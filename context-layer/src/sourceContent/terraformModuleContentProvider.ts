@@ -1,17 +1,18 @@
-import type { Anchor, Source } from "@atlas/schema";
+import type { Source } from "@atlas/schema";
 import type { ResolutionContext, ResolveResult, ResolverWarning } from "../resolvers/resolverTypes";
 
 /**
  * Live Terraform module excerpt resolution.
  *
- * Resolves a registered Anchor into an Excerpt by fetching the module's docs
- * from the TFC/TFE module registry at request time. A module `location` is a
- * host-less registry address (`<namespace>/<name>/<provider>`, e.g.
- * `example/s3/aws`); the registry host is deployment config (`config.baseUrl`),
- * not part of the source's identity. This adapter calls the registry's module
- * version endpoint and reads README markdown from `root.readme`. The same
- * payload backs `module-field` anchors (ADR-0010): version / inputs / outputs.
- * Nothing is persisted; the excerpt is ephemeral.
+ * Locates a README section by slugifying the binding's `heading` (a DEFAULT
+ * entry point) and scanning the module's docs, fetched from the TFC/TFE module
+ * registry at request time. A module `location` is a host-less registry address
+ * (`<namespace>/<name>/<provider>`, e.g. `example/s3/aws`); the registry host is
+ * deployment config (`config.baseUrl`), not part of the source's identity. This
+ * adapter calls the registry's module version endpoint and reads README markdown
+ * from `root.readme`. The same payload backs module-metadata fields located by a
+ * `selector.field` (ADR-0010): version / inputs / outputs. Nothing is persisted;
+ * the excerpt is ephemeral.
  *
  * GitHub-hosted modules are out of scope on this platform; a GitHub adapter
  * would implement the same `(request, config) => ResolveResult` boundary.
@@ -30,8 +31,9 @@ export type TerraformLiveConfig = {
 
 type TerraformLiveRequest = {
   source: Source;
-  anchors: Anchor[];
-  anchorId?: string;
+  heading?: string;
+  selector?: Record<string, string>;
+  citationLabel?: string;
   ctx: ResolutionContext;
 };
 
@@ -99,51 +101,131 @@ async function fetchRegistryModule(
 ): Promise<FetchRegistryModuleResult> {
   const url = registryModuleUrl(config, mod);
 
-  const response = await ctx.fetch(url, {
-    method: "GET",
-    headers: {
-      Authorization: `Bearer ${config.token}`,
-      Accept: "application/json",
-    },
-  });
+  try {
+    const response = await ctx.fetch(url, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${config.token}`,
+        Accept: "application/json",
+      },
+    });
 
-  if (response.status === 401 || response.status === 403) {
-    return {
-      ok: false,
-      code: "restricted_source",
-      message: "The module registry denied access to this source for the supplied identity.",
-    };
-  }
-  if (response.status === 404) {
+    if (response.status === 401 || response.status === 403) {
+      return {
+        ok: false,
+        code: "restricted_source",
+        message: "The module registry denied access to this source for the supplied identity.",
+      };
+    }
+    if (response.status === 404) {
+      return {
+        ok: false,
+        code: "source_unavailable",
+        message: "Module was not found in the registry at request time.",
+      };
+    }
+    if (!response.ok) {
+      return {
+        ok: false,
+        code: "source_unavailable",
+        message: "Module could not be resolved from the registry at request time.",
+      };
+    }
+    return { ok: true, body: (await response.json()) as RegistryModuleResponse };
+  } catch {
+    // Unreachable registry (DNS/TLS, or a relative URL from an unconfigured host)
+    // is an honest gap (ADR-0006), never a thrown resolution: the caller derives
+    // module: null / an availability warning, never a failed Context API request.
     return {
       ok: false,
       code: "source_unavailable",
-      message: "Module was not found in the registry at request time.",
+      message: "The module registry was unreachable at request time.",
     };
   }
-  if (!response.ok) {
-    return {
-      ok: false,
-      code: "source_unavailable",
-      message: "Module could not be resolved from the registry at request time.",
-    };
-  }
-  return { ok: true, body: (await response.json()) as RegistryModuleResponse };
 }
 
-/** README-prose anchors: the section of root.readme whose heading matches the locator. */
+/**
+ * Discovery byproduct (plan 018 G5): fetch a module's registry detail and return
+ * its README plus the full ordered heading list (the raw TOC) — the free
+ * byproduct of the same parse the section locator uses. The derivation engine
+ * uses the TOC to bind `network`/`examples` sections by heading-pattern default.
+ * Returns `null` on a missing/unreadable module (404 / auth failure / any
+ * non-2xx) so a module-less service derives an honest gap, never a fake section.
+ */
+export async function discoverTerraformModule(
+  ctx: ResolutionContext,
+  config: TerraformLiveConfig,
+  address: string,
+): Promise<{ readme: string; headings: string[]; summary?: string; version?: string } | null> {
+  const mod = parseModuleAddress(address);
+  if (!mod) {
+    return null;
+  }
+  const fetched = await loadRegistryModule(ctx, config, mod);
+  if (!fetched.ok) {
+    return null;
+  }
+  const readme = fetched.body.root?.readme ?? "";
+  return {
+    readme,
+    headings: parseReadmeHeadings(readme),
+    summary: parseReadmeIntro(readme),
+    version: fetched.body.version,
+  };
+}
+
+/**
+ * The README's lead paragraph: the first prose line after the H1 title and
+ * before the first sub-heading (the service's one-line description). A README
+ * with no lead paragraph (prose starts inside a section) yields `undefined` — an
+ * honest gap, never a fabricated summary.
+ */
+function parseReadmeIntro(markdown: string): string | undefined {
+  let seenTitle = false;
+  for (const line of markdown.split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    if (/^#\s/.test(trimmed)) {
+      seenTitle = true;
+      continue;
+    }
+    if (/^#{2,6}\s/.test(trimmed)) break; // reached the first section heading
+    if (seenTitle) return trimmed;
+  }
+  return undefined;
+}
+
+/** Collect the human text of every Markdown ATX heading, in document order — the
+ *  raw TOC. Mirrors `extractSectionText`'s heading detection so the TOC entries
+ *  are exactly the headings the runtime section locator can resolve. */
+function parseReadmeHeadings(markdown: string): string[] {
+  if (!markdown.trim()) {
+    return [];
+  }
+  const headings: string[] = [];
+  for (const line of markdown.split(/\r?\n/)) {
+    const text = line.match(/^#{1,6}\s+(.*)$/)?.[1].trim();
+    if (text) {
+      headings.push(text);
+    }
+  }
+  return headings;
+}
+
+/** README-prose: the section of root.readme whose heading slug matches the binding heading. */
 export async function resolveTerraformModuleLive(
   request: TerraformLiveRequest,
   config: TerraformLiveConfig,
 ): Promise<ResolveResult> {
-  const anchor = selectAnchor(request.anchors, request.anchorId);
-  const locator = anchor ? selectorLocator(anchor) : undefined;
+  // The heading is slugified into a runtime locator; an empty/missing heading
+  // cannot address a section, so it surfaces as a broken anchor.
+  const slug = request.heading ? slugify(request.heading) : undefined;
 
-  if (!anchor || !locator || !isValidLocator(locator)) {
+  if (!slug) {
     return brokenAnchor(
       request.source.id,
-      request.anchorId,
-      "Requested anchor is not registered or has an invalid locator.",
+      undefined,
+      "No section heading was supplied to locate in the live module README.",
     );
   }
 
@@ -153,7 +235,7 @@ export async function resolveTerraformModuleLive(
       code: "source_unavailable",
       message: "Terraform module location is not a recognized registry address.",
       source_id: request.source.id,
-      anchor_id: anchor.id,
+      anchor_id: slug,
     });
   }
 
@@ -163,30 +245,30 @@ export async function resolveTerraformModuleLive(
       code: fetched.code,
       message: fetched.message,
       source_id: request.source.id,
-      anchor_id: anchor.id,
+      anchor_id: slug,
     });
   }
 
   const markdown = fetched.body.root?.readme ?? "";
-  const sectionText = extractSectionText(markdown, stripHash(locator));
+  const sectionText = extractSectionText(markdown, slug);
   if (!sectionText) {
     return brokenAnchor(
       request.source.id,
-      anchor.id,
-      "Registered anchor heading could not be resolved in the live module README.",
+      slug,
+      "Section heading could not be resolved in the live module README.",
     );
   }
 
   return {
     excerpts: [
       {
-        anchor_id: anchor.id,
+        anchor_id: slug,
         text: sectionText,
         citation: {
           source_id: request.source.id,
-          anchor_id: anchor.id,
-          label: anchor.citation_label,
-          location: `${request.source.location}${locator}`,
+          anchor_id: slug,
+          label: request.citationLabel ?? request.heading ?? slug,
+          location: `${request.source.location}#${slug}`,
         },
       },
     ],
@@ -194,18 +276,15 @@ export async function resolveTerraformModuleLive(
   };
 }
 
-/** module-field anchors (ADR-0010): a metadata field from the same registry payload. */
+/** Module-metadata fields (ADR-0010): a field from the same registry payload,
+ *  addressed by `selector.field` (version / input:<name> / output:<name>). */
 export async function resolveTerraformModuleFieldLive(
   request: TerraformLiveRequest,
   config: TerraformLiveConfig,
-  field: string | undefined,
 ): Promise<ResolveResult> {
-  const anchor = selectAnchor(request.anchors, request.anchorId);
-  if (!anchor) {
-    return brokenAnchor(request.source.id, request.anchorId, "Requested anchor is not registered.");
-  }
+  const field = request.selector?.field;
   if (!field) {
-    return brokenAnchor(request.source.id, anchor.id, "Module metadata field is not registered.");
+    return brokenAnchor(request.source.id, undefined, "No module metadata field was requested.");
   }
 
   const mod = parseModuleAddress(request.source.location);
@@ -214,7 +293,7 @@ export async function resolveTerraformModuleFieldLive(
       code: "source_unavailable",
       message: "Terraform module location is not a recognized registry address.",
       source_id: request.source.id,
-      anchor_id: anchor.id,
+      anchor_id: field,
     });
   }
 
@@ -224,7 +303,7 @@ export async function resolveTerraformModuleFieldLive(
       code: fetched.code,
       message: fetched.message,
       source_id: request.source.id,
-      anchor_id: anchor.id,
+      anchor_id: field,
     });
   }
 
@@ -232,7 +311,7 @@ export async function resolveTerraformModuleFieldLive(
   if (!value) {
     return brokenAnchor(
       request.source.id,
-      anchor.id,
+      field,
       "Module metadata field is unavailable in the live registry response.",
     );
   }
@@ -240,12 +319,12 @@ export async function resolveTerraformModuleFieldLive(
   return {
     excerpts: [
       {
-        anchor_id: anchor.id,
+        anchor_id: field,
         text: value,
         citation: {
           source_id: request.source.id,
-          anchor_id: anchor.id,
-          label: anchor.citation_label,
+          anchor_id: field,
+          label: request.citationLabel ?? field,
           location: `${request.source.location}#${field}`,
         },
       },
@@ -320,26 +399,6 @@ function slugify(value: string): string {
     .trim()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
-}
-
-function stripHash(locator: string): string {
-  return locator.replace(/^#/, "");
-}
-
-function isValidLocator(locator: string): boolean {
-  return locator.startsWith("#");
-}
-
-function selectorLocator(anchor: Anchor): string | undefined {
-  const locator = anchor.selector.locator;
-  return typeof locator === "string" ? locator : undefined;
-}
-
-function selectAnchor(anchors: Anchor[], anchorId: string | undefined): Anchor | undefined {
-  if (anchorId) {
-    return anchors.find((anchor) => anchor.id === anchorId);
-  }
-  return anchors[0];
 }
 
 function brokenAnchor(

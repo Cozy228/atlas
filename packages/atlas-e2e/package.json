@@ -1,0 +1,20 @@
+{
+  "name": "@atlas/e2e",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "e2e": "playwright test",
+    "e2e:smoke": "pnpm --filter @atlas/portal build && playwright test --config=playwright.smoke.config.ts",
+    "e2e:doctor": "node scripts/doctor.mjs",
+    "e2e:report": "playwright show-report",
+    "typecheck": "tsc --noEmit --pretty false",
+    "lint": "oxlint"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.12.1",
+    "@playwright/test": "^1.61.1",
+    "@types/node": "26.0.0",
+    "typescript": "6.0.3"
+  }
+}

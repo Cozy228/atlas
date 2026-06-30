@@ -1,18 +1,20 @@
 import { queryOptions } from "@tanstack/react-query";
 import type {
-  ContextRequest,
-  ContextBundleResponse,
+  LandingZone,
+  ResourceCatalogResponse,
+  ResourceContextResponse,
+  ResourceRecordResponse,
   SourceDiscoveryRequest,
   SourceDiscoveryResponse,
-  TopicDiscoveryRequest,
-  TopicDiscoveryResponse,
 } from "@atlas/schema";
 
 import { fetchAvailability, type AvailabilityResponse } from "@/api/server/availability";
 import {
-  fetchContextBundle,
+  fetchLandingZones,
+  fetchResourceCatalog,
+  fetchResourceContext,
+  fetchResourceRecord,
   fetchSourceDiscovery,
-  fetchTopicDiscovery,
 } from "@/api/server/contextApi";
 import { fetchReleaseNotes, type Release } from "@/api/server/releaseNotes";
 import { fetchAnnouncements, type Announcement } from "@/api/server/announcements";
@@ -45,15 +47,18 @@ export const availabilityQueryOptions = queryOptions<AvailabilityResponse>({
   staleTime: Infinity,
 });
 
-export function topicDiscoveryQueryOptionsFor(request: TopicDiscoveryRequest = {}) {
-  return queryOptions<TopicDiscoveryResponse>({
-    queryKey: ["topics", request] as const,
-    queryFn: () => fetchTopicDiscovery({ data: request }),
-    staleTime: 60_000,
-  });
-}
+export const landingZonesQueryOptions = queryOptions<LandingZone[]>({
+  queryKey: ["landing-zones"] as const,
+  queryFn: () => fetchLandingZones(),
+  // The LZ topology is config (dev=prod), effectively static within a session.
+  staleTime: Infinity,
+});
 
-export const topicDiscoveryQueryOptions = topicDiscoveryQueryOptionsFor();
+export const resourceCatalogQueryOptions = queryOptions<ResourceCatalogResponse>({
+  queryKey: ["resource-catalog"] as const,
+  queryFn: () => fetchResourceCatalog(),
+  staleTime: 60_000,
+});
 
 export function sourceDiscoveryQueryOptionsFor(request: SourceDiscoveryRequest = {}) {
   return queryOptions<SourceDiscoveryResponse>({
@@ -65,13 +70,21 @@ export function sourceDiscoveryQueryOptionsFor(request: SourceDiscoveryRequest =
 
 export const sourceDiscoveryQueryOptions = sourceDiscoveryQueryOptionsFor();
 
-export function contextBundleQueryOptions(request: ContextRequest) {
-  return queryOptions<ContextBundleResponse>({
-    queryKey: ["context-bundle", request] as const,
-    queryFn: () => fetchContextBundle({ data: request }),
-    // 5 min: bundles are immutable per { topic_id, disclosure_level } within a
-    // session, so caching avoids re-resolving every cited anchor (the app's most
-    // expensive call) on re-nav. Not Infinity, so a long-lived tab still refreshes.
+export function resourceRecordQueryOptions(ref: { kind: string; slug: string }) {
+  return queryOptions<ResourceRecordResponse>({
+    queryKey: ["resource-record", ref] as const,
+    queryFn: () => fetchResourceRecord({ data: ref }),
+    // Durable presentation metadata (ADR-0015 §2) — long-lived like the topic read.
+    staleTime: 5 * 60_000,
+  });
+}
+
+export function resourceContextQueryOptions(ref: { kind: string; slug: string }) {
+  return queryOptions<ResourceContextResponse>({
+    queryKey: ["resource-context", ref] as const,
+    queryFn: () => fetchResourceContext({ data: ref }),
+    // Reference discovery is cached per Resource key on the server (plan 017 SWR);
+    // a short client staleTime avoids re-fetching on intra-session re-nav.
     staleTime: 5 * 60_000,
   });
 }

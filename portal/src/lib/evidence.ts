@@ -1,26 +1,4 @@
-import type { AuthorityLevel, Source, Topic, Warning } from "@atlas/schema";
-
-/**
- * Authority ranking used wherever the Portal sorts or compares sources.
- * Lower index = stronger authority. Matches the order called out in
- * docs/architecture/constraints.md.
- */
-export const AUTHORITY_ORDER: ReadonlyArray<AuthorityLevel> = [
-  "authoritative",
-  "reference",
-  "example",
-  "draft",
-  "deprecated",
-];
-
-export function authorityRank(level: AuthorityLevel): number {
-  const index = AUTHORITY_ORDER.indexOf(level);
-  return index === -1 ? AUTHORITY_ORDER.length : index;
-}
-
-export function compareByAuthority(a: Source, b: Source): number {
-  return authorityRank(a.authority_level) - authorityRank(b.authority_level);
-}
+import type { Source, Warning } from "@atlas/schema";
 
 export type FreshnessState = "current" | "needs-review" | "stale";
 
@@ -84,8 +62,4 @@ export function highestPriorityWarning(warnings: ReadonlyArray<Warning>): Warnin
   return warnings.reduce((min, w) =>
     WARNING_PRIORITY[w.code] < WARNING_PRIORITY[min.code] ? w : min,
   );
-}
-
-export function topicSlug(topic: Topic): string {
-  return topic.id;
 }

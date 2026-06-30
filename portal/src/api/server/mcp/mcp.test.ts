@@ -1,9 +1,25 @@
-import { describe, expect, it } from "vitest";
-import { ContextBundleResponseSchema } from "@atlas/schema";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { ResourceContextResponseSchema } from "@atlas/schema";
+import { server, setDevDiscoveryEnv } from "@atlas/context-layer/devMocks";
 
 import { serverContextApiClient } from "../serverContextApiClient";
 import { buildMcpServerCard, handleMcpRequest } from "./handler";
 import { mcpTools } from "./tools";
+
+// The tools read the discovery-derived catalog + the LZ-aware availability grid
+// (plan 018 G5 / 021 G3). Boot the MSW source-space and point EVERY discovery
+// channel at it so the registry/resources + availability resolve live.
+const savedEnv = { ...process.env };
+beforeAll(() => {
+  server.listen({ onUnhandledRequest: "bypass" });
+  // Reference space off: the resource-context parity test compares two live
+  // projections, and reference discovery stamps a run-time timestamp.
+  setDevDiscoveryEnv(process.env, { referenceSpace: false });
+});
+afterAll(() => {
+  server.close();
+  process.env = savedEnv;
+});
 
 function rpc(method: string, params?: Record<string, unknown>, id: number = 1): Request {
   return new Request("https://portal.example.com/mcp", {
@@ -50,7 +66,7 @@ describe("mcp protocol surface", () => {
     }[];
     expect(tools.map((tool) => tool.name).sort()).toEqual([
       "atlas_get_availability",
-      "atlas_get_context_bundle",
+      "atlas_get_resource_context",
       "atlas_get_source",
       "atlas_search_service",
     ]);
@@ -70,34 +86,33 @@ describe("mcp protocol surface", () => {
 });
 
 describe("mcp tools against the pilot fixtures", () => {
-  it("atlas_search_service resolves a query to semantic topic ids", async () => {
+  it("atlas_search_service resolves a query to canonical resource ids", async () => {
     const result = await callTool("atlas_search_service", { query: "textract" });
     const data = result.structuredContent as {
-      topics: { id: string; name: string; description: string }[];
+      resources: { id: string; name: string; kind: string; description?: string }[];
       total: number;
     };
-    expect(data.topics.map((topic) => topic.id)).toContain("aws-textract");
-    // CONCISE: high-signal fields only, no owner/support/entry_tools noise.
-    expect(Object.keys(data.topics[0]!).sort()).toEqual([
-      "description",
-      "id",
-      "name",
-      "topic_type",
-    ]);
+    expect(data.resources.map((resource) => resource.id)).toContain("service/aws/textract");
+    // CONCISE: high-signal fields only, no owner/support/entry_tools noise. The
+    // description is derived from the module README's lead paragraph (id/name/kind
+    // + description).
+    const textract = data.resources.find((resource) => resource.id === "service/aws/textract")!;
+    expect(Object.keys(textract).sort()).toEqual(["description", "id", "kind", "name"]);
+    expect(textract.description).toBeTruthy();
   });
 
   it("atlas_get_source returns the registry record by semantic id", async () => {
     const result = await callTool("atlas_get_source", {
       source_id: "textract-module-readme",
     });
-    const data = result.structuredContent as { source: { id: string; authority_level: string } };
+    const data = result.structuredContent as { source: { id: string; source_class: string } };
     expect(data.source.id).toBe("textract-module-readme");
-    expect(data.source.authority_level).toBe("authoritative");
+    expect(data.source.source_class).toBe("terraform-module");
   });
 
   it("atlas_get_availability filters by zone and service, carrying its Citation", async () => {
     const result = await callTool("atlas_get_availability", {
-      zone: "aws",
+      zone: "awsf",
       service_query: "textract",
     });
     const data = result.structuredContent as {
@@ -106,39 +121,45 @@ describe("mcp tools against the pilot fixtures", () => {
     };
     expect(data.services.length).toBeGreaterThan(0);
     for (const service of data.services) {
-      expect(service.zone).toBe("aws");
+      expect(service.zone).toBe("awsf");
       expect(service.availability).toBeTypeOf("object");
     }
     // The grid reads through the one cited source of record (plan 014).
     expect(data.citation.source_id).toBe("availability-matrix");
     expect(data.citation.label.length).toBeGreaterThan(0);
-    expect(data.citation.location).toContain("Regional+Availability+Matrix");
+    // The read carries the governing source's location (the per-LZ availability
+    // page id since plan 021 G3); only that it is cited matters here.
+    expect(data.citation.location.length).toBeGreaterThan(0);
   });
 
-  it("atlas_get_context_bundle returns the same governed bundle the Portal gets, with Citations", async () => {
-    const result = await callTool("atlas_get_context_bundle", {
-      topic_id: "aws-textract",
+  it("atlas_get_resource_context returns the same projection the Portal gets", async () => {
+    const result = await callTool("atlas_get_resource_context", {
+      kind: "service",
+      slug: "aws/textract",
       response_format: "DETAILED",
     });
-    const bundle = ContextBundleResponseSchema.parse(result.structuredContent);
-    const portalBundle = await serverContextApiClient.getContextBundle({
-      topic_id: "aws-textract",
-    });
-    expect({ ...bundle, bundle_id: "x" }).toEqual({ ...portalBundle, bundle_id: "x" });
+    const projection = ResourceContextResponseSchema.parse(result.structuredContent);
+    const portalProjection = await serverContextApiClient.getResourceContext(
+      "service",
+      "aws/textract",
+    );
+    expect({ ...projection, resolvedAt: "x" }).toEqual({ ...portalProjection, resolvedAt: "x" });
   });
 
-  it("CONCISE bundles keep the Citation on every excerpt and pass warnings through", async () => {
-    const result = await callTool("atlas_get_context_bundle", { topic_id: "aws-textract" });
+  it("CONCISE projections keep Citations on every Section and pass warnings through", async () => {
+    const result = await callTool("atlas_get_resource_context", {
+      kind: "service",
+      slug: "aws/textract",
+    });
     const data = result.structuredContent as {
-      excerpts: { source_id: string; citation: { source_id: string; label: string } }[];
-      warnings: unknown[];
+      sections: { section: string; citations: { sourceId: string }[] }[];
     };
-    expect(data.excerpts.length).toBeGreaterThan(0);
-    for (const excerpt of data.excerpts) {
-      expect(excerpt.citation.source_id).toBe(excerpt.source_id);
-      expect(excerpt.citation.label.length).toBeGreaterThan(0);
+    expect(data.sections.length).toBeGreaterThan(0);
+    for (const section of data.sections) {
+      for (const citation of section.citations) {
+        expect(citation.sourceId.length).toBeGreaterThan(0);
+      }
     }
-    expect(Array.isArray(data.warnings)).toBe(true);
   });
 
   it("failed calls return actionable isError results with a valid example", async () => {

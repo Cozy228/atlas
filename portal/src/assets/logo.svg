@@ -1,0 +1,6 @@
+<!-- PLACEHOLDER top-nav logo mark. Swap this file's contents for the real
+     brand logo SVG; nothing else needs to change. Distinct from favicon.svg. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" role="img">
+  <rect width="24" height="24" rx="7" fill="#001aff" />
+  <path d="M16.2 8.6a4.6 4.6 0 1 0 0 6.8" stroke="#fff" stroke-width="2.2" stroke-linecap="round" />
+</svg>

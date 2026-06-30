@@ -1,8 +1,21 @@
-import { describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { server, setDevDiscoveryEnv } from "@atlas/context-layer/devMocks";
 
-import { loadGuidance } from "./loadGuidance";
+import { loadGuidance } from "../../lib/loadGuidance";
 import { buildOauthProtectedResource, buildRobotsTxt, buildSitemapXml } from "./agentDiscovery";
 import { serverContextApiClient } from "./serverContextApiClient";
+
+// Post-flip (plan 018 G5) the sitemap's catalog pages come from live discovery,
+// so boot the MSW server + point the discovery channels at the fixtures.
+const savedEnv = { ...process.env };
+beforeAll(() => {
+  server.listen({ onUnhandledRequest: "bypass" });
+  setDevDiscoveryEnv(process.env, { referenceSpace: false });
+});
+afterAll(() => {
+  server.close();
+  process.env = savedEnv;
+});
 
 describe("robots.txt", () => {
   const robots = buildRobotsTxt();
@@ -22,14 +35,14 @@ describe("robots.txt", () => {
 
 describe("sitemap.xml", () => {
   it("is a valid urlset of canonical pages, excluding mutation flows and the support page", async () => {
-    const [topics, sources] = await Promise.all([
-      serverContextApiClient.discoverTopics(),
+    const [catalog, sources] = await Promise.all([
+      serverContextApiClient.discoverResources(),
       serverContextApiClient.discoverSources(),
     ]);
     const xml = buildSitemapXml({
-      topicIds: topics.topics.map((topic) => topic.id),
+      resourceIds: catalog.resources.map((resource) => resource.id),
       sourceIds: sources.sources.map((source) => source.id),
-      guidanceIds: loadGuidance().map((guidance) => guidance.id),
+      guidanceIds: (await loadGuidance()).map((guidance) => guidance.id),
     });
 
     expect(xml).toMatch(
@@ -45,7 +58,7 @@ describe("sitemap.xml", () => {
       expect(loc).not.toContain("/api/");
       expect(loc).not.toContain("/feedback");
     }
-    expect(locs).toContain("https://portal.example.com/catalog/aws-textract");
+    expect(locs).toContain("https://portal.example.com/service/aws/textract");
     expect(locs).toContain("https://portal.example.com/sources/textract-module-readme");
   });
 });

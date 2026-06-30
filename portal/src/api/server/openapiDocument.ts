@@ -5,7 +5,7 @@
  *   contract exposing only the four agent operations (getAtlasInstructions,
  *   getAtlasCapabilityCatalog, searchResources, getResourceContext).
  * - `buildInternalOpenApiDocument` → `/api/internal/openapi.json`: the complete
- *   internal contract (topics, sources, context, feedback, resources) — every
+ *   internal contract (resource catalog, sources, context, feedback, resources) — every
  *   route the Context Layer router dispatches, not advertised to blind agents.
  *
  * Component schemas are derived from `@atlas/schema` (zod) via `z.toJSONSchema()`,
@@ -17,25 +17,22 @@ import { z } from "zod";
 import {
   ApiErrorResponseSchema,
   AvailabilityReadResponseSchema,
-  ContextBundleResponseSchema,
-  ContextRequestSchema,
   ContextSectionSchema,
   FeedbackResponseSchema,
   FeedbackSubmissionSchema,
   MissingSectionSchema,
+  ResourceCatalogResponseSchema,
   ResourceCitationSchema,
   ResourceContextResponseSchema,
+  ResourceRecordResponseSchema,
   ResourceSearchResponseSchema,
   ResourceSummarySchema,
   ResourceWarningSchema,
   SourceDiscoveryResponseSchema,
   SourceResponseSchema,
-  TopicDiscoveryResponseSchema,
-  TopicResponseSchema,
   resourceKinds,
   sectionIds,
   sourceClasses,
-  topicTypes,
 } from "@atlas/schema";
 import { listResourceKinds, resourceKindRegistry } from "@atlas/context-layer";
 import { DEFAULT_PORTAL_ORIGIN } from "./portalOrigin";
@@ -49,9 +46,9 @@ const VOCABULARY = `Atlas is a governed context layer: it registers, validates, 
 Vocabulary:
 - **Source**: a registered system-of-record document Atlas can cite, identified by \`source_class\`.
 - **Anchor**: a registered, citable location within a Source (a heading, a section, a clause).
-- **Excerpt**: the text Atlas returns for an Anchor at request time, always paired with a Citation. Excerpts are ephemeral — resolved live, never durably ingested.
-- **Citation**: the provenance attached to an Excerpt: \`source_id\`, \`anchor_id\`, label, and location. An Excerpt without a Citation is never returned.
-- **Resolution**: the act of turning a registered Anchor into an Excerpt at request time.`;
+- **Section**: a projected slice of a Resource, its content live-resolved from one or more registered Sources at request time. Content is ephemeral — resolved live, never durably ingested.
+- **Citation**: the provenance attached to a Section's content: \`sourceId\`, \`anchor\`, title, and url. Resolved content is never returned without its Citations.
+- **Resolution**: the act of live-resolving a Resource's registered Sources into Section content at request time.`;
 
 const AGENT_INTRO = `Machine-readable access to approved Atlas resources, their context, and supporting evidence.
 
@@ -102,81 +99,6 @@ function queryParam(name: string, description: string, schema: JsonSchema = { ty
   return { name, in: "query", required: false, description, schema };
 }
 
-/** Query parameters accepted by every bundle-shaped GET route. */
-const contextQueryParams = [
-  queryParam("anchor_id", "Scope the bundle to one registered Anchor."),
-  queryParam("query", "Free-text intent used to select and rank Sources."),
-  queryParam(
-    "disclosure_level",
-    "How much Excerpt text to disclose, 0 (citations only) to 3 (full sections).",
-    { type: "integer", minimum: 0, maximum: 3 },
-  ),
-];
-
-const BUNDLE_EXAMPLE = {
-  bundle_id: "bundle-example-001",
-  request: { topic_id: "aws-textract" },
-  sources: [
-    {
-      source: {
-        id: "textract-module-readme",
-        title: "Textract Terraform Module",
-        source_class: "terraform-module",
-        location: "example/textract/aws",
-        steward: "cloud-platform",
-        visibility: "internal",
-        authority_scope: ["module-usage", "private-networking"],
-        authority_level: "authoritative",
-        last_observed_at: "2026-05-05T00:00:00.000Z",
-        last_reviewed_at: "2026-05-01T00:00:00.000Z",
-        review_frequency: "P90D",
-      },
-      anchors: [
-        {
-          id: "private-subnet-usage",
-          source_id: "textract-module-readme",
-          anchor_strategy: "markdown-heading",
-          title: "Private subnet usage",
-          selector: { locator: "#private-subnet-usage" },
-          citation_label: "Private subnet usage",
-          status: "valid",
-          last_validated_at: "2026-05-05T00:00:00.000Z",
-        },
-      ],
-      selection_rationale: "Authoritative module README mapped to the requested topic.",
-      excerpts: [
-        {
-          anchor_id: "private-subnet-usage",
-          text: "Deploy the module into private subnets; the service endpoint is reached through a VPC endpoint.",
-          citation: {
-            source_id: "textract-module-readme",
-            anchor_id: "private-subnet-usage",
-            label: "Private subnet usage",
-            location: "example/textract/aws",
-          },
-        },
-      ],
-    },
-  ],
-  anchor_references: [
-    {
-      source_id: "textract-module-readme",
-      anchor_id: "private-subnet-usage",
-      citation_label: "Private subnet usage",
-      status: "valid",
-    },
-  ],
-  warnings: [],
-  expansion_paths: [
-    {
-      source_id: "textract-module-readme",
-      anchor_id: "private-subnet-usage",
-      disclosure_level: 2,
-      label: "Expand: Private subnet usage",
-    },
-  ],
-};
-
 const RESOURCE_CONTEXT_EXAMPLE = {
   resource: {
     kind: "service",
@@ -221,6 +143,27 @@ const RESOURCE_CONTEXT_EXAMPLE = {
     },
   },
   missingSections: [],
+  // Reference-only discovered document links (plan 017 B5), surfaced ALONGSIDE
+  // the governed Sections above and clearly distinguished: the agent learns a
+  // page EXISTS, never that its body was obtained (content_mode: reference_only,
+  // agent_accessible: false). Confluence bodies are unreadable without user creds.
+  references: [
+    {
+      title: "Textract — service design",
+      url: "https://confluence.example.com/display/CLOUD/Textract+Service+Design",
+      doc_type: "design",
+      last_observed_at: "2026-06-26T10:30:00.000Z",
+      content_mode: "reference_only",
+      access_mode: "service_credentials",
+      agent_accessible: false,
+    },
+  ],
+  // Discovery cache/freshness state for the references above (plan 017 B12).
+  referenceDiscovery: {
+    status: "fresh",
+    last_observed_at: "2026-06-26T10:30:00.000Z",
+    incomplete: false,
+  },
   resolvedAt: "2026-06-26T10:30:00.000Z",
 };
 
@@ -247,12 +190,12 @@ const READ_FACE_TAGS = [
   {
     name: READ_FACE.context,
     description:
-      "Live-resolve one resource/topic/Source's content from its registered Sources — every fact source-cited, never materialized.",
+      "Live-resolve one resource/Source's content from its registered Sources — every fact source-cited, never materialized.",
   },
   {
     name: READ_FACE.registry,
     description:
-      "Query or browse Atlas's own registry: resolve a name to a canonical id, discover topics/Sources, list capabilities. Identity and index, not content. `searchResources` is the agent-facing Discovery-read subset.",
+      "Query or browse Atlas's own registry: resolve a name to a canonical id, discover resources/Sources, list capabilities. Identity and index, not content. `searchResources` is the agent-facing Discovery-read subset.",
   },
   {
     name: READ_FACE.management,
@@ -361,59 +304,59 @@ function getResourceContextOperation() {
  * Internal (full) operations.
  * -------------------------------------------------------------------------- */
 
+/** Resource presentation-metadata read (plan 020 15d). Portal-internal — the
+ *  resource-first page composes this metadata + the content projection; kept off
+ *  the slim agent contract (getResourceContext stays content-only, ADR-0015 §1). */
+function getResourceRecordOperation() {
+  return {
+    get: {
+      tags: [READ_FACE.context],
+      operationId: "getResourceRecord",
+      summary: "Read a resource's presentation metadata (owner, support, entry tools)",
+      description:
+        "The identity / presentation metadata migrated onto the Resource record (ADR-0015 §2): owner, support channel, category, status, and entry tools, all derived from discovery. Optional fields are honest-gap — a spine-only service returns identity only (kind, id, slug, name, aliases).",
+      parameters: [
+        {
+          name: "kind",
+          in: "path",
+          required: true,
+          description: "Resource kind from the Atlas resource-kind registry.",
+          schema: { type: "string", enum: [...resourceKinds] },
+        },
+        {
+          name: "slug",
+          in: "path",
+          required: true,
+          description: "Canonical slug within the kind (e.g. `aws/textract` for kind=service).",
+          schema: { type: "string" },
+        },
+      ],
+      responses: {
+        "200": {
+          description: "The resource's presentation metadata.",
+          content: jsonContent("ResourceRecordResponse"),
+        },
+        "400": errorResponse("`invalid_request` — unknown `kind`."),
+        "404": errorResponse("`resource_not_found` — no such resource is registered."),
+      },
+    },
+  };
+}
+
 function internalPaths() {
   return {
-    "/topics": {
+    "/resources/catalog": {
       get: {
         tags: [READ_FACE.registry],
-        operationId: "discoverTopics",
-        summary: "Discover topics (services, landing zones, security policies)",
+        operationId: "discoverResources",
+        summary: "List the discovery-derived resource catalog (services + security policies)",
         description:
-          "Search the registered topics. Internal discovery; agents use searchResources instead.",
-        parameters: [
-          queryParam("query", "Free-text search over topic names and descriptions."),
-          queryParam("topic_type", "Filter by topic type.", {
-            type: "string",
-            enum: [...topicTypes],
-          }),
-          queryParam("category", "Filter by topic category."),
-        ],
+          "The full discovered resource inventory as presentation records — the Portal catalog facets on `category`, tabs on `kind` (service / guardrail), and links by `slug`. Returns every resource in one read; internal discovery, agents resolve a single resource via searchResources instead.",
         responses: {
           "200": {
-            description: "Matching topics.",
-            content: jsonContent("TopicDiscoveryResponse"),
+            description: "The resource catalog.",
+            content: jsonContent("ResourceCatalogResponse"),
           },
-          "400": errorResponse("`invalid_request` — malformed discovery filters."),
-        },
-      },
-    },
-    "/topics/{topic_id}": {
-      get: {
-        tags: [READ_FACE.registry],
-        operationId: "getTopic",
-        summary: "Get one topic's registry record",
-        parameters: [topicIdParam()],
-        responses: {
-          "200": { description: "The topic.", content: jsonContent("TopicResponse") },
-          "404": errorResponse("`topic_not_found` — no such topic is registered."),
-        },
-      },
-    },
-    "/topics/{topic_id}/context": {
-      get: {
-        tags: [READ_FACE.context],
-        operationId: "getTopicContextBundle",
-        summary: "Get the governed context bundle for a topic",
-        description:
-          "Internal context read. Returns Excerpts (each paired with its Citation), anchor references, warnings, and expansion paths for the topic's mapped Sources.",
-        parameters: [topicIdParam(), ...contextQueryParams],
-        responses: {
-          "200": {
-            description: "The context bundle. Relay every `warnings[]` entry verbatim.",
-            content: jsonContent("ContextBundleResponse", BUNDLE_EXAMPLE),
-          },
-          "400": errorResponse("`invalid_request` — malformed context request."),
-          "404": errorResponse("`topic_not_found` — no such topic is registered."),
         },
       },
     },
@@ -424,7 +367,6 @@ function internalPaths() {
         summary: "Discover registered Sources",
         parameters: [
           queryParam("query", "Free-text search over Source titles and scopes."),
-          queryParam("topic_id", "Only Sources mapped to this topic."),
           queryParam("source_class", "Filter by source class.", {
             type: "string",
             enum: [...sourceClasses],
@@ -451,45 +393,6 @@ function internalPaths() {
         },
       },
     },
-    "/sources/{source_id}/content": {
-      get: {
-        tags: [READ_FACE.context],
-        operationId: "getSourceContextBundle",
-        summary: "Get the context bundle scoped to one Source",
-        description:
-          "Explicit Source read: runtime warnings are promoted to HTTP errors instead of soft warnings.",
-        parameters: [sourceIdParam(), ...contextQueryParams],
-        responses: {
-          "200": {
-            description: "The context bundle for this Source.",
-            content: jsonContent("ContextBundleResponse"),
-          },
-          "400": errorResponse("`invalid_request` — malformed context request."),
-          "403": errorResponse(
-            "`access_denied` — the Source is registered but the caller's identity is not allowed to see its content (the error form of `restricted_source`).",
-          ),
-          "404": errorResponse("`source_not_found` — no such Source is registered."),
-          "422": errorResponse("`anchor_broken` — the requested Anchor could not be resolved."),
-          "503": errorResponse("`source_unavailable` — the system of record could not be reached."),
-        },
-      },
-    },
-    "/context": {
-      get: {
-        tags: [READ_FACE.context],
-        operationId: "getContextBundle",
-        summary: "Get a context bundle from a free-text query",
-        parameters: [...contextQueryParams],
-        responses: {
-          "200": {
-            description:
-              "The context bundle. An unanswerable request returns an empty bundle with a `no_registered_source` warning, not an error.",
-            content: jsonContent("ContextBundleResponse"),
-          },
-          "400": errorResponse("`invalid_request` — malformed context request."),
-        },
-      },
-    },
     "/availability": {
       get: {
         tags: [READ_FACE.registry],
@@ -511,42 +414,12 @@ function internalPaths() {
     },
     "/resources": searchResourcesOperation(),
     "/resources/{kind}/{slug}": getResourceContextOperation(),
-    "/context-bundle": {
-      post: {
-        tags: [READ_FACE.context],
-        operationId: "postContextBundle",
-        summary: "Get a context bundle (request body form)",
-        description:
-          "Read-only despite the verb: POST is the body-carrying form of the same bundle read.",
-        requestBody: {
-          required: true,
-          content: {
-            "application/json": {
-              schema: ref("ContextRequest"),
-              example: { topic_id: "aws-textract", disclosure_level: 1 },
-            },
-          },
-        },
-        responses: {
-          "200": {
-            description: "The context bundle.",
-            content: jsonContent("ContextBundleResponse", BUNDLE_EXAMPLE),
-          },
-          "400": errorResponse("`invalid_request` — malformed context request."),
-          "403": errorResponse(
-            "`access_denied` — explicit `source_id` request for a restricted Source.",
-          ),
-          "404": errorResponse("`topic_not_found` / `source_not_found` — unknown explicit id."),
-          "422": errorResponse("`anchor_broken` — the requested Anchor could not be resolved."),
-          "503": errorResponse("`source_unavailable` — the system of record could not be reached."),
-        },
-      },
-    },
+    "/resources/{kind}/{slug}/record": getResourceRecordOperation(),
     "/feedback": {
       post: {
         tags: [READ_FACE.management],
         operationId: "submitFeedback",
-        summary: "Submit feedback about a topic, Source, or Anchor",
+        summary: "Submit feedback about a resource, Source, or Anchor",
         description:
           "The single mutation endpoint. Records that registered context is missing, stale, broken, or unclear.",
         requestBody: {
@@ -555,10 +428,11 @@ function internalPaths() {
             "application/json": {
               schema: ref("FeedbackSubmission"),
               example: {
-                target_type: "source",
-                target_id: "textract-module-readme",
+                target_type: "resource",
+                target_id: "service/aws/textract",
                 feedback_type: "stale",
-                message: "The private subnet section no longer matches the module inputs.",
+                message:
+                  "The availability section no longer matches the regions this service supports.",
               },
             },
           },
@@ -566,7 +440,9 @@ function internalPaths() {
         responses: {
           "201": { description: "Feedback recorded.", content: jsonContent("FeedbackResponse") },
           "400": errorResponse("`invalid_request` — malformed feedback submission."),
-          "404": errorResponse("`topic_not_found` / `source_not_found` — unknown feedback target."),
+          "404": errorResponse(
+            "`resource_not_found` / `source_not_found` — unknown feedback target.",
+          ),
           "422": errorResponse("`anchor_broken` — unknown anchor feedback target."),
         },
       },
@@ -664,7 +540,7 @@ export function buildInternalOpenApiDocument(origin: string = DEFAULT_PORTAL_ORI
     info: {
       title: "Atlas Internal API",
       version: "1.0.0",
-      description: `${VOCABULARY}\n\n${WARNING_GLOSSARY}\n\n${BEARER_PIPE}\n\nThe complete internal contract: topic/source discovery, context bundles, the kind-first resource API, and feedback. Not advertised to blind agents — the slim agent contract is at \`/openapi.json\`. Every route is read-only except \`POST /feedback\`, the single mutation endpoint.`,
+      description: `${VOCABULARY}\n\n${WARNING_GLOSSARY}\n\n${BEARER_PIPE}\n\nThe complete internal contract: resource-catalog and Source discovery, the kind-first resource API, and feedback. Not advertised to blind agents — the slim agent contract is at \`/openapi.json\`. Every route is read-only except \`POST /feedback\`, the single mutation endpoint.`,
     },
     servers: [{ url: `${origin}/api`, description: "Atlas Portal origin" }],
     security: [{ bearerPipe: [] }, {}],
@@ -673,32 +549,17 @@ export function buildInternalOpenApiDocument(origin: string = DEFAULT_PORTAL_ORI
     components: {
       securitySchemes: bearerSecurityScheme,
       schemas: {
-        TopicDiscoveryResponse: toJsonSchema(TopicDiscoveryResponseSchema),
-        TopicResponse: toJsonSchema(TopicResponseSchema),
+        ResourceCatalogResponse: toJsonSchema(ResourceCatalogResponseSchema),
         SourceDiscoveryResponse: toJsonSchema(SourceDiscoveryResponseSchema),
         SourceResponse: toJsonSchema(SourceResponseSchema),
-        ContextRequest: toJsonSchema(ContextRequestSchema),
-        ContextBundleResponse: {
-          ...toJsonSchema(ContextBundleResponseSchema),
-          description: `The governed bundle. Every Excerpt carries its Citation — never present one without the other.\n\n${WARNING_GLOSSARY}`,
-        },
         AvailabilityReadResponse: toJsonSchema(AvailabilityReadResponseSchema),
         FeedbackSubmission: toJsonSchema(FeedbackSubmissionSchema),
         FeedbackResponse: toJsonSchema(FeedbackResponseSchema),
         ApiErrorResponse: toJsonSchema(ApiErrorResponseSchema),
         ...resourceSchemas(),
+        ResourceRecordResponse: toJsonSchema(ResourceRecordResponseSchema),
       },
     },
-  };
-}
-
-function topicIdParam() {
-  return {
-    name: "topic_id",
-    in: "path",
-    required: true,
-    description: "Registered topic id (semantic, e.g. `aws-textract`).",
-    schema: { type: "string" },
   };
 }
 

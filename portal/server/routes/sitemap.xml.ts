@@ -1,20 +1,21 @@
-import { listResourceCanonicalIds } from "@atlas/context-layer";
 import { buildSitemapXml } from "@/api/server/agentDiscovery";
 import { handlerRequest, resolvePortalOrigin } from "@/api/server/portalOrigin";
 import { serverContextApiClient } from "@/api/server/serverContextApiClient";
-import { loadGuidance } from "@/api/server/loadGuidance";
+import { loadGuidance } from "@/lib/loadGuidance";
 
 export default async (event: unknown): Promise<Response> => {
-  const [topics, sources] = await Promise.all([
-    serverContextApiClient.discoverTopics(),
+  const [catalog, sources] = await Promise.all([
+    serverContextApiClient.discoverResources(),
     serverContextApiClient.discoverSources(),
   ]);
+  // Canonical resource ids come straight off the discovered catalog records:
+  // `{kind}/{slug}` (e.g. `service/aws/textract`, `guardrail/<slug>`).
+  const resourceIds = catalog.resources.map((resource) => resource.id);
   const xml = buildSitemapXml(
     {
-      topicIds: topics.topics.map((topic) => topic.id),
       sourceIds: sources.sources.map((source) => source.id),
-      guidanceIds: loadGuidance().map((guidance) => guidance.id),
-      resourceIds: listResourceCanonicalIds(),
+      guidanceIds: (await loadGuidance()).map((guidance) => guidance.id),
+      resourceIds,
     },
     resolvePortalOrigin(handlerRequest(event)),
   );

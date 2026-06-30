@@ -3,7 +3,7 @@ import type { CachedResponse, SourceContentCache } from "./sourceContentCache";
 /**
  * ElastiCache (Valkey) adapter for {@link SourceContentCache}
  * (docs/architecture/source-content-cache.md). Active only when
- * `ATLAS_CACHE_VALKEY_URL` is set; `@valkey/valkey-glide` is an OPTIONAL
+ * `CACHE_VALKEY_URL` is set; `@valkey/valkey-glide` is an OPTIONAL
  * dependency imported lazily, so the default install never pulls a Valkey
  * client (nor its platform-native binaries).
  */
@@ -86,7 +86,7 @@ export class ValkeyContentCache implements SourceContentCache {
       mod = (await import(specifier)) as GlideModule;
     } catch {
       throw new Error(
-        "ATLAS_CACHE_VALKEY_URL is set but the '@valkey/valkey-glide' package is not installed. " +
+        "CACHE_VALKEY_URL is set but the '@valkey/valkey-glide' package is not installed. " +
           "Run `pnpm add @valkey/valkey-glide` in context-layer to enable the Valkey cache adapter.",
       );
     }

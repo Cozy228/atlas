@@ -34,14 +34,6 @@ export const FRESHNESS_META: Record<FreshnessState, { label: string; dot: string
   stale: { label: "Stale", dot: "bg-critical" },
 };
 
-export const AUTHORITY_BAR: Record<string, string> = {
-  authoritative: "bg-primary",
-  reference: "bg-info",
-  example: "bg-muted-foreground/50",
-  draft: "bg-warning",
-  deprecated: "bg-critical",
-};
-
 export function freshnessMap(sources: ReadonlyArray<Source>): Map<string, FreshnessState> {
   const map = new Map<string, FreshnessState>();
   for (const source of sources) map.set(source.id, classifyFreshness(source));
@@ -64,8 +56,8 @@ export function Header({ sources }: { sources: ReadonlyArray<Source> }) {
         Source registry
       </h1>
       <p className="w-fit max-w-[66ch] text-[13.5px] leading-[1.55] text-muted-foreground">
-        Every claim in Atlas resolves to one of these {sources.length} registered documents.
-        Authority and freshness are computed live from the registry, not asserted.
+        Every claim in Cloud DevEx Portal resolves to one of these {sources.length} registered
+        documents, each discovered from its source system — never hand-authored.
       </p>
     </header>
   );

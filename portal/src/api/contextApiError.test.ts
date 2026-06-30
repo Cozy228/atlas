@@ -8,22 +8,22 @@ describe("ContextApiError", () => {
       status: 404,
       body: {
         error: {
-          code: "topic_not_found",
-          message: "Topic was not found in the Atlas registry.",
+          code: "resource_not_found",
+          message: "Resource was not found in the Atlas registry.",
         },
       },
     });
 
     expect(error).toBeInstanceOf(ContextApiError);
-    expect(error.code).toBe("topic_not_found");
+    expect(error.code).toBe("resource_not_found");
     expect(error.status).toBe(404);
-    expect(error.message).toBe("Topic was not found in the Atlas registry.");
+    expect(error.message).toBe("Resource was not found in the Atlas registry.");
   });
 });
 
 describe("mapErrorCodeToUiState", () => {
   it("maps every API error code to a deterministic UI state", () => {
-    expect(mapErrorCodeToUiState("topic_not_found")).toBe("not_found");
+    expect(mapErrorCodeToUiState("resource_not_found")).toBe("not_found");
     expect(mapErrorCodeToUiState("source_not_found")).toBe("not_found");
     expect(mapErrorCodeToUiState("anchor_broken")).toBe("broken");
     expect(mapErrorCodeToUiState("source_unavailable")).toBe("unavailable");

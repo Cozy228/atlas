@@ -3,6 +3,13 @@
 Status: accepted
 Date: 2026-06-20
 
+> **Refined post-MVP by [ADR-0017](./0017-landing-zone-discovery-root.md):** this ADR's "zone" is a
+> **cloud provider** (`landingZoneIds = ["aws","azure"]` in `@atlas/schema`) — ADR-0017 renames it to a
+> real **landing-zone** id (`awsf`/`awsc`/`azure`), demotes `cloud` to an attribute, and reroots
+> availability as **LZ-rooted discovery** (the `availability.ts` fixture retirement this ADR foresaw is
+> executed in `plans/021` G3). The core resolver decision — parse-once matrix, parametric anchor, no
+> stale cache — stands; only the zone vocabulary + the fixture data source change.
+
 ## Context
 
 The region×service Availability matrix is named as Evidence

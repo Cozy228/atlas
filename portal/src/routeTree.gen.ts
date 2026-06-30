@@ -26,7 +26,7 @@ import { Route as SourcesSourceIdRouteImport } from './routes/sources.$sourceId'
 import { Route as ReleasesReleaseIdRouteImport } from './routes/releases.$releaseId'
 import { Route as PoliciesPolicyIdRouteImport } from './routes/policies.$policyId'
 import { Route as GuidanceGuidanceIdRouteImport } from './routes/guidance.$guidanceId'
-import { Route as CatalogTopicIdRouteImport } from './routes/catalog.$topicId'
+import { Route as ServiceProviderIdRouteImport } from './routes/service.$provider.$id'
 
 const WhatsnewRoute = WhatsnewRouteImport.update({
   id: '/whatsnew',
@@ -113,10 +113,10 @@ const GuidanceGuidanceIdRoute = GuidanceGuidanceIdRouteImport.update({
   path: '/$guidanceId',
   getParentRoute: () => GuidanceRoute,
 } as any)
-const CatalogTopicIdRoute = CatalogTopicIdRouteImport.update({
-  id: '/$topicId',
-  path: '/$topicId',
-  getParentRoute: () => CatalogRoute,
+const ServiceProviderIdRoute = ServiceProviderIdRouteImport.update({
+  id: '/service/$provider/$id',
+  path: '/service/$provider/$id',
+  getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -128,7 +128,6 @@ export interface FileRoutesByFullPath {
   '/sources': typeof SourcesRouteWithChildren
   '/support': typeof SupportRoute
   '/whatsnew': typeof WhatsnewRoute
-  '/catalog/$topicId': typeof CatalogTopicIdRoute
   '/guidance/$guidanceId': typeof GuidanceGuidanceIdRoute
   '/policies/$policyId': typeof PoliciesPolicyIdRoute
   '/releases/$releaseId': typeof ReleasesReleaseIdRoute
@@ -138,13 +137,13 @@ export interface FileRoutesByFullPath {
   '/guidance/': typeof GuidanceIndexRoute
   '/skills/': typeof SkillsIndexRoute
   '/sources/': typeof SourcesIndexRoute
+  '/service/$provider/$id': typeof ServiceProviderIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/overview': typeof OverviewRoute
   '/support': typeof SupportRoute
   '/whatsnew': typeof WhatsnewRoute
-  '/catalog/$topicId': typeof CatalogTopicIdRoute
   '/guidance/$guidanceId': typeof GuidanceGuidanceIdRoute
   '/policies/$policyId': typeof PoliciesPolicyIdRoute
   '/releases/$releaseId': typeof ReleasesReleaseIdRoute
@@ -154,6 +153,7 @@ export interface FileRoutesByTo {
   '/guidance': typeof GuidanceIndexRoute
   '/skills': typeof SkillsIndexRoute
   '/sources': typeof SourcesIndexRoute
+  '/service/$provider/$id': typeof ServiceProviderIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -165,7 +165,6 @@ export interface FileRoutesById {
   '/sources': typeof SourcesRouteWithChildren
   '/support': typeof SupportRoute
   '/whatsnew': typeof WhatsnewRoute
-  '/catalog/$topicId': typeof CatalogTopicIdRoute
   '/guidance/$guidanceId': typeof GuidanceGuidanceIdRoute
   '/policies/$policyId': typeof PoliciesPolicyIdRoute
   '/releases/$releaseId': typeof ReleasesReleaseIdRoute
@@ -175,6 +174,7 @@ export interface FileRoutesById {
   '/guidance/': typeof GuidanceIndexRoute
   '/skills/': typeof SkillsIndexRoute
   '/sources/': typeof SourcesIndexRoute
+  '/service/$provider/$id': typeof ServiceProviderIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -187,7 +187,6 @@ export interface FileRouteTypes {
     | '/sources'
     | '/support'
     | '/whatsnew'
-    | '/catalog/$topicId'
     | '/guidance/$guidanceId'
     | '/policies/$policyId'
     | '/releases/$releaseId'
@@ -197,13 +196,13 @@ export interface FileRouteTypes {
     | '/guidance/'
     | '/skills/'
     | '/sources/'
+    | '/service/$provider/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/overview'
     | '/support'
     | '/whatsnew'
-    | '/catalog/$topicId'
     | '/guidance/$guidanceId'
     | '/policies/$policyId'
     | '/releases/$releaseId'
@@ -213,6 +212,7 @@ export interface FileRouteTypes {
     | '/guidance'
     | '/skills'
     | '/sources'
+    | '/service/$provider/$id'
   id:
     | '__root__'
     | '/'
@@ -223,7 +223,6 @@ export interface FileRouteTypes {
     | '/sources'
     | '/support'
     | '/whatsnew'
-    | '/catalog/$topicId'
     | '/guidance/$guidanceId'
     | '/policies/$policyId'
     | '/releases/$releaseId'
@@ -233,6 +232,7 @@ export interface FileRouteTypes {
     | '/guidance/'
     | '/skills/'
     | '/sources/'
+    | '/service/$provider/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -247,6 +247,7 @@ export interface RootRouteChildren {
   PoliciesPolicyIdRoute: typeof PoliciesPolicyIdRoute
   ReleasesReleaseIdRoute: typeof ReleasesReleaseIdRoute
   SkillsIndexRoute: typeof SkillsIndexRoute
+  ServiceProviderIdRoute: typeof ServiceProviderIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -370,12 +371,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GuidanceGuidanceIdRouteImport
       parentRoute: typeof GuidanceRoute
     }
-    '/catalog/$topicId': {
-      id: '/catalog/$topicId'
-      path: '/$topicId'
-      fullPath: '/catalog/$topicId'
-      preLoaderRoute: typeof CatalogTopicIdRouteImport
-      parentRoute: typeof CatalogRoute
+    '/service/$provider/$id': {
+      id: '/service/$provider/$id'
+      path: '/service/$provider/$id'
+      fullPath: '/service/$provider/$id'
+      preLoaderRoute: typeof ServiceProviderIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
   }
 }
@@ -393,12 +394,10 @@ const AvailabilityRouteWithChildren = AvailabilityRoute._addFileChildren(
 )
 
 interface CatalogRouteChildren {
-  CatalogTopicIdRoute: typeof CatalogTopicIdRoute
   CatalogIndexRoute: typeof CatalogIndexRoute
 }
 
 const CatalogRouteChildren: CatalogRouteChildren = {
-  CatalogTopicIdRoute: CatalogTopicIdRoute,
   CatalogIndexRoute: CatalogIndexRoute,
 }
 
@@ -444,6 +443,7 @@ const rootRouteChildren: RootRouteChildren = {
   PoliciesPolicyIdRoute: PoliciesPolicyIdRoute,
   ReleasesReleaseIdRoute: ReleasesReleaseIdRoute,
   SkillsIndexRoute: SkillsIndexRoute,
+  ServiceProviderIdRoute: ServiceProviderIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

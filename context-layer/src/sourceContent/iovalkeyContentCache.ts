@@ -5,7 +5,7 @@ import type { CachedResponse, SourceContentCache } from "./sourceContentCache";
  * (`ioredis` fork). GLIDE is the default (`valkeyContentCache.ts`); this exists
  * for runtimes where GLIDE's platform-native binaries are a problem. It is NOT
  * enabled by default — `createSourceContentCache` selects it only when
- * `ATLAS_CACHE_VALKEY_CLIENT=iovalkey`. `iovalkey` is an OPTIONAL dependency
+ * `CACHE_VALKEY_CLIENT=iovalkey`. `iovalkey` is an OPTIONAL dependency
  * imported lazily, so the default install never pulls it.
  */
 
@@ -62,7 +62,7 @@ export class IoValkeyContentCache implements SourceContentCache {
       mod = (await import(specifier)) as typeof mod;
     } catch {
       throw new Error(
-        "ATLAS_CACHE_VALKEY_CLIENT=iovalkey but the 'iovalkey' package is not installed. " +
+        "CACHE_VALKEY_CLIENT=iovalkey but the 'iovalkey' package is not installed. " +
           "Run `pnpm add iovalkey` in context-layer to use the iovalkey cache adapter.",
       );
     }

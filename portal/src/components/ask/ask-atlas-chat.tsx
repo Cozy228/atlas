@@ -17,7 +17,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 
 type AskAtlasChatProps = {
-  topicId?: string;
+  resourceSlug?: string;
   suggestions?: ReadonlyArray<{ category: string; prompt: string }>;
   className?: string;
 };
@@ -52,7 +52,7 @@ const DEFAULT_SUGGESTIONS = [
 ] as const;
 
 export function AskAtlasChat({
-  topicId,
+  resourceSlug,
   suggestions = DEFAULT_SUGGESTIONS,
   className,
 }: AskAtlasChatProps) {
@@ -62,7 +62,7 @@ export function AskAtlasChat({
   const formId = useId();
 
   const mutation = useMutation({
-    mutationFn: async (question: string) => askAtlas({ data: { topicId, question } }),
+    mutationFn: async (question: string) => askAtlas({ data: { resourceSlug, question } }),
     onError: (error) => {
       toast.error("Ask Atlas failed", {
         description: error instanceof Error ? error.message : "Unknown error",

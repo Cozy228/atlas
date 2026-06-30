@@ -1,130 +1,163 @@
-import type { Anchor, Source } from "@atlas/schema";
+import type { Source } from "@atlas/schema";
 import type { AnchorResolver, ResolveRequest, ResolveResult } from "./resolverTypes";
+import {
+  parseAvailabilityPage,
+  type ParsedAvailabilityPage,
+} from "../sourceContent/confluenceAvailabilityProvider";
+import { fetchConfluenceStorageHtml } from "../sourceContent/confluenceCloudContentProvider";
+import { LANDING_ZONES, resolveLandingZoneSource } from "../landingZones";
 
 /**
- * Availability matrix resolver (ADR-0009).
+ * Availability matrix resolver (ADR-0009, plan 021 G3).
  *
- * A governed Source holds a region × Service availability table. This resolver
- * parses it once into a structured matrix and answers at the grain the anchor
- * pins via its `availability-cell` selector:
+ * A governed Source holds a region × Service availability table. Since G3 the
+ * table is the per-LZ availability Confluence page (single live path, 018 G1):
+ * the resolver fetches + parses it at request time — dev/integration = MSW, prod
+ * = real — exactly like every other source, never an in-memory provider. It then
+ * answers at the grain the binding's `selector` pins:
  *
- *   - service + region  -> a cell   ("S3 is available in us-east-1")
- *   - service only      -> a row    ("S3 — us-east-1: available; …")
- *   - region only       -> a column ("us-east-1 — S3: available; …")
+ *   - service + region  -> a cell   ("Amazon S3 is available in us-east-1")
+ *   - service only      -> a row    ("Amazon S3 — us-east-1: available; …")
+ *   - region only       -> a column ("us-east-1 — Amazon S3: available; …")
  *
- * Query precision mirrors citation granularity: a precise anchor gets a precise
- * answer, a fuzzy anchor a fuzzy one. On a fetch/parse failure the resolver
- * returns NO availability data plus a warning — never a stale cached matrix
- * (ADR-0009 §4): honesty over resilience.
+ * The service is matched by its machine id (selector "S3"/"Textract" → row id
+ * `s3`/`textract`); region columns are the page's region-kind locations. On a
+ * fetch/parse failure the resolver returns NO availability data plus a warning —
+ * never a stale matrix (ADR-0009 §4): honesty over resilience.
  */
 
-/** The single governed content key that holds the raw availability table. */
-const AVAILABILITY_TABLE_KEY = "availability-matrix";
-
 type AvailabilityMatrix = {
-  /** Region columns in source order, display-cased (e.g. "us-east-1"). */
+  /** Region columns in page order (region-kind locations only). */
   regions: string[];
-  /** service (lower-cased key) -> row. */
+  /** service id (lower-cased) -> row. */
   services: Map<string, ServiceRow>;
 };
 
 type ServiceRow = {
-  /** Display-cased service name as written in the table (e.g. "S3"). */
+  /** Display name as written on the page (e.g. "Amazon S3"). */
   service: string;
-  /** region (lower-cased key) -> status (e.g. "available"). */
+  /** location id (lower-cased) -> status (e.g. "available"). */
   statuses: Map<string, string>;
 };
-
-/**
- * Lazy parse memo keyed by the raw table text. This is a performance
- * optimization only (ADR-0009 §1): a changed table parses under a new key, and
- * a parse FAILURE is never stored — so a malformed table can never resolve from
- * a previously-good entry. It is explicitly not a resilience fallback.
- */
-const parseMemo = new Map<string, AvailabilityMatrix>();
 
 export const availabilityMatrixResolver: AnchorResolver = {
   sourceClass: "availability-matrix",
   async resolve(request: ResolveRequest): Promise<ResolveResult> {
-    const { source, anchors, anchorId, contentProvider } = request;
-    const anchor = selectAnchor(anchors, anchorId);
-    if (!anchor) {
-      return brokenAnchor(source.id, anchorId, "anchor is not registered");
+    const { source, selector, citationLabel, ctx } = request;
+
+    // Single live path: the table is ALWAYS fetched from Confluence Cloud — the
+    // caller's Bearer first (so it resolves under the caller's ACL), else the
+    // narrow-scoped service token. No channel = honest dead-end, never a fake.
+    const env = readProcessEnv();
+    const token = ctx.token ?? env.CONFLUENCE_TOKEN;
+    const baseUrl = env.CONFLUENCE_BASE_URL;
+    const email = env.CONFLUENCE_EMAIL;
+    if (!token || !baseUrl) {
+      return unavailable(source.id);
     }
 
-    const rawTable = contentProvider.getSourceContent(source.id)?.[AVAILABILITY_TABLE_KEY];
-    const matrix = rawTable ? parseMatrix(rawTable) : undefined;
-    if (!matrix) {
-      return {
-        excerpts: [],
-        warnings: [
-          {
-            code: "availability_unavailable",
-            message:
-              "Availability matrix could not be fetched or parsed; no availability data is returned.",
-            source_id: source.id,
-            anchor_id: anchor.id,
-          },
-        ],
-      };
+    // Availability is LZ-rooted (plan 021 G3): the matrix page is the wired
+    // landing zone's availability page, resolved from env. The derived source
+    // carries a logical `location` ("availability"), so prefer the wired LZ's
+    // page id and fall back to `source.location` (the seed/unit path that already
+    // carries a real page id). The resource projection is single-LZ (the default
+    // wired zone) until per-surface LZ scope lands (plan 023).
+    const wiredZone = LANDING_ZONES.find((zone) => zone.dataStatus === "available");
+    const lzPageId = wiredZone ? resolveLandingZoneSource(wiredZone, env)?.pageId : undefined;
+    const pageId = lzPageId ?? source.location;
+
+    const fetched = await fetchConfluenceStorageHtml(ctx, { token, baseUrl, email }, pageId);
+    if (!fetched.ok) {
+      return unavailable(source.id);
     }
 
-    return resolveAtGrain(source, anchor, matrix);
+    const matrix = buildMatrix(parseAvailabilityPage(fetched.html));
+    if (matrix.services.size === 0) {
+      return unavailable(source.id);
+    }
+
+    const location = fetched.webui
+      ? `${baseUrl.replace(/\/+$/, "")}${fetched.webui}`
+      : source.location;
+    return resolveAtGrain(source, location, selector ?? {}, citationLabel, matrix);
   },
 };
 
-function resolveAtGrain(source: Source, anchor: Anchor, matrix: AvailabilityMatrix): ResolveResult {
-  const service = stringSelector(anchor, "service");
-  const region = stringSelector(anchor, "region");
+/** Build the region × service matrix from the parsed availability page. */
+function buildMatrix(parsed: ParsedAvailabilityPage): AvailabilityMatrix {
+  const regions = parsed.locations.filter((l) => l.kind === "region").map((l) => l.id);
+  const services = new Map<string, ServiceRow>();
+  for (const service of parsed.services) {
+    const statuses = new Map<string, string>();
+    for (const [locationId, entry] of Object.entries(service.availability)) {
+      statuses.set(locationId.toLowerCase(), entry.status);
+    }
+    services.set(service.id.toLowerCase(), { service: service.name, statuses });
+  }
+  return { regions, services };
+}
+
+function resolveAtGrain(
+  source: Source,
+  location: string,
+  selector: Record<string, string>,
+  label: string | undefined,
+  matrix: AvailabilityMatrix,
+): ResolveResult {
+  const service = stringSelector(selector, "service");
+  const region = stringSelector(selector, "region");
 
   // Cell: both axes pinned.
   if (service && region) {
     const row = matrix.services.get(service.toLowerCase());
     if (!row) {
-      return brokenAnchor(source.id, anchor.id, `service "${service}" is not in the matrix`);
+      return brokenAnchor(source.id, `service "${service}" is not in the matrix`);
     }
     const status = row.statuses.get(region.toLowerCase()) ?? "not-planned";
-    return excerpt(source, anchor, `${row.service} is ${status} in ${region}.`);
+    return excerpt(source, location, label, `${row.service} is ${status} in ${region}.`);
   }
 
   // Row: only the Service is pinned.
   if (service) {
     const row = matrix.services.get(service.toLowerCase());
     if (!row) {
-      return brokenAnchor(source.id, anchor.id, `service "${service}" is not in the matrix`);
+      return brokenAnchor(source.id, `service "${service}" is not in the matrix`);
     }
     const cells = matrix.regions.map(
       (col) => `${col}: ${row.statuses.get(col.toLowerCase()) ?? "not-planned"}`,
     );
-    return excerpt(source, anchor, `${row.service} — ${cells.join("; ")}.`);
+    return excerpt(source, location, label, `${row.service} — ${cells.join("; ")}.`);
   }
 
   // Column: only the region is pinned.
   if (region) {
     if (!matrix.regions.some((col) => col.toLowerCase() === region.toLowerCase())) {
-      return brokenAnchor(source.id, anchor.id, `region "${region}" is not in the matrix`);
+      return brokenAnchor(source.id, `region "${region}" is not in the matrix`);
     }
     const cells = [...matrix.services.values()].map(
       (row) => `${row.service}: ${row.statuses.get(region.toLowerCase()) ?? "not-planned"}`,
     );
-    return excerpt(source, anchor, `${region} — ${cells.join("; ")}.`);
+    return excerpt(source, location, label, `${region} — ${cells.join("; ")}.`);
   }
 
-  // An availability-cell anchor must pin at least one axis.
-  return brokenAnchor(source.id, anchor.id, "selector pins neither a service nor a region");
+  // An availability selector must pin at least one axis.
+  return brokenAnchor(source.id, "selector pins neither a service nor a region");
 }
 
-function excerpt(source: Source, anchor: Anchor, text: string): ResolveResult {
+function excerpt(
+  source: Source,
+  location: string,
+  label: string | undefined,
+  text: string,
+): ResolveResult {
   return {
     excerpts: [
       {
-        anchor_id: anchor.id,
         text,
         citation: {
           source_id: source.id,
-          anchor_id: anchor.id,
-          label: anchor.citation_label,
-          location: source.location,
+          label: label ?? source.title,
+          location,
         },
       },
     ],
@@ -132,95 +165,42 @@ function excerpt(source: Source, anchor: Anchor, text: string): ResolveResult {
   };
 }
 
-function brokenAnchor(
-  sourceId: string,
-  anchorId: string | undefined,
-  reason: string,
-): ResolveResult {
+function brokenAnchor(sourceId: string, reason: string): ResolveResult {
   return {
     excerpts: [],
     warnings: [
       {
         code: "broken_anchor",
-        message: `Availability anchor could not be resolved: ${reason}.`,
+        message: `Availability selector could not be resolved: ${reason}.`,
         source_id: sourceId,
-        anchor_id: anchorId,
       },
     ],
   };
 }
 
-/** Parse the governed markdown table into a structured matrix (memoized). */
-function parseMatrix(raw: string): AvailabilityMatrix | undefined {
-  const cached = parseMemo.get(raw);
-  if (cached) {
-    return cached;
-  }
-  const parsed = parseMarkdownMatrix(raw);
-  if (parsed) {
-    parseMemo.set(raw, parsed);
-  }
-  return parsed;
+/** Honest dead-end (ADR-0009 §4): the page could not be fetched/parsed. */
+function unavailable(sourceId: string): ResolveResult {
+  return {
+    excerpts: [],
+    warnings: [
+      {
+        code: "availability_unavailable",
+        message:
+          "Availability matrix could not be fetched or parsed; no availability data is returned.",
+        source_id: sourceId,
+      },
+    ],
+  };
 }
 
-function parseMarkdownMatrix(raw: string): AvailabilityMatrix | undefined {
-  const rows = raw
-    .split("\n")
-    .map((line) => line.trim())
-    .filter((line) => line.startsWith("|"))
-    .map(splitRow);
-
-  if (rows.length < 2) {
-    return undefined;
-  }
-
-  const regions = rows[0]!.slice(1).filter((cell) => cell.length > 0);
-  if (regions.length === 0) {
-    return undefined;
-  }
-
-  const services = new Map<string, ServiceRow>();
-  for (const cells of rows.slice(1)) {
-    if (isSeparatorRow(cells)) {
-      continue;
-    }
-    const service = cells[0]?.trim();
-    if (!service) {
-      continue;
-    }
-    const statuses = new Map<string, string>();
-    regions.forEach((region, index) => {
-      const status = cells[index + 1]?.trim();
-      if (status) {
-        statuses.set(region.toLowerCase(), status);
-      }
-    });
-    services.set(service.toLowerCase(), { service, statuses });
-  }
-
-  if (services.size === 0) {
-    return undefined;
-  }
-  return { regions, services };
-}
-
-function splitRow(line: string): string[] {
-  const inner = line.slice(1, line.endsWith("|") ? -1 : undefined);
-  return inner.split("|").map((cell) => cell.trim());
-}
-
-function isSeparatorRow(cells: string[]): boolean {
-  return cells.length > 0 && cells.every((cell) => /^:?-+:?$/.test(cell));
-}
-
-function stringSelector(anchor: Anchor, key: string): string | undefined {
-  const value = anchor.selector[key];
+function stringSelector(selector: Record<string, string>, key: string): string | undefined {
+  const value = selector[key];
   return typeof value === "string" && value.length > 0 ? value : undefined;
 }
 
-function selectAnchor(anchors: Anchor[], anchorId: string | undefined): Anchor | undefined {
-  if (anchorId) {
-    return anchors.find((anchor) => anchor.id === anchorId);
-  }
-  return anchors[0];
+function readProcessEnv(): Record<string, string | undefined> {
+  const processLike = globalThis as typeof globalThis & {
+    process?: { env?: Record<string, string | undefined> };
+  };
+  return processLike.process?.env ?? {};
 }

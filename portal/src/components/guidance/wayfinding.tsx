@@ -127,9 +127,13 @@ export function NextStops({
   const multi = resumable.length > 1;
   return (
     <section className="flex flex-col gap-3">
-      <h2 className="font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-        {multi ? "Pick up where you left off" : "Next stop"}
-      </h2>
+      {/* Single in-flight flow: the ticket carries its own "Next stop" eyebrow, so
+          a section heading here would just repeat it. Only label the multi case. */}
+      {multi ? (
+        <h2 className="font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+          Pick up where you left off
+        </h2>
+      ) : null}
       <div className={cn("grid gap-3", multi ? "sm:grid-cols-2" : "max-w-[560px]")}>
         {resumable.map((r) => (
           <NextStop

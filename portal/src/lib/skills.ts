@@ -94,7 +94,7 @@ export const SKILLS: ReadonlyArray<Skill> = [
     updatedAt: "2026-05-15",
     whatItDoes: [
       "Resolves every source anchor in the target bundle and verifies it still exists.",
-      "Flags citations past their review window as stale, with the owning steward.",
+      "Flags citations past their review window as stale, with the owning team.",
       "Fails CI when a claim cites a source below the required authority level.",
     ],
     changelog: [

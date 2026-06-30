@@ -1,6 +1,5 @@
 import { type ApiErrorResponse, type AvailabilityReadResponse } from "@atlas/schema";
-import { createDefaultContextBundleService } from "../services/contextBundleService";
-import { availabilityZones } from "../sourceContent/availabilityFixture";
+import { createDefaultContextService } from "../composition";
 import { isStale } from "../services/freshness";
 import type { ApiResponse } from "./routeTypes";
 import { errorResponse } from "./routeTypes";
@@ -17,14 +16,16 @@ const AVAILABILITY_SOURCE_ID = "availability-matrix";
  * `atlas_get_availability` tool, and the agent resource `availability` section
  * all read THIS one cited source of record, so they can never diverge.
  *
- * Dev returns the relocated fixture; prod would live-fetch the same Confluence
- * page the matrix resolver hits (boundary TODO). A missing Source 404s rather
- * than serving an uncited grid — honesty over resilience (ADR-0009 §4).
+ * The grid comes from the injected `AvailabilityProvider` port, which discovers
+ * each landing zone's availability by live-fetching + parsing its bound
+ * Confluence page (dev → MSW, prod → the real space; plan 021 G3) — one live
+ * path, no in-memory dataset. A missing Source 404s rather than serving an
+ * uncited grid — honesty over resilience (ADR-0009 §4).
  */
-export function handleAvailabilityRequest(): ApiResponse<
-  ApiErrorResponse | AvailabilityReadResponse
+export async function handleAvailabilityRequest(): Promise<
+  ApiResponse<ApiErrorResponse | AvailabilityReadResponse>
 > {
-  const service = createDefaultContextBundleService();
+  const service = await createDefaultContextService();
   const source = service.registry.sources.getById(AVAILABILITY_SOURCE_ID);
   if (!source) {
     return errorResponse(
@@ -53,7 +54,7 @@ export function handleAvailabilityRequest(): ApiResponse<
   return {
     status: 200,
     body: {
-      zones: availabilityZones,
+      zones: await service.availabilityProvider.getZones(),
       citation: {
         source_id: source.id,
         label: source.title,

@@ -1,34 +1,23 @@
 /**
- * Source detail for
- * `/sources/$sourceId`. Sources are Atlas's evidence backbone, so the
- * record deserves a first-class detail with its own register — not the generic
- * detail shell. Rendered as the "dossier": an accession RECORD — mono record
- * number, badge row, a meta ledger rail, and the citations that rest on this
- * source.
+ * Source detail for `/sources/$sourceId`. Sources are Atlas's evidence backbone,
+ * so the record deserves a first-class detail with its own register — not the
+ * generic detail shell. Rendered as the "dossier": an accession RECORD — mono
+ * record number, badge row, and a meta ledger rail.
  *
- * Real data: the source-discovery projection + the live context bundle (which
- * may be absent — handled gracefully). Evidence badges are reused read-only
- * from the mainline; the layout is this surface's own.
+ * A Source is the evidence document beneath the Resource projection, not a
+ * Resource itself (plan 019): this page is a pure registry view of the Source's
+ * own metadata. Live cited excerpts were a retired per-source ContextBundle
+ * concern and no longer appear here; the Resource surfaces carry cited content.
  */
 import { Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
 import { IconArrowLeft, IconExternalLink, IconLock } from "@tabler/icons-react";
-import type { AnchorReference, ContextBundleResponse, Source } from "@atlas/schema";
+import type { Source } from "@atlas/schema";
 
-import { contextBundleQueryOptions } from "@/api/queries";
-import { LastFetchChip } from "@/components/last-fetch-chip";
-import {
-  AnchorStatusBadge,
-  AuthorityBadge,
-  FreshnessIndicator,
-  VisibilityBadge,
-} from "@/components/evidence/badges";
-import { Skeleton } from "@/components/ui/skeleton";
-import { DeferredRegion } from "@/components/deferred-region";
+import { FreshnessIndicator, VisibilityBadge } from "@/components/evidence/badges";
 import { classifyFreshness, parseDurationToMs, type FreshnessState } from "@/lib/evidence";
 import { cn } from "@/lib/utils";
 
-import { CLASS_LABEL, FRESHNESS_META, SOURCE_PROVENANCE } from "./shared";
+import { CLASS_LABEL, FRESHNESS_META } from "./shared";
 
 /* -------------------------------------------------------------------------- */
 /*  Shared helpers                                                            */
@@ -63,23 +52,8 @@ function nextReviewDate(source: Source): Date | null {
 const FRESHNESS_VERDICT: Record<FreshnessState, string> = {
   current: "On schedule — within the registered review window.",
   "needs-review": "Review due soon — approaching the registered window.",
-  stale: "Overdue — past the registered review window. The steward sees it too.",
+  stale: "Overdue — past the registered review window. The owning team sees it too.",
 };
-
-function anchorsFor(
-  source: Source,
-  bundle: ContextBundleResponse | null,
-): ReadonlyArray<AnchorReference> {
-  if (!bundle) return [];
-  return bundle.anchor_references.filter((a) => a.source_id === source.id);
-}
-
-type Excerpt = ContextBundleResponse["sources"][number]["excerpts"][number];
-
-/** The live-resolved excerpts for this source from the context bundle. */
-function excerptsFor(source: Source, bundle: ContextBundleResponse | null): ReadonlyArray<Excerpt> {
-  return bundle?.sources.find((s) => s.source.id === source.id)?.excerpts ?? [];
-}
 
 function BackLink() {
   return (
@@ -101,11 +75,11 @@ function RestrictedNotice() {
         Restricted source
       </p>
       <p className="mt-1 text-[12px] leading-[1.5] text-muted-foreground">
-        Atlas surfaces metadata only. Direct fetches return{" "}
+        Cloud DevEx Portal surfaces metadata only. Direct fetches return{" "}
         <code className="rounded-[2px] bg-card px-1 py-0.5 font-mono text-[11px]">
           access_denied
         </code>
-        . Contact the steward for access.
+        . Contact the source owner for access.
       </p>
     </div>
   );
@@ -129,40 +103,6 @@ function OpenAtSource({ source }: { source: Source }) {
   );
 }
 
-/** Citations resting on this source — the reason a source matters. */
-function RestingCitations({ anchors }: { anchors: ReadonlyArray<AnchorReference> }) {
-  if (anchors.length === 0) {
-    return (
-      <p className="rounded-[4px] border border-dashed border-border bg-card px-3.5 py-5 text-[12.5px] text-muted-foreground">
-        No live citations resolve to this source in the current context bundle.
-      </p>
-    );
-  }
-  return (
-    <ul className="overflow-hidden rounded-[4px] border border-border bg-card">
-      {anchors.map((anchor, i) => (
-        <li
-          key={anchor.anchor_id}
-          className={cn(
-            "flex items-center justify-between gap-3 px-3.5 py-3",
-            i > 0 && "border-t border-border",
-          )}
-        >
-          <span className="flex min-w-0 flex-col gap-0.5">
-            <span className="truncate text-[13px] font-semibold text-foreground">
-              {anchor.citation_label}
-            </span>
-            <code className="font-mono text-[10.5px] text-muted-foreground">
-              {anchor.anchor_id}
-            </code>
-          </span>
-          <AnchorStatusBadge status={anchor.status} />
-        </li>
-      ))}
-    </ul>
-  );
-}
-
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
     <h2 className="w-fit font-mono text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
@@ -173,9 +113,6 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 
 /** Shared identity header — back link, record line, title, status badges. */
 function DetailHeader({ source }: { source: Source }) {
-  const { dataUpdatedAt } = useQuery(
-    contextBundleQueryOptions({ source_id: source.id, disclosure_level: 2 }),
-  );
   return (
     <>
       <BackLink />
@@ -194,10 +131,8 @@ function DetailHeader({ source }: { source: Source }) {
           <OpenAtSource source={source} />
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <AuthorityBadge level={source.authority_level} />
           <FreshnessIndicator source={source} />
           <VisibilityBadge value={source.visibility} />
-          {dataUpdatedAt ? <LastFetchChip updatedAt={dataUpdatedAt} className="ml-1" /> : null}
         </div>
       </header>
       {source.visibility === "restricted" ? <RestrictedNotice /> : null}
@@ -206,16 +141,14 @@ function DetailHeader({ source }: { source: Source }) {
 }
 
 /* -------------------------------------------------------------------------- */
-/*  Variant 1 — Dossier (accession record)                                    */
+/*  Dossier (accession record)                                                */
 /* -------------------------------------------------------------------------- */
 
 export function SourceDossier({
   source,
-  bundle,
   related,
 }: {
   source: Source;
-  bundle: Promise<ContextBundleResponse | null>;
   related: ReadonlyArray<Source>;
 }) {
   const fresh = classifyFreshness(source);
@@ -227,88 +160,6 @@ export function SourceDossier({
 
       <div className="grid gap-x-10 gap-y-7 lg:grid-cols-[minmax(0,1fr)_260px]">
         <main className="flex min-w-0 flex-col gap-7">
-          <section className="flex flex-col gap-2.5">
-            <SectionLabel>Authority over</SectionLabel>
-            <ul className="flex flex-wrap gap-2">
-              {source.authority_scope.map((scope) => (
-                <li
-                  key={scope}
-                  className="rounded-[3px] border border-border bg-card px-2.5 py-1 font-mono text-[11.5px] text-foreground"
-                >
-                  {scope}
-                </li>
-              ))}
-            </ul>
-          </section>
-
-          <DeferredRegion
-            promise={bundle}
-            fallback={<EvidenceSkeleton />}
-            label="the evidence"
-            retry
-          >
-            {(resolved) => {
-              const excerpts = excerptsFor(source, resolved);
-              const anchors = anchorsFor(source, resolved);
-              return (
-                <>
-                  <section className="flex flex-col gap-2.5">
-                    <div className="flex items-baseline gap-2.5">
-                      <SectionLabel>Key sections</SectionLabel>
-                      <span className="rounded-[2px] bg-muted px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.06em] text-muted-foreground">
-                        {SOURCE_PROVENANCE[source.source_class]}
-                      </span>
-                    </div>
-                    {excerpts.length > 0 ? (
-                      <ul className="flex flex-col gap-2.5">
-                        {excerpts.map((excerpt, i) => (
-                          <li
-                            key={excerpt.citation.anchor_id ?? excerpt.anchor_id ?? i}
-                            className="flex flex-col gap-1 border-l-2 border-border pl-3"
-                          >
-                            <div className="flex flex-wrap items-center gap-2">
-                              <code className="font-mono text-[10.5px] text-muted-foreground">
-                                {excerpt.citation.label}
-                              </code>
-                              <a
-                                href={excerpt.citation.location}
-                                target="_blank"
-                                rel="noreferrer noopener"
-                                className="inline-flex items-center gap-1 text-[10.5px] text-primary underline-offset-2 hover:underline"
-                              >
-                                open source
-                                <IconExternalLink aria-hidden className="size-3" />
-                              </a>
-                            </div>
-                            <p className="max-w-[60ch] text-[12.5px] leading-[1.5] text-foreground/90">
-                              {excerpt.text}
-                            </p>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="rounded-[4px] border border-dashed border-border bg-card px-3.5 py-5 text-[12.5px] text-muted-foreground">
-                        {source.visibility === "restricted"
-                          ? "Restricted source — Atlas surfaces metadata only; no excerpts are resolved."
-                          : "No excerpts resolved from this source in the current context bundle."}
-                      </p>
-                    )}
-                  </section>
-
-                  <section className="flex flex-col gap-2.5">
-                    <div className="flex items-baseline justify-between gap-2">
-                      <SectionLabel>Citations resting on this source</SectionLabel>
-                      <span className="font-mono text-[10.5px] tabular-nums text-muted-foreground">
-                        {anchors.length}
-                      </span>
-                    </div>
-                    <RestingCitations anchors={anchors} />
-                  </section>
-                </>
-              );
-            }}
-          </DeferredRegion>
-
           {related.length > 0 ? (
             <section className="flex flex-col gap-2.5">
               <div className="flex items-baseline justify-between gap-2">
@@ -345,51 +196,42 @@ export function SourceDossier({
                 ))}
               </ul>
             </section>
-          ) : null}
+          ) : (
+            <p className="rounded-[4px] border border-dashed border-border bg-card px-3.5 py-5 text-[12.5px] text-muted-foreground">
+              No related records share this source's class.
+            </p>
+          )}
         </main>
 
         <aside className="flex min-w-0 flex-col gap-2.5">
           <SectionLabel>Record</SectionLabel>
-          <DeferredRegion promise={bundle} fallback={<RecordSkeleton />} label="the record">
-            {(resolved) => (
-              <>
-                <dl className="flex flex-col rounded-[4px] border border-border bg-card px-4 py-1.5">
-                  <MetaRow label="Steward" value={source.steward} />
-                  <MetaRow label="Class" value={CLASS_LABEL[source.source_class]} />
-                  <MetaRow label="Visibility" value={source.visibility} mono />
-                  <MetaRow
-                    label="Cadence"
-                    value={`every ${cadenceLabel(source.review_frequency)}`}
-                  />
-                  <MetaRow label="Reviewed" value={fmtDate(source.last_reviewed_at)} />
-                  <MetaRow label="Observed" value={fmtDate(source.last_observed_at)} />
-                  {next ? (
-                    <MetaRow label="Next review" value={fmtDate(next.toISOString())} />
-                  ) : null}
-                  {source.observed_version !== undefined ? (
-                    <MetaRow label="Version" value={`v${source.observed_version}`} mono />
-                  ) : null}
-                  <MetaRow label="Citations" value={String(anchorsFor(source, resolved).length)} />
-                </dl>
-                <p
-                  className={cn(
-                    "flex items-start gap-2 rounded-[4px] border px-3 py-2.5 text-[11.5px] leading-[1.45]",
-                    fresh === "stale"
-                      ? "border-critical/30 bg-critical/5 text-foreground"
-                      : fresh === "needs-review"
-                        ? "border-warning/30 bg-warning/5 text-foreground"
-                        : "border-border bg-card text-muted-foreground",
-                  )}
-                >
-                  <span
-                    aria-hidden
-                    className={cn("mt-1 size-2 shrink-0 rounded-full", FRESHNESS_META[fresh].dot)}
-                  />
-                  {FRESHNESS_VERDICT[fresh]}
-                </p>
-              </>
+          <dl className="flex flex-col rounded-[4px] border border-border bg-card px-4 py-1.5">
+            <MetaRow label="Class" value={CLASS_LABEL[source.source_class]} />
+            <MetaRow label="Visibility" value={source.visibility} mono />
+            <MetaRow label="Cadence" value={`every ${cadenceLabel(source.review_frequency)}`} />
+            <MetaRow label="Reviewed" value={fmtDate(source.last_reviewed_at)} />
+            <MetaRow label="Observed" value={fmtDate(source.last_observed_at)} />
+            {next ? <MetaRow label="Next review" value={fmtDate(next.toISOString())} /> : null}
+            {source.observed_version !== undefined ? (
+              <MetaRow label="Version" value={`v${source.observed_version}`} mono />
+            ) : null}
+          </dl>
+          <p
+            className={cn(
+              "flex items-start gap-2 rounded-[4px] border px-3 py-2.5 text-[11.5px] leading-[1.45]",
+              fresh === "stale"
+                ? "border-critical/30 bg-critical/5 text-foreground"
+                : fresh === "needs-review"
+                  ? "border-warning/30 bg-warning/5 text-foreground"
+                  : "border-border bg-card text-muted-foreground",
             )}
-          </DeferredRegion>
+          >
+            <span
+              aria-hidden
+              className={cn("mt-1 size-2 shrink-0 rounded-full", FRESHNESS_META[fresh].dot)}
+            />
+            {FRESHNESS_VERDICT[fresh]}
+          </p>
         </aside>
       </div>
     </div>
@@ -418,64 +260,6 @@ function MetaRow({
       >
         {value}
       </dd>
-    </div>
-  );
-}
-
-/** Placeholder for the deferred Record rail (steward, cadence, freshness, etc.) —
- * the record's live-resolved state lands with the bundle, so it skeletons too. */
-function RecordSkeleton() {
-  return (
-    <div aria-hidden className="flex flex-col gap-2.5">
-      <div className="flex flex-col rounded-[4px] border border-border bg-card px-4 py-1.5">
-        {Array.from({ length: 8 }, (_, i) => (
-          <div
-            key={i}
-            className="flex items-baseline justify-between gap-3 border-b border-border py-2 last:border-b-0"
-          >
-            <Skeleton className="h-2.5 w-14" />
-            <Skeleton className="h-2.5 w-20" />
-          </div>
-        ))}
-      </div>
-      <Skeleton className="h-12 w-full rounded-[4px]" />
-    </div>
-  );
-}
-
-/** Placeholder for the two deferred evidence sections (Key sections + resting
- * citations) — paints immediately so the dossier shell never waits on the bundle. */
-function EvidenceSkeleton() {
-  return (
-    <div aria-hidden className="flex flex-col gap-7">
-      <section className="flex flex-col gap-2.5">
-        <Skeleton className="h-3 w-24" />
-        <div className="flex flex-col gap-2.5">
-          {Array.from({ length: 3 }, (_, i) => (
-            <div key={i} className="flex flex-col gap-1.5 border-l-2 border-border pl-3">
-              <Skeleton className="h-2.5 w-28" />
-              <Skeleton className="h-3 w-full max-w-[60ch]" />
-            </div>
-          ))}
-        </div>
-      </section>
-      <section className="flex flex-col gap-2.5">
-        <Skeleton className="h-3 w-52" />
-        <div className="overflow-hidden rounded-[4px] border border-border bg-card">
-          {Array.from({ length: 2 }, (_, i) => (
-            <div
-              key={i}
-              className={cn(
-                "flex items-center justify-between gap-3 px-3.5 py-3",
-                i > 0 && "border-t border-border",
-              )}
-            >
-              <Skeleton className="h-3 w-40" />
-              <Skeleton className="h-5 w-16 rounded-full" />
-            </div>
-          ))}
-        </div>
-      </section>
     </div>
   );
 }

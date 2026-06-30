@@ -23,7 +23,9 @@ import { createFileRoute } from "@tanstack/react-router";
 import { IconMapPin } from "@tabler/icons-react";
 
 import { availabilityQueryOptions } from "@/api/queries";
-import type { LandingZoneId, Location, LocationStatus } from "@/api/server/availability";
+import type { Location, LocationStatus } from "@/api/server/availability";
+import { useCurrentLandingZone } from "@/components/landing-zone/context";
+import { DataNotAvailableForZone } from "@/components/landing-zone/data-not-available";
 import { MatrixView } from "@/components/explore/matrix-view";
 import { RegionMap, regionLabel, type RegionHealth } from "@/components/explore/region-map";
 import {
@@ -87,13 +89,7 @@ const MAINTENANCE: Record<string, RegionMaintenance> = {
   },
 };
 
-const ZONE_META: Record<LandingZoneId, { label: string; sub: string }> = {
-  aws: { label: "AWS", sub: "5 regions" },
-  azure: { label: "Azure", sub: "10 regions" },
-};
-
 type State = {
-  zone: LandingZoneId;
   selectedLocationId: string | null;
   selectedServiceId: string | null;
   statusFilter: LocationStatus | "all";
@@ -102,7 +98,7 @@ type State = {
 };
 
 type Action =
-  | { type: "setZone"; value: LandingZoneId }
+  | { type: "resetForZone" }
   | { type: "selectLocation"; value: string | null }
   | { type: "toggleLocation"; id: string }
   | { type: "toggleService"; id: string }
@@ -112,13 +108,12 @@ type Action =
 
 function reducer(state: State, action: Action): State {
   switch (action.type) {
-    case "setZone":
+    case "resetForZone":
       return {
         ...state,
-        zone: action.value,
         selectedLocationId: null,
         selectedServiceId: null,
-        // Service ids are zone-specific, so the filter resets with the zone.
+        // Service ids are LZ-specific, so the filter resets with the landing zone.
         serviceFilter: "all",
       };
     case "selectLocation":
@@ -159,8 +154,8 @@ function RegionsContent() {
     dataUpdatedAt,
   } = useSuspenseQuery(availabilityQueryOptions);
 
+  const { currentLandingZoneId } = useCurrentLandingZone();
   const [state, dispatch] = useReducer(reducer, {
-    zone: "aws",
     selectedLocationId: null,
     selectedServiceId: null,
     statusFilter: "all",
@@ -168,18 +163,23 @@ function RegionsContent() {
     serviceFilter: "all",
   });
 
-  const zone = zones.find((z) => z.id === state.zone) ?? zones[0]!;
+  // The global current landing zone drives the grid; selection/filters reset when
+  // it changes. An unwired LZ resolves to its own (empty) zone, never another's.
+  const zone = zones.find((z) => z.id === currentLandingZoneId) ?? zones[0]!;
+  useEffect(() => {
+    dispatch({ type: "resetForZone" });
+  }, [currentLandingZoneId]);
   const { locations, services } = zone;
   // Selection is optional: no region is selected until the user picks one, and
   // clicking the active region clears it again.
   const selected = locations.find((l) => l.id === state.selectedLocationId) ?? null;
 
   useEffect(() => {
-    // Warm the active zone's icon pack so the matrix keeps its real icons on
-    // first paint (AWS is the default zone, so this preloads AWS on mount).
-    if (state.zone === "azure") preloadAzureServiceIcons();
+    // Warm the active LZ's icon pack (by cloud) so the matrix keeps its real icons
+    // on first paint (awsf is the default, so this preloads AWS on mount).
+    if (zone.cloud === "azure") preloadAzureServiceIcons();
     else preloadAwsServiceIcons();
-  }, [state.zone]);
+  }, [zone.cloud]);
 
   // Defer mounting the ~50-row × N-region matrix (hundreds of cells + brand
   // icons) until after the route shell + map have painted. The cold nav commit
@@ -254,20 +254,27 @@ function RegionsContent() {
   // when a region is picked.
   const toggleLocation = (id: string) => dispatch({ type: "toggleLocation", id });
 
+  // Per-LZ honesty (ADR-0006): an unwired landing zone shows a dead-end, never
+  // another LZ's grid. The global selector lists it; selecting it lands here.
+  if (zone.dataStatus === "not-available") {
+    return (
+      <PageBody width="wide" gap="compact">
+        <PageHeader
+          title="Availability"
+          description="See where services run and check per-region operational status across your landing zones."
+          actions={<LastFetchChip updatedAt={dataUpdatedAt} />}
+        />
+        <DataNotAvailableForZone zoneName={zone.name} surface="availability" />
+      </PageBody>
+    );
+  }
+
   return (
     <PageBody width="wide" gap="compact">
       <PageHeader
         title="Availability"
         description="See where services run and check per-region operational status across your landing zones."
-        actions={
-          <div className="flex flex-col items-end gap-1.5">
-            <LastFetchChip updatedAt={dataUpdatedAt} />
-            <ZoneSwitcher
-              active={state.zone}
-              onChange={(value) => dispatch({ type: "setZone", value })}
-            />
-          </div>
-        }
+        actions={<LastFetchChip updatedAt={dataUpdatedAt} />}
       />
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px] xl:items-start">
@@ -303,7 +310,7 @@ function RegionsContent() {
           <section className="flex flex-col gap-3">
             {matrixMounted ? (
               <MatrixView
-                provider={state.zone}
+                provider={zone.cloud}
                 locations={locations}
                 rows={rowModel.rows}
                 groups={rowModel.groups}
@@ -339,52 +346,6 @@ function RegionsContent() {
         </StickyAside>
       </div>
     </PageBody>
-  );
-}
-
-function ZoneSwitcher({
-  active,
-  onChange,
-}: {
-  active: LandingZoneId;
-  onChange: (zone: LandingZoneId) => void;
-}) {
-  return (
-    <div
-      role="radiogroup"
-      aria-label="Landing zone"
-      className="inline-flex w-fit rounded-lg border border-border bg-muted p-0.5"
-    >
-      {(["aws", "azure"] as const).map((zoneId) => {
-        const isActive = zoneId === active;
-        const meta = ZONE_META[zoneId];
-        return (
-          <button
-            key={zoneId}
-            type="button"
-            role="radio"
-            aria-checked={isActive}
-            onPointerEnter={zoneId === "azure" ? preloadAzureServiceIcons : preloadAwsServiceIcons}
-            onClick={() => onChange(zoneId)}
-            className={cn(
-              "flex items-baseline gap-1.5 rounded-md px-3 py-1.5 transition-all",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-              isActive ? "bg-background shadow-sm" : "hover:bg-background/50",
-            )}
-          >
-            <span
-              className={cn(
-                "text-[13px] font-bold tracking-[-0.01em]",
-                isActive ? "text-foreground" : "text-muted-foreground",
-              )}
-            >
-              {meta.label}
-            </span>
-            <span className="font-mono text-[10px] text-muted-foreground/70">{meta.sub}</span>
-          </button>
-        );
-      })}
-    </div>
   );
 }
 

@@ -1,33 +1,80 @@
 import type {
   ApiErrorResponse,
+  ResourceCatalogResponse,
   ResourceContextResponse,
   ResourceKind,
+  ResourceRecordResponse,
   ResourceSearchResponse,
 } from "@atlas/schema";
-import { createDefaultContextBundleService } from "../services/contextBundleService";
+import { createDefaultContextService } from "../composition";
 import { getResourceKindDef } from "../resources/resourceKindRegistry";
 import {
   getResourceContext,
+  getResourceRecord,
   InvalidResourceRequestError,
+  listResourceCatalog,
   searchResources,
 } from "../resources/resourceContextService";
 import type { ResolutionContext } from "../resolvers/resolverTypes";
 import { errorResponse, type ApiResponse } from "./routeTypes";
 
 /**
+ * Resource catalog list: the discovery-derived catalog feed (services +
+ * guardrails) as presentation records. No params — the Portal facets/tabs the
+ * list client-side; an agent browses the full resource inventory in one call.
+ */
+export async function handleResourceCatalogRequest(): Promise<
+  ApiResponse<ResourceCatalogResponse>
+> {
+  const service = await createDefaultContextService();
+  return { status: 200, body: listResourceCatalog(service) };
+}
+
+/**
  * Resource search (proposal §5.7): resolve a free-text name to canonical
  * `{kind}/{slug}` ids + URLs. It answers no questions — a missing/empty `query`
  * is a 400, an unmatched query is a 200 with an empty `items[]`.
  */
-export function handleResourceSearchRequest(
+export async function handleResourceSearchRequest(
   query: string | undefined,
   options: { baseUrl?: string } = {},
-): ApiResponse<ResourceSearchResponse | ApiErrorResponse> {
+): Promise<ApiResponse<ResourceSearchResponse | ApiErrorResponse>> {
   if (!query || query.trim().length === 0) {
     return errorResponse(400, "invalid_request", "searchResources requires a non-empty `query`.");
   }
-  const service = createDefaultContextBundleService();
+  const service = await createDefaultContextService();
   return { status: 200, body: searchResources(service, query, { baseUrl: options.baseUrl }) };
+}
+
+/**
+ * Resource record read (plan 020 15d): the Portal-facing presentation metadata
+ * for a Resource (ADR-0015 §2), kept separate from the content projection so the
+ * agent contract stays content-only. Unknown kind → 400; unknown resource → 404.
+ */
+export async function handleResourceRecordRequest(params: {
+  kind: string;
+  slug: string;
+}): Promise<ApiResponse<ResourceRecordResponse | ApiErrorResponse>> {
+  if (!getResourceKindDef(params.kind)) {
+    return errorResponse(
+      400,
+      "invalid_request",
+      `Unknown resource kind '${params.kind}'. Valid kinds come from the OpenAPI 'kind' enum / searchResources results.`,
+    );
+  }
+  const service = await createDefaultContextService();
+  const record = await getResourceRecord(service, {
+    kind: params.kind as ResourceKind,
+    slug: params.slug,
+  });
+  if (!record) {
+    return errorResponse(
+      404,
+      "resource_not_found",
+      `No resource '${params.kind}/${params.slug}' is registered. Call searchResources to resolve the canonical id.`,
+    );
+  }
+  return { status: 200, body: record };
 }
 
 export type ResourceContextRouteParams = {
@@ -56,7 +103,7 @@ export async function handleResourceContextRequest(
   }
 
   const sections = parseSections(params.sections);
-  const service = createDefaultContextBundleService();
+  const service = await createDefaultContextService();
 
   try {
     const response = await getResourceContext(

@@ -1,4 +1,4 @@
-import type { ContextBundleResponse } from "@atlas/schema";
+import type { ResourceContextResponse } from "@atlas/schema";
 
 export type AskAtlasClaim = {
   text: string;
@@ -26,39 +26,36 @@ export type RateLimiter = {
   consume(userId: string): void;
 };
 
+/**
+ * Ask Atlas grounds answers in a live Resource projection (plan 019): every
+ * cited excerpt is a governed Section's content + citation. Discovery's entry
+ * scope already crawls only authoritative sources, so there is no per-source
+ * authority gate — all discovered Section content is admissible evidence.
+ */
 export function buildAskAtlasPrompt(input: {
   question: string;
-  bundle: ContextBundleResponse;
+  projection: ResourceContextResponse;
 }): string {
-  const excerpts = input.bundle.sources.flatMap((source) =>
-    source.source.authority_level === "authoritative"
-      ? source.excerpts.map(
-          (excerpt) =>
-            `[${citationId(excerpt.citation.source_id, excerpt.citation.anchor_id)}] ${excerpt.text}`,
-        )
-      : [],
-  );
+  const excerpts = Object.values(input.projection.sections).flatMap((section) => {
+    if (!section.content || section.citations.length === 0) return [];
+    const cites = section.citations
+      .map((citation) => `[${citationId(citation.sourceId, citation.anchor)}]`)
+      .join("");
+    return [`${cites} ${section.content}`];
+  });
 
   return [
     `Question: ${input.question}`,
-    "Use only these Atlas context bundle excerpts.",
+    "Use only these governed Atlas resource excerpts.",
     ...excerpts,
   ].join("\n");
 }
 
 export function validateCitations(input: {
-  bundle: ContextBundleResponse;
+  projection: ResourceContextResponse;
   claims: AskAtlasClaim[];
 }): CitationValidationResult {
-  const allowedCitationIds = new Set(
-    input.bundle.sources.flatMap((source) =>
-      source.source.authority_level === "authoritative"
-        ? source.excerpts.map((excerpt) =>
-            citationId(excerpt.citation.source_id, excerpt.citation.anchor_id),
-          )
-        : [],
-    ),
-  );
+  const allowedCitationIds = new Set(sectionCitationIds(input.projection));
 
   const claims: AskAtlasClaim[] = [];
   const rejectedClaims: AskAtlasClaim[] = [];
@@ -82,39 +79,49 @@ export function validateCitations(input: {
 
 export async function askAtlas(input: {
   question: string;
-  bundle: ContextBundleResponse;
+  projection: ResourceContextResponse;
   adapter: LlmAdapter;
   userId: string;
   rateLimiter: RateLimiter;
 }): Promise<AskAtlasAnswer> {
-  if (!input.bundle.sources.some((source) => source.source.authority_level === "authoritative")) {
+  if (!hasGovernedEvidence(input.projection)) {
     return {
       claims: [],
       rejected_claims: [],
-      warnings: ["no registered authoritative source found"],
+      warnings: ["no governed evidence found"],
     };
   }
 
   input.rateLimiter.consume(input.userId);
   const adapterResult = await input.adapter.answer(
-    buildAskAtlasPrompt({ question: input.question, bundle: input.bundle }),
+    buildAskAtlasPrompt({ question: input.question, projection: input.projection }),
   );
   const validated = validateCitations({
-    bundle: input.bundle,
+    projection: input.projection,
     claims: adapterResult.claims,
   });
 
   return {
     ...validated,
-    warnings: input.bundle.warnings.map((warning) => warning.code),
+    warnings: projectionWarningCodes(input.projection),
   };
 }
 
+const DAY_MS = 86_400_000;
+
 export function createDailyRateLimiter(maxRequests: number): RateLimiter {
   const counts = new Map<string, number>();
+  let currentDay = Math.floor(Date.now() / DAY_MS);
 
   return {
     consume(userId: string): void {
+      const day = Math.floor(Date.now() / DAY_MS);
+      if (day !== currentDay) {
+        // UTC day rolled over: clear all counters. This also bounds memory,
+        // so no separate pruning is needed.
+        currentDay = day;
+        counts.clear();
+      }
       const count = counts.get(userId) ?? 0;
       if (count >= maxRequests) {
         throw new Error("Ask Atlas daily limit exceeded.");
@@ -122,6 +129,29 @@ export function createDailyRateLimiter(maxRequests: number): RateLimiter {
       counts.set(userId, count + 1);
     },
   };
+}
+
+/** Every citation id (`source_id#anchor`) across the projection's Sections. */
+export function sectionCitationIds(projection: ResourceContextResponse): string[] {
+  return Object.values(projection.sections).flatMap((section) =>
+    section.citations.map((citation) => citationId(citation.sourceId, citation.anchor)),
+  );
+}
+
+/** At least one Section resolved to real content with a citation to ground it. */
+function hasGovernedEvidence(projection: ResourceContextResponse): boolean {
+  return Object.values(projection.sections).some(
+    (section) => Boolean(section.content) && section.citations.length > 0,
+  );
+}
+
+function projectionWarningCodes(projection: ResourceContextResponse): string[] {
+  return [
+    ...Object.values(projection.sections).flatMap((section) =>
+      section.warnings.map((warning) => warning.code),
+    ),
+    ...projection.missingSections.map((missing) => missing.code),
+  ];
 }
 
 function citationId(sourceId: string, anchorId: string | undefined): string {

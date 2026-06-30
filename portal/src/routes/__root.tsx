@@ -8,8 +8,10 @@ import {
   createRootRouteWithContext,
 } from "@tanstack/react-router";
 
+import { getDataMode } from "@/api/server/dataMode";
 import { PortalShell } from "@/components/portal-shell";
 import { themeInitScript } from "@/lib/theme-script";
+import faviconSvg from "@/assets/favicon.svg?url";
 import globalsCss from "@/styles/globals.css?url";
 // Preload the latin Inter Variable file so the brand font is discovered in the
 // first HTML response instead of only after globals.css parses — one fewer serial
@@ -35,11 +37,12 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       { name: "color-scheme", content: "light dark" },
       {
         name: "description",
-        content: "Atlas Portal: governed cloud platform context for application teams.",
+        content: "Cloud DevEx Portal: governed cloud platform context for application teams.",
       },
-      { title: "Atlas Portal" },
+      { title: "Cloud DevEx Portal" },
     ],
     links: [
+      { rel: "icon", type: "image/svg+xml", href: faviconSvg },
       {
         rel: "preload",
         as: "font",
@@ -63,6 +66,10 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       { rel: "sitemap", type: "application/xml", href: "/sitemap.xml" },
     ],
   }),
+  // Dev-only data-mode signal for the top-nav badge (plan 026 WU-B). Resolved
+  // server-side from the same predicate that gates the MSW boot; serialized into
+  // the SSR payload so server and client render the badge identically.
+  loader: async () => ({ dataMode: await getDataMode() }),
   component: RootComponent,
   notFoundComponent: NotFoundComponent,
 });
@@ -74,7 +81,7 @@ function NotFoundComponent() {
         404 · not in registry
       </span>
       <h1 className="type-heading font-semibold tracking-[-0.03em] text-foreground">
-        Atlas could not resolve that record.
+        Cloud DevEx Portal could not resolve that record.
       </h1>
       <p className="text-sm leading-[1.6] text-muted-foreground">
         The topic, source, or path you followed is not registered in the Context API. Browse the
@@ -101,6 +108,7 @@ function NotFoundComponent() {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const { dataMode } = Route.useLoaderData();
   // Defer mounting the Toaster (and fetching the sonner chunk) until after the
   // initial client render.
   const [showToaster, setShowToaster] = useState(false);
@@ -108,7 +116,7 @@ function RootComponent() {
   return (
     <RootDocument>
       <QueryClientProvider client={queryClient}>
-        <PortalShell>
+        <PortalShell dataMode={dataMode}>
           <Outlet />
         </PortalShell>
         {showToaster ? (

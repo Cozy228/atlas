@@ -7,7 +7,7 @@
  * decision (reads first; any future mutation needs audit + human confirm).
  */
 import { z } from "zod";
-import { topicTypes, type ContextBundleResponse } from "@atlas/schema";
+import { resourceKinds, type ResourceContextResponse } from "@atlas/schema";
 
 import type { ContextApiClient } from "../../contextApiClient";
 import { ContextApiError } from "../../contextApiError";
@@ -22,14 +22,14 @@ const PageSchema = {
   offset: z.number().int().min(0).default(0).describe("Items to skip (pagination)."),
 };
 
-/** Cap any single excerpt so a bundle stays well under the response budget. */
+/** Cap any single Section's content so a projection stays under the budget. */
 const CONCISE_EXCERPT_CHARS = 1500;
 
 const NARROW_HINT = "Result was truncated; narrow your search (add query terms or filters).";
 
 const SearchServiceInput = z.object({
   query: z.string().min(1).optional().describe("Free-text search, e.g. 'textract ocr'."),
-  topic_type: z.enum(topicTypes).optional(),
+  kind: z.enum(resourceKinds).optional().describe("Filter by kind: service or guardrail."),
   category: z.string().min(1).optional(),
   response_format: ResponseFormatSchema,
   ...PageSchema,
@@ -41,18 +41,24 @@ const GetSourceInput = z.object({
 });
 
 const GetAvailabilityInput = z.object({
-  zone: z.enum(["aws", "azure"]).optional().describe("Landing zone to inspect."),
+  zone: z
+    .string()
+    .min(1)
+    .optional()
+    .describe("Landing zone id to inspect (e.g. awsf); omit for all."),
   service_query: z.string().min(1).optional().describe("Filter services by name."),
   location_id: z.string().min(1).optional().describe("One region/outpost id, e.g. 'us-east-1'."),
   ...PageSchema,
 });
 
-const GetContextBundleInput = z.object({
-  topic_id: z.string().min(1).optional().describe("Topic id from atlas_search_service."),
-  source_id: z.string().min(1).optional(),
-  anchor_id: z.string().min(1).optional(),
-  query: z.string().min(1).optional().describe("Free-text intent when no id is known."),
-  disclosure_level: z.number().int().min(0).max(3).optional(),
+const GetResourceContextInput = z.object({
+  kind: z.enum(resourceKinds).describe("Resource kind: service, guardrail, or landing-zone."),
+  slug: z
+    .string()
+    .min(1)
+    .describe(
+      "Kind-relative slug, e.g. 'aws/textract'. A service slug is {provider}/{service_id} from atlas_get_availability.",
+    ),
   response_format: ResponseFormatSchema,
 });
 
@@ -70,25 +76,28 @@ function toInputSchema(schema: z.ZodType): Record<string, unknown> {
   return jsonSchema;
 }
 
-function conciseBundle(bundle: ContextBundleResponse) {
+function conciseProjection(projection: ResourceContextResponse) {
   let truncated = false;
-  const excerpts = bundle.sources.flatMap((source) =>
-    source.excerpts.map((excerpt) => {
-      if (excerpt.text.length > CONCISE_EXCERPT_CHARS) {
-        truncated = true;
-      }
-      return {
-        source_id: source.source.id,
-        text: excerpt.text.slice(0, CONCISE_EXCERPT_CHARS),
-        citation: excerpt.citation,
-      };
-    }),
-  );
+  const sections = Object.entries(projection.sections).map(([id, section]) => {
+    const content = section.content ?? "";
+    if (content.length > CONCISE_EXCERPT_CHARS) {
+      truncated = true;
+    }
+    return {
+      section: id,
+      status: section.status,
+      content: content.slice(0, CONCISE_EXCERPT_CHARS),
+      citations: section.citations,
+      ...(section.warnings.length > 0 ? { warnings: section.warnings } : {}),
+    };
+  });
   return {
-    bundle_id: bundle.bundle_id,
-    excerpts,
-    warnings: bundle.warnings,
-    expansion_paths: bundle.expansion_paths,
+    resource: projection.resource.id,
+    sections,
+    references: projection.references,
+    ...(projection.missingSections.length > 0
+      ? { missing_sections: projection.missingSections }
+      : {}),
     ...(truncated ? { truncated, hint: NARROW_HINT } : {}),
   };
 }
@@ -97,29 +106,47 @@ export const mcpTools: McpToolDefinition[] = [
   {
     name: "atlas_search_service",
     description:
-      "Search Atlas's registered topics (services, landing zones, security policies) by free text. Start here to resolve a question to a topic_id, then call atlas_get_context_bundle.",
+      "Search Atlas's registered resources (services and security policies) by free text. Start here to resolve a question to a resource, then read its context via atlas_get_resource_context.",
     inputSchema: toInputSchema(SearchServiceInput),
     async run(args, client) {
       const input = SearchServiceInput.parse(args ?? {});
-      const { topics } = await client.discoverTopics({
-        query: input.query,
-        topic_type: input.topic_type,
-        category: input.category,
+      // The discovery-derived catalog returns every resource in one read; narrow
+      // it here by free-text query, kind, and category.
+      const { resources } = await client.discoverResources();
+      // Tokenize the free-text query and match on ANY token, so a multi-word
+      // query ("textract ocr") still hits a resource that contains only one term.
+      const tokens = (input.query ?? "")
+        .toLowerCase()
+        .split(/[^a-z0-9-]+/)
+        .filter((token) => token.length >= 2);
+      const matches = resources.filter((resource) => {
+        if (input.kind && resource.kind !== input.kind) return false;
+        if (input.category && resource.category !== input.category) return false;
+        if (tokens.length === 0) return true;
+        const haystack = [
+          resource.name,
+          ...resource.aliases,
+          resource.slug,
+          resource.description ?? "",
+        ]
+          .join(" ")
+          .toLowerCase();
+        return tokens.some((token) => haystack.includes(token));
       });
-      const page = topics.slice(input.offset, input.offset + input.limit);
+      const page = matches.slice(input.offset, input.offset + input.limit);
       return {
-        total: topics.length,
+        total: matches.length,
         offset: input.offset,
         returned: page.length,
-        ...(topics.length > input.offset + page.length ? { hint: NARROW_HINT } : {}),
-        topics:
+        ...(matches.length > input.offset + page.length ? { hint: NARROW_HINT } : {}),
+        resources:
           input.response_format === "DETAILED"
             ? page
-            : page.map((topic) => ({
-                id: topic.id,
-                name: topic.name,
-                topic_type: topic.topic_type,
-                description: topic.description,
+            : page.map((resource) => ({
+                id: resource.id,
+                name: resource.name,
+                kind: resource.kind,
+                description: resource.description,
               })),
       };
     },
@@ -127,7 +154,7 @@ export const mcpTools: McpToolDefinition[] = [
   {
     name: "atlas_get_source",
     description:
-      "Get one registered Source's registry record (steward, authority, review cadence) by source_id. Use atlas_get_context_bundle with that source_id to read its cited content.",
+      "Get one registered Source's registry record (class, review cadence, freshness) by source_id. Read its cited content through the resource that binds it via atlas_get_resource_context.",
     inputSchema: toInputSchema(GetSourceInput),
     async run(args, client) {
       const input = GetSourceInput.parse(args ?? {});
@@ -141,7 +168,6 @@ export const mcpTools: McpToolDefinition[] = [
           title: source.title,
           source_class: source.source_class,
           location: source.location,
-          authority_level: source.authority_level,
           visibility: source.visibility,
         },
       };
@@ -191,15 +217,14 @@ export const mcpTools: McpToolDefinition[] = [
     },
   },
   {
-    name: "atlas_get_context_bundle",
+    name: "atlas_get_resource_context",
     description:
-      "Fetch Atlas's governed context bundle for a topic_id, source_id, or free-text query. Every Excerpt is paired with its Citation; relay warnings (restricted_source, stale_source) verbatim.",
-    inputSchema: toInputSchema(GetContextBundleInput),
+      "Fetch Atlas's live resource projection (governed Sections + reference-only discovery links) for a {kind, slug}. Every Section's content is paired with its Citations; relay warnings (restricted_source, stale_source) verbatim.",
+    inputSchema: toInputSchema(GetResourceContextInput),
     async run(args, client) {
-      const input = GetContextBundleInput.parse(args ?? {});
-      const { response_format, ...request } = input;
-      const bundle = await client.getContextBundle(request);
-      return response_format === "DETAILED" ? bundle : conciseBundle(bundle);
+      const input = GetResourceContextInput.parse(args ?? {});
+      const projection = await client.getResourceContext(input.kind, input.slug);
+      return input.response_format === "DETAILED" ? projection : conciseProjection(projection);
     },
   },
 ];
@@ -212,8 +237,8 @@ export function toolErrorMessage(toolName: string, error: unknown): string {
   const example: Record<string, string> = {
     atlas_search_service: `{"query": "textract"}`,
     atlas_get_source: `{"source_id": "textract-module-readme"}`,
-    atlas_get_availability: `{"zone": "aws", "service_query": "textract"}`,
-    atlas_get_context_bundle: `{"topic_id": "aws-textract"}`,
+    atlas_get_availability: `{"zone": "awsf", "service_query": "textract"}`,
+    atlas_get_resource_context: `{"kind": "service", "slug": "aws/textract"}`,
   };
   const reason =
     error instanceof ContextApiError

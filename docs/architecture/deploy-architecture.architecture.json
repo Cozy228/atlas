@@ -1,0 +1,147 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Atlas Deploy Architecture",
+    "subtitle": "ALB to ECS Fargate with DynamoDB-backed feedback",
+    "output": "deploy-architecture.html",
+    "viewBox": [1040, 720]
+  },
+  "components": [
+    {
+      "id": "users",
+      "type": "external",
+      "label": "Users",
+      "sublabel": "Browser / agents",
+      "pos": [40, 260],
+      "size": [130, 62]
+    },
+    {
+      "id": "alb",
+      "type": "cloud",
+      "label": "Application Load Balancer",
+      "sublabel": "public listener",
+      "pos": [250, 260],
+      "size": [170, 62],
+      "tag": "HTTP(S)"
+    },
+    {
+      "id": "ecs",
+      "type": "backend",
+      "label": "ECS Fargate Service",
+      "sublabel": "Atlas Nitro server :8080",
+      "pos": [500, 260],
+      "size": [170, 66],
+      "tag": "Portal + Context API"
+    },
+    {
+      "id": "dynamodb",
+      "type": "database",
+      "label": "DynamoDB",
+      "sublabel": "feedback table + gsi1",
+      "pos": [760, 260],
+      "size": [150, 62]
+    },
+    {
+      "id": "secrets",
+      "type": "security",
+      "label": "Secrets Manager",
+      "sublabel": "runtime references",
+      "pos": [500, 100],
+      "size": [160, 62]
+    },
+    {
+      "id": "cloudwatch",
+      "type": "cloud",
+      "label": "CloudWatch",
+      "sublabel": "logs + health alarm",
+      "pos": [500, 440],
+      "size": [160, 62]
+    },
+    {
+      "id": "sources",
+      "type": "external",
+      "label": "Source Systems",
+      "sublabel": "Confluence / Terraform / policy docs",
+      "pos": [760, 440],
+      "size": [180, 66]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "AWS Region",
+      "wraps": ["alb", "ecs", "dynamodb", "secrets", "cloudwatch"]
+    },
+    {
+      "kind": "security-group",
+      "label": "ALB SG -> ECS task SG",
+      "wraps": ["alb", "ecs"]
+    }
+  ],
+  "connections": [
+    {
+      "from": "users",
+      "to": "alb",
+      "label": "HTTPS",
+      "variant": "emphasis"
+    },
+    {
+      "from": "alb",
+      "to": "ecs",
+      "label": "forward",
+      "variant": "emphasis"
+    },
+    {
+      "from": "ecs",
+      "to": "dynamodb",
+      "label": "feedback reads/writes",
+      "variant": "default",
+      "labelAt": [720, 235]
+    },
+    {
+      "from": "ecs",
+      "to": "secrets",
+      "label": "load credentials",
+      "variant": "security",
+      "fromSide": "top",
+      "toSide": "bottom",
+      "labelAt": [700, 205]
+    },
+    {
+      "from": "ecs",
+      "to": "cloudwatch",
+      "label": "logs + metrics",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelDy": 54
+    },
+    {
+      "from": "ecs",
+      "to": "sources",
+      "label": "runtime metadata/excerpt fetch",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "left",
+      "labelAt": [718, 405]
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Request path",
+      "items": ["Browser and agent traffic enters through the ALB.", "ECS runs the TanStack Start / Nitro server on port 8080."]
+    },
+    {
+      "dot": "cyan",
+      "title": "Context boundary",
+      "items": ["Portal server calls the Context API boundary server-side.", "Browser code never reads DynamoDB or source-system credentials."]
+    },
+    {
+      "dot": "amber",
+      "title": "Persistence",
+      "items": ["DynamoDB stores feedback through the Context Layer repository.", "Runtime credentials are referenced from Secrets Manager."]
+    }
+  ]
+}

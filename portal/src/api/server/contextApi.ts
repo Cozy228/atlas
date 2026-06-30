@@ -9,14 +9,12 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getRequestHeader } from "@tanstack/react-start/server";
 import {
-  ContextRequestSchema,
   SourceDiscoveryRequestSchema,
-  TopicDiscoveryRequestSchema,
   type AvailabilityResponse,
-  type ContextRequest,
+  type LandingZone,
   type SourceDiscoveryRequest,
-  type TopicDiscoveryRequest,
 } from "@atlas/schema";
+import { LANDING_ZONES } from "@atlas/context-layer";
 import { z } from "zod";
 
 import { createServerContextApiClient } from "./httpContextApiClient";
@@ -54,47 +52,70 @@ const SERVER_FN_OPTIONS = { method: "GET", strict: { output: false } } as const;
 
 const idSchema = z.string().min(1);
 
-export const fetchTopic = createServerFn(SERVER_FN_OPTIONS)
-  .validator((input: unknown): string => idSchema.parse(input))
-  .handler(async ({ data }) => contextApiForRequest().getTopic(data));
-
 export const fetchSource = createServerFn(SERVER_FN_OPTIONS)
   .validator((input: unknown): string => idSchema.parse(input))
   .handler(async ({ data }) => contextApiForRequest().getSource(data));
-
-export const fetchContextBundle = createServerFn(SERVER_FN_OPTIONS)
-  .validator((input: unknown): ContextRequest => ContextRequestSchema.parse(input))
-  .handler(async ({ data }) => {
-    // Simulate the resolver's real live fetch + parse of each cited anchor (e.g.
-    // Confluence pages) so the deferred detail-page skeletons are visible in dev.
-    // Dev-only: dropped from prod builds, and moot once the resolver hits real
-    // external systems. Only the bundle is delayed — discovery (source/topic
-    // lists) is awaited synchronously in loaders and must stay fast.
-    if (import.meta.env.DEV) await new Promise((resolve) => setTimeout(resolve, 2000));
-    return contextApiForRequest().getContextBundle(data);
-  });
 
 /**
  * The Explore availability grid, read through the one cited Context Layer
  * availability read (plan 014). Drops the read's citation/warnings and returns
  * just the `{ zones }` wire shape the Explore + catalog consumers depend on.
  */
+// Process-level memo for the availability read. The in-process availability path
+// fetches through an UNcached live fetch (unlike the release-notes path, which
+// uses the shared source-content cache), so without this every full-page refresh
+// (a fresh per-request queryClient) would re-pay the live Confluence fetch + dev
+// latency. Memoizing the response here gives availability the same "first read is
+// slow, every refresh is instant" behaviour the cached paths already have. TTL
+// mirrors the source-content cache (5 min); the client's React Query cache covers
+// intra-session navigation on top of this.
+const AVAILABILITY_MEMO_MS = 5 * 60_000;
+let availabilityMemo: { at: number; data: AvailabilityResponse } | undefined;
+
 export const fetchAvailability = createServerFn(SERVER_FN_OPTIONS).handler(
   async (): Promise<AvailabilityResponse> => {
-    // Simulate the read's real live Confluence fetch + parse so the deferred
-    // Explore skeletons stay visible in dev. Dev-only: dropped from prod builds
-    // and moot once the read reaches the real external page.
-    if (import.meta.env.DEV) await new Promise((resolve) => setTimeout(resolve, 2000));
+    const now = Date.now();
+    if (availabilityMemo && now - availabilityMemo.at < AVAILABILITY_MEMO_MS) {
+      return availabilityMemo.data;
+    }
     const { zones } = await contextApiForRequest().getAvailability();
-    return { zones };
+    const data: AvailabilityResponse = { zones };
+    availabilityMemo = { at: now, data };
+    return data;
   },
 );
 
-export const fetchTopicDiscovery = createServerFn(SERVER_FN_OPTIONS)
-  .validator(
-    (input: unknown): TopicDiscoveryRequest => TopicDiscoveryRequestSchema.parse(input ?? {}),
-  )
-  .handler(async ({ data }) => contextApiForRequest().discoverTopics(data));
+/**
+ * The landing-zone topology (plan 021 G3, ADR-0017) — the discovery root's LZ
+ * list, served to the Portal's current-LZ selector. Lightweight (no availability
+ * fetch): just id/name/cloud/dataStatus, so the top-nav dropdown paints
+ * immediately and the unwired LZs (`dataStatus: "not-available"`) are listed, not
+ * hidden — an honest dead-end on selection, never another LZ's data (ADR-0006).
+ */
+export const fetchLandingZones = createServerFn(SERVER_FN_OPTIONS).handler(
+  async (): Promise<LandingZone[]> => LANDING_ZONES.map((zone) => ({ ...zone })),
+);
+
+const resourceRefSchema = z.object({ kind: z.string().min(1), slug: z.string().min(1) });
+
+export const fetchResourceContext = createServerFn(SERVER_FN_OPTIONS)
+  .validator((input: unknown) => resourceRefSchema.parse(input))
+  .handler(async ({ data }) => {
+    // Live resource projection (plan 017): governed sections + reference-only
+    // discovery links. Dev latency comes from the MSW seam (cache-respecting), not
+    // a flat per-call delay — so the first read is slow and a revisit is instant.
+    return contextApiForRequest().getResourceContext(data.kind, data.slug);
+  });
+
+export const fetchResourceRecord = createServerFn(SERVER_FN_OPTIONS)
+  .validator((input: unknown) => resourceRefSchema.parse(input))
+  // Presentation metadata (plan 020 15d): identity/owner/entry fields. Durable
+  // (no live fetch), so it is awaited for the page shell — no dev delay.
+  .handler(async ({ data }) => contextApiForRequest().getResourceRecord(data.kind, data.slug));
+
+export const fetchResourceCatalog = createServerFn(SERVER_FN_OPTIONS).handler(async () =>
+  contextApiForRequest().discoverResources(),
+);
 
 export const fetchSourceDiscovery = createServerFn(SERVER_FN_OPTIONS)
   .validator(

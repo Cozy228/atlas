@@ -29,7 +29,7 @@ export function PortalFooter() {
           "sm:flex-row sm:items-center sm:justify-between",
         )}
       >
-        <p>© {year} Atlas. All rights reserved.</p>
+        <p>© {year} Cloud DevEx Portal. All rights reserved.</p>
         <nav aria-label="Footer" className="flex flex-wrap items-center gap-x-4 gap-y-2">
           {FOOTER_LINKS.map((link) => (
             <a

@@ -1,6 +1,4 @@
-import type { Anchor } from "@atlas/schema";
-import type { AnchorResolver, ResolveRequest, ResolveResult } from "./resolverTypes";
-import { resolveAnchor } from "./resolveAnchor";
+import type { AnchorResolver, ResolveResult } from "./resolverTypes";
 import {
   resolveTerraformModuleLive,
   resolveTerraformModuleFieldLive,
@@ -9,93 +7,51 @@ import {
 export const terraformModuleResolver: AnchorResolver = {
   sourceClass: "terraform-module",
   async resolve(request) {
-    const anchor = pickAnchor(request.anchors, request.anchorId);
-
-    // Token order mirrors Confluence: the caller's Bearer first (so the request
-    // resolves under the caller's own TFC/TFE identity), else the service token,
-    // else defer to the offline pilot provider. baseUrl is the registry host
-    // (deployment config); the public registry is only the default placeholder.
+    // Single live path (plan 018 G2): the module is ALWAYS fetched from the
+    // registry — dev/integration = MSW, prod = real network — never the in-memory
+    // content provider. The caller's Bearer takes precedence (so the request
+    // resolves under the caller's own TFC/TFE identity), else the service token;
+    // baseUrl is deployment config, the public registry only the default.
     const env = readProcessEnv();
-    const token = request.ctx.token ?? env.ATLAS_TERRAFORM_TOKEN;
-    const baseUrl = env.ATLAS_TERRAFORM_BASE_URL ?? "https://registry.terraform.io";
+    const token = request.ctx.token ?? env.TERRAFORM_TOKEN;
+    const baseUrl = env.TERRAFORM_BASE_URL ?? "https://registry.terraform.io";
 
-    // Registry-metadata path (ADR-0010): a `module-field` anchor cites a module
-    // metadata field (version / input / output), a different kind of content from
-    // the README prose. Live registry when a token is configured; else the
-    // governed offline metadata map.
-    if (anchor?.anchor_strategy === "module-field") {
-      if (token) {
-        return resolveTerraformModuleFieldLive(request, { token, baseUrl }, stringSelector(anchor, "field"));
-      }
-      return resolveModuleField(request, anchor);
+    // No credential = honest gap, never a fabricated fallback. The single live
+    // path cannot fetch without a token, so surface `source_unavailable` with
+    // empty excerpts rather than reading an offline provider.
+    if (!token) {
+      return honestGap(request.source.id);
     }
 
-    // README-prose path.
-    if (token) {
-      return resolveTerraformModuleLive(request, { token, baseUrl });
+    // Registry-metadata path (ADR-0010): a binding with `selector.field` cites a
+    // module metadata field (version / input / output), a different kind of
+    // content from README prose, resolved from the same live registry payload.
+    if (request.selector?.field) {
+      return resolveTerraformModuleFieldLive(request, { token, baseUrl });
     }
 
-    return resolveAnchor({
-      ...request,
-      isValidLocator(locator) {
-        return locator.startsWith("#");
-      },
-    });
+    // README-prose path (located by heading-slug scan).
+    return resolveTerraformModuleLive(request, { token, baseUrl });
   },
 };
 
 /**
- * Resolve a module registry-metadata field from the governed metadata map
- * (keys are `field:<name>`). Offline today; the live registry adapter replaces
- * the lookup behind this same function without changing the citation shape.
+ * Honest gap when no registry credential is configured: the single live path
+ * cannot fetch the module, so the section is surfaced as unavailable data —
+ * never a fake fallback from an in-memory provider (plan 018).
  */
-function resolveModuleField(request: ResolveRequest, anchor: Anchor): ResolveResult {
-  const field = stringSelector(anchor, "field");
-  const value = field
-    ? request.contentProvider.getSourceContent(request.source.id)?.[`field:${field}`]
-    : undefined;
-
-  if (!field || !value) {
-    return {
-      excerpts: [],
-      warnings: [
-        {
-          code: "broken_anchor",
-          message: "Module metadata field is not registered or unavailable.",
-          source_id: request.source.id,
-          anchor_id: anchor.id,
-        },
-      ],
-    };
-  }
-
+function honestGap(sourceId: string): ResolveResult {
   return {
-    excerpts: [
+    excerpts: [],
+    warnings: [
       {
-        anchor_id: anchor.id,
-        text: value,
-        citation: {
-          source_id: request.source.id,
-          anchor_id: anchor.id,
-          label: anchor.citation_label,
-          location: `${request.source.location}#${field}`,
-        },
+        code: "source_unavailable",
+        message:
+          "No Terraform registry credential is configured; the module cannot be resolved at request time.",
+        source_id: sourceId,
       },
     ],
-    warnings: [],
   };
-}
-
-function pickAnchor(anchors: Anchor[], anchorId: string | undefined): Anchor | undefined {
-  if (anchorId) {
-    return anchors.find((anchor) => anchor.id === anchorId);
-  }
-  return anchors[0];
-}
-
-function stringSelector(anchor: Anchor, key: string): string | undefined {
-  const value = anchor.selector[key];
-  return typeof value === "string" && value.length > 0 ? value : undefined;
 }
 
 function readProcessEnv(): Record<string, string | undefined> {

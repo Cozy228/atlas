@@ -62,11 +62,11 @@ describe("IoValkeyContentCache (injected client)", () => {
 /**
  * Integration test against a real Valkey/ElastiCache via `iovalkey`, exercising
  * the lazy import and a true round-trip. Skipped unless both
- * `ATLAS_CACHE_VALKEY_URL` is set and `ATLAS_CACHE_VALKEY_CLIENT=iovalkey` (the
+ * `CACHE_VALKEY_URL` is set and `CACHE_VALKEY_CLIENT=iovalkey` (the
  * fallback is opt-in), with the `iovalkey` package installed.
  */
-const liveUrl = process.env.ATLAS_CACHE_VALKEY_URL;
-const ioValkeySelected = process.env.ATLAS_CACHE_VALKEY_CLIENT === "iovalkey";
+const liveUrl = process.env.CACHE_VALKEY_URL;
+const ioValkeySelected = process.env.CACHE_VALKEY_CLIENT === "iovalkey";
 
 describe.skipIf(!liveUrl || !ioValkeySelected)("IoValkeyContentCache (live server)", () => {
   it("stores and reads back a value, and expires it", async () => {

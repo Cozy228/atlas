@@ -1,5 +1,4 @@
-import type { Anchor, Source, SourceClass } from "@atlas/schema";
-import type { SourceContentProvider } from "./sourceContentProvider";
+import type { Source, SourceClass } from "@atlas/schema";
 
 export type ResolvedExcerpt = {
   anchor_id?: string;
@@ -55,30 +54,51 @@ export type ResolutionContext = {
   token?: string;
   fetch: FetchLike;
   /**
-   * Request-scoped fetch+parse memo, keyed by resource URL. Created per bundle
-   * in `buildContextBundle` and never shared across requests/identities, so N
+   * Request-scoped fetch+parse memo, keyed by resource URL. Created per resource
+   * projection and never shared across requests/identities, so N
    * anchors on the same live page/module share one fetch + one parse. Optional:
    * a caller that does not thread one keeps today's fetch-per-anchor behaviour
    * (the memo is a pure optimisation, never a correctness dependency).
    */
   pageCache?: Map<string, Promise<unknown>>;
+  /**
+   * The visibility/scope seam reserved by ADR-0015 §5, first *filled* by ADR-0017.
+   * A no-op by default: absent ⇒ today's full, global-visible return, so every
+   * un-migrated read path is unchanged (progressive safety). `landingZoneId` fills
+   * the seam first (LZ-rooted discovery); `appId` stays reserved for ADR-0012 APP
+   * scope. Like `app_id`, scope *filters* — it never enters the `{kind}/{slug}`
+   * address. No resolver reads it yet; it rides along the context to resolvers.
+   */
+  scope?: { landingZoneId?: string; appId?: string };
 };
 
 /**
- * Default context for callers that do not supply one (existing in-process
- * callers and tests). No token means the live providers defer to the offline
- * pilot map; `globalThis.fetch` is only used when a live provider is reached.
+ * Default context for callers that do not supply one (in-process callers and
+ * tests). `fetch` is **late-bound** — it re-reads `globalThis.fetch` on every
+ * call rather than capturing it once — so the dev/integration MSW interceptor,
+ * which patches `globalThis.fetch` when its server starts, is always picked up
+ * even if the context object was created before `server.listen()` (plan 018
+ * Risk #1). In prod this is the real `globalThis.fetch`; no token still means a
+ * resolver with no configured source yields an honest gap rather than a fake.
  */
-export function offlineResolutionContext(): ResolutionContext {
-  const runtime = globalThis as typeof globalThis & { fetch?: FetchLike };
-  return { token: undefined, fetch: runtime.fetch as FetchLike };
+export function defaultResolutionContext(): ResolutionContext {
+  return {
+    token: undefined,
+    fetch: (input, init) => globalThis.fetch(input, init as RequestInit) as ReturnType<FetchLike>,
+  };
 }
 
 export type ResolveRequest = {
   source: Source;
-  anchors: Anchor[];
-  anchorId?: string;
-  contentProvider: SourceContentProvider;
+  /** Section entry heading — a DEFAULT entry point, not a fixed address. The
+   *  resolver slugifies it and locates the section at runtime by heading-slug
+   *  scan; the agent may request any heading beyond the canonical vocabulary. */
+  heading?: string;
+  /** Structured selector for sources NOT located by heading: the availability
+   *  matrix (service/region) and terraform module fields (field). */
+  selector?: Record<string, string>;
+  /** Citation label for the resolved excerpt (was the Anchor's citation_label). */
+  citationLabel?: string;
   ctx: ResolutionContext;
 };
 

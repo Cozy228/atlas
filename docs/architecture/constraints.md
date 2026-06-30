@@ -14,27 +14,29 @@ Rules that AI must follow when implementing the Atlas design. Check every code c
 
 ## API Contract
 
-5. `context-layer` exposes a single API surface. Every function (source registry, topic registry, context delivery) is accessed through this API. No direct DynamoDB access from `portal`.
+5. `context-layer` exposes a single API surface. Every function (source registry, resource catalog, context delivery) is accessed through this API. No direct DynamoDB access from `portal`.
 
 6. API request and response types must be defined in a shared schema package (e.g., OpenAPI spec or shared TypeScript types). Both `context-layer` and `portal` reference this schema. Do not duplicate type definitions.
 
 7. Every API endpoint must return structured error responses with error codes, not raw exceptions. Consumers must be able to programmatically distinguish between "source not found," "anchor broken," "source unavailable," and "source restricted."
 
-8. Context bundle responses must always include: `sources` (with authority metadata), `anchors` or `anchor_references`, `warnings` (stale, broken, conflict signals), and `expansion_paths`. Never return a context bundle without these fields, even if they are empty arrays.
+8. Resource context projection responses must always carry the resolved evidence with its authority metadata, the resolved/missing sections, and warnings (stale, broken, conflict signals). Never return a projection that drops these, even when empty.
+
+> NOTE (needs human conceptual rewrite): the exact field names here are retired. The current invariant is `ResourceContextResponse` in `packages/atlas-schema/src/index.ts` (`resource`, `requestedSections`, `sections`, `missingSections`, `references`, `referenceDiscovery`, `resolvedAt`) — there is no `sources` / `anchor_references` / `expansion_paths` field anymore. This constraint needs a rewrite against that schema.
 
 ## Data Model
 
-9. Governance metadata (authority_level, authority_scope, steward, last_reviewed_at, review_frequency) lives on Source entities only. Never duplicate governance fields onto Topic entities or Source-Topic mapping records.
+9. Governance metadata (authority_level, authority_scope, steward, last_reviewed_at, review_frequency) lives on Source entities only. Never duplicate governance fields onto Resource entities or Source-Resource mapping records.
 
-10. Source and Topic are linked through an explicit mapping table/collection, not through embedded arrays. A Source document must not contain a list of topic IDs, and a Topic document must not contain a list of source IDs. The mapping is its own entity. Anchor records are linked to Source by `source_id`, not embedded as long-form source content.
+10. Source and Resource are linked through an explicit mapping table/collection, not through embedded arrays. A Source document must not contain a list of resource IDs, and a Resource document must not contain a list of source IDs. The mapping is its own entity. Anchor records are linked to Source by `source_id`, not embedded as long-form source content.
 
 11. Every Source record must have: `id`, `source_class`, `location`, `steward`, `authority_level`, `authority_scope`. These fields are non-nullable. Do not create a Source without all of them.
 
-12. Every Topic record must have: `id`, `name`, `topic_type`, `status`, `owner_team`. These fields are non-nullable.
+12. Every Resource record must have: `id`, `kind`, `slug`, `name`, `aliases`. These fields are non-nullable. (Presentation fields like `status` and `owner_team` are optional honest-gaps — set only when discovery can back them. See `ResourceRecordResponse`.)
 
 13. `authority_level` is an enum with exactly these values: `authoritative`, `reference`, `example`, `draft`, `deprecated`. Do not add new levels without updating this constraint.
 
-14. `topic_type` is an enum with exactly these values: `service`, `landing-zone`, `guardrail-area`. Do not add new types without updating this constraint.
+14. `kind` is an enum with exactly these values: `service`, `guardrail`, `landing-zone`. Do not add new kinds without updating this constraint.
 
 15. `source_class` is an enum with exactly these values in V1: `terraform-module`, `confluence-page`, `policy-document`. Adding a new source class requires a corresponding anchor strategy implementation. Do not add a source class enum value without implementing its anchor resolver.
 
@@ -44,7 +46,7 @@ Rules that AI must follow when implementing the Atlas design. Check every code c
 
 17. Each source class has its own fetcher and anchor resolver module. Fetchers and anchor resolvers are registered by source class, not hardcoded in a switch statement. Adding a new source class means adding a new fetcher or explicitly reusing an existing fetcher, adding a new resolver module, and registering them.
 
-18. When a source system is unreachable at request time, the context bundle must still be returned with available sources. Mark unreachable sources with a `source_unavailable` warning. Never fail an entire request because one source is down.
+18. When a source system is unreachable at request time, the resource context projection must still be returned with available sources. Mark unreachable sources with a `source_unavailable` warning. Never fail an entire request because one source is down.
 
 ## File and Code Structure
 
@@ -64,9 +66,9 @@ Rules that AI must follow when implementing the Atlas design. Check every code c
 
 ## AI Consumer Layer
 
-25. Any AI consumer prompt sent to an LLM must include only content from the Atlas context bundle plus the user's request. Do not inject additional knowledge, system prompts with domain facts, or hardcoded platform guidance. If it is not in the context bundle, the AI does not know it.
+25. Any AI consumer prompt sent to an LLM must include only content from the Atlas resource context projection plus the user's request. Do not inject additional knowledge, system prompts with domain facts, or hardcoded platform guidance. If it is not in the resource context projection, the AI does not know it.
 
-26. Every factual claim in the AI response must map to a citation from the context bundle. The consumer must validate this before displaying an answer or taking an action. If the AI produces a claim without a citation, strip it or flag it as unverified.
+26. Every factual claim in the AI response must map to a citation from the resource context projection. The consumer must validate this before displaying an answer or taking an action. If the AI produces a claim without a citation, strip it or flag it as unverified.
 
 27. The LLM integration must be behind an interface/adapter. Consumer code calls the adapter, not the LLM SDK directly. Swapping the model (Bedrock Claude → Bedrock Nova → external API) must require changing only the adapter implementation.
 
@@ -76,7 +78,7 @@ Rules that AI must follow when implementing the Atlas design. Check every code c
 
 29. Portal frontend: TanStack Start + Vite. Do not introduce additional frontend frameworks (no Next.js, no Remix, no Astro). V1 may use a static or SPA-mode build for delivery if the Context API remains the data boundary.
 
-30. Context Layer: AWS Lambda + API Gateway + DynamoDB. Do not introduce additional Context Layer services (no SQS, no Step Functions, no OpenSearch) in V1 without updating this constraint. Portal hosting can use the approved V1 hosting path as long as it is defined as infrastructure as code.
+30. Deployment target: Application Load Balancer + ECS Fargate + DynamoDB. Do not deploy the Context Layer through Lambda, API Gateway, or Lambda Web Adapter in V1 without updating this constraint. Do not introduce additional Context Layer services (no SQS, no Step Functions, no OpenSearch) in V1 without updating this constraint. Portal hosting must be defined as Terraform infrastructure as code.
 
 31. Infrastructure is defined as code. No manually provisioned production resources. If you cannot express it in Terraform or CDK, it does not go to production.
 
@@ -102,7 +104,7 @@ Rules that AI must follow when implementing the Atlas design. Check every code c
 
 41. Use Vitest for TypeScript unit and API tests unless this constraint is updated. Use Playwright for Portal end-to-end or interaction tests when browser behavior matters.
 
-42. Do not rely on snapshot tests alone for context bundles, citations, visibility signals, warnings, or AI answer validation. These behaviors require explicit assertions.
+42. Do not rely on snapshot tests alone for resource context projections, citations, visibility signals, warnings, or AI answer validation. These behaviors require explicit assertions.
 
 43. Portal UI must not hardcode pilot source truth. Service, landing zone, source badge, authority, freshness, and warning data must come from registry/API data or explicit seed data.
 
@@ -124,6 +126,6 @@ Rules that AI must follow when implementing the Atlas design. Check every code c
 
 50. Do not build user authentication, registration, SSO, or identity-based application access for V1. V1 is designed for a trusted internal operating environment. Source-system and model credentials still remain server-side and must not be exposed to browser code or committed files.
 
-51. Do not build an admin UI for source registration in V1. Source and topic registration is done via API calls or seed scripts. The admin UI is a post-V1 concern.
+51. Do not build an admin UI for source registration in V1. Source and resource registration is done via API calls or seed scripts. The admin UI is a post-V1 concern.
 
 52. Do not add fields to the data model that are not defined in `docs/architecture/current_design.md`. If a new field is needed, update the design document first, then implement.

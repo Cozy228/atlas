@@ -1,19 +1,14 @@
 /**
  * Release-notes projection for What's New.
  *
- * Server-only. Live Confluence drives releases when configured
- * (`ATLAS_RELEASE_NOTES_PAGE_ID` + the Confluence env); otherwise it falls back
- * to the offline newsletter fixture (`data/newsletter.yaml`). Both produce the
- * same `Release[]` shape. (Standalone announcements stay git-authored — see
+ * Server-only, single live path: the federated-platform "What's New" Confluence
+ * page (via `resolveReleaseNotes`) is the only source. Not configured / restricted
+ * / unavailable resolves to an honest empty list — never a fake fallback — and the
+ * UI degrades gracefully. (Standalone announcements come off the same page — see
  * `announcements.ts`.)
  */
 import { createServerFn } from "@tanstack/react-start";
-import {
-  cachedResolutionContext,
-  loadReleaseNotes,
-  resolveReleaseNotes,
-  type Release,
-} from "@atlas/context-layer";
+import { cachedResolutionContext, resolveReleaseNotes, type Release } from "@atlas/context-layer";
 
 export type { Release } from "@atlas/context-layer";
 
@@ -22,6 +17,5 @@ export const fetchReleaseNotes = createServerFn({
   strict: { output: false },
 }).handler(async (): Promise<Release[]> => {
   const result = await resolveReleaseNotes(await cachedResolutionContext());
-  // not_configured / restricted_source / source_unavailable → offline fixture.
-  return result.ok ? result.releases : loadReleaseNotes();
+  return result.ok ? result.releases : [];
 });

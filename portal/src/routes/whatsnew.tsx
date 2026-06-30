@@ -30,18 +30,27 @@ import { announcementsQueryOptions, releaseNotesQueryOptions } from "@/api/queri
 import { ReleasesSection } from "@/components/whatsnew/releases";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DeferredRegion } from "@/components/deferred-region";
-import { withDevLatency } from "@/lib/dev-latency";
+import { deferUnlessCached } from "@/lib/deferred-cache";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/whatsnew")({
   loader: ({ context }) => {
     // The whole dispatch is a live newsletter in the real adapter — defer both
-    // feeds (same dev latency + skeleton) so only the masthead paints instantly
-    // and the entire body fills in when they land.
-    const announcements = withDevLatency(
-      context.queryClient.ensureQueryData(announcementsQueryOptions),
+    // feeds so only the masthead paints instantly and the body fills in. Skeleton
+    // only on a cache MISS (first fetch); a revisit reads the warm cache and
+    // resolves synchronously, so the skeletons never reappear.
+    const announcements = deferUnlessCached(
+      context.queryClient,
+      announcementsQueryOptions.queryKey,
+      () => context.queryClient.ensureQueryData(announcementsQueryOptions),
+      (a) => a,
     );
-    const releases = withDevLatency(context.queryClient.ensureQueryData(releaseNotesQueryOptions));
+    const releases = deferUnlessCached(
+      context.queryClient,
+      releaseNotesQueryOptions.queryKey,
+      () => context.queryClient.ensureQueryData(releaseNotesQueryOptions),
+      (r) => r,
+    );
     return { releases, announcements };
   },
   component: WhatsNewRoute,
@@ -124,7 +133,14 @@ function WhatsNewRoute() {
 
 function Masthead() {
   const [dateline, setDateline] = useState("");
+  // Gate async-query-derived chrome behind a mount flag so SSR and the initial
+  // client render are identical (both show the "Internal" placeholder), then
+  // upgrade after hydration. The deferred announcements query resolves at
+  // different times on server vs client, so reading dataUpdatedAt during the
+  // first render is a hydration mismatch once the feed actually has data.
+  const [mounted, setMounted] = useState(false);
   useEffect(() => {
+    setMounted(true);
     const now = new Date();
     setDateline(
       `${now.toLocaleDateString("en-US", { weekday: "long" })} · ${now.toLocaleDateString("en-US", {
@@ -140,8 +156,8 @@ function Masthead() {
     <header className="flex flex-col gap-4 border-b-[3px] border-double border-border-strong pb-5">
       <div className="flex items-center justify-between gap-4 border-b border-border pb-2 font-mono text-[10.5px] uppercase tracking-[0.14em] text-muted-foreground">
         <span className="tabular-nums">{dateline}</span>
-        <span className="hidden tracking-[0.2em] sm:inline">The Atlas Dispatch</span>
-        {dataUpdatedAt ? (
+        <span className="hidden tracking-[0.2em] sm:inline">The Cloud DevEx Dispatch</span>
+        {mounted && dataUpdatedAt ? (
           <LastFetchChip updatedAt={dataUpdatedAt} className="tracking-normal" />
         ) : (
           <span>Internal</span>

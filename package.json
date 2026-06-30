@@ -6,8 +6,7 @@
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test",
-    "validate:guidance": "pnpm --filter @atlas/schema validate:guidance",
-    "validate:registry": "pnpm --filter @atlas/schema validate:registry",
+    "validate:guidance": "pnpm --filter @atlas/context-layer validate:guidance",
     "prepare": "husky"
   },
   "lint-staged": {
@@ -21,6 +20,7 @@
     "@commitlint/config-conventional": "^21.0.2",
     "husky": "^9.1.7",
     "lint-staged": "^17.0.8",
+    "msw": "^2.14.6",
     "oxfmt": "^0.56.0",
     "oxlint": "^1.71.0",
     "typescript": "rc",

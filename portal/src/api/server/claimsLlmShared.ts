@@ -1,11 +1,11 @@
 import { generateText, Output, type LanguageModel } from "ai";
 import { z } from "zod";
-import type { ContextBundleResponse } from "@atlas/schema";
+import type { ResourceContextResponse } from "@atlas/schema";
 import type { LlmAdapter } from "@/ask/askAtlas";
 
 const SYSTEM_PROMPT = [
   "You are Atlas, a governed cloud-platform assistant.",
-  "Answer ONLY using the provided Atlas context bundle excerpts.",
+  "Answer ONLY using the provided governed Atlas resource excerpts.",
   "Cite sources inline using the bracket form [source_id#anchor_id] that",
   "matches the excerpts. If the excerpts do not contain the answer, say so",
   "and do not invent claims.",
@@ -36,22 +36,23 @@ export type GenerateClaimsObject = (
 
 export type ClaimsAdapterFetch = typeof fetch;
 
-export function createSimulatedClaimsAdapter(bundle: ContextBundleResponse): LlmAdapter {
+export function createSimulatedClaimsAdapter(projection: ResourceContextResponse): LlmAdapter {
   return {
     async answer(): Promise<ClaimResponse> {
-      const excerpt = bundle.sources.flatMap((source) =>
-        source.source.authority_level === "authoritative" ? source.excerpts : [],
-      )[0];
-
-      if (!excerpt) {
+      // First Section with resolved content + a citation to ground the claim.
+      const section = Object.values(projection.sections).find(
+        (entry) => Boolean(entry.content) && entry.citations.length > 0,
+      );
+      if (!section?.content) {
         return { claims: [] };
       }
+      const citation = section.citations[0]!;
 
       return {
         claims: [
           {
-            text: excerpt.text,
-            citation_ids: [citationId(excerpt.citation.source_id, excerpt.citation.anchor_id)],
+            text: section.content,
+            citation_ids: [citationId(citation.sourceId, citation.anchor)],
           },
         ],
       };

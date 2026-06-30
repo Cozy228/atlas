@@ -2,16 +2,24 @@ import { useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import { IconMenu2, IconSearch } from "@tabler/icons-react";
 
+import logoSvg from "@/assets/logo.svg?url";
+import type { DataMode } from "@/api/server/dataMode";
 import { AskAtlasFab } from "@/components/ask-atlas-fab";
 import { AskAtlasProvider, useAskAtlas } from "@/components/ask-atlas/context";
+import { CurrentLandingZoneProvider } from "@/components/landing-zone/context";
+import { LandingZoneSelector } from "@/components/landing-zone/landing-zone-selector";
 import { PortalFooter } from "@/components/portal-footer";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { ThemeProvider } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
 type PortalShellProps = {
   children: ReactNode;
+  /** Dev-runtime data mode (plan 026 WU-B); drives the "Mock data" top-nav badge.
+   *  Undefined / 'live' renders no badge — the prod build always reports 'live'. */
+  dataMode?: DataMode;
 };
 
 type NavItem = {
@@ -25,29 +33,32 @@ const PRIMARY_NAV: ReadonlyArray<NavItem> = [
   { to: "/availability", label: "Availability" },
   { to: "/catalog", label: "Catalog" },
   { to: "/guidance", label: "Guidance" },
-  { to: "/skills", label: "Skills" },
   { to: "/sources", label: "Sources" },
+  { to: "/whatsnew", label: "Newsletter" },
+  { to: "/support", label: "Support" },
 ];
 
-export function PortalShell({ children }: PortalShellProps) {
+export function PortalShell({ children, dataMode }: PortalShellProps) {
   return (
     <ThemeProvider>
-      <AskAtlasProvider>
-        <div className="flex min-h-dvh w-full flex-col bg-background text-foreground">
-          <TopBar />
-          {/* 32px coordinate grid on a full-width canvas, beginning below the
+      <CurrentLandingZoneProvider>
+        <AskAtlasProvider>
+          <div className="flex min-h-dvh w-full flex-col bg-background text-foreground">
+            <TopBar dataMode={dataMode} />
+            {/* 32px coordinate grid on a full-width canvas, beginning below the
               opaque top bar. Shows only in negative space; text-bearing blocks
               carry bg-background plates to mask it (DESIGN.md §5). */}
-          <main className="min-w-0 flex-1 bg-coordinate-grid">{children}</main>
-          <PortalFooter />
-          <AskAtlasFab />
-        </div>
-      </AskAtlasProvider>
+            <main className="min-w-0 flex-1 bg-coordinate-grid">{children}</main>
+            <PortalFooter />
+            <AskAtlasFab />
+          </div>
+        </AskAtlasProvider>
+      </CurrentLandingZoneProvider>
     </ThemeProvider>
   );
 }
 
-function TopBar() {
+function TopBar({ dataMode }: { dataMode?: DataMode }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const nav = PRIMARY_NAV;
 
@@ -59,14 +70,26 @@ function TopBar() {
         "bg-background",
       )}
     >
-      <BrandLink />
+      <div className="flex min-w-0 items-center gap-2">
+        <BrandLink />
+      </div>
       <nav aria-label="Primary" className="hidden items-center justify-center gap-1 md:flex">
         {nav.map((item) => (
           <TopNavLink key={item.to} item={item} />
         ))}
       </nav>
-      <div className="flex items-center justify-end gap-1">
+      <div className="flex items-center justify-end gap-1.5">
+        {dataMode === "mock" ? (
+          <Badge
+            variant="warning"
+            data-testid="data-mode-badge"
+            title="Serving deterministic mock fixtures — not live source systems"
+          >
+            Mock data
+          </Badge>
+        ) : null}
         <NavMenu open={menuOpen} onOpenChange={(open) => setMenuOpen(open)} />
+        <LandingZoneSelector />
         <SearchButton />
         <ThemeToggle />
       </div>
@@ -78,22 +101,18 @@ function BrandLink() {
   return (
     <Link
       to="/"
-      aria-label="Atlas Portal home"
+      aria-label="Cloud DevEx Portal home"
       className={cn(
-        "mr-5 flex shrink-0 items-center gap-2 rounded-md py-1 pr-1",
+        "mr-5 flex shrink-0 items-center gap-2.5 rounded-md py-1 pr-1",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
       )}
     >
-      <span
-        aria-hidden
-        className={cn(
-          "flex size-6 items-center justify-center rounded-[7px] bg-primary",
-          "font-mono text-xs font-bold leading-none tracking-[-0.04em] text-primary-foreground",
-        )}
-      >
-        A
+      <img src={logoSvg} alt="" aria-hidden className="size-6 shrink-0" />
+      {/* Divider between the mark and the wordmark — set them a little apart. */}
+      <span aria-hidden className="h-5 w-px shrink-0 bg-border" />
+      <span className="type-body font-bold tracking-[-0.03em] text-foreground">
+        Cloud DevEx Portal
       </span>
-      <span className="type-body font-bold tracking-[-0.03em] text-foreground">Atlas</span>
     </Link>
   );
 }
@@ -123,7 +142,7 @@ function SearchButton() {
   return (
     <button
       type="button"
-      aria-label="Search Atlas catalog"
+      aria-label="Search the catalog"
       onClick={() => openOverlay("search")}
       className={cn(
         "flex size-8 items-center justify-center rounded-sm text-muted-foreground",
@@ -163,7 +182,9 @@ function NavMenu({ open, onOpenChange }: NavMenuProps) {
       <Sheet open={open} onOpenChange={(o) => onOpenChange(o)}>
         <SheetContent side="left" className="data-[side=left]:sm:max-w-56 gap-0 p-0">
           <SheetHeader className="border-b px-4 py-3">
-            <SheetTitle className="text-sm font-bold tracking-[-0.03em]">Atlas</SheetTitle>
+            <SheetTitle className="text-sm font-bold tracking-[-0.03em]">
+              Cloud DevEx Portal
+            </SheetTitle>
           </SheetHeader>
           <nav aria-label="Primary" className="flex flex-col gap-0.5 p-2">
             {nav.map((item) => (
