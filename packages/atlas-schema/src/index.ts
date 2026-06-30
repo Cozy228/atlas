@@ -67,7 +67,11 @@ export const SourceSchema = z
     title: z.string().min(1),
     source_class: SourceClassSchema,
     location: z.string().min(1),
-    steward: z.string().min(1),
+    // Presentation category — the domain of the thing this source documents (a
+    // service's availability domain, or "Security" for a policy). Used to group
+    // the source registry by category. Optional: a source with no derivable
+    // category groups under "Other".
+    category: z.string().min(1).optional(),
     visibility: VisibilitySchema,
     // Authority deferred end-to-end (plan 019): discovery's entry scope already
     // crawls only authoritative sources, so authority is not a required per-source
@@ -163,17 +167,15 @@ export const ApiErrorResponseSchema = z
  * `docs/product/guidance_design.md`). Guidance -> steps -> tasks, rendered as a
  * vertical stepper. AI may draft a manifest from a process document; an owner
  * reviews it; the validate/import gate checks it against this schema before it
- * enters the registry. snake_case matches the Source/Topic API convention so a
- * `data/guidance/*.yaml` file validates directly.
+ * enters the registry. snake_case matches the Source API convention.
  *
- * `type` is a renderer preset, not a separate schema (guidance_design §6). MVP
- * ships only `route`; `decision`/`checklist` are modelled here for forward
- * compatibility, not yet in MVP renderer scope.
+ * A guidance is a flat, linear onboarding journey: Guidance -> steps -> tasks.
+ * There is no step-kind taxonomy (decision/checklist/destination) and no
+ * top-level renderer `type` — Confluence prose, the source of truth, cannot
+ * carry those markers, so the model stays at what authored pages can express.
  * -------------------------------------------------------------------------- */
 
-export const guidanceTypes = ["route", "decision", "checklist"] as const;
 export const scenarioFamilies = ["onboard", "decide", "enable", "validate"] as const;
-export const stepKinds = ["action", "decision", "checklist", "support", "destination"] as const;
 export const guidanceStatuses = ["draft", "published", "needs_review", "deprecated"] as const;
 export const guidanceActionTypes = [
   "atlas_page",
@@ -183,15 +185,10 @@ export const guidanceActionTypes = [
   "support_link",
   "copy_text",
 ] as const;
-/** Intrinsic step markers independent of which step is selected. */
-export const stepMarkers = ["blocked", "needs_support"] as const;
 
-export const GuidanceTypeSchema = z.enum(guidanceTypes);
 export const ScenarioFamilySchema = z.enum(scenarioFamilies);
-export const StepKindSchema = z.enum(stepKinds);
 export const GuidanceStatusSchema = z.enum(guidanceStatuses);
 export const GuidanceActionTypeSchema = z.enum(guidanceActionTypes);
-export const StepMarkerSchema = z.enum(stepMarkers);
 
 export const GuidanceActionSchema = z
   .object({
@@ -219,34 +216,16 @@ export const GuidanceTaskSchema = z
   })
   .strict();
 
-export const DecisionOptionSchema = z
-  .object({
-    id: z.string().min(1),
-    title: z.string().min(1),
-    description: z.string().min(1).optional(),
-    /** atlas_page path the option routes to. */
-    to: z.string().min(1).optional(),
-  })
-  .strict();
-
 export const GuidanceStepSchema = z
   .object({
     id: z.string().min(1),
     title: z.string().min(1),
-    kind: StepKindSchema,
     description: z.string().min(1).optional(),
     /** Why this step matters, shown above the task list. */
     why: z.string().min(1).optional(),
     tasks: z.array(GuidanceTaskSchema).optional(),
     /** source registry ids cited by this step. */
     sources: z.array(z.string().min(1)).optional(),
-    support: z
-      .object({ team: z.string().min(1), channel: z.string().min(1) })
-      .strict()
-      .optional(),
-    /** decision-step branch options. */
-    options: z.array(DecisionOptionSchema).optional(),
-    marker: StepMarkerSchema.optional(),
   })
   .strict();
 
@@ -254,10 +233,10 @@ export const GuidanceSchema = z
   .object({
     id: z.string().min(1),
     title: z.string().min(1),
-    type: GuidanceTypeSchema,
     scenario: z.string().min(1),
     family: ScenarioFamilySchema,
     objective: z.string().min(1),
+    /** The journey's end-state — its goal, rendered as the closing card. */
     destination: z
       .object({ title: z.string().min(1), description: z.string().min(1).optional() })
       .strict(),
@@ -276,11 +255,7 @@ export const GuidanceSchema = z
     sources: z.array(z.string().min(1)).optional(),
     steps: z.array(GuidanceStepSchema).min(1),
   })
-  .strict()
-  .refine((g) => g.steps[g.steps.length - 1]?.kind === "destination", {
-    message: "guidance.steps must end with a destination step",
-    path: ["steps"],
-  });
+  .strict();
 
 export const GuidanceResponseSchema = z.object({ guidance: GuidanceSchema }).strict();
 
@@ -303,15 +278,11 @@ export type SourceDiscoveryResponse = z.infer<typeof SourceDiscoveryResponseSche
 export type Citation = z.infer<typeof CitationSchema>;
 export type Warning = z.infer<typeof WarningSchema>;
 export type ApiErrorResponse = z.infer<typeof ApiErrorResponseSchema>;
-export type GuidanceType = z.infer<typeof GuidanceTypeSchema>;
 export type ScenarioFamily = z.infer<typeof ScenarioFamilySchema>;
-export type StepKind = z.infer<typeof StepKindSchema>;
 export type GuidanceStatus = z.infer<typeof GuidanceStatusSchema>;
 export type GuidanceActionType = z.infer<typeof GuidanceActionTypeSchema>;
-export type StepMarker = z.infer<typeof StepMarkerSchema>;
 export type GuidanceAction = z.infer<typeof GuidanceActionSchema>;
 export type GuidanceTask = z.infer<typeof GuidanceTaskSchema>;
-export type DecisionOption = z.infer<typeof DecisionOptionSchema>;
 export type GuidanceStep = z.infer<typeof GuidanceStepSchema>;
 export type Guidance = z.infer<typeof GuidanceSchema>;
 export type GuidanceResponse = z.infer<typeof GuidanceResponseSchema>;

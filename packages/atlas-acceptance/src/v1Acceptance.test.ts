@@ -11,7 +11,6 @@ import {
   createDailyRateLimiter,
   getGuidance,
   loadGuidance,
-  relatedGuidanceForResource,
   type LlmAdapter,
 } from "@atlas/portal";
 
@@ -115,32 +114,21 @@ describe("Atlas V1 acceptance", () => {
     expect(exceptions?.citations[0]?.sourceId).toBe("public-access-controls-policy-doc");
   });
 
-  it("HARD GATE: the S3 / API Gateway / Textract adoption journeys are wired end-to-end", async () => {
+  it("HARD GATE: the onboarding journey loads and hero services carry their module entry tool", async () => {
+    // The per-service adoption journeys were retired (guidance now ships only the
+    // onboarding journey); the gate keeps the facts that remain true — the one
+    // shipped journey resolves, and each hero service is a discovered Resource
+    // with a derived Terraform-module entry tool on its datasheet record.
     const guidances = await loadGuidance();
-    const heroes = [
-      { slug: "aws/api-gateway", guidanceId: "api-gateway-adoption" },
-      { slug: "aws/s3", guidanceId: "s3-adoption" },
-      { slug: "aws/textract", guidanceId: "textract-adoption" },
-    ];
+    expect(getGuidance(guidances, "new-app-onboarding")?.id).toBe("new-app-onboarding");
 
-    for (const hero of heroes) {
-      // The service is a discovered Resource and carries a derived Terraform-module
-      // entry tool on its datasheet record.
-      const recordResponse = await handleResourceRecordRequest({
-        kind: "service",
-        slug: hero.slug,
-      });
-      expect(recordResponse.status, hero.slug).toBe(200);
+    for (const slug of ["aws/api-gateway", "aws/s3", "aws/textract"]) {
+      const recordResponse = await handleResourceRecordRequest({ kind: "service", slug });
+      expect(recordResponse.status, slug).toBe(200);
       const record = "kind" in recordResponse.body ? recordResponse.body : undefined;
-      expect(record?.kind, hero.slug).toBe("service");
-      expect(record?.entry_tools?.map((tool) => tool.label) ?? [], hero.slug).toContain(
+      expect(record?.kind, slug).toBe("service");
+      expect(record?.entry_tools?.map((tool) => tool.label) ?? [], slug).toContain(
         "Terraform module",
-      );
-
-      // A governed adoption guide exists, is a route, and is wired to the resource.
-      expect(getGuidance(guidances, hero.guidanceId)?.type, hero.guidanceId).toBe("route");
-      expect(relatedGuidanceForResource(guidances, hero.slug).map((g) => g.id)).toContain(
-        hero.guidanceId,
       );
     }
   });

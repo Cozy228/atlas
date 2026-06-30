@@ -12,7 +12,6 @@ import { validateGuidanceManifest, validateGuidanceDocument } from "./index";
 const minimalRoute = {
   id: "demo",
   title: "Demo",
-  type: "route",
   scenario: "onboarding",
   family: "onboard",
   objective: "Demonstrate the schema.",
@@ -22,20 +21,20 @@ const minimalRoute = {
   version: "0.1.0",
   last_reviewed: "2026-06-14",
   steps: [
-    { id: "do-it", title: "Do it", kind: "action" },
-    { id: "done", title: "Done", kind: "destination" },
+    { id: "do-it", title: "Do it" },
+    { id: "wrap-up", title: "Wrap up" },
   ],
 };
 
 describe("validateGuidanceDocument", () => {
-  it("accepts a minimal valid route", () => {
+  it("accepts a minimal valid journey", () => {
     const { guidance, issues } = validateGuidanceDocument(minimalRoute, "demo");
     expect(guidance?.id).toBe("demo");
     expect(issues.filter((i) => i.level === "error")).toEqual([]);
   });
 
-  it("rejects guidance whose last step is not a destination", () => {
-    const bad = { ...minimalRoute, steps: [minimalRoute.steps[0]] };
+  it("rejects guidance with no steps", () => {
+    const bad = { ...minimalRoute, steps: [] };
     const { guidance, issues } = validateGuidanceDocument(bad, "bad");
     expect(guidance).toBeUndefined();
     expect(issues.some((i) => i.level === "error")).toBe(true);
@@ -48,7 +47,6 @@ describe("validateGuidanceDocument", () => {
         {
           id: "step",
           title: "Step",
-          kind: "action",
           tasks: [
             {
               id: "t1",

@@ -22,7 +22,6 @@ const source = {
   title: "Textract Terraform Module",
   source_class: "terraform-module",
   location: "github.com/example/terraform-aws-textract",
-  steward: "cloud-platform",
   visibility: "internal",
   authority_scope: ["module-usage"],
   authority_level: "authoritative",
@@ -94,7 +93,6 @@ describe("entity schemas", () => {
     const parsed = SourceSchema.parse(source);
     expect(parsed.authority_level).toBe("authoritative");
     expect(parsed.authority_scope).toEqual(["module-usage"]);
-    expect(parsed.steward).toBe("cloud-platform");
 
     // Authority is deferred end-to-end: a Source without it still validates.
     const { authority_level, authority_scope, ...withoutAuthority } = source;
