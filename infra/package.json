@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "lint": "tsc --noEmit --pretty false",
+    "lint": "oxlint",
     "typecheck": "tsc --noEmit --pretty false",
     "test": "vitest run"
   },

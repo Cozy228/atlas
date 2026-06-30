@@ -16,7 +16,7 @@
     "build": "node scripts/gen-agent-skills-index.mjs && vite build",
     "gen:agent-skills": "node scripts/gen-agent-skills-index.mjs",
     "start": "node .output/server/index.mjs",
-    "lint": "oxlint && tsc --noEmit --pretty false",
+    "lint": "oxlint",
     "lint:fix": "oxlint --fix",
     "fmt": "oxfmt",
     "fmt:check": "oxfmt --check",

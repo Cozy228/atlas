@@ -9,7 +9,7 @@
     "e2e:doctor": "node scripts/doctor.mjs",
     "e2e:report": "playwright show-report",
     "typecheck": "tsc --noEmit --pretty false",
-    "lint": "tsc --noEmit --pretty false"
+    "lint": "oxlint"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.12.1",

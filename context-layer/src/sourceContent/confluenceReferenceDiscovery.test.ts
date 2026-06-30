@@ -23,7 +23,6 @@ const textract: ServiceIdentity = {
   admissionAliases: ["amazon textract", "textract"],
 };
 
-type Page = { title: string; webui: string };
 type CqlBody = {
   results?: Array<Record<string, unknown>>;
   totalSize?: number;
