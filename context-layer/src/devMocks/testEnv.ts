@@ -15,6 +15,7 @@ import {
   DEV_CONFLUENCE_BASE_URL,
   DEV_CONFLUENCE_SECURITY_SPACE_KEY,
   DEV_CONFLUENCE_SPACE_KEYS,
+  DEV_RELEASE_NOTES_PAGE_ID,
   DEV_TERRAFORM_BASE_URL,
 } from "./fixtures";
 import { DEV_GUIDANCE_URL } from "./guidanceFixture";
@@ -41,6 +42,10 @@ export function setDevDiscoveryEnv(
   env.CONFLUENCE_TOKEN = "dev-mock-token";
   env.CONFLUENCE_SECURITY_SPACE_KEY = DEV_CONFLUENCE_SECURITY_SPACE_KEY;
   env.CONFLUENCE_AVAILABILITY_PAGE_AWSF = DEV_AVAILABILITY_PAGE_ID_AWSF;
+  // "What's New" release-notes page (MSW serves CONFLUENCE_PAGES[this id]). Without
+  // it resolveReleaseNotes bails on the unconfigured sentinel and /whatsnew is
+  // honest-empty — so the release-detail route would never get dev/e2e coverage.
+  env.CONFLUENCE_RELEASE_NOTES_PAGE_ID = DEV_RELEASE_NOTES_PAGE_ID;
   // Guidance store: the live loadGuidance loader fetches this URL (MSW-served).
   env.GUIDANCE_URL = DEV_GUIDANCE_URL;
   // Reference-discovery space (optional): on by default.

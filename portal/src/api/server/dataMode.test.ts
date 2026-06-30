@@ -34,4 +34,16 @@ describe("shouldMockData", () => {
     expect(shouldMockData({ CONFLUENCE_TOKEN: "t" })).toBe(true);
     expect(shouldMockData({ CONFLUENCE_BASE_URL: "u" })).toBe(true);
   });
+
+  it("treats a non-1/0 DEV_MOCKS (empty string, 'false') as NO override → auto-detect", () => {
+    // Only the literals '1'/'0' are overrides; everything else falls through to
+    // creds auto-detect, so a stray `DEV_MOCKS=` never silently forces mock.
+    expect(shouldMockData({ DEV_MOCKS: "" })).toBe(true); // no creds → auto-mock
+    expect(shouldMockData({ DEV_MOCKS: "", CONFLUENCE_TOKEN: "t", CONFLUENCE_BASE_URL: "u" })).toBe(
+      false,
+    ); // real creds → live (NOT forced mock by the empty value)
+    expect(
+      shouldMockData({ DEV_MOCKS: "false", CONFLUENCE_TOKEN: "t", CONFLUENCE_BASE_URL: "u" }),
+    ).toBe(false);
+  });
 });

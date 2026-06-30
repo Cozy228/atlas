@@ -72,6 +72,7 @@ function TopBar({ dataMode }: { dataMode?: DataMode }) {
         {dataMode === "mock" ? (
           <Badge
             variant="warning"
+            data-testid="data-mode-badge"
             title="Serving deterministic mock fixtures — not live source systems"
           >
             Mock data

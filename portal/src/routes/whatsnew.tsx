@@ -124,7 +124,14 @@ function WhatsNewRoute() {
 
 function Masthead() {
   const [dateline, setDateline] = useState("");
+  // Gate async-query-derived chrome behind a mount flag so SSR and the initial
+  // client render are identical (both show the "Internal" placeholder), then
+  // upgrade after hydration. The deferred announcements query resolves at
+  // different times on server vs client, so reading dataUpdatedAt during the
+  // first render is a hydration mismatch once the feed actually has data.
+  const [mounted, setMounted] = useState(false);
   useEffect(() => {
+    setMounted(true);
     const now = new Date();
     setDateline(
       `${now.toLocaleDateString("en-US", { weekday: "long" })} · ${now.toLocaleDateString("en-US", {
@@ -141,7 +148,7 @@ function Masthead() {
       <div className="flex items-center justify-between gap-4 border-b border-border pb-2 font-mono text-[10.5px] uppercase tracking-[0.14em] text-muted-foreground">
         <span className="tabular-nums">{dateline}</span>
         <span className="hidden tracking-[0.2em] sm:inline">The Atlas Dispatch</span>
-        {dataUpdatedAt ? (
+        {mounted && dataUpdatedAt ? (
           <LastFetchChip updatedAt={dataUpdatedAt} className="tracking-normal" />
         ) : (
           <span>Internal</span>
