@@ -39,11 +39,14 @@ export function GuidanceDetailLog({
   const steps = completableSteps(guidance);
   const allDone = steps.length > 0 && steps.every((s) => progress.completedSteps.has(s.id));
 
-  // Resume: the first incomplete station. On open we glide to it (smooth, once)
-  // and leave a brief calm tint so the eye lands without being yanked there.
+  // Resume: the first incomplete station. On open we glide to it, and as steps
+  // get completed we glide forward to the next one (the destination once done),
+  // leaving a brief tint so the eye lands without being yanked there.
   const resumeId = steps.find((s) => !progress.completedSteps.has(s.id))?.id ?? null;
   const stationRefs = useRef(new Map<string, HTMLLIElement>());
-  const didScroll = useRef(false);
+  const destRef = useRef<HTMLLIElement | null>(null);
+  const didInitial = useRef(false);
+  const lastResumeId = useRef<string | null>(null);
   const [highlightId, setHighlightId] = useState<string | null>(null);
 
   // Take scroll control from the browser while a flow is open: its load-time
@@ -59,27 +62,71 @@ export function GuidanceDetailLog({
   }, []);
 
   useEffect(() => {
-    if (!progress.hydrated || didScroll.current) return;
-    if (!resumeId) return;
-    const idx = guidance.steps.findIndex((s) => s.id === resumeId);
-    if (idx <= 0) return; // already at the top — nothing to glide past
-    // The stations render with the component (loader data, never deferred), so the
-    // ref is set by the time this effect runs; bail without burning the one-shot
-    // on the off chance it isn't.
-    if (!stationRefs.current.has(resumeId)) return;
-    didScroll.current = true;
+    if (!progress.hydrated) return;
     const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
-    // A short timeout lets the first layout settle, then we read the ref fresh (the
-    // list may have re-rendered as evidence streams in). setTimeout — not rAF —
-    // because rAF is paused in a background tab, so a flow opened there would never
-    // glide; no cleanup, so the one-shot survives StrictMode's mount/unmount probe.
-    window.setTimeout(() => {
-      const el = stationRefs.current.get(resumeId);
-      if (!el) return;
-      el.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
-      setHighlightId(resumeId);
-      window.setTimeout(() => setHighlightId(null), 1500);
-    }, 80);
+    const SCROLL_MT = 96; // matches the stations' scroll-mt-24 (sticky-header offset)
+    // A custom eased scroll so we control the pace (native smooth is fixed and
+    // feels too quick). Reduced-motion or a background tab (where rAF is paused)
+    // jumps straight to the spot — still positionally correct, just not animated.
+    const animateScrollTo = (targetY: number, duration: number) => {
+      const maxY = document.documentElement.scrollHeight - window.innerHeight;
+      const dest = Math.max(0, Math.min(targetY, maxY));
+      if (reduce || document.hidden) {
+        window.scrollTo(0, dest);
+        return;
+      }
+      const startY = window.scrollY;
+      const distance = dest - startY;
+      if (Math.abs(distance) < 2) return;
+      let startTime: number | null = null;
+      const easeInOutCubic = (t: number) =>
+        t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+      const step = (now: number) => {
+        startTime ??= now;
+        const t = Math.min((now - startTime) / duration, 1);
+        window.scrollTo(0, startY + distance * easeInOutCubic(t));
+        if (t < 1) requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+    };
+    // A short timeout lets layout settle, then reads the target fresh (the list
+    // may have re-rendered) before gliding to it.
+    const glide = (getEl: () => HTMLElement | null, flashId: string | null) => {
+      window.setTimeout(() => {
+        const el = getEl();
+        if (!el) return;
+        animateScrollTo(window.scrollY + el.getBoundingClientRect().top - SCROLL_MT, 800);
+        if (flashId) {
+          setHighlightId(flashId);
+          window.setTimeout(() => setHighlightId(null), 1500);
+        }
+      }, 80);
+    };
+
+    const all = guidance.steps;
+    // Resume index; the destination sits one past the last step (all complete).
+    const idx = resumeId ? all.findIndex((s) => s.id === resumeId) : all.length;
+    const prevId = lastResumeId.current;
+    const prevIdx = prevId ? all.findIndex((s) => s.id === prevId) : -1;
+
+    // First settle after open: glide to the first incomplete step, unless it is
+    // already at the top (nothing to glide past).
+    if (!didInitial.current) {
+      didInitial.current = true;
+      lastResumeId.current = resumeId;
+      if (resumeId && idx > 0) glide(() => stationRefs.current.get(resumeId) ?? null, resumeId);
+      return;
+    }
+
+    // After open, follow forward progress: completing the current step advances
+    // the resume target, so glide to the next step (or the destination once the
+    // whole journey is done). Un-checking moves it back — don't chase that.
+    if (resumeId === prevId) return;
+    const advanced = idx > prevIdx;
+    lastResumeId.current = resumeId;
+    if (!advanced) return;
+    if (resumeId) glide(() => stationRefs.current.get(resumeId) ?? null, resumeId);
+    else glide(() => destRef.current, null);
   }, [progress.hydrated, resumeId, guidance.steps]);
 
   return (
@@ -133,7 +180,13 @@ export function GuidanceDetailLog({
             }}
           />
         ))}
-        <DestinationStation guidance={guidance} allDone={allDone} />
+        <DestinationStation
+          guidance={guidance}
+          allDone={allDone}
+          registerRef={(el) => {
+            destRef.current = el;
+          }}
+        />
       </ol>
     </div>
   );
@@ -220,9 +273,17 @@ function Station({
 }
 
 /** The journey's end-state, rendered as the closing station from `guidance.destination`. */
-function DestinationStation({ guidance, allDone }: { guidance: Guidance; allDone: boolean }) {
+function DestinationStation({
+  guidance,
+  allDone,
+  registerRef,
+}: {
+  guidance: Guidance;
+  allDone: boolean;
+  registerRef: (el: HTMLLIElement | null) => void;
+}) {
   return (
-    <li className="-mx-3 flex scroll-mt-24 gap-4 rounded-[6px] px-3 sm:gap-5">
+    <li ref={registerRef} className="-mx-3 flex scroll-mt-24 gap-4 rounded-[6px] px-3 sm:gap-5">
       <div className="flex flex-col items-center">
         <span
           aria-hidden
