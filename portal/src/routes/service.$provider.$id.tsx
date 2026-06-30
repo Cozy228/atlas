@@ -308,7 +308,7 @@ function ServiceDetailRoute() {
       ? [{ title: "Related in domain", node: <RelatedInDomain services={related} /> }]
       : []),
     {
-      title: "Help Atlas stay accurate",
+      title: "Help us keep this accurate",
       node: (
         <FeedbackInlineForm target={{ target_type: "resource", target_id: feedbackTargetId }} />
       ),
@@ -356,7 +356,6 @@ function ServiceDetailRoute() {
                 {record.name}
               </h1>
               <Badge variant={STATUS_CHIP[status].variant}>{STATUS_CHIP[status].label}</Badge>
-              <code className="font-mono text-[11.5px] text-muted-foreground">{record.id}</code>
             </div>
             {record.description ? (
               <p className="w-fit max-w-[68ch] text-[14.5px] leading-[1.55] text-muted-foreground">
@@ -400,13 +399,14 @@ function ServiceDetailRoute() {
           ))}
         </div>
 
-        {/* Evidence rail — sticky, the page's single primary action lives here */}
+        {/* Action rail — sticky. Consolidates the page's actionable links: the
+            Get-started entry tools and the discovered reference documents. */}
         <aside className="flex flex-col gap-4 lg:sticky lg:top-[76px]">
-          {entryTools[0] ? (
-            <div className="flex flex-col gap-3 rounded-[4px] border border-border bg-card p-4">
-              <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                Actions
-              </span>
+          <div className="flex flex-col gap-3 rounded-[4px] border border-border bg-card p-4">
+            <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+              Actions
+            </span>
+            {entryTools[0] ? (
               <a
                 href={entryTools[0].url}
                 target="_blank"
@@ -415,30 +415,47 @@ function ServiceDetailRoute() {
               >
                 {entryTools[0].label}
               </a>
-              {entryTools.slice(1, 3).map((tool) => (
-                <a
-                  key={tool.url}
-                  href={tool.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex h-9 items-center justify-center rounded-[3px] border border-border-strong bg-card px-3.5 text-[13px] font-semibold text-foreground transition-colors hover:border-primary hover:text-brand-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  {tool.label}
-                </a>
-              ))}
-            </div>
-          ) : null}
-
-          <div className="flex flex-col gap-2.5 rounded-[4px] border border-border bg-card p-4">
-            <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-              Evidence health
-            </span>
-            <DeferredRegion
-              promise={projection}
-              fallback={<EvidenceHealthSkeleton />}
-              label="evidence health"
-            >
-              {(resolved) => <EvidenceHealth projection={resolved} />}
+            ) : null}
+            {entryTools.slice(1, 3).map((tool) => (
+              <a
+                key={tool.url}
+                href={tool.url}
+                target="_blank"
+                rel="noreferrer"
+                className="flex h-9 items-center justify-center rounded-[3px] border border-border-strong bg-card px-3.5 text-[13px] font-semibold text-foreground transition-colors hover:border-primary hover:text-brand-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                {tool.label}
+              </a>
+            ))}
+            <DeferredRegion promise={projection} fallback={null} errorFallback={null}>
+              {(resolved) => {
+                const references = resolved?.references ?? [];
+                if (references.length === 0) return null;
+                return (
+                  <div className="flex flex-col gap-1.5 border-t border-border pt-3">
+                    <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                      Reference documents
+                    </span>
+                    {references.map((reference) => (
+                      <a
+                        key={reference.url}
+                        href={reference.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="group flex items-center gap-1.5 rounded-[3px] px-1 py-1 text-[12.5px] text-foreground transition-colors hover:text-brand-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        <span className="min-w-0 flex-1 truncate font-medium">
+                          {reference.title}
+                        </span>
+                        <IconExternalLink
+                          aria-hidden
+                          className="size-3.5 shrink-0 text-muted-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-brand-ink"
+                        />
+                      </a>
+                    ))}
+                  </div>
+                );
+              }}
             </DeferredRegion>
           </div>
         </aside>
@@ -542,45 +559,6 @@ function GetStarted({ entryTools }: { entryTools: ReadonlyArray<EntryTool> }) {
   );
 }
 
-/** Evidence-health rail derived from the live resource projection: governed
- *  Section count, citation count, discovered reference count, and the open
- *  warnings (Section warnings + missing-source gaps). */
-function EvidenceHealth({ projection }: { projection: ResourceContextResponse | null }) {
-  if (!projection) {
-    return (
-      <p className="text-[12px] leading-[1.5] text-muted-foreground">
-        No governed resource is mapped to this service yet.
-      </p>
-    );
-  }
-  const sections = Object.values(projection.sections);
-  const citations = sections.reduce((sum, section) => sum + section.citations.length, 0);
-  const warnings = [
-    ...sections.flatMap((section) => section.warnings),
-    ...projection.missingSections.map((missing) => ({
-      code: missing.code,
-      message: missing.message,
-    })),
-  ];
-  return (
-    <>
-      <RailStat label="Governed sections" value={String(Object.keys(projection.sections).length)} />
-      <RailStat label="Citations" value={String(citations)} />
-      <RailStat label="Reference docs" value={String(projection.references.length)} />
-      <RailStat label="Open warnings" value={String(warnings.length)} />
-      {warnings.map((warning, i) => (
-        <p
-          key={`${warning.code}-${i}`}
-          className="flex items-start gap-2 rounded-[3px] border border-warning/50 bg-warning-tint px-3 py-2 text-[12px] leading-[1.5] text-warning-ink"
-        >
-          <IconInfoCircle aria-hidden className="mt-0.5 size-3.5 shrink-0" />
-          {warning.message}
-        </p>
-      ))}
-    </>
-  );
-}
-
 const DOC_TYPE_META: Record<
   DiscoveredReference["doc_type"],
   { label: string; order: number; variant: "info" | "neutral" | "outline" }
@@ -629,8 +607,8 @@ function ReferenceDocs({ projection }: { projection: ResourceContextResponse | n
     notices.push(
       <ReferenceNotice key="unavailable" tone="warning">
         Reference discovery is unavailable right now
-        {lastChecked(referenceDiscovery?.last_observed_at)}. Atlas shows no links rather than serve
-        stale ones.
+        {lastChecked(referenceDiscovery?.last_observed_at)}. Cloud DevEx Portal shows no links
+        rather than serve stale ones.
       </ReferenceNotice>,
     );
   } else if (status === "stale") {
@@ -659,15 +637,15 @@ function ReferenceDocs({ projection }: { projection: ResourceContextResponse | n
       {ordered.length === 0 ? (
         <p className="rounded-[4px] border border-dashed border-border bg-card px-4 py-5 text-[13px] text-muted-foreground">
           {status === "unavailable"
-            ? "Discovery could not run, so Atlas shows no links rather than fabricate them."
+            ? "Discovery could not run, so Cloud DevEx Portal shows no links rather than fabricate them."
             : "No documentation pages matched this service by convention yet."}
         </p>
       ) : (
         <>
           <p className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
             <IconLock aria-hidden className="size-3.5 shrink-0" />
-            Reference-only — Atlas links these pages but cannot read their contents (your Confluence
-            credentials govern access).
+            Reference-only — Cloud DevEx Portal links these pages but cannot read their contents
+            (your Confluence credentials govern access).
           </p>
           <div className="overflow-hidden rounded-[4px] border border-border bg-card">
             {ordered.map((reference, i) => (
@@ -790,15 +768,6 @@ function SpecRow({ label, value }: { label: string; value: ReactNode }) {
   );
 }
 
-function RailStat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-baseline justify-between gap-3">
-      <span className="text-[12.5px] text-muted-foreground">{label}</span>
-      <span className="text-[14px] font-bold tabular-nums text-foreground">{value}</span>
-    </div>
-  );
-}
-
 /** Placeholder for the deferred Specifications table while availability resolves. */
 function SpecsSkeleton({ rows }: { rows: number }) {
   return (
@@ -842,22 +811,8 @@ function ReferencesSkeleton() {
   );
 }
 
-/** Placeholder for the deferred evidence-health rail — three stat rows. */
-function EvidenceHealthSkeleton() {
-  return (
-    <div aria-hidden className="flex flex-col gap-2.5">
-      {Array.from({ length: 3 }, (_, i) => (
-        <div key={i} className="flex items-baseline justify-between gap-3">
-          <Skeleton className="h-3 w-28" />
-          <Skeleton className="h-3.5 w-6" />
-        </div>
-      ))}
-    </div>
-  );
-}
-
 function GuidanceNote({ guidance }: { guidance: Guidance }) {
-  const steps = guidance.steps.filter((step) => step.kind !== "destination");
+  const steps = guidance.steps;
   return (
     <Link
       to="/guidance/$guidanceId"

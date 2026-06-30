@@ -69,7 +69,13 @@ export function CatalogAdopted({
 }) {
   const [tab, setTab] = useState<AdoptedTab>("services");
   const [query, setQuery] = useState("");
-  const [view, setView] = useState<ViewMode>("cards");
+  // Per-tab layout: services read best as cards (icon + availability), security
+  // policies as a table (uniform metadata, no per-card art). Each tab remembers
+  // its own choice.
+  const [serviceView, setServiceView] = useState<ViewMode>("cards");
+  const [policyView, setPolicyView] = useState<ViewMode>("table");
+  const view = tab === "policies" ? policyView : serviceView;
+  const setView = tab === "policies" ? setPolicyView : setServiceView;
 
   const serviceResources = resources.filter((resource) => resource.kind === "service");
   const securityPolicies = resources.filter((resource) => resource.kind === "guardrail");
@@ -900,17 +906,19 @@ const CARD_BASE = cn(
   "after:pointer-events-none after:absolute after:bottom-[-1px] after:right-[-1px] after:size-[7px] after:border-b after:border-r after:border-primary/50 after:content-['']",
 );
 
-function CardHead({ icon, title, slug }: { icon: React.ReactNode; title: string; slug: string }) {
+function CardHead({ icon, title, slug }: { icon: React.ReactNode; title: string; slug?: string }) {
   return (
-    <div className="flex items-start gap-3">
+    <div className="flex items-center gap-3">
       {icon}
       <div className="flex min-w-0 flex-1 flex-col">
         <p className="truncate text-[15px] font-bold leading-tight tracking-[-0.01em] text-foreground">
           {title}
         </p>
-        <p className="truncate font-mono text-[11px] text-muted-foreground">{slug}</p>
+        {slug ? (
+          <p className="truncate font-mono text-[11px] text-muted-foreground">{slug}</p>
+        ) : null}
       </div>
-      <IconArrowRight className="mt-0.5 size-3.5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />
+      <IconArrowRight className="size-3.5 shrink-0 self-start text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />
     </div>
   );
 }
@@ -939,12 +947,13 @@ function ServiceCard({
           )
         }
         title={resource.name}
-        slug={resource.slug}
       />
       <p className="line-clamp-2 min-h-[2.5rem] text-[13px] leading-[1.5] text-muted-foreground">
         {resource.description ?? "No description available yet."}
       </p>
-      <div className="flex flex-wrap items-center gap-1.5">
+      {/* Region chips sit in the card's footer band (the former support-team
+          slot), so the card closes on where the service runs. */}
+      <div className="mt-auto flex flex-wrap items-center gap-1.5 border-t border-border pt-2.5">
         {visibleChips.map((location) => {
           const cell = service!.availability[location.id]!;
           return (
@@ -962,12 +971,6 @@ function ServiceCard({
             no availability projection
           </span>
         ) : null}
-      </div>
-      <div className="mt-auto flex items-center justify-between gap-2 border-t border-border pt-2.5 text-[11.5px]">
-        <span className="truncate font-semibold text-foreground">{resource.owner_team ?? "—"}</span>
-        <span className="shrink-0 font-mono text-[11px] text-muted-foreground">
-          {resource.support_channel ?? "—"}
-        </span>
       </div>
     </>
   );
@@ -1037,15 +1040,9 @@ function PolicyCard({ resource }: { resource: CatalogResource }) {
         title={resource.name}
         slug={resource.slug}
       />
-      <p className="line-clamp-2 min-h-[2.5rem] text-[13px] leading-[1.5] text-muted-foreground">
+      <p className="line-clamp-3 text-[13px] leading-[1.5] text-muted-foreground">
         {resource.description ?? "No description available yet."}
       </p>
-      <dl className="mt-auto grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 border-t border-border pt-2.5 text-xs">
-        <DefRow label="Domain" value={resource.category ?? "—"} />
-        <DefRow label="Status" value={resource.status ?? "—"} mono />
-        <DefRow label="Owner" value={resource.owner_team ?? "—"} />
-        <DefRow label="Support" value={resource.support_channel ?? "—"} mono />
-      </dl>
     </>
   );
 
@@ -1053,19 +1050,6 @@ function PolicyCard({ resource }: { resource: CatalogResource }) {
     <Link to="/policies/$policyId" params={{ policyId: resource.slug }} className={CARD_BASE}>
       {content}
     </Link>
-  );
-}
-
-function DefRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
-  return (
-    <>
-      <dt className="font-mono text-[10.5px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">
-        {label}
-      </dt>
-      <dd className={cn("truncate text-right text-xs text-foreground", mono && "font-mono")}>
-        {value}
-      </dd>
-    </>
   );
 }
 

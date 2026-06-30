@@ -154,7 +154,7 @@ export const mcpTools: McpToolDefinition[] = [
   {
     name: "atlas_get_source",
     description:
-      "Get one registered Source's registry record (steward, review cadence, freshness) by source_id. Read its cited content through the resource that binds it via atlas_get_resource_context.",
+      "Get one registered Source's registry record (class, review cadence, freshness) by source_id. Read its cited content through the resource that binds it via atlas_get_resource_context.",
     inputSchema: toInputSchema(GetSourceInput),
     async run(args, client) {
       const input = GetSourceInput.parse(args ?? {});

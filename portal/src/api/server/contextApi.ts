@@ -61,14 +61,27 @@ export const fetchSource = createServerFn(SERVER_FN_OPTIONS)
  * availability read (plan 014). Drops the read's citation/warnings and returns
  * just the `{ zones }` wire shape the Explore + catalog consumers depend on.
  */
+// Process-level memo for the availability read. The in-process availability path
+// fetches through an UNcached live fetch (unlike the release-notes path, which
+// uses the shared source-content cache), so without this every full-page refresh
+// (a fresh per-request queryClient) would re-pay the live Confluence fetch + dev
+// latency. Memoizing the response here gives availability the same "first read is
+// slow, every refresh is instant" behaviour the cached paths already have. TTL
+// mirrors the source-content cache (5 min); the client's React Query cache covers
+// intra-session navigation on top of this.
+const AVAILABILITY_MEMO_MS = 5 * 60_000;
+let availabilityMemo: { at: number; data: AvailabilityResponse } | undefined;
+
 export const fetchAvailability = createServerFn(SERVER_FN_OPTIONS).handler(
   async (): Promise<AvailabilityResponse> => {
-    // Simulate the read's real live Confluence fetch + parse so the deferred
-    // Explore skeletons stay visible in dev. Dev-only: dropped from prod builds
-    // and moot once the read reaches the real external page.
-    if (import.meta.env.DEV) await new Promise((resolve) => setTimeout(resolve, 2000));
+    const now = Date.now();
+    if (availabilityMemo && now - availabilityMemo.at < AVAILABILITY_MEMO_MS) {
+      return availabilityMemo.data;
+    }
     const { zones } = await contextApiForRequest().getAvailability();
-    return { zones };
+    const data: AvailabilityResponse = { zones };
+    availabilityMemo = { at: now, data };
+    return data;
   },
 );
 
@@ -89,9 +102,8 @@ export const fetchResourceContext = createServerFn(SERVER_FN_OPTIONS)
   .validator((input: unknown) => resourceRefSchema.parse(input))
   .handler(async ({ data }) => {
     // Live resource projection (plan 017): governed sections + reference-only
-    // discovery links. Deferred behind a dev delay like the other live reads so
-    // the detail-page reference block shows its skeleton in dev.
-    if (import.meta.env.DEV) await new Promise((resolve) => setTimeout(resolve, 2000));
+    // discovery links. Dev latency comes from the MSW seam (cache-respecting), not
+    // a flat per-call delay — so the first read is slow and a revisit is instant.
     return contextApiForRequest().getResourceContext(data.kind, data.slug);
   });
 

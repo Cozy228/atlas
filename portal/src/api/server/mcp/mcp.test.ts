@@ -89,15 +89,16 @@ describe("mcp tools against the pilot fixtures", () => {
   it("atlas_search_service resolves a query to canonical resource ids", async () => {
     const result = await callTool("atlas_search_service", { query: "textract" });
     const data = result.structuredContent as {
-      resources: { id: string; name: string; kind: string }[];
+      resources: { id: string; name: string; kind: string; description?: string }[];
       total: number;
     };
     expect(data.resources.map((resource) => resource.id)).toContain("service/aws/textract");
-    // CONCISE: high-signal fields only, no owner/support/entry_tools noise.
-    // Derived service resources carry no description (honest-gap), so the undefined
-    // field drops out over JSON — id/name/kind remain.
+    // CONCISE: high-signal fields only, no owner/support/entry_tools noise. The
+    // description is derived from the module README's lead paragraph (id/name/kind
+    // + description).
     const textract = data.resources.find((resource) => resource.id === "service/aws/textract")!;
-    expect(Object.keys(textract).sort()).toEqual(["id", "kind", "name"]);
+    expect(Object.keys(textract).sort()).toEqual(["description", "id", "kind", "name"]);
+    expect(textract.description).toBeTruthy();
   });
 
   it("atlas_get_source returns the registry record by semantic id", async () => {

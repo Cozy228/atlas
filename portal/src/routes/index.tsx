@@ -15,7 +15,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { availabilityQueryOptions, announcementsQueryOptions } from "@/api/queries";
-import { withDevLatency } from "@/lib/dev-latency";
+import { deferUnlessCached } from "@/lib/deferred-cache";
 import { DOMAIN_BLURBS } from "@/components/catalog/data";
 import { HomeWelcome } from "@/components/home/welcome";
 import type {
@@ -34,23 +34,27 @@ function slugifyDomain(domain: string): string {
 
 export const Route = createFileRoute("/")({
   loader: ({ context }): HomeLoaderData => {
-    // Deferred (a live newsletter feed in the real adapter): the What's-new ticker
-    // — same dev latency + skeleton as the other live data on the page.
-    const announcements = withDevLatency(
-      context.queryClient
-        .ensureQueryData(announcementsQueryOptions)
-        .then((feed): HomeAnnouncement[] =>
-          feed.slice(0, 8).map((a) => ({ kind: a.kind ?? "Update", title: a.title })),
-        ),
+    // Deferred (a live newsletter feed in the real adapter): the What's-new ticker.
+    // Skeleton only on a cache MISS (first fetch pays the dev latency); a revisit
+    // reads the warm cache and resolves synchronously — no skeleton flash.
+    const announcements = deferUnlessCached(
+      context.queryClient,
+      announcementsQueryOptions.queryKey,
+      () => context.queryClient.ensureQueryData(announcementsQueryOptions),
+      (feed): HomeAnnouncement[] =>
+        feed.slice(0, 8).map((a) => ({ kind: a.kind ?? "Update", title: a.title })),
     );
 
     // Slow: availability is a live Confluence fetch + parse in the real adapter —
     // defer it (no await) so the home shell (hero, intents, lifecycle, ticker)
     // paints immediately; the hero stat numbers + domain index show a skeleton
-    // until it lands. Same projection as /catalog so the numbers agree.
-    const stats: Promise<HomeStats> = context.queryClient
-      .ensureQueryData(availabilityQueryOptions)
-      .then((availability) => {
+    // on a cache MISS, but a revisit resolves synchronously (no flash). Same
+    // projection as /catalog so the numbers agree.
+    const stats: Promise<HomeStats> = deferUnlessCached(
+      context.queryClient,
+      availabilityQueryOptions.queryKey,
+      () => context.queryClient.ensureQueryData(availabilityQueryOptions),
+      (availability) => {
         const zone = availability.zones.find((z) => z.id === "aws") ?? availability.zones[0]!;
         const services = zone.services.filter((service) => service.id !== "landing-zones");
         const byDomain = new Map<string, DomainService[]>();
@@ -95,12 +99,10 @@ export const Route = createFileRoute("/")({
           regionCount: availability.zones.reduce((sum, z) => sum + z.locations.length, 0),
           domains,
         };
-      });
+      },
+    );
 
-    // withDevLatency on stats too (like announcements): the public-safe mock
-    // resolves instantly, which hides the hero-stat + service-catalog skeletons in
-    // dev; the real adapter's availability fetch is genuinely slow.
-    return { announcements, stats: withDevLatency(stats) };
+    return { announcements, stats };
   },
   component: HomeRoute,
 });

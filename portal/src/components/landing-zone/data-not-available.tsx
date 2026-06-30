@@ -23,9 +23,9 @@ export function DataNotAvailableForZone({
         </h2>
         <p className="text-sm leading-[1.6] text-muted-foreground">
           The <span className="font-medium text-foreground">{zoneName}</span> landing zone is a
-          registered target, but its availability source is not yet wired. Atlas shows nothing here
-          rather than another landing zone&rsquo;s data — switch to a wired landing zone, or contact
-          the platform team to onboard this one.
+          registered target, but its availability source is not yet wired. Cloud DevEx Portal shows
+          nothing here rather than another landing zone&rsquo;s data — switch to a wired landing
+          zone, or contact the platform team to onboard this one.
         </p>
       </div>
     </div>

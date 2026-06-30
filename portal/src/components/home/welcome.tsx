@@ -220,7 +220,7 @@ function Hero({
         {(announcements) => <WhatsNewTicker announcements={announcements} />}
       </HomeDeferred>
       <h1 className="w-fit max-w-[18ch] text-[2.5rem] font-bold leading-[1.05] tracking-[-0.035em] text-balance text-foreground">
-        Welcome to Atlas Portal
+        Welcome to the Cloud DevEx Portal
       </h1>
       <p className="w-fit max-w-[52ch] text-[1.0625rem] leading-[1.55] text-pretty text-muted-foreground">
         Find the right guidance, services, and evidence to build with confidence. Every claim links
@@ -552,7 +552,7 @@ function HelpCloser() {
     >
       <span className="flex items-center gap-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-brand-ink">
         <IconMessageCircle aria-hidden className="size-3.5" />
-        Ask Atlas
+        Ask
       </span>
       <h2 className="w-fit max-w-[28ch] text-[1.25rem] font-bold tracking-[-0.02em] text-foreground">
         Didn&rsquo;t find it? Just ask.
@@ -568,7 +568,7 @@ function HelpCloser() {
         className="mt-1 inline-flex h-10 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-brand-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
       >
         <IconMessageCircle aria-hidden className="size-4" />
-        Ask Atlas
+        Ask
       </button>
     </section>
   );

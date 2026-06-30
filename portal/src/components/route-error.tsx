@@ -38,17 +38,17 @@ export function RouteError({ error }: ErrorComponentProps) {
       </span>
       <h1 className="type-heading font-semibold tracking-[-0.03em] text-foreground">
         {presentation.restricted
-          ? "Atlas can’t show you that record."
+          ? "Cloud DevEx Portal can’t show you that record."
           : presentation.retryable
-            ? "Atlas couldn’t reach that data."
-            : "Atlas hit an error loading that page."}
+            ? "Cloud DevEx Portal couldn’t reach that data."
+            : "Cloud DevEx Portal hit an error loading that page."}
       </h1>
       <p className="text-sm leading-[1.6] text-muted-foreground">
         {presentation.detail}{" "}
         {presentation.retryable
           ? "This is usually temporary — retry, or come back shortly."
           : presentation.restricted
-            ? "Contact the steward listed on the record for access."
+            ? "Contact the owning team listed on the record for access."
             : "Browse the catalog, guidance, or sources to find what you need."}
       </p>
       <div className="flex flex-wrap gap-2">

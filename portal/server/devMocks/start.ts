@@ -25,6 +25,13 @@ const mock = shouldMockData();
 // registers this plugin → the marker is absent → the badge reports 'live'.
 process.env.DEV_DATA_MODE = mock ? "mock" : "live";
 if (mock) {
+  // Dev-runtime injected latency at the MSW network seam so a real source fetch
+  // is visibly slow. The CORRECT behaviour: the FIRST fetch pays this; every
+  // revisit reads the warm React Query cache and is instant (no refetch). Default
+  // only when unset; the MSW default stays 0 so the test suite is never slowed.
+  if (!process.env.DEV_MOCK_LATENCY_MS) {
+    process.env.DEV_MOCK_LATENCY_MS = "800";
+  }
   setDevDiscoveryEnv();
   server.listen({ onUnhandledRequest: "bypass" });
 }

@@ -7,7 +7,6 @@ import {
 
 import type { Location } from "@/api/server/availability";
 import { cn } from "@/lib/utils";
-import { SeedBadge } from "@/components/seed-badge";
 import { regionLabel, type RegionHealth } from "./region-map";
 
 export type RegionStats = {
@@ -43,12 +42,9 @@ export function RegionDetail({ region, health, stats, maintenance, className }: 
       className={cn("flex flex-col gap-4 rounded-xl border border-border bg-card p-5", className)}
     >
       <header className="flex flex-col gap-3">
-        <div className="flex items-center justify-between gap-2">
-          <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-            Selected region
-          </span>
-          <SeedBadge />
-        </div>
+        <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+          Selected region
+        </span>
         <div className="flex items-start gap-3">
           <span
             aria-hidden

@@ -166,7 +166,7 @@ function PolicyDetailRoute() {
               </DeferredRegion>
             </DetailSection>
 
-            <DetailSection title="Help Atlas stay accurate">
+            <DetailSection title="Help us keep this accurate">
               <FeedbackInlineForm target={{ target_type: "resource", target_id: resource.id }} />
             </DetailSection>
           </>

@@ -15,12 +15,15 @@ import {
 import Fuse from "fuse.js";
 
 import { resourceCatalogQueryOptions, sourceDiscoveryQueryOptions } from "@/api/queries";
+import { CLASS_LABEL } from "@/components/sources/shared";
 import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
 
 type AskAtlasSearchProps = {
   onOpenChange: (open: boolean) => void;
-  onSwitchToAsk: () => void;
+  /** Optional bridge to the AI Ask mode. Omitted while AI is hidden (the bridge
+   *  row then does not render); kept wired so re-enabling AI is one flag. */
+  onSwitchToAsk?: () => void;
 };
 
 type SearchDirection = "next" | "previous";
@@ -38,7 +41,7 @@ const STATIC_NAV: ReadonlyArray<SearchResult> = [
   {
     id: "nav:home",
     label: "Home",
-    description: "Atlas Portal dashboard",
+    description: "Cloud DevEx Portal dashboard",
     to: "/",
     icon: IconHome,
     category: "Navigate",
@@ -130,7 +133,7 @@ export function AskAtlasSearch({ onOpenChange, onSwitchToAsk }: AskAtlasSearchPr
         dynamic.push({
           id: `source:${source.id}`,
           label: source.title,
-          description: `source · ${source.steward}`,
+          description: `source · ${CLASS_LABEL[source.source_class]}`,
           to: `/sources/${source.id}`,
           icon: IconDatabase,
           category: "Sources",
@@ -145,8 +148,11 @@ export function AskAtlasSearch({ onOpenChange, onSwitchToAsk }: AskAtlasSearchPr
     () =>
       new Fuse(allResults as SearchResult[], {
         keys: ["label", "description", "category"],
-        threshold: 0.35,
+        // Lenient matching: catch typos and partial terms so a query is more
+        // likely to surface something than to dead-end on "no results".
+        threshold: 0.5,
         ignoreLocation: true,
+        minMatchCharLength: 1,
       }),
     [allResults],
   );
@@ -210,32 +216,35 @@ export function AskAtlasSearch({ onOpenChange, onSwitchToAsk }: AskAtlasSearchPr
             onKeyDown={handleKeyDown}
             type="search"
             placeholder="Search for anything…"
-            aria-label="Search Atlas catalog"
+            aria-label="Search the catalog"
             className="h-full flex-1 bg-transparent text-base text-foreground outline-none placeholder:text-muted-foreground"
           />
           {isLoading ? <Spinner className="size-4 text-muted-foreground" /> : null}
         </label>
       </div>
 
-      <div className="border-b border-border">
-        <button
-          type="button"
-          onClick={onSwitchToAsk}
-          className={cn(
-            "flex w-full items-center gap-3 px-5 py-3 text-left transition-colors",
-            "hover:bg-accent",
-          )}
-        >
-          <IconBook className="size-5 shrink-0 text-muted-foreground" />
-          <span className="flex-1 text-sm font-medium text-foreground">
-            Ask about{query.trim() ? ` "${query.trim()}"` : ""}
-          </span>
-          <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            Start conversation
-            <IconCornerDownLeft className="size-3.5" />
-          </span>
-        </button>
-      </div>
+      {/* Bridge to AI Ask mode — only when wired (hidden while AI is off). */}
+      {onSwitchToAsk ? (
+        <div className="border-b border-border">
+          <button
+            type="button"
+            onClick={onSwitchToAsk}
+            className={cn(
+              "flex w-full items-center gap-3 px-5 py-3 text-left transition-colors",
+              "hover:bg-accent",
+            )}
+          >
+            <IconBook className="size-5 shrink-0 text-muted-foreground" />
+            <span className="flex-1 text-sm font-medium text-foreground">
+              Ask about{query.trim() ? ` "${query.trim()}"` : ""}
+            </span>
+            <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              Start conversation
+              <IconCornerDownLeft className="size-3.5" />
+            </span>
+          </button>
+        </div>
+      ) : null}
 
       <div className="max-h-80 overflow-y-auto p-2">
         {grouped.map(([category, groupItems]) => (

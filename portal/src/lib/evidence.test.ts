@@ -8,7 +8,6 @@ const sourceFixture: Source = {
   title: "Test",
   source_class: "policy-document",
   location: "s3://test",
-  steward: "test-team",
   visibility: "internal",
   authority_scope: ["test"],
   authority_level: "authoritative",

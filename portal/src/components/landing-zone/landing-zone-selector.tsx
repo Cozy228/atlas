@@ -5,6 +5,7 @@ import { landingZonesQueryOptions } from "@/api/queries";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuLabel,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
@@ -39,11 +40,15 @@ export function LandingZoneSelector() {
         <span className="font-mono text-[10px] uppercase tracking-[0.04em] text-muted-foreground">
           LZ
         </span>
-        <span className="max-w-[12ch] truncate">{current?.name ?? currentLandingZoneId}</span>
+        <span className="max-w-[20ch] truncate">{current?.name ?? currentLandingZoneId}</span>
         <IconChevronDown size={14} strokeWidth={2} className="text-muted-foreground" aria-hidden />
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="min-w-52">
-        <DropdownMenuLabel>Landing zone</DropdownMenuLabel>
+      <DropdownMenuContent align="end" className="min-w-[15rem]">
+        {/* GroupLabel requires a Menu.Group ancestor (Base UI) — wrap it so the
+            label renders without throwing MenuGroupContext-missing. */}
+        <DropdownMenuGroup>
+          <DropdownMenuLabel>Landing zone</DropdownMenuLabel>
+        </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuRadioGroup
           value={currentLandingZoneId}
@@ -51,9 +56,9 @@ export function LandingZoneSelector() {
         >
           {zones.map((zone) => (
             <DropdownMenuRadioItem key={zone.id} value={zone.id}>
-              <span className="truncate">{zone.name}</span>
+              <span className="min-w-0 flex-1 truncate">{zone.name}</span>
               {zone.dataStatus === "not-available" ? (
-                <span className="ml-2 font-mono text-[10px] uppercase tracking-[0.04em] text-muted-foreground/70">
+                <span className="ml-auto shrink-0 whitespace-nowrap font-mono text-[10px] uppercase tracking-[0.04em] text-muted-foreground/70">
                   no data
                 </span>
               ) : null}

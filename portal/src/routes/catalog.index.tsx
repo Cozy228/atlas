@@ -15,6 +15,7 @@ import type { LandingZoneAvailability } from "@/api/server/availability";
 import { CatalogAdopted } from "@/components/catalog/adopted";
 import { DEFAULT_LANDING_ZONE_ID } from "@/components/landing-zone/context";
 import { LandingZoneGate } from "@/components/landing-zone/landing-zone-gate";
+import { deferUnlessCached } from "@/lib/deferred-cache";
 
 type LoaderData = {
   resources: ReadonlyArray<ResourceRecordResponse>;
@@ -28,8 +29,12 @@ export const Route = createFileRoute("/catalog/")({
     )) as ResourceCatalogResponse;
     // Slow: availability is a live Confluence fetch in the real adapter — defer it
     // (no await) so the catalog shell (header, tabs, search) paints immediately;
-    // the workspace renders a skeleton until the zone lands.
-    const zone = context.queryClient.ensureQueryData(availabilityQueryOptions).then(
+    // the workspace shows a skeleton until the zone lands ON A CACHE MISS. On a
+    // revisit (warm cache) it resolves synchronously, so no skeleton flashes.
+    const zone = deferUnlessCached(
+      context.queryClient,
+      availabilityQueryOptions.queryKey,
+      () => context.queryClient.ensureQueryData(availabilityQueryOptions),
       // The catalog shows the default (only wired) LZ's availability summary
       // until per-surface LZ scope lands (plans 022/023); pick it by id, not
       // by array position, so reordering LANDING_ZONES can't silently swap it.

@@ -13,7 +13,6 @@ import { LastFetchChip } from "@/components/last-fetch-chip";
 import { releaseNotesQueryOptions } from "@/api/queries";
 import { categoryCounts } from "@/components/whatsnew/releases";
 import { Skeleton } from "@/components/ui/skeleton";
-import { withDevLatency } from "@/lib/dev-latency";
 import { DeferredRegion } from "@/components/deferred-region";
 
 const MONTHS = [
@@ -38,12 +37,12 @@ export const Route = createFileRoute("/releases/$releaseId")({
     if (!release) {
       throw notFound();
     }
-    // The right rail (references, support, link) is record/metadata that resolves
-    // live in the real adapter — defer it with the same dev latency + skeleton as
-    // the other detail pages so navigation stays instant. Pass the whole release
-    // (its type is nameable; extracting resources/support/link would surface
-    // context-layer's internal ReleaseResource type → TS2883).
-    const rail = withDevLatency(release);
+    // The right rail (references, support, link) derives from the already-loaded
+    // release record, so it resolves immediately — kept behind DeferredRegion for
+    // a uniform detail-page shape. Pass the whole release (its type is nameable;
+    // extracting resources/support/link would surface context-layer's internal
+    // ReleaseResource type → TS2883).
+    const rail = Promise.resolve(release);
     return { release, rail };
   },
   component: ReleaseDetailRoute,

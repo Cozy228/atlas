@@ -95,22 +95,18 @@ function RecentlyViewedClient({ lead }: { lead?: string }) {
 
   if (items.length === 0) return null;
 
+  // Stay on a single line: show a few of the most recent and never wrap.
+  const shown = items.slice(0, 4);
+
   return (
     <section
       aria-label="Jump back in"
-      className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1.5"
+      className="flex max-w-full items-center justify-center gap-x-2 overflow-hidden"
     >
-      {lead ? (
-        <>
-          <span className="text-[12.5px] text-muted-foreground">{lead}</span>
-          <span aria-hidden className="bg-background text-muted-foreground/40">
-            ·
-          </span>
-        </>
-      ) : null}
-      <ul className="flex flex-wrap gap-1.5">
-        {items.map((item) => (
-          <li key={recentKey(item)}>
+      {lead ? <span className="shrink-0 text-[12.5px] text-muted-foreground">{lead}</span> : null}
+      <ul className="flex min-w-0 gap-1.5">
+        {shown.map((item) => (
+          <li key={recentKey(item)} className="min-w-0">
             <RecentChip item={item} />
           </li>
         ))}
