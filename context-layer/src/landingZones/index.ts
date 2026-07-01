@@ -8,3 +8,4 @@
  */
 export { LANDING_ZONES } from "./landingZones";
 export { resolveLandingZoneSource, type LandingZoneSource } from "./landingZoneSource";
+export { LOCATION_GEO } from "./locationGeo";

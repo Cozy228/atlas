@@ -19,13 +19,12 @@ import {
   type LandingZoneAvailability,
   type Location,
   type LocationAvailability,
+  type LocationKind,
   type LocationStatus,
   type ServiceIdentity,
-  locationKinds,
-  locationStatuses,
 } from "@atlas/schema";
 import { parse, type HTMLElement } from "node-html-parser";
-import { LANDING_ZONES, resolveLandingZoneSource } from "../landingZones";
+import { LANDING_ZONES, LOCATION_GEO, resolveLandingZoneSource } from "../landingZones";
 import type { AvailabilityProvider } from "../services/availabilityProvider";
 import { normalizeServiceIdentity } from "../services/serviceIdentityNormalizer";
 import type { FetchLike } from "../resolvers/resolverTypes";
@@ -45,102 +44,265 @@ export type ParsedAvailabilityPage = {
   services: AvailabilityServiceRow[];
 };
 
-const LOCATION_KINDS = new Set<string>(locationKinds);
-const LOCATION_STATUSES = new Set<string>(locationStatuses);
-const STATUS_SEP = " · ";
+/**
+ * Emoticon → status fallback, keyed by the Confluence `ac:emoji-shortname` /
+ * `ac:emoji-fallback` glyph. The page's own Legend overrides these at parse time
+ * (`parseLegend`); the map is the safety net when the Legend is absent/garbled.
+ * Note the three non-tick statuses share `ac:name="blue-star"` — the glyph, never
+ * the emoticon name, carries the meaning.
+ */
+const DEFAULT_STATUS_BY_GLYPH: Record<string, LocationStatus> = {
+  ":check_mark:": "available",
+  ":emo:": "interim",
+  ":arrow_upper_right:": "planned",
+  "↗️": "planned",
+  ":regional_indicator_x:": "not-planned",
+  "❌": "not-planned",
+};
 
 /**
- * Parse the availability page storage HTML back into locations + services. The
- * inverse of `renderAvailabilityPageStorage`: two tables (`data-table` =
- * "locations" / "services"), each a header row + data rows. Tolerant of an
- * absent/garbled table (returns whatever it can), so a malformed page yields an
- * honest-empty grid rather than throwing.
+ * Parse the availability page storage HTML into locations + services. The
+ * inverse of `renderAvailabilityPageStorage`. The real page shape (ADR-0017):
+ *
+ *   - a Legend `<p>` mapping `<ac:emoticon>` glyphs → statuses;
+ *   - one or more matrix `<table>`s, each headed by a `Regions` / `Outposts` row
+ *     (→ the location columns + their `kind`), followed by a `Landing Zones` row,
+ *     `colspan` domain-section headers, and service rows whose cells carry an
+ *     `<ac:emoticon>` (→ status) plus optional trailing text (→ note).
+ *
+ * A service repeated across the region + outpost tables is merged by derived id
+ * (availability = the column union). Tolerant of an absent/garbled table (returns
+ * whatever it can), so a malformed page yields an honest-empty grid, never a throw.
  */
 export function parseAvailabilityPage(html: string): ParsedAvailabilityPage {
   const root = parse(html);
-  const tables = root.querySelectorAll("table");
-  const locTable = tables.find((table) => table.getAttribute("data-table") === "locations");
-  const svcTable = tables.find((table) => table.getAttribute("data-table") === "services");
-
-  return {
-    locations: locTable ? parseLocations(locTable) : [],
-    services: svcTable ? parseServices(svcTable) : [],
-  };
+  const legend = parseLegend(root);
+  const locations = new Map<string, Location>();
+  const services = new Map<string, AvailabilityServiceRow>();
+  for (const table of findMatrixTables(root)) {
+    parseMatrixTable(table, legend, locations, services);
+  }
+  return { locations: [...locations.values()], services: [...services.values()] };
 }
 
-function rowsOf(table: HTMLElement): string[][] {
-  return table
-    .querySelectorAll("tr")
-    .map((tr) => tr.querySelectorAll("td").map((td) => td.text.trim()));
+/** Lower-cased tag name (`ac:emoticon`, `ac:link-body`, …) of a node, or "". */
+function tagOf(node: unknown): string {
+  return ((node as HTMLElement).rawTagName ?? "").toLowerCase();
 }
 
-function parseLocations(table: HTMLElement): Location[] {
-  const rows = rowsOf(table);
-  const locations: Location[] = [];
-  // rows[0] is the header (id/label/sub/kind/lon/lat).
-  for (const cells of rows.slice(1)) {
-    const [id, label, sub, kind, lon, lat] = cells;
-    if (!id || !LOCATION_KINDS.has(kind ?? "")) {
+/** Find the first descendant element with the given (namespaced) tag name. */
+function firstTag(el: HTMLElement, name: string): HTMLElement | undefined {
+  return el.querySelectorAll("*").find((child) => tagOf(child) === name);
+}
+
+/** A slug id: lower-case, non-alphanumerics → single hyphen, trimmed. */
+function slug(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+/**
+ * Build the glyph → status map from the page Legend, seeded with the defaults so
+ * the four known statuses are always resolvable. The Legend is the `<p>` that
+ * mentions "Legend" and carries emoticons; each emoticon is followed by its label
+ * text ("= Available"), which normalizes to a status enum.
+ */
+function parseLegend(root: HTMLElement): Map<string, LocationStatus> {
+  const map = new Map<string, LocationStatus>(
+    Object.entries(DEFAULT_STATUS_BY_GLYPH) as [string, LocationStatus][],
+  );
+  const legend = root
+    .querySelectorAll("p")
+    .find((p) => /legend/i.test(p.text) && firstTag(p, "ac:emoticon"));
+  if (!legend) {
+    return map;
+  }
+  let pending: string[] | undefined;
+  for (const node of legend.childNodes) {
+    if (tagOf(node) === "ac:emoticon") {
+      const el = node as HTMLElement;
+      pending = [
+        el.getAttribute("ac:emoji-shortname"),
+        el.getAttribute("ac:emoji-fallback"),
+      ].filter((glyph): glyph is string => Boolean(glyph));
       continue;
     }
-    const coordinates =
-      lon && lat && Number.isFinite(Number(lon)) && Number.isFinite(Number(lat))
-        ? ([Number(lon), Number(lat)] as [number, number])
-        : undefined;
-    locations.push({
-      id,
-      label: label ?? id,
-      sub: sub ?? "",
-      kind: kind as Location["kind"],
-      ...(coordinates ? { coordinates } : {}),
-    });
+    const text = (node as HTMLElement).text?.trim();
+    if (pending && text) {
+      const status = normalizeStatus(text);
+      if (status) {
+        for (const glyph of pending) {
+          map.set(glyph, status);
+        }
+      }
+      pending = undefined;
+    }
   }
-  return locations;
+  return map;
 }
 
-function parseServices(table: HTMLElement): AvailabilityServiceRow[] {
-  const rows = rowsOf(table);
-  if (rows.length < 2) {
-    return [];
+/** Legend label text → status enum. "Future availability" → `planned`. */
+function normalizeStatus(text: string): LocationStatus | undefined {
+  const t = text.toLowerCase();
+  if (/not[\s-]?planned/.test(t)) return "not-planned";
+  if (/interim/.test(t)) return "interim";
+  if (/future/.test(t)) return "planned";
+  if (/available/.test(t)) return "available";
+  return undefined;
+}
+
+/** Matrix tables are the ones headed by a `Regions` / `Outposts` row (skips the
+ *  decorative At-a-glance summary table, whose header is "Total Services"). */
+function findMatrixTables(root: HTMLElement): HTMLElement[] {
+  return root.querySelectorAll("table").filter((table) =>
+    table.querySelectorAll("tr").some((tr) => {
+      const first = cellsOf(tr)[0];
+      return first ? /regions|outposts/i.test(first.text) : false;
+    }),
+  );
+}
+
+function cellsOf(row: HTMLElement): HTMLElement[] {
+  return row.querySelectorAll("td, th");
+}
+
+/**
+ * Parse one matrix table into the shared `locations` / `services` maps. Columns
+ * (and their `kind`) come from the `Regions` / `Outposts` header row; rows below
+ * are classified by shape: a lone (colspan) cell is a domain-section header, a
+ * `Landing Zones` row is skipped, everything else is a service row whose status
+ * cells align by column index to the header's locations.
+ */
+function parseMatrixTable(
+  table: HTMLElement,
+  legend: Map<string, LocationStatus>,
+  locations: Map<string, Location>,
+  services: Map<string, AvailabilityServiceRow>,
+): void {
+  const rows = table.querySelectorAll("tr");
+  const headerIdx = rows.findIndex((row) => {
+    const first = cellsOf(row)[0];
+    return first ? /regions|outposts/i.test(first.text) : false;
+  });
+  if (headerIdx < 0) {
+    return;
   }
-  const header = rows[0]!;
-  // Columns: id, name, domain, icon, then one location-id column per location.
-  const locationIds = header.slice(4);
-  const services: AvailabilityServiceRow[] = [];
-  for (const cells of rows.slice(1)) {
-    const id = cells[0];
-    if (!id) {
+  const headerCells = cellsOf(rows[headerIdx]!);
+  const kind: LocationKind = /outpost/i.test(headerCells[0]?.text ?? "") ? "outpost" : "region";
+  const columns = headerCells.slice(1).map((cell) => parseLocationLabel(cell.text, kind));
+  for (const location of columns) {
+    if (location && !locations.has(location.id)) {
+      locations.set(location.id, location);
+    }
+  }
+
+  let domain = "";
+  for (const row of rows.slice(headerIdx + 1)) {
+    const cells = cellsOf(row);
+    if (cells.length === 0) {
       continue;
     }
-    const availability: Record<string, LocationAvailability> = {};
-    locationIds.forEach((locationId, index) => {
-      const decoded = decodeCell(cells[index + 4]);
+    if (cells.length === 1) {
+      domain = cleanSectionTitle(cells[0]!.text);
+      continue;
+    }
+    if (/landing zones/i.test(cells[0]!.text)) {
+      continue;
+    }
+    const name = serviceName(cells[0]!);
+    if (!name) {
+      continue;
+    }
+    const id = deriveServiceId(name);
+    const row0 = services.get(id);
+    const availability: Record<string, LocationAvailability> = { ...row0?.availability };
+    columns.forEach((location, index) => {
+      if (!location) {
+        return;
+      }
+      const decoded = decodeStatusCell(cells[index + 1], legend);
       if (decoded) {
-        availability[locationId] = decoded;
+        availability[location.id] = decoded;
       }
     });
-    services.push({
-      id,
-      name: cells[1] || id,
-      domain: cells[2] || "",
-      iconKey: cells[3] || id.toUpperCase(),
-      availability,
-    });
+    if (row0) {
+      row0.availability = availability;
+    } else {
+      services.set(id, { id, name, domain, iconKey: deriveIconKey(name, id), availability });
+    }
   }
-  return services;
 }
 
-/** Decode a cell (`status` or `status · note`); empty/unknown → absent (not-planned). */
-function decodeCell(value: string | undefined): LocationAvailability | undefined {
-  const text = value?.trim();
-  if (!text) {
+/** "US-EAST-1 (North Virginia)" → a `Location` (id = slug of the label). */
+function parseLocationLabel(text: string, kind: LocationKind): Location | undefined {
+  const clean = text.trim();
+  if (!clean) {
     return undefined;
   }
-  const [status, note] = text.split(STATUS_SEP);
-  if (!LOCATION_STATUSES.has(status ?? "")) {
+  const match = clean.match(/^(.*?)\s*\(([^)]*)\)\s*$/);
+  const label = (match ? match[1] : clean).trim();
+  const sub = (match ? match[2] : "").trim();
+  return { id: slug(label), label, sub, kind };
+}
+
+/** Drop the leading "■ " swatch (and stray whitespace) from a section header. */
+function cleanSectionTitle(text: string): string {
+  return text.replace(/^[■\s]+/, "").trim();
+}
+
+/** The service's display name: the `<ac:link-body>` text, else the cell text. */
+function serviceName(cell: HTMLElement): string {
+  const body = firstTag(cell, "ac:link-body");
+  return (body ? body.text : cell.text).trim();
+}
+
+/**
+ * Derive the machine id from the display name — the real page has no id column.
+ * A parenthetical all-caps acronym wins ("Elastic File System (EFS)" → `efs`),
+ * else strip a leading vendor token and slug the rest ("Amazon S3" → `s3`).
+ */
+function deriveServiceId(name: string): string {
+  const acronym = name.match(/\(([A-Z0-9]{2,})\)/);
+  if (acronym) {
+    return acronym[1]!.toLowerCase();
+  }
+  return slug(name.replace(/^(aws|amazon)\s+/i, ""));
+}
+
+/** A short presentation key (the acronym, else the first alphanumerics upper-cased). */
+function deriveIconKey(name: string, id: string): string {
+  const acronym = name.match(/\(([A-Z0-9]{2,})\)/);
+  if (acronym) {
+    return acronym[1]!.toUpperCase();
+  }
+  return (id.replace(/[^a-z0-9]/g, "").slice(0, 3) || id).toUpperCase();
+}
+
+/**
+ * Decode a status cell: the `<ac:emoticon>` glyph → status (via the legend), the
+ * trailing text → note (ETA / caveat). No emoticon → absent (⇒ not-planned).
+ */
+function decodeStatusCell(
+  cell: HTMLElement | undefined,
+  legend: Map<string, LocationStatus>,
+): LocationAvailability | undefined {
+  if (!cell) {
     return undefined;
   }
-  return { status: status as LocationStatus, ...(note ? { note } : {}) };
+  const emoticon = firstTag(cell, "ac:emoticon");
+  if (!emoticon) {
+    return undefined;
+  }
+  const status =
+    legend.get(emoticon.getAttribute("ac:emoji-shortname") ?? "") ??
+    legend.get(emoticon.getAttribute("ac:emoji-fallback") ?? "");
+  if (!status) {
+    return undefined;
+  }
+  const note = cell.text.trim();
+  return note ? { status, note } : { status };
 }
 
 export type ConfluenceAvailabilityProviderDeps = {
@@ -209,9 +371,20 @@ async function loadZone(
   const parsed = parseAvailabilityPage(fetched.html);
   return {
     ...base,
-    locations: parsed.locations,
+    locations: parsed.locations.map(withGeo),
     services: parsed.services.map(toAvailabilityRecord),
   };
+}
+
+/**
+ * Enrich a parsed location with map coordinates. The availability page does not
+ * carry geography, so coordinates are looked up by id from `LOCATION_GEO`
+ * (public region geography + fictional outpost sites) — kept out of the parse so
+ * the page stays the single source for *availability*, geo a separate reference.
+ */
+function withGeo(location: Location): Location {
+  const coordinates = LOCATION_GEO[location.id];
+  return coordinates ? { ...location, coordinates } : location;
 }
 
 function toAvailabilityRecord(row: AvailabilityServiceRow): AvailabilityRecord {
