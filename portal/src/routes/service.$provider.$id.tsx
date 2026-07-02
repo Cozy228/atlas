@@ -58,6 +58,7 @@ import {
   serviceRouteParamsForResource,
 } from "@/lib/availability-service";
 import { relatedGuidanceForResource, type Guidance } from "@/lib/guidance";
+import { deferUnlessCached } from "@/lib/deferred-cache";
 import { cn } from "@/lib/utils";
 
 /** A related service resource shown in "Related in domain": its canonical
@@ -77,44 +78,60 @@ type LoaderData = {
 };
 
 export const Route = createFileRoute("/service/$provider/$id")({
+  // The datasheet skeleton covers the loader window (below `record` is awaited to
+  // gate the 404 + fill the identity band). Without it the router shows a blank
+  // shell while that per-slug fetch runs, because the in-component skeletons only
+  // cover the DEFERRED data — they don't exist until the component mounts, which
+  // the await blocks. `pendingMs` keeps a warm/instant nav from flashing it.
+  pendingComponent: ServiceDetailPending,
+  pendingMs: 120,
   loader: async ({ context, params }): Promise<LoaderData> => {
     const slug = `${params.provider}/${params.id}`;
+    const qc = context.queryClient;
 
-    // Presentation metadata (durable, ADR-0015 §2) — awaited for the page shell.
-    // 404 when the slug resolves to neither an overlay nor the availability spine.
-    const record = await context.queryClient
+    // Kick the slow live reads off FIRST so they fetch in parallel with the
+    // awaited `record` below (neither depends on it). `deferUnlessCached`: a cache
+    // HIT resolves synchronously (a revisit paints the real datasheet with no
+    // skeleton flash), a MISS keeps the live promise so the region shows its
+    // skeleton while the genuinely-slow fetch runs.
+    const zone = deferUnlessCached(
+      qc,
+      availabilityQueryOptions.queryKey,
+      () => qc.ensureQueryData(availabilityQueryOptions),
+      // The datasheet shows the default (only wired) LZ's grid until per-LZ
+      // resource scope lands (plan 023). Match by the LZ id, not the URL
+      // `provider` (a cloud) — post-rename zone ids are LZ ids (awsf).
+      (availability) => ({
+        defaultZone:
+          availability.zones.find((z) => z.id === DEFAULT_LANDING_ZONE_ID) ??
+          availability.zones[0]!,
+        totalZones: availability.zones.length,
+      }),
+    );
+
+    // The live resource projection, keyed by the canonical slug. Reference
+    // discovery + governed sections are live, so a failure degrades to null and
+    // the blocks show an honest gap (never the region's error card).
+    const projectionOptions = resourceContextQueryOptions({ kind: "service", slug });
+    const projection = deferUnlessCached(
+      qc,
+      projectionOptions.queryKey,
+      () => qc.ensureQueryData(projectionOptions).catch(() => null),
+      (p) => p,
+    );
+
+    // Presentation metadata (durable, ADR-0015 §2) — awaited for the page shell
+    // (identity band + 404 gate). The `pendingComponent` covers this window.
+    const record = await qc
       .ensureQueryData(resourceRecordQueryOptions({ kind: "service", slug }))
       .catch(() => null);
     if (!record) throw notFound();
 
     // Sibling services share this resource's category (a facet attribute).
     // Siblings come straight from the discovered catalog by category.
-    const catalogResp = await context.queryClient.ensureQueryData(resourceCatalogQueryOptions);
+    const catalogResp = await qc.ensureQueryData(resourceCatalogQueryOptions);
 
-    const guidances = await context.queryClient.ensureQueryData(guidanceQueryOptions);
-
-    // Slow: availability is a live Confluence fetch + parse in the real adapter —
-    // defer it (no await) so navigation is instant; the specs, where-it-runs and
-    // identity icon render a skeleton until it lands.
-    const zone: Promise<{ defaultZone: LandingZoneAvailability; totalZones: number }> =
-      context.queryClient.ensureQueryData(availabilityQueryOptions).then((availability) => ({
-        // The datasheet shows the default (only wired) LZ's grid until per-LZ
-        // resource scope lands (plan 023). Match by the LZ id, not the URL
-        // `provider` (a cloud) — post-rename zone ids are LZ ids (awsf), so the
-        // old `z.id === params.provider` matched nothing for aws and the empty
-        // not-available zone for azure.
-        defaultZone:
-          availability.zones.find((z) => z.id === DEFAULT_LANDING_ZONE_ID) ??
-          availability.zones[0]!,
-        totalZones: availability.zones.length,
-      }));
-
-    // Slow: the live resource projection, keyed by the canonical slug. Reference
-    // discovery + governed sections are live, so a failure degrades to null and
-    // the blocks show an honest gap.
-    const projection: Promise<ResourceContextResponse | null> = context.queryClient
-      .ensureQueryData(resourceContextQueryOptions({ kind: "service", slug }))
-      .catch(() => null);
+    const guidances = await qc.ensureQueryData(guidanceQueryOptions);
 
     // Related in domain: sibling service resources sharing this resource's
     // category (a facet attribute), each addressed by its own canonical slug.
@@ -764,6 +781,63 @@ function SpecRow({ label, value }: { label: string; value: ReactNode }) {
         {label}
       </dt>
       <dd className="text-right text-[13px] font-semibold text-foreground">{value}</dd>
+    </div>
+  );
+}
+
+/** Full-page datasheet skeleton shown by the router while the loader awaits the
+ *  per-slug `record` (route `pendingComponent`). Mirrors the real layout — back
+ *  link, identity band, the first numbered sections, and the action rail — so the
+ *  wait reads as "this page is loading", not a blank shell. It reuses the same
+ *  section skeletons the in-component deferred regions use, so the two loading
+ *  phases (pre-mount here, post-mount there) look continuous. */
+function ServiceDetailPending() {
+  return (
+    <div className="mx-auto flex w-full max-w-[1180px] flex-col gap-7 px-6 py-9 sm:px-8">
+      <Link
+        to="/catalog"
+        className="flex w-fit items-center gap-1.5 text-[13px] font-medium text-muted-foreground transition-colors hover:text-brand-ink"
+      >
+        <IconArrowLeft aria-hidden className="size-3.5" />
+        Catalog
+      </Link>
+
+      {/* Identity band */}
+      <header className="flex flex-col gap-4">
+        <div className="flex items-start gap-4">
+          <Skeleton aria-hidden className="size-14 shrink-0 rounded-lg" />
+          <div className="flex min-w-0 flex-col gap-2">
+            <Skeleton className="h-3 w-28" />
+            <Skeleton className="h-7 w-64" />
+            <Skeleton className="h-4 w-full max-w-[52ch]" />
+          </div>
+        </div>
+        <Skeleton className="h-3.5 w-72" />
+      </header>
+
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-start">
+        <div className="flex min-w-0 flex-col gap-8">
+          <section>
+            <DatasheetHead index="01" title="Specifications" />
+            <SpecsSkeleton rows={8} />
+          </section>
+          <section>
+            <DatasheetHead index="02" title="Where it runs" />
+            <WhereItRunsSkeleton />
+          </section>
+          <section>
+            <DatasheetHead index="03" title="Reference documents" />
+            <ReferencesSkeleton />
+          </section>
+        </div>
+        <aside className="flex flex-col gap-4 lg:sticky lg:top-[76px]">
+          <div className="flex flex-col gap-3 rounded-[4px] border border-border bg-card p-4">
+            <Skeleton aria-hidden className="h-2.5 w-16" />
+            <Skeleton aria-hidden className="h-9 w-full rounded-[3px]" />
+            <Skeleton aria-hidden className="h-9 w-full rounded-[3px]" />
+          </div>
+        </aside>
+      </div>
     </div>
   );
 }
