@@ -29,4 +29,5 @@ export { resolveReleaseNotes } from "./releaseNotes/resolveReleaseNotes";
 export { loadConfluenceGuidance } from "./composition";
 export type { Announcement } from "./releaseNotes/parseAnnouncements";
 export { cachedResolutionContext } from "./sourceContent/sourceContentCache";
+export { logger, serializeError, errorSummary } from "./observability/logging";
 export type { Release, ReleaseItem } from "./releaseNotes/parseReleaseNotes";

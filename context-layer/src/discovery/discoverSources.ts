@@ -13,6 +13,7 @@
 import type { ServiceIdentity } from "@atlas/schema";
 import type { AvailabilityProvider } from "../services/availabilityProvider";
 import { normalizeServiceIdentity } from "../services/serviceIdentityNormalizer";
+import { logger, serializeError } from "../observability/logging";
 import type { ResolutionContext } from "../resolvers/resolverTypes";
 import { discoverTerraformModule } from "../sourceContent/terraformModuleContentProvider";
 
@@ -79,6 +80,7 @@ export async function discoverServiceSources(
   deps: DiscoverServiceSourcesDeps,
 ): Promise<DiscoveredService[]> {
   const { availabilityProvider, ctx, terraform } = deps;
+  const log = logger("discovery");
   const spine = flattenSpine(await availabilityProvider.getZones());
 
   // Honest-gap (ADR-0006, plan 018): with no Terraform channel / org configured, no
@@ -86,11 +88,49 @@ export async function discoverServiceSources(
   // building a relative `/api/registry/...` URL that `globalThis.fetch` rejects
   // in Node and would fail the entire discovery pass (and get cached rejected).
   if (!terraform.baseUrl || !terraform.org) {
+    const missing = [
+      !terraform.baseUrl ? "TERRAFORM_BASE_URL" : null,
+      !terraform.org ? "TERRAFORM_ORG" : null,
+    ].filter(Boolean);
+    log.warn(
+      { spineServices: spine.length, missing },
+      `terraform channel not configured (${missing.join(", ")} unset) — 0 module probes across ${spine.length} service(s)`,
+    );
     return spine.map(({ identity, domain }) => ({ identity, domain, modules: [] }));
   }
 
+  // Stage counters so a "0 TFE fetches" investigation reads the break point off one
+  // summary line: spine size (availability discovery), how many services the module
+  // map actually matched, how many probes (= fetches) were issued, how many resolved.
+  const mapKeys = Object.keys(terraform.moduleMap).length;
+  const matchedServices = spine.filter(
+    ({ identity }) => (terraform.moduleMap[identity.key] ?? []).length > 0,
+  ).length;
+  const probeCount = spine.reduce(
+    (n, { identity }) => n + (terraform.moduleMap[identity.key] ?? []).length,
+    0,
+  );
+  if (probeCount === 0) {
+    // No fetch will be issued. Name the reason instead of returning silently.
+    const reason =
+      spine.length === 0
+        ? "availability spine is empty (no services discovered upstream)"
+        : mapKeys === 0
+          ? "TERRAFORM_MODULE_MAP mapped 0 services"
+          : "no spine service key matched a TERRAFORM_MODULE_MAP entry";
+    log.warn(
+      { spineServices: spine.length, mapKeys, matchedServices, probeCount, reason },
+      `terraform discovery will issue 0 probes — ${reason}`,
+    );
+  } else {
+    log.info(
+      { spineServices: spine.length, mapKeys, matchedServices, probeCount },
+      `terraform discovery: probing ${probeCount} module(s) across ${matchedServices}/${spine.length} mapped service(s)`,
+    );
+  }
+
   const config = { baseUrl: terraform.baseUrl, token: terraform.token };
-  return Promise.all(
+  const services = await Promise.all(
     spine.map(async ({ identity, domain }) => {
       // A service is bound to modules ONLY through the explicit map — no entry is
       // an honest gap (never a guessed `<id>` address that mis-binds or 404-spams).
@@ -101,23 +141,45 @@ export async function discoverServiceSources(
           const address = `${terraform.org}/${name}/${identity.provider}`;
           // A probe that throws (registry unreachable, DNS failure) is an honest gap
           // for THAT module — never a rejected discovery that fails every route.
-          const found = await discoverTerraformModule(ctx, config, address).catch(() => null);
-          return found
-            ? {
-                sourceId: `${name}-module-readme`,
-                name,
-                address,
-                headings: found.headings,
-                summary: found.summary,
-                version: found.version,
-              }
-            : null;
+          const found = await discoverTerraformModule(ctx, config, address).catch((error) => {
+            log.warn(
+              { service: identity.key, address, err: serializeError(error) },
+              `terraform probe threw for ${address} — degraded to no module`,
+            );
+            return null;
+          });
+          if (!found) {
+            // Distinguish "probe ran, registry said no module" from a throw (logged
+            // above) and from the paired `fetch` line's HTTP status.
+            log.debug(
+              { service: identity.key, address },
+              `terraform probe: no module at ${address}`,
+            );
+            return null;
+          }
+          return {
+            sourceId: `${name}-module-readme`,
+            name,
+            address,
+            headings: found.headings,
+            summary: found.summary,
+            version: found.version,
+          };
         }),
       );
       const modules = probed.filter((module): module is DiscoveredModule => module !== null);
       return { identity, domain, modules };
     }),
   );
+
+  if (probeCount > 0) {
+    const resolved = services.reduce((n, s) => n + s.modules.length, 0);
+    log.info(
+      { probeCount, resolved },
+      `terraform discovery resolved ${resolved}/${probeCount} probed module(s)`,
+    );
+  }
+  return services;
 }
 
 /**

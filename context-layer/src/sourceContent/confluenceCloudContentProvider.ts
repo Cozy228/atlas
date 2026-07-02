@@ -1,5 +1,6 @@
 import type { Source } from "@atlas/schema";
 import { parse, type HTMLElement } from "node-html-parser";
+import { logger, serializeError } from "../observability/logging";
 import type { ResolutionContext, ResolveResult, ResolverWarning } from "../resolvers/resolverTypes";
 
 /**
@@ -193,9 +194,15 @@ export async function fetchConfluenceStorageHtml(
         Accept: "application/json",
       },
     });
-  } catch {
+  } catch (error) {
     // Transport-level failure (DNS, timeout, connection reset). Degrade by
-    // contract; the message stays generic so no URL/token can leak.
+    // contract; the message stays generic so no URL/token can leak — but the
+    // real cause (the paired `fetch` line carries it) plus the page id is logged
+    // so the degradation is not silent.
+    logger("confluence").warn(
+      { pageId, err: serializeError(error) },
+      `confluence page ${pageId} unreachable — degraded to source_unavailable`,
+    );
     return {
       ok: false,
       code: "source_unavailable",
@@ -228,8 +235,13 @@ export async function fetchConfluenceStorageHtml(
   let page: ConfluencePageResponse;
   try {
     page = (await response.json()) as ConfluencePageResponse;
-  } catch {
-    // Truncated/malformed body. Same generic degradation as a transport failure.
+  } catch (error) {
+    // Truncated/malformed body on an otherwise-200 response — the `fetch` line
+    // logged the 200, so this parse failure would otherwise be invisible.
+    logger("confluence").warn(
+      { pageId, err: serializeError(error) },
+      `confluence page ${pageId} returned an unreadable body (200 but non-JSON) — degraded to source_unavailable`,
+    );
     return {
       ok: false,
       code: "source_unavailable",

@@ -1,4 +1,5 @@
 import type { AnchorResolver, ResolveResult } from "./resolverTypes";
+import { logger } from "../observability/logging";
 import {
   resolveTerraformModuleLive,
   resolveTerraformModuleFieldLive,
@@ -41,6 +42,10 @@ export const terraformModuleResolver: AnchorResolver = {
  * never a fake fallback from an in-memory provider (plan 018).
  */
 function honestGap(sourceId: string): ResolveResult {
+  logger("resolve").warn(
+    { sourceClass: "terraform-module", sourceId },
+    "terraform resolve: no registry credential (ctx token / TERRAFORM_TOKEN both unset) — source unavailable, no fetch issued",
+  );
   return {
     excerpts: [],
     warnings: [
