@@ -43,8 +43,16 @@ export type DiscoverServiceSourcesDeps = {
   availabilityProvider: AvailabilityProvider;
   /** Late-bound fetch context (dev MSW / prod real / unit fake). */
   ctx: ResolutionContext;
-  /** Terraform registry deployment config (host + token), never a source location. */
-  terraform: { baseUrl: string; token: string };
+  /**
+   * Terraform registry deployment config. `baseUrl`/`token` are the host + credential
+   * (never a source location). `org` is the registry namespace (the private registry
+   * org, e.g. the `<namespace>` segment). `moduleMap` is the EXPLICIT service→module
+   * name mapping (`identity.key` → module name): real module names don't follow the
+   * service id (`alb_module`, `aurora-postgres`, and `bedrock` vs
+   * `bedrock-agentcore-gateway` collide under any fuzzy rule), so a service is bound
+   * to a module ONLY through this map — no entry → honest gap.
+   */
+  terraform: { baseUrl: string; token: string; org: string; moduleMap: Record<string, string> };
 };
 
 /** A spine service paired with the availability domain it carries (presentation). */
@@ -65,18 +73,24 @@ export async function discoverServiceSources(
   const { availabilityProvider, ctx, terraform } = deps;
   const spine = flattenSpine(await availabilityProvider.getZones());
 
-  // Honest-gap (ADR-0006, plan 018): with no Terraform channel configured, no
+  // Honest-gap (ADR-0006, plan 018): with no Terraform channel / org configured, no
   // module is discoverable — every service resolves `module: null` rather than
   // building a relative `/api/registry/...` URL that `globalThis.fetch` rejects
   // in Node and would fail the entire discovery pass (and get cached rejected).
-  if (!terraform.baseUrl) {
+  if (!terraform.baseUrl || !terraform.org) {
     return spine.map(({ identity, domain }) => ({ identity, domain, module: null }));
   }
 
   const config = { baseUrl: terraform.baseUrl, token: terraform.token };
   return Promise.all(
     spine.map(async ({ identity, domain }) => {
-      const address = `example/${identity.id}/${identity.provider}`;
+      // A service is bound to a module ONLY through the explicit map — no entry is
+      // an honest gap (never a guessed `<id>` address that mis-binds or 404-spams).
+      const moduleName = terraform.moduleMap[identity.key];
+      if (!moduleName) {
+        return { identity, domain, module: null };
+      }
+      const address = `${terraform.org}/${moduleName}/${identity.provider}`;
       // A probe that throws (registry unreachable, DNS failure) is an honest gap
       // for THAT service — never a rejected discovery that fails every route.
       const found = await discoverTerraformModule(ctx, config, address).catch(() => null);

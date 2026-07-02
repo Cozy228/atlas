@@ -33,7 +33,8 @@ const PRIMARY_NAV: ReadonlyArray<NavItem> = [
   { to: "/availability", label: "Availability" },
   { to: "/catalog", label: "Catalog" },
   { to: "/guidance", label: "Guidance" },
-  { to: "/sources", label: "Sources" },
+  // Sources is hidden for now — its content is being folded into the catalog /
+  // per-service surfaces; the route still exists but carries no nav entry.
   { to: "/whatsnew", label: "Newsletter" },
   { to: "/support", label: "Support" },
 ];

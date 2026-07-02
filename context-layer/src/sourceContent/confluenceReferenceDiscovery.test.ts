@@ -242,3 +242,57 @@ describe("createConfluenceReferenceDiscovery — cache honesty (B12, DoD #6)", (
     expect(calls).toHaveLength(1); // both callers shared one fetch
   });
 });
+
+describe("createConfluenceReferenceDiscovery — extra instances (separate security Cloud)", () => {
+  const SECURITY: ConfluenceReferenceDiscoveryConfig = {
+    ...CONFIG,
+    extraInstances: [
+      {
+        token: "sec-token",
+        baseUrl: "https://security.example.com",
+        email: "sec-bot@example.com",
+        spaceKeys: ["SECPOL"],
+      },
+    ],
+  };
+
+  it("recalls each instance and merges admitted references from both", async () => {
+    // Primary → a design doc; the separate security Cloud → a policy doc.
+    const { fetch, calls } = fakeFetch([
+      { results: [page("Amazon Textract Design", "/wiki/x/1")], totalSize: 1 },
+      { results: [page("Amazon Textract Data Policy", "/policy/9")], totalSize: 1 },
+    ]);
+    const discovery = createConfluenceReferenceDiscovery(SECURITY, { fetch });
+
+    const result = await discovery.discover(textract);
+
+    // One CQL per instance, each scoped to its own space + base URL.
+    expect(calls).toHaveLength(2);
+    expect(calls[0]).toContain("https://wiki.example.com/wiki/rest/api/content/search");
+    expect(decodeURIComponent(calls[0])).toContain('space in ("CLOUD")');
+    expect(calls[1]).toContain("https://security.example.com/wiki/rest/api/content/search");
+    expect(decodeURIComponent(calls[1])).toContain('space in ("SECPOL")');
+
+    // Both admitted, merged onto the same service; the policy resolves an absolute
+    // URL against the SECURITY instance's base URL.
+    expect(result.status).toBe("fresh");
+    expect(result.references.map((r) => r.doc_type).sort()).toEqual(["design", "policy"]);
+    expect(result.references.find((r) => r.doc_type === "policy")?.url).toBe(
+      "https://security.example.com/policy/9",
+    );
+  });
+
+  it("stays available (incomplete) when one instance fails", async () => {
+    const { fetch } = fakeFetch([
+      { results: [page("Amazon Textract Runbook", "/wiki/x/2")], totalSize: 1 },
+      "fail", // the security Cloud is unreachable
+    ]);
+    const discovery = createConfluenceReferenceDiscovery(SECURITY, { fetch });
+
+    const result = await discovery.discover(textract);
+
+    expect(result.status).toBe("fresh");
+    expect(result.references).toHaveLength(1); // primary still served
+    expect(result.incomplete).toBe(true); // the failed instance is unknown
+  });
+});

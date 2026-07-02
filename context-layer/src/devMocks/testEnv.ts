@@ -17,6 +17,8 @@ import {
   DEV_CONFLUENCE_SPACE_KEYS,
   DEV_RELEASE_NOTES_PAGE_ID,
   DEV_TERRAFORM_BASE_URL,
+  DEV_TERRAFORM_MODULE_MAP,
+  DEV_TERRAFORM_ORG,
 } from "./fixtures";
 import { DEV_GUIDANCE_ONBOARDING_PAGE_ID, DEV_GUIDANCE_URL } from "./guidanceFixture";
 
@@ -34,9 +36,13 @@ export function setDevDiscoveryEnv(
   env: Record<string, string | undefined> = process.env,
   options: { referenceSpace?: boolean } = {},
 ): void {
-  // Service module discovery (Terraform registry) + the availability spine.
+  // Service module discovery (Terraform registry) + the availability spine. `org`
+  // + the explicit service→module map mirror the prod TERRAFORM_ORG /
+  // TERRAFORM_MODULE_MAP injection (derived from the fixtures, so they stay in sync).
   env.TERRAFORM_BASE_URL = DEV_TERRAFORM_BASE_URL;
   env.TERRAFORM_TOKEN = "dev-mock-token";
+  env.TERRAFORM_ORG = DEV_TERRAFORM_ORG;
+  env.TERRAFORM_MODULE_MAP = JSON.stringify(DEV_TERRAFORM_MODULE_MAP);
   // Confluence channel: availability page + guardrail space.
   env.CONFLUENCE_BASE_URL = DEV_CONFLUENCE_BASE_URL;
   env.CONFLUENCE_TOKEN = "dev-mock-token";

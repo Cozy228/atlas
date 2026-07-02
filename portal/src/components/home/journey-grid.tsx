@@ -13,7 +13,7 @@ type JourneyStep = {
 
 type JourneyLink = {
   label: string;
-  to: "/availability" | "/catalog" | "/guidance" | "/sources";
+  to: "/availability" | "/catalog" | "/guidance";
 };
 
 const STEPS: ReadonlyArray<JourneyStep> = [
@@ -39,7 +39,7 @@ const STEPS: ReadonlyArray<JourneyStep> = [
     title: "Check security policies",
     description:
       "Review applicable security policies before deploy. Authoritative source citations are inline on each surface.",
-    links: [{ label: "Sources", to: "/sources" }],
+    links: [{ label: "Service catalog", to: "/catalog" }],
   },
   {
     phase: "Operate",

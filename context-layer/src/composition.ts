@@ -26,7 +26,10 @@ import { createResolverRegistry } from "./resolvers/resolverRegistry";
 import { terraformModuleResolver } from "./resolvers/terraformModuleResolver";
 import { defaultResolutionContext, type FetchLike } from "./resolvers/resolverTypes";
 import { withFetchLogging, withResolverLogging } from "./observability/logging";
-import { createConfluenceReferenceDiscovery } from "./sourceContent/confluenceReferenceDiscovery";
+import {
+  createConfluenceReferenceDiscovery,
+  type ConfluenceReferenceInstance,
+} from "./sourceContent/confluenceReferenceDiscovery";
 import { createOnboardingGuidanceSource } from "./sourceContent/confluenceOnboardingProvider";
 import { createConfluenceAvailabilityProvider } from "./sourceContent/confluenceAvailabilityProvider";
 import type { AvailabilityProvider } from "./services/availabilityProvider";
@@ -48,10 +51,38 @@ type Discovered = { services: DiscoveredService[]; guardrails: DiscoveredGuardra
 // the channels re-discovers rather than serving a stale catalog.
 let discoveryCache: { key: string; promise: Promise<Discovered> } | undefined;
 
+/**
+ * Parse the explicit service→module map (`TERRAFORM_MODULE_MAP`, a JSON object of
+ * `identity.key` → module name). Malformed / non-object JSON is an honest empty map
+ * (no modules bound), never a thrown discovery pass.
+ */
+function parseModuleMap(raw: string | undefined): Record<string, string> {
+  if (!raw) {
+    return {};
+  }
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return {};
+    }
+    const map: Record<string, string> = {};
+    for (const [key, value] of Object.entries(parsed)) {
+      if (typeof value === "string" && value.length > 0) {
+        map[key] = value;
+      }
+    }
+    return map;
+  } catch {
+    return {};
+  }
+}
+
 function discoveryKey(env: Record<string, string | undefined>): string {
   return [
     env.TERRAFORM_BASE_URL,
     env.TERRAFORM_TOKEN,
+    env.TERRAFORM_ORG,
+    env.TERRAFORM_MODULE_MAP,
     env.CONFLUENCE_BASE_URL,
     env.CONFLUENCE_TOKEN,
     env.CONFLUENCE_EMAIL,
@@ -75,6 +106,8 @@ async function runDiscovery(
     terraform: {
       baseUrl: env.TERRAFORM_BASE_URL ?? "",
       token: env.TERRAFORM_TOKEN ?? "",
+      org: env.TERRAFORM_ORG ?? "",
+      moduleMap: parseModuleMap(env.TERRAFORM_MODULE_MAP),
     },
   });
   const guardrails = await discoverGuardrails({
@@ -125,11 +158,34 @@ function createReferenceDiscoveryFromEnv(
     .split(",")
     .map((key) => key.trim())
     .filter((key) => key.length > 0);
-  if (!baseUrl || !token || spaceKeys.length === 0) {
+  if (!baseUrl || !token) {
+    return undefined;
+  }
+
+  // Security policies are per-service references too (a policy page whose title
+  // hits the service + a policy doc-type word). When they live in a SEPARATE
+  // Confluence instance (its own base URL / credentials), recall it as an extra
+  // channel. A security space on the SAME instance needs no special handling —
+  // it's just another entry in CONFLUENCE_SPACE_KEYS (same creds), so we don't
+  // fold it here (that would couple guardrail discovery's space key to reference
+  // discovery and recall a second, redundant time).
+  const securitySpaceKey = env.CONFLUENCE_SECURITY_SPACE_KEY;
+  const securityBaseUrl = env.CONFLUENCE_SECURITY_BASE_URL;
+  const extraInstances: ConfluenceReferenceInstance[] = [];
+  if (securitySpaceKey && securityBaseUrl && securityBaseUrl !== baseUrl) {
+    extraInstances.push({
+      baseUrl: securityBaseUrl,
+      token: env.CONFLUENCE_SECURITY_TOKEN ?? token,
+      email: env.CONFLUENCE_SECURITY_EMAIL ?? env.CONFLUENCE_EMAIL,
+      spaceKeys: [securitySpaceKey],
+    });
+  }
+
+  if (spaceKeys.length === 0 && extraInstances.length === 0) {
     return undefined;
   }
   return createConfluenceReferenceDiscovery(
-    { baseUrl, token, email: env.CONFLUENCE_EMAIL, spaceKeys },
+    { baseUrl, token, email: env.CONFLUENCE_EMAIL, spaceKeys, extraInstances },
     { fetch: liveFetch },
   );
 }

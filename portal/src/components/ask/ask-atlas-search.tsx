@@ -6,7 +6,6 @@ import {
   IconBook,
   IconCompass,
   IconCornerDownLeft,
-  IconDatabase,
   IconHome,
   IconLayoutGrid,
   IconLifebuoy,
@@ -14,8 +13,7 @@ import {
 } from "@tabler/icons-react";
 import Fuse from "fuse.js";
 
-import { resourceCatalogQueryOptions, sourceDiscoveryQueryOptions } from "@/api/queries";
-import { CLASS_LABEL } from "@/components/sources/shared";
+import { resourceCatalogQueryOptions } from "@/api/queries";
 import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
 
@@ -54,14 +52,7 @@ const STATIC_NAV: ReadonlyArray<SearchResult> = [
     icon: IconCompass,
     category: "Navigate",
   },
-  {
-    id: "nav:sources",
-    label: "Sources",
-    description: "Authoritative source lookup",
-    to: "/sources",
-    icon: IconDatabase,
-    category: "Navigate",
-  },
+  // Sources is hidden for now — no palette entry (the route still exists).
 ];
 
 /**
@@ -104,45 +95,31 @@ export function AskAtlasSearch({ onOpenChange, onSwitchToAsk }: AskAtlasSearchPr
     placeholderData: keepPreviousData,
   });
 
-  const { data: sourcesData, isLoading: sourcesLoading } = useQuery({
-    ...sourceDiscoveryQueryOptions,
-    placeholderData: keepPreviousData,
-  });
-
   const allResults = useMemo<ReadonlyArray<SearchResult>>(() => {
     const dynamic: SearchResult[] = [];
 
     if (catalogData) {
       for (const resource of catalogData.resources) {
-        const isService = resource.kind === "service";
+        // Services only — security-policy guardrails and the sources surface are
+        // hidden for now, so they don't appear as palette results.
+        if (resource.kind !== "service") {
+          continue;
+        }
         dynamic.push({
           id: `resource:${resource.id}`,
           label: resource.name,
           description: resource.category
             ? `${resource.kind} · ${resource.category}`
             : resource.kind,
-          to: isService ? `/service/${resource.slug}` : `/policies/${resource.slug}`,
+          to: `/service/${resource.slug}`,
           icon: resourceIcon(resource.kind),
-          category: isService ? "Services" : "Security policies",
-        });
-      }
-    }
-
-    if (sourcesData) {
-      for (const source of sourcesData.sources) {
-        dynamic.push({
-          id: `source:${source.id}`,
-          label: source.title,
-          description: `source · ${CLASS_LABEL[source.source_class]}`,
-          to: `/sources/${source.id}`,
-          icon: IconDatabase,
-          category: "Sources",
+          category: "Services",
         });
       }
     }
 
     return [...STATIC_NAV, ...dynamic];
-  }, [catalogData, sourcesData]);
+  }, [catalogData]);
 
   const fuse = useMemo(
     () =>
@@ -182,7 +159,7 @@ export function AskAtlasSearch({ onOpenChange, onSwitchToAsk }: AskAtlasSearchPr
   }, [items]);
 
   const flatItems = items;
-  const isLoading = catalogLoading || sourcesLoading;
+  const isLoading = catalogLoading;
 
   function go(to: string) {
     onOpenChange(false);

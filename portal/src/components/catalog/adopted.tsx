@@ -101,18 +101,15 @@ export function CatalogAdopted({
       </div>
 
       <div className="flex items-center justify-between gap-4 border-b border-border">
+        {/* Security-policy guardrails are hidden for now — policy references are
+            being folded onto each service. The tab is dropped (services only); the
+            `tab === "policies"` branch below stays dormant, not deleted. */}
         <div role="tablist" aria-label="Catalog type" className="flex gap-0.5">
           <TypeTab
             label="Services"
             count={serviceResources.length}
             active={tab === "services"}
             onSelect={() => setTab("services")}
-          />
-          <TypeTab
-            label="Security policies"
-            count={securityPolicies.length}
-            active={tab === "policies"}
-            onSelect={() => setTab("policies")}
           />
         </div>
         <div className="hidden shrink-0 pb-1 sm:block">

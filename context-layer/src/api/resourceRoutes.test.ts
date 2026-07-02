@@ -3,6 +3,8 @@ import {
   DEV_AVAILABILITY_PAGE_ID_AWSF,
   DEV_CONFLUENCE_BASE_URL,
   DEV_TERRAFORM_BASE_URL,
+  DEV_TERRAFORM_MODULE_MAP,
+  DEV_TERRAFORM_ORG,
 } from "../devMocks";
 import { handleHttpRequest } from "./httpRoute";
 
@@ -14,6 +16,8 @@ import { handleHttpRequest } from "./httpRoute";
 const savedEnv = {
   terraformBaseUrl: process.env.TERRAFORM_BASE_URL,
   terraformToken: process.env.TERRAFORM_TOKEN,
+  terraformOrg: process.env.TERRAFORM_ORG,
+  terraformModuleMap: process.env.TERRAFORM_MODULE_MAP,
   confluenceBaseUrl: process.env.CONFLUENCE_BASE_URL,
   confluenceToken: process.env.CONFLUENCE_TOKEN,
   availabilityPage: process.env.CONFLUENCE_AVAILABILITY_PAGE_AWSF,
@@ -21,6 +25,8 @@ const savedEnv = {
 beforeAll(() => {
   process.env.TERRAFORM_BASE_URL = DEV_TERRAFORM_BASE_URL;
   process.env.TERRAFORM_TOKEN = "dev-mock-token";
+  process.env.TERRAFORM_ORG = DEV_TERRAFORM_ORG;
+  process.env.TERRAFORM_MODULE_MAP = JSON.stringify(DEV_TERRAFORM_MODULE_MAP);
   process.env.CONFLUENCE_BASE_URL = DEV_CONFLUENCE_BASE_URL;
   process.env.CONFLUENCE_TOKEN = "dev-mock-token";
   process.env.CONFLUENCE_AVAILABILITY_PAGE_AWSF = DEV_AVAILABILITY_PAGE_ID_AWSF;
@@ -28,6 +34,8 @@ beforeAll(() => {
 afterAll(() => {
   restoreEnv("TERRAFORM_BASE_URL", savedEnv.terraformBaseUrl);
   restoreEnv("TERRAFORM_TOKEN", savedEnv.terraformToken);
+  restoreEnv("TERRAFORM_ORG", savedEnv.terraformOrg);
+  restoreEnv("TERRAFORM_MODULE_MAP", savedEnv.terraformModuleMap);
   restoreEnv("CONFLUENCE_BASE_URL", savedEnv.confluenceBaseUrl);
   restoreEnv("CONFLUENCE_TOKEN", savedEnv.confluenceToken);
   restoreEnv("CONFLUENCE_AVAILABILITY_PAGE_AWSF", savedEnv.availabilityPage);

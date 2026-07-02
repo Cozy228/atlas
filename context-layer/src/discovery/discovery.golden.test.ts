@@ -24,6 +24,8 @@ import {
   DEV_AVAILABILITY_PAGE_ID_AWSF,
   DEV_CONFLUENCE_BASE_URL,
   DEV_TERRAFORM_BASE_URL,
+  DEV_TERRAFORM_MODULE_MAP,
+  DEV_TERRAFORM_ORG,
 } from "../devMocks";
 import { createConfluenceAvailabilityProvider } from "../sourceContent/confluenceAvailabilityProvider";
 import { defaultResolutionContext } from "../resolvers/resolverTypes";
@@ -50,6 +52,8 @@ describe("service discovery → resource derivation (golden)", () => {
       terraform: {
         baseUrl: process.env.TERRAFORM_BASE_URL!,
         token: process.env.TERRAFORM_TOKEN!,
+        org: DEV_TERRAFORM_ORG,
+        moduleMap: DEV_TERRAFORM_MODULE_MAP,
       },
     };
 

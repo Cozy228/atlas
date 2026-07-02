@@ -42,9 +42,21 @@ const FRESH_TTL_MS = 60 * 60 * 1000; // 1h — serve cache directly within windo
 const MAX_STALENESS_MS = 24 * 60 * 60 * 1000; // 24h — past this → unavailable
 const RECALL_CAP = 50; // per-service recall cap → incomplete + log on truncation
 
-export type ConfluenceReferenceDiscoveryConfig = ConfluenceLiveConfig & {
+/** One Confluence Cloud instance to recall from: its base URL + auth + the space
+ *  keys recall is scoped to. */
+export type ConfluenceReferenceInstance = ConfluenceLiveConfig & {
   /** Space keys to scope recall to. O(spaces) — start with 1 (config surface). */
   spaceKeys: string[];
+};
+
+export type ConfluenceReferenceDiscoveryConfig = ConfluenceReferenceInstance & {
+  /**
+   * Additional Confluence instances (e.g. a SEPARATE security-policy Cloud with
+   * its own base URL / credentials) recalled per service alongside the primary.
+   * Each fires its own CQL; the admitted references merge into the same service's
+   * reference list (deduped by URL). Omitted / empty → primary instance only.
+   */
+  extraInstances?: ConfluenceReferenceInstance[];
 };
 
 /** Structured discovery diagnostic — counts only, never a user surface (B4). */
@@ -64,6 +76,23 @@ export type ConfluenceReferenceDiscoveryDeps = {
   onDiagnostic?: (diagnostic: DiscoveryDiagnostic) => void;
 };
 
+/** A resolved recall target: one Confluence instance's base URL + auth + spaces. */
+type Channel = {
+  baseUrl: string;
+  authorization: string;
+  spaceKeys: string[];
+};
+
+type ChannelRecall =
+  | {
+      ok: true;
+      references: DiscoveredReference[];
+      truncated: boolean;
+      recalled: number;
+      rejected: number;
+    }
+  | { ok: false };
+
 type CacheEntry = {
   references: DiscoveredReference[];
   observedAtMs: number;
@@ -80,8 +109,15 @@ export function createConfluenceReferenceDiscovery(
 ): ResourceReferenceDiscovery {
   const now = deps.now ?? (() => Date.now());
   const onDiagnostic = deps.onDiagnostic ?? (() => {});
-  const baseUrl = config.baseUrl.replace(/\/+$/, "");
-  const authorization = confluenceAuthorization(config);
+
+  // The instances recalled per service: the primary (config itself) plus any
+  // `extraInstances` (e.g. a separate security-policy Cloud). Each precomputes its
+  // trimmed base URL + auth header once.
+  const channels: Channel[] = [config, ...(config.extraInstances ?? [])].map((instance) => ({
+    baseUrl: instance.baseUrl.replace(/\/+$/, ""),
+    authorization: confluenceAuthorization(instance),
+    spaceKeys: instance.spaceKeys,
+  }));
 
   // Per-`identity.key` last-good cache + in-flight single-flight map. In-process
   // only — no cross-instance / cross-restart store (decision #5).
@@ -114,17 +150,69 @@ export function createConfluenceReferenceDiscovery(
     return promise;
   }
 
-  /** One CQL recall + double-hit admission. Never throws (maps failure to ok:false). */
+  /**
+   * Recall a service across every channel and merge. Each channel is one CQL +
+   * double-hit admission; references dedupe by URL (first wins). All channels
+   * failing → ok:false (honest gap). At least one succeeding → ok:true; a channel
+   * that failed leaves its instance unknown, so the merged result is `incomplete`.
+   */
   async function fetchReferences(identity: ServiceIdentity): Promise<FetchOutcome> {
     const observedAtMs = now();
-    const cql = buildCql(identity.recallAliases, config.spaceKeys);
-    const url = `${baseUrl}/wiki/rest/api/content/search?cql=${encodeURIComponent(cql)}&limit=${RECALL_CAP}`;
+    const observedAtIso = new Date(observedAtMs).toISOString();
+
+    const byUrl = new Map<string, DiscoveredReference>();
+    let anyOk = false;
+    let anyFailed = false;
+    let anyTruncated = false;
+    let recalledTotal = 0;
+    let rejectedTotal = 0;
+
+    for (const channel of channels) {
+      const result = await recallChannel(channel, identity, observedAtIso);
+      if (!result.ok) {
+        anyFailed = true;
+        continue;
+      }
+      anyOk = true;
+      anyTruncated = anyTruncated || result.truncated;
+      recalledTotal += result.recalled;
+      rejectedTotal += result.rejected;
+      for (const reference of result.references) {
+        if (!byUrl.has(reference.url)) {
+          byUrl.set(reference.url, reference);
+        }
+      }
+    }
+
+    if (!anyOk) {
+      return { ok: false };
+    }
+
+    const references = [...byUrl.values()];
+    onDiagnostic({
+      key: identity.key,
+      recalled: recalledTotal,
+      admitted: references.length,
+      rejected: rejectedTotal,
+      truncated: anyTruncated,
+    });
+    return { ok: true, references, incomplete: anyTruncated || anyFailed, observedAtMs };
+  }
+
+  /** One channel's CQL recall + double-hit admission. Never throws (→ ok:false). */
+  async function recallChannel(
+    channel: Channel,
+    identity: ServiceIdentity,
+    observedAtIso: string,
+  ): Promise<ChannelRecall> {
+    const cql = buildCql(identity.recallAliases, channel.spaceKeys);
+    const url = `${channel.baseUrl}/wiki/rest/api/content/search?cql=${encodeURIComponent(cql)}&limit=${RECALL_CAP}`;
 
     let payload: CqlSearchResponse;
     try {
       const response = await deps.fetch(url, {
         method: "GET",
-        headers: { Authorization: authorization, Accept: "application/json" },
+        headers: { Authorization: channel.authorization, Accept: "application/json" },
       });
       if (!response.ok) {
         return { ok: false };
@@ -140,7 +228,6 @@ export function createConfluenceReferenceDiscovery(
       (typeof payload.totalSize === "number" && payload.totalSize > results.length) ||
       results.length >= RECALL_CAP;
 
-    const observedAtIso = new Date(observedAtMs).toISOString();
     const references: DiscoveredReference[] = [];
     let rejected = 0;
     for (const candidate of results) {
@@ -160,18 +247,12 @@ export function createConfluenceReferenceDiscovery(
         rejected += 1;
         continue;
       }
-      references.push(buildReference(title, absoluteUrl(baseUrl, webui), docType, observedAtIso));
+      references.push(
+        buildReference(title, absoluteUrl(channel.baseUrl, webui), docType, observedAtIso),
+      );
     }
 
-    onDiagnostic({
-      key: identity.key,
-      recalled: results.length,
-      admitted: references.length,
-      rejected,
-      truncated,
-    });
-
-    return { ok: true, references, incomplete: truncated, observedAtMs };
+    return { ok: true, references, truncated, recalled: results.length, rejected };
   }
 
   function serve(entry: CacheEntry, status: ResourceReferenceDiscoveryResult["status"]) {
