@@ -87,13 +87,39 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* 32px square coordinate grid — lives in negative space behind content; text
-   blocks carry a same-colour plate (bg-background) so it never sits behind copy. */
+   blocks carry a same-colour plate (bg-background) so it never sits behind copy.
+   Phase is overridable so the newsletter can pin ONE line onto its content column
+   (see useGridPin) — the grid then aligns to the column at any viewport instead of
+   drifting. Default -1px reproduces the canonical offset for every other page. */
 @utility bg-coordinate-grid {
   background-image:
     linear-gradient(var(--color-grid) 1px, transparent 1px),
     linear-gradient(90deg, var(--color-grid) 1px, transparent 1px);
   background-size: 32px 32px;
-  background-position: -1px -1px;
+  background-position: var(--grid-phase-x, -1px) var(--grid-phase-y, -1px);
+}
+
+/* Leading-trim: cut the line-box down to cap-height ↔ alphabetic baseline so a
+   text element can be placed with its baseline exactly on a grid line — dense,
+   not floated in a tall line-box. Load-bearing for the grid-native newsletter.
+   Chromium 133+/Safari 18.2+ only; Firefox falls back to a slightly floated
+   line-box (acceptable — nothing overlaps, text just isn't baseline-pinned). */
+@utility leading-trim {
+  text-box: trim-both cap alphabetic;
+}
+
+/* Divider rules drawn as ZERO-height insets so a 1px line lands exactly ON a
+   grid line without adding to the 32px box math (a real border would push the
+   next line 1px off). The line coincides with the faint grid line and reinforces
+   it — the clean answer to "square grid + full-width rule = double line". */
+@utility wn-rule-t {
+  box-shadow: inset 0 1px 0 0 var(--color-border-strong);
+}
+@utility wn-rule-t-soft {
+  box-shadow: inset 0 1px 0 0 var(--color-border);
+}
+@utility wn-rule-l {
+  box-shadow: inset 1px 0 0 0 var(--color-border);
 }
 
 @utility type-icon-glyph {

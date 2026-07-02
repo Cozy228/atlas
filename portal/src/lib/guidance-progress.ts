@@ -88,6 +88,11 @@ export type GuidanceProgress = {
   completedSteps: ReadonlySet<string>;
   toggleTask: (taskKey: string) => void;
   toggleStep: (stepId: string) => void;
+  /** Set many task/step keys to explicit done states in one write (for cascades). */
+  setProgress: (updates: {
+    tasks?: Record<string, boolean>;
+    steps?: Record<string, boolean>;
+  }) => void;
   reset: () => void;
 };
 
@@ -138,6 +143,30 @@ export function useGuidanceProgress(guidanceId: string): GuidanceProgress {
     [guidanceId],
   );
 
+  const setProgress = useCallback<GuidanceProgress["setProgress"]>(
+    (updates) =>
+      mutate((prev) => {
+        const e = prev[guidanceId] ?? { tasks: [], steps: [] };
+        const apply = (list: string[], changes?: Record<string, boolean>) => {
+          if (!changes) return list;
+          const set = new Set(list);
+          for (const [key, done] of Object.entries(changes)) {
+            if (done) set.add(key);
+            else set.delete(key);
+          }
+          return [...set];
+        };
+        return {
+          ...prev,
+          [guidanceId]: {
+            tasks: apply(e.tasks, updates.tasks),
+            steps: apply(e.steps, updates.steps),
+          },
+        };
+      }),
+    [guidanceId],
+  );
+
   const reset = useCallback(
     () => mutate((prev) => ({ ...prev, [guidanceId]: { tasks: [], steps: [] } })),
     [guidanceId],
@@ -149,6 +178,7 @@ export function useGuidanceProgress(guidanceId: string): GuidanceProgress {
     completedSteps,
     toggleTask,
     toggleStep,
+    setProgress,
     reset,
   };
 }

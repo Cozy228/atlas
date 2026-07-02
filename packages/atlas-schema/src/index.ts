@@ -207,14 +207,114 @@ export const GuidanceActionSchema = z
   })
   .strict();
 
-export const GuidanceTaskSchema = z
-  .object({
-    id: z.string().min(1),
-    title: z.string().min(1),
-    required: z.boolean().optional(),
-    action: GuidanceActionSchema.optional(),
-  })
+/* -------------------------------------------------------------------------- *
+ * Step body — structured content blocks
+ *
+ * A step's optional `body` carries an authored source page's content (prose,
+ * nested lists, typed links, image refs) LOSSLESSLY, as a small closed set of
+ * stepper-native, interactive blocks — NOT a faithful HTML/Confluence document
+ * mirror. Presentation markup (bold/underline, indentation, ids) is dropped;
+ * meaning (headings, paragraphs, list nesting, typed links, image references)
+ * is kept. Additive: store-authored journeys omit `body` and are unaffected.
+ *
+ * A `confluence-page` link is a reference by title/space with no resolvable URL
+ * (Confluence resolves it internally) — surfaced as an honest, non-navigable
+ * reference, never a fabricated link.
+ * -------------------------------------------------------------------------- */
+
+export const GuidanceLinkSchema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("external"), url: z.string().min(1) }).strict(),
+  z.object({ kind: z.literal("email"), address: z.string().min(1) }).strict(),
+  z
+    .object({
+      kind: z.literal("confluence-page"),
+      title: z.string().min(1),
+      space: z.string().min(1).optional(),
+    })
+    .strict(),
+]);
+export type GuidanceLink = z.infer<typeof GuidanceLinkSchema>;
+
+/** An inline run of text, optionally the anchor text of a typed link. */
+export const GuidanceSpanSchema = z
+  .object({ text: z.string().min(1), link: GuidanceLinkSchema.optional() })
   .strict();
+export type GuidanceSpan = z.infer<typeof GuidanceSpanSchema>;
+
+// Recursive block/list-item types are hand-written so the `z.lazy` schemas below
+// can annotate themselves (Zod cannot infer a recursive type on its own).
+export type GuidanceBlock =
+  | { kind: "heading"; text: string }
+  | { kind: "prose"; spans: GuidanceSpan[] }
+  | { kind: "list"; ordered: boolean; items: GuidanceListItem[] }
+  | { kind: "image"; filename: string; alt?: string };
+export type GuidanceListItem = { spans: GuidanceSpan[]; blocks?: GuidanceBlock[] };
+
+/** A list item: its own inline text plus any nested blocks (sub-lists, prose). */
+export const GuidanceListItemSchema: z.ZodType<GuidanceListItem> = z.lazy(() =>
+  z
+    .object({
+      spans: z.array(GuidanceSpanSchema),
+      blocks: z.array(GuidanceBlockSchema).min(1).optional(),
+    })
+    .strict(),
+);
+
+/** A content block in document order (heading, paragraph, list, or image ref). */
+export const GuidanceBlockSchema: z.ZodType<GuidanceBlock> = z.lazy(() =>
+  z.discriminatedUnion("kind", [
+    z.object({ kind: z.literal("heading"), text: z.string().min(1) }).strict(),
+    z.object({ kind: z.literal("prose"), spans: z.array(GuidanceSpanSchema).min(1) }).strict(),
+    z
+      .object({
+        kind: z.literal("list"),
+        ordered: z.boolean(),
+        items: z.array(GuidanceListItemSchema).min(1),
+      })
+      .strict(),
+    z
+      .object({
+        kind: z.literal("image"),
+        filename: z.string().min(1),
+        alt: z.string().min(1).optional(),
+      })
+      .strict(),
+  ]),
+);
+
+// A task can nest checkable sub-tasks (a source list tree), so the type is
+// hand-written and the schema is `z.lazy` — Zod cannot infer a recursive type.
+export type GuidanceTask = {
+  id: string;
+  title: string;
+  required?: boolean;
+  action?: GuidanceAction;
+  group?: string;
+  detail?: GuidanceBlock[];
+  subtasks?: GuidanceTask[];
+};
+
+export const GuidanceTaskSchema: z.ZodType<GuidanceTask> = z.lazy(() =>
+  z
+    .object({
+      id: z.string().min(1),
+      title: z.string().min(1),
+      required: z.boolean().optional(),
+      /** The task's primary action — a verb-rule button (Open / View / Contact /
+       *  Copy). Parsed from a source page's link (typed by href) or authored by
+       *  the store. A Confluence-internal page reference links to a wiki search. */
+      action: GuidanceActionSchema.optional(),
+      /** Sub-header this task sits under within its step (a source page's `<h2>`
+       *  grouping). Consecutive tasks sharing a `group` render under one label. */
+      group: z.string().min(1).optional(),
+      /** The task's own detail — the leaf's non-actionable content (link-less
+       *  sub-lists, further prose, image refs), rendered under the checkbox. */
+      detail: z.array(GuidanceBlockSchema).min(1).optional(),
+      /** Nested checkable sub-tasks mirroring a source list's actionable items. */
+      subtasks: z.array(GuidanceTaskSchema).min(1).optional(),
+    })
+    .strict(),
+);
 
 export const GuidanceStepSchema = z
   .object({
@@ -224,8 +324,18 @@ export const GuidanceStepSchema = z
     /** Why this step matters, shown above the task list. */
     why: z.string().min(1).optional(),
     tasks: z.array(GuidanceTaskSchema).optional(),
+    /** Sub-header groups within the step (a source page's `<h2>`s), carrying the
+     *  intro prose that names each cluster of tasks. Tasks reference a group by
+     *  its `label`; entries here add the group's optional description. */
+    groups: z
+      .array(
+        z.object({ label: z.string().min(1), description: z.string().min(1).optional() }).strict(),
+      )
+      .optional(),
     /** source registry ids cited by this step. */
     sources: z.array(z.string().min(1)).optional(),
+    /** Structured content preserved from an authored source page (see above). */
+    body: z.array(GuidanceBlockSchema).min(1).optional(),
   })
   .strict();
 
@@ -282,7 +392,7 @@ export type ScenarioFamily = z.infer<typeof ScenarioFamilySchema>;
 export type GuidanceStatus = z.infer<typeof GuidanceStatusSchema>;
 export type GuidanceActionType = z.infer<typeof GuidanceActionTypeSchema>;
 export type GuidanceAction = z.infer<typeof GuidanceActionSchema>;
-export type GuidanceTask = z.infer<typeof GuidanceTaskSchema>;
+// GuidanceTask is hand-written (recursive) above, beside its schema.
 export type GuidanceStep = z.infer<typeof GuidanceStepSchema>;
 export type Guidance = z.infer<typeof GuidanceSchema>;
 export type GuidanceResponse = z.infer<typeof GuidanceResponseSchema>;

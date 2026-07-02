@@ -26,6 +26,7 @@ import {
   TaskChecklist,
   completableSteps,
 } from "./shared";
+import { StepBody } from "./step-body";
 
 export function GuidanceDetailLog({
   guidance,
@@ -259,6 +260,7 @@ function Station({
             ) : null}
           </div>
 
+          {step.body && step.body.length > 0 ? <StepBody blocks={step.body} /> : null}
           <TaskChecklist step={step} progress={progress} />
           {step.sources && step.sources.length > 0 ? (
             <EvidenceRows sourceIds={step.sources} sourceMap={sourceMap} />

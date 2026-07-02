@@ -25,8 +25,9 @@ import { policyDocumentResolver } from "./resolvers/policyDocumentResolver";
 import { createResolverRegistry } from "./resolvers/resolverRegistry";
 import { terraformModuleResolver } from "./resolvers/terraformModuleResolver";
 import { defaultResolutionContext, type FetchLike } from "./resolvers/resolverTypes";
+import { withFetchLogging, withResolverLogging } from "./observability/logging";
 import { createConfluenceReferenceDiscovery } from "./sourceContent/confluenceReferenceDiscovery";
-import { createConfluenceGuidanceSource } from "./sourceContent/confluenceGuidanceProvider";
+import { createOnboardingGuidanceSource } from "./sourceContent/confluenceOnboardingProvider";
 import { createConfluenceAvailabilityProvider } from "./sourceContent/confluenceAvailabilityProvider";
 import type { AvailabilityProvider } from "./services/availabilityProvider";
 import type { ResourceReferenceDiscovery } from "./services/resourceReferenceDiscovery";
@@ -34,8 +35,9 @@ import type { ContextService, ContextServiceOptions } from "./services/contextSe
 
 /** Late-bound fetch (re-reads `globalThis.fetch` per call) so the dev/integration
  *  MSW interceptor is always picked up, and prod uses the real fetch (plan 018). */
-const liveFetch: FetchLike = (input, init) =>
-  globalThis.fetch(input, init as RequestInit) as ReturnType<FetchLike>;
+const liveFetch: FetchLike = withFetchLogging(
+  (input, init) => globalThis.fetch(input, init as RequestInit) as ReturnType<FetchLike>,
+);
 
 /** Discovery output — the descriptive facts the registry/resources derive from. */
 type Discovered = { services: DiscoveredService[]; guardrails: DiscoveredGuardrail[] };
@@ -133,23 +135,24 @@ function createReferenceDiscoveryFromEnv(
 }
 
 /**
- * One source of guidance: the journeys authored as Confluence pages, addressed
- * by configured page id over the shared Confluence channel (today: the
- * onboarding journey, `CONFLUENCE_GUIDANCE_ONBOARDING_PAGE_ID`). Returns `[]`
- * when the channel is unconfigured — an honest empty result the portal loader
- * merges with the guidance store, never a fabricated in-code fixture.
+ * One source of guidance: the onboarding journey authored as a Confluence page,
+ * addressed by `CONFLUENCE_GUIDANCE_ONBOARDING_PAGE_ID` over the shared Confluence
+ * channel. Its `<h1>` sections are parsed into a stepper journey whose steps carry
+ * the page's content (see `confluenceOnboardingProvider`). Returns `[]` when the
+ * channel is unconfigured — an honest empty result the portal loader merges with
+ * the guidance store, never a fabricated in-code fixture.
  */
 export async function loadConfluenceGuidance(
   env: Record<string, string | undefined> = readProcessEnv(),
 ): Promise<Guidance[]> {
   const baseUrl = env.CONFLUENCE_BASE_URL;
   const token = env.CONFLUENCE_TOKEN;
-  const pageIds = [env.CONFLUENCE_GUIDANCE_ONBOARDING_PAGE_ID].filter((id): id is string => !!id);
-  if (!baseUrl || !token || pageIds.length === 0) {
+  const pageId = env.CONFLUENCE_GUIDANCE_ONBOARDING_PAGE_ID;
+  if (!baseUrl || !token || !pageId) {
     return [];
   }
-  return createConfluenceGuidanceSource(
-    { baseUrl, token, email: env.CONFLUENCE_EMAIL, pageIds },
+  return createOnboardingGuidanceSource(
+    { baseUrl, token, email: env.CONFLUENCE_EMAIL, pageId },
     { fetch: liveFetch },
   ).load();
 }
@@ -197,12 +200,14 @@ export async function createDefaultContextService(
 
   return {
     registry,
-    resolvers: createResolverRegistry([
-      terraformModuleResolver,
-      confluencePageResolver,
-      policyDocumentResolver,
-      availabilityMatrixResolver,
-    ]),
+    resolvers: createResolverRegistry(
+      [
+        terraformModuleResolver,
+        confluencePageResolver,
+        policyDocumentResolver,
+        availabilityMatrixResolver,
+      ].map(withResolverLogging),
+    ),
     availabilityProvider,
     referenceDiscovery: options.referenceDiscovery ?? createReferenceDiscoveryFromEnv(env),
     resources,

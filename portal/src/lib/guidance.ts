@@ -9,6 +9,8 @@
  * array into these helpers. No user progress is tracked; step status is computed
  * from the definition and the currently selected step only.
  */
+import type { GuidanceBlock } from "@atlas/schema";
+
 export type ScenarioFamily = "onboard" | "decide" | "enable" | "validate";
 
 export type StepStatus = "available" | "selected";
@@ -39,6 +41,12 @@ export type GuidanceTask = {
   title: string;
   required?: boolean;
   action?: GuidanceAction;
+  /** The `<h2>` sub-header this task groups under within its step (see @atlas/schema). */
+  group?: string;
+  /** The task's non-actionable detail (link-less sub-lists, prose, images). */
+  detail?: ReadonlyArray<GuidanceBlock>;
+  /** Nested checkable sub-tasks, mirroring a source list's actionable items. */
+  subtasks?: ReadonlyArray<GuidanceTask>;
 };
 
 export type GuidanceStep = {
@@ -48,8 +56,12 @@ export type GuidanceStep = {
   /** Why this step matters, shown above the task list. */
   why?: string;
   tasks?: ReadonlyArray<GuidanceTask>;
+  /** `<h2>` sub-header groups within the step, carrying each cluster's description. */
+  groups?: ReadonlyArray<{ label: string; description?: string }>;
   /** source registry ids cited by this step. */
   sources?: ReadonlyArray<string>;
+  /** Structured content preserved from an authored source page (see @atlas/schema). */
+  body?: ReadonlyArray<GuidanceBlock>;
 };
 
 export type Guidance = {

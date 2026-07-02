@@ -316,6 +316,10 @@ function ResourceWorkspace({
       }
       if (domains.size && (!resource.category || !domains.has(resource.category))) return false;
       if (isService) {
+        // Scope services to the current LZ's cloud (a service slug is
+        // `{provider}/{id}`), so e.g. azure services don't surface under an aws
+        // zone until per-surface LZ scope (plan 023) filters at the source.
+        if (resource.slug.split("/")[0] !== zone.cloud) return false;
         const service = serviceBySlug.get(resource.slug) ?? null;
         if (region !== "all") {
           const cell = service?.availability[region]?.status;
@@ -327,7 +331,17 @@ function ResourceWorkspace({
       }
       return true;
     });
-  }, [resources, deferredQuery, domains, status, region, isService, serviceBySlug, zone.locations]);
+  }, [
+    resources,
+    deferredQuery,
+    domains,
+    status,
+    region,
+    isService,
+    serviceBySlug,
+    zone.locations,
+    zone.cloud,
+  ]);
 
   const domainOptions = useMemo(() => buildDomainOptions(resources), [resources]);
   const statusOptions = useMemo<ReadonlyArray<StatusOption>>(
@@ -887,7 +901,7 @@ function groupByCategory(resources: ReadonlyArray<CatalogResource>) {
 function CategoryHeader({ category, count }: { category: string; count: number }) {
   return (
     <div className="inline-flex items-center gap-2.5">
-      <h2 className="w-fit bg-background font-mono text-xs font-semibold uppercase tracking-[0.06em] text-muted-foreground">
+      <h2 className="w-fit bg-background font-mono type-detail font-bold uppercase tracking-[0.08em] text-foreground">
         {category}
       </h2>
       <span className="rounded-full border border-border bg-secondary px-1.5 py-px font-mono text-[11px] font-semibold text-muted-foreground">

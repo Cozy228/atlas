@@ -277,7 +277,7 @@ function RegionsContent() {
         actions={<LastFetchChip updatedAt={dataUpdatedAt} />}
       />
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px] xl:items-start">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px] xl:gap-8 xl:items-start">
         <div className="flex min-w-0 flex-col gap-4">
           <RegionGroups
             locations={locations}
@@ -611,7 +611,7 @@ function AvailabilitySkeleton() {
         actions={<Skeleton className="h-9 w-[132px] rounded-lg" />}
       />
       <div aria-busy aria-label="Loading availability" className="flex flex-col gap-4">
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px] xl:items-start">
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px] xl:gap-8 xl:items-start">
           <div className="flex min-w-0 flex-col gap-4">
             <Skeleton className="h-[72px] w-full rounded-lg" />
             <Skeleton className="h-[260px] w-full rounded-xl" />

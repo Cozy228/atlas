@@ -1,10 +1,10 @@
 /**
  * Guidance manifest gate (schema-package unit tier) — exercises the
  * `validateGuidanceDocument` / `validateGuidanceManifest` logic directly. The
- * gate over the actual guidance source-of-truth (the MSW-served manifests, plan
- * 018 G6) lives in `@atlas/context-layer` (`devMocks/guidanceFixture.test.ts`,
- * run by `pnpm validate:guidance`), where the fixture is importable — this
- * package cannot depend on context-layer.
+ * gate over the actual guidance source-of-truth (the MSW-served onboarding page
+ * + store manifests) lives in `@atlas/context-layer`
+ * (`devMocks/onboardingGuidance.test.ts`, run by `pnpm validate:guidance`), where
+ * the fixture is importable — this package cannot depend on context-layer.
  */
 import { describe, expect, it } from "vitest";
 import { validateGuidanceManifest, validateGuidanceDocument } from "./index";

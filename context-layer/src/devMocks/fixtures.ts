@@ -304,9 +304,9 @@ export const CONFLUENCE_PAGES: Record<string, ConfluencePageFixture> = {
     body: { storage: { value: renderAvailabilityPageStorage() } },
     _links: { webui: "/spaces/CLOUD/pages/200001/AWS+Foundation+Availability" },
   },
-  // Guidance journeys authored as Confluence pages (under the GUIDE space). The
-  // live `confluenceGuidanceProvider` crawls the space and parses each page; the
-  // space-listing handler recalls them by their `/spaces/GUIDE/` webui.
+  // The onboarding journey authored as a Confluence page (under the GUIDE space).
+  // The live `confluenceOnboardingProvider` fetches it by id and parses the real
+  // page shape (`<h1>` sections) into a stepper journey.
   ...DEV_GUIDANCE_PAGES,
 };
 

@@ -20,7 +20,7 @@
     "lint": "oxlint",
     "typecheck": "tsc --noEmit --pretty false",
     "test": "vitest run --exclude \"scripts/*.debug.test.ts\"",
-    "validate:guidance": "vitest run guidanceFixture"
+    "validate:guidance": "vitest run onboardingGuidance"
   },
   "dependencies": {
     "@atlas/schema": "workspace:*",

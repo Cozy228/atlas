@@ -44,6 +44,25 @@ export default defineConfig(({ command }) => ({
       "@": fileURLToPath(new URL("./src", import.meta.url)),
     },
   },
+  // Pre-bundle the heavy barrels at dev-server startup instead of on-demand.
+  // Without this, the first navigation to a route that pulls one of these (e.g.
+  // `/availability` importing `@tabler/icons-react` across ~50 files) triggers a
+  // mid-navigation dep re-optimize + full reload — the 1–2s "frozen on the old
+  // page before the skeleton shows" stall. Paid once at boot instead.
+  optimizeDeps: {
+    include: [
+      "@tabler/icons-react",
+      "@tanstack/react-table",
+      // Bare package name is enough: Vite's dep scanner follows the reachable
+      // deep `aws-react-icons/icons/*` subpath imports and pre-bundles them too,
+      // since AWS is the default landing zone (warmed on the /availability cold
+      // path). `azure-react-icons` is intentionally NOT listed — its icons live
+      // behind a lazy Azure-zone route, unreachable at startup scan, and
+      // `optimizeDeps.include` does not support `/*` globs, so it just optimizes
+      // once on first Azure-zone visit (then cached).
+      "aws-react-icons",
+    ],
+  },
   plugins: [
     tanstackStart({
       router: {

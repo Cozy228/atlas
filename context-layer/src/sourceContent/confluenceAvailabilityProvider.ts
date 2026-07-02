@@ -204,11 +204,17 @@ function parseMatrixTable(
     if (cells.length === 0) {
       continue;
     }
-    if (cells.length === 1) {
-      domain = cleanSectionTitle(cells[0]!.text);
+    // The Landing Zones row also leads with an <h2>, so classify it before the
+    // heading check below — otherwise it would be read as a domain section.
+    if (/landing zones/i.test(cells[0]!.text)) {
       continue;
     }
-    if (/landing zones/i.test(cells[0]!.text)) {
+    // A domain-section header: either a lone colspan cell, or a full row whose
+    // first cell is an <h2> heading with the remaining cells left blank (the real
+    // page's shape — NOT colspan). A service row carries its name in a <p>/link,
+    // never a heading, so this never swallows a service.
+    if (cells.length === 1 || isHeadingCell(cells[0]!)) {
+      domain = cleanSectionTitle(cells[0]!.text);
       continue;
     }
     const name = serviceName(cells[0]!);
@@ -247,9 +253,15 @@ function parseLocationLabel(text: string, kind: LocationKind): Location | undefi
   return { id: slug(label), label, sub, kind };
 }
 
-/** Drop the leading "■ " swatch (and stray whitespace) from a section header. */
+/** A section-header cell leads with an <h1>–<h6> heading; a service cell uses a
+ *  <p>/link. This is what tells a "Containers" section row from a service row. */
+function isHeadingCell(cell: HTMLElement): boolean {
+  return cell.querySelector("h1, h2, h3, h4, h5, h6") != null;
+}
+
+/** Drop a leading swatch/emoji ("■", "🔵", &nbsp;) up to the first word char. */
 function cleanSectionTitle(text: string): string {
-  return text.replace(/^[■\s]+/, "").trim();
+  return text.replace(/^[^\p{L}\p{N}]+/u, "").trim();
 }
 
 /** The service's display name: the `<ac:link-body>` text, else the cell text. */

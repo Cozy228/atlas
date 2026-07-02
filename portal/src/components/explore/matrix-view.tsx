@@ -8,12 +8,13 @@ import {
 } from "@tanstack/react-table";
 import { AnimatePresence, LazyMotion, domAnimation, m } from "motion/react";
 import { IconArrowUpRight, IconChevronDown } from "@tabler/icons-react";
+import { Link } from "@tanstack/react-router";
 
 import type { AvailabilityRecord, Location } from "@/api/server/availability";
 import { ServiceIcon } from "@/components/explore/service-icon";
 import type { ServiceIconProvider } from "@/components/explore/service-icon";
 import { StatusDot } from "@/components/explore/status-dot";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { AvailabilityRow, AvailabilityRowGroup } from "@/lib/availability-row-model";
 import { cn } from "@/lib/utils";
@@ -125,6 +126,7 @@ export function MatrixView({
             <DomainRows
               key={group.domain}
               domain={group.domain}
+              provider={provider}
               rows={group.rowIds.map((id) => tableRowsById.get(id)).filter(isTableRow)}
               locations={locations}
               selectedServiceId={selectedServiceId}
@@ -143,6 +145,7 @@ export function MatrixView({
 
 function DomainRows({
   domain,
+  provider,
   rows,
   locations,
   selectedServiceId,
@@ -153,6 +156,7 @@ function DomainRows({
   hasActiveCol,
 }: {
   domain: string;
+  provider: ServiceIconProvider;
   rows: ReadonlyArray<Row<AvailabilityRow>>;
   locations: ReadonlyArray<Location>;
   selectedServiceId: string | null;
@@ -168,8 +172,10 @@ function DomainRows({
         <TableCell
           colSpan={totalCols}
           className={cn(
-            "border-b border-border px-3 py-2.5",
-            "font-mono text-xs font-bold uppercase tracking-[0.04em] text-muted-foreground",
+            // Section band: a filled tier break so the domain reads a level up
+            // from the service rows — heavier by weight + band, not by font size.
+            "border-y border-border bg-muted/60 px-3 py-2.5",
+            "font-mono text-xs font-bold uppercase tracking-[0.08em] text-foreground",
           )}
         >
           {domain}
@@ -179,6 +185,7 @@ function DomainRows({
         <MatrixRow
           key={row.original.id}
           row={row}
+          provider={provider}
           isSelected={row.original.id === selectedServiceId}
           locations={locations}
           onSelect={onSelect}
@@ -202,6 +209,7 @@ function DomainRows({
  */
 function MatrixRow({
   row,
+  provider,
   isSelected,
   locations,
   onSelect,
@@ -211,6 +219,7 @@ function MatrixRow({
   hasActiveCol,
 }: {
   row: Row<AvailabilityRow>;
+  provider: ServiceIconProvider;
   isSelected: boolean;
   locations: ReadonlyArray<Location>;
   onSelect: (id: string) => void;
@@ -246,7 +255,12 @@ function MatrixRow({
       </TableRow>
       <AnimatePresence initial={false}>
         {isSelected ? (
-          <MatrixExpandRow service={service} locations={locations} totalCols={totalCols} />
+          <MatrixExpandRow
+            service={service}
+            provider={provider}
+            locations={locations}
+            totalCols={totalCols}
+          />
         ) : null}
       </AnimatePresence>
     </>
@@ -304,9 +318,10 @@ function matrixHeadClass(columnId: string, activeLocationId: string | null) {
   const isServiceColumn = columnId === "service";
   const isActive = columnId === activeLocationId;
   return cn(
-    // Header pins just below the 56px top bar.
-    "sticky top-14 z-20 border-b border-border bg-background",
-    "font-mono text-xs font-bold uppercase tracking-[0.04em] text-muted-foreground",
+    // Header pins just below the 56px top bar; a heavier rule + darker labels
+    // anchor it as the top tier above the domain bands.
+    "sticky top-14 z-20 border-b-2 border-border bg-background",
+    "font-mono text-xs font-bold uppercase tracking-[0.04em] text-foreground/70",
     isServiceColumn && "px-3 py-2.5 text-left",
     !isServiceColumn && "cursor-pointer select-none px-2 py-2 align-bottom transition-colors",
     isActive && "bg-brand-tint text-primary",
@@ -336,10 +351,12 @@ function matrixCellClass(
 
 function MatrixExpandRow({
   service,
+  provider,
   locations,
   totalCols,
 }: {
   service: AvailabilityRecord;
+  provider: ServiceIconProvider;
   locations: ReadonlyArray<Location>;
   totalCols: number;
 }) {
@@ -372,30 +389,18 @@ function MatrixExpandRow({
             ) : (
               <span className="font-mono text-xs text-muted-foreground">{service.name}</span>
             )}
-            <span className="flex flex-wrap items-center gap-1">
-              <MatrixAction primary>Open catalog</MatrixAction>
-              <MatrixAction>User guide</MatrixAction>
-              <MatrixAction>Onboarding</MatrixAction>
-              <MatrixAction>Support</MatrixAction>
-            </span>
+            <Link
+              to="/service/$provider/$id"
+              params={{ provider, id: service.id }}
+              onClick={(event) => event.stopPropagation()}
+              className={cn(buttonVariants({ variant: "default", size: "xs" }), "font-mono")}
+            >
+              Open catalog
+              <IconArrowUpRight aria-hidden className="size-3" />
+            </Link>
           </div>
         </td>
       </m.tr>
     </LazyMotion>
-  );
-}
-
-function MatrixAction({ children, primary }: { children: React.ReactNode; primary?: boolean }) {
-  return (
-    <Button
-      type="button"
-      onClick={(event) => event.stopPropagation()}
-      variant={primary ? "default" : "outline"}
-      size="xs"
-      className="font-mono"
-    >
-      {children}
-      {primary ? <IconArrowUpRight aria-hidden className="size-3" /> : null}
-    </Button>
   );
 }

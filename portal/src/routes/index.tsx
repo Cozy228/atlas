@@ -14,7 +14,11 @@
  */
 import { createFileRoute } from "@tanstack/react-router";
 
-import { availabilityQueryOptions, announcementsQueryOptions } from "@/api/queries";
+import {
+  announcementsQueryOptions,
+  availabilityQueryOptions,
+  resourceCatalogQueryOptions,
+} from "@/api/queries";
 import { deferUnlessCached } from "@/lib/deferred-cache";
 import { DOMAIN_BLURBS } from "@/components/catalog/data";
 import { HomeWelcome } from "@/components/home/welcome";
@@ -34,6 +38,11 @@ function slugifyDomain(domain: string): string {
 
 export const Route = createFileRoute("/")({
   loader: ({ context }): HomeLoaderData => {
+    // Prewarm the discovery catalog in the background (fire-and-forget, never
+    // awaited) so /catalog paints from a warm cache after a hop from home.
+    // Availability is already prewarmed below via the hero stats read.
+    void context.queryClient.prefetchQuery(resourceCatalogQueryOptions);
+
     // Deferred (a live newsletter feed in the real adapter): the What's-new ticker.
     // Skeleton only on a cache MISS (first fetch pays the dev latency); a revisit
     // reads the warm cache and resolves synchronously — no skeleton flash.

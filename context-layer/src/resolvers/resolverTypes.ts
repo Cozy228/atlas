@@ -1,4 +1,5 @@
 import type { Source, SourceClass } from "@atlas/schema";
+import { withFetchLogging } from "../observability/logging";
 
 export type ResolvedExcerpt = {
   anchor_id?: string;
@@ -84,7 +85,9 @@ export type ResolutionContext = {
 export function defaultResolutionContext(): ResolutionContext {
   return {
     token: undefined,
-    fetch: (input, init) => globalThis.fetch(input, init as RequestInit) as ReturnType<FetchLike>,
+    fetch: withFetchLogging(
+      (input, init) => globalThis.fetch(input, init as RequestInit) as ReturnType<FetchLike>,
+    ),
   };
 }
 

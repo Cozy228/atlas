@@ -202,11 +202,20 @@ function renderMatrix(
   for (const service of services) {
     if (service.domain !== domain) {
       domain = service.domain;
+      // Real page shape: the domain heading sits in the first cell, the remaining
+      // location cells are left blank (NOT a colspan) — all band-highlighted.
       body +=
-        `<tr><td data-highlight-colour="#e6fcff" colspan="${colspan}">` +
+        `<tr><td data-highlight-colour="#e6fcff">` +
         `<h2><strong><span style="color: rgb(7, 71, 166)">■ </span><span>${escapeHtml(
           domain,
-        )}</span></strong></h2></td></tr>`;
+        )}</span></strong></h2></td>` +
+        cols
+          .map(
+            () =>
+              `<td data-highlight-colour="#e6fcff"><p style="text-align: center">&nbsp;</p></td>`,
+          )
+          .join("") +
+        `</tr>`;
     }
     body +=
       `<tr>${serviceCell(service.name)}` +

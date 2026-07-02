@@ -86,4 +86,27 @@ describe("parseAvailabilityPage — real Confluence page shape", () => {
     expect(ec2.availability["us-east-1"]).toEqual({ status: "available" });
     expect(ec2.availability.gdc).toEqual({ status: "planned", note: "05/30/2026" });
   });
+
+  it("treats a real non-colspan <h2> section row (heading + blank cells) as a domain, not a service", () => {
+    // The real page marks a domain section as an <h2> in the first cell with the
+    // remaining location cells left blank (NOT a colspan) — the shape that used to
+    // be misread as a service named "Containers".
+    const html =
+      LEGEND +
+      `<table><tbody>` +
+      `<tr><td>🖥️ Outposts</td><td>GDC (Primary Outpost)</td><td>DC16 (DR Outpost)</td></tr>` +
+      `<tr>` +
+      `<td data-highlight-colour="#e6fcff"><h2><strong>🔵 Containers</strong></h2></td>` +
+      `<td data-highlight-colour="#e6fcff"><p style="text-align: center">&nbsp;</p></td>` +
+      `<td data-highlight-colour="#e6fcff"><p style="text-align: center">&nbsp;</p></td>` +
+      `</tr>` +
+      svcRow("<ac:link-body>ECS Fargate</ac:link-body>", TICK, "") +
+      `</tbody></table>`;
+
+    const { services } = parseAvailabilityPage(html);
+
+    expect(services.map((s) => s.id)).toEqual(["ecs-fargate"]);
+    expect(services.find((s) => s.name.includes("Containers"))).toBeUndefined();
+    expect(services[0]!.domain).toBe("Containers");
+  });
 });
