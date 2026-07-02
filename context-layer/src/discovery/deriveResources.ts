@@ -48,26 +48,28 @@ function deriveServiceRecord(service: DiscoveredService): ResourceContextRecord 
   const rules = SECTION_RULES.service;
   const sections: Record<string, ResourceSectionBinding[]> = {};
 
-  // Heading-located sections: one heading → at most one section, by rule priority.
-  if (service.module) {
-    const tfRules = Object.entries(rules).filter(
-      (entry): entry is [SectionId, TerraformRule] => entry[1]?.from === "terraform-module",
-    );
+  // Heading-located sections, accumulated ACROSS every module the service has.
+  // Within one module a heading is claimed by at most one section (rule priority);
+  // across modules the section collects one binding per contributing module (so a
+  // multi-module service lists each module's network/examples section, in order).
+  const tfRules = Object.entries(rules).filter(
+    (entry): entry is [SectionId, TerraformRule] => entry[1]?.from === "terraform-module",
+  );
+  for (const module of service.modules) {
     const bound = new Set<string>();
-    for (const heading of service.module.headings) {
+    for (const heading of module.headings) {
       for (const [sectionId, rule] of tfRules) {
         if (bound.has(sectionId)) {
           continue;
         }
         if (rule.headingPattern.test(heading)) {
-          sections[sectionId] = [
-            {
-              source_id: service.module.sourceId,
-              heading,
-              citation_label: heading,
-              order: 10,
-            },
-          ];
+          const existing = sections[sectionId] ?? (sections[sectionId] = []);
+          existing.push({
+            source_id: module.sourceId,
+            heading,
+            citation_label: heading,
+            order: 10 * (existing.length + 1),
+          });
           bound.add(sectionId);
           break; // this heading is consumed by the first matching section
         }
@@ -93,12 +95,15 @@ function deriveServiceRecord(service: DiscoveredService): ResourceContextRecord 
 
   // Presentation metadata (plan 018 G5): only what discovery can honestly back —
   // `category` from the availability domain, a default `status`, a `description`
-  // from the module README's lead paragraph (when a module was found), and ONE
-  // entry tool. `owner_team`/`support_channel` are not discoverable, so they stay
-  // unset (honest gap, never fabricated); a module-less service also has no
-  // `description`.
-  const entryTools = service.module ? [moduleEntryTool(service.module.address)] : undefined;
-  const description = service.module?.summary;
+  // from the FIRST module README's lead paragraph, and ONE entry tool per module.
+  // `owner_team`/`support_channel` are not discoverable, so they stay unset (honest
+  // gap, never fabricated); a module-less service has no entry tools / description.
+  const multiModule = service.modules.length > 1;
+  const entryTools =
+    service.modules.length > 0
+      ? service.modules.map((module) => moduleEntryTool(module, multiModule))
+      : undefined;
+  const description = service.modules.find((module) => module.summary)?.summary;
 
   return {
     kind: "service",
@@ -115,14 +120,18 @@ function deriveServiceRecord(service: DiscoveredService): ResourceContextRecord 
 }
 
 /**
- * The single entry tool a module-backed service exposes: a link to its Terraform
- * module on the registry. The URL is a public-safe, fictional registry address
- * built from the host-less module address (`example/<id>/<provider>`).
+ * One entry tool per Terraform module a service exposes: a link to the module on
+ * the registry. The URL is built from the host-less module address
+ * (`<namespace>/<name>/<provider>`). With a single module the label stays the plain
+ * "Terraform module"; a multi-module service disambiguates by the module name.
  */
-function moduleEntryTool(address: string): EntryTool {
+function moduleEntryTool(
+  module: { name: string; address: string },
+  multiModule: boolean,
+): EntryTool {
   return {
-    label: "Terraform module",
-    url: `https://app.terraform.io/example/registry/modules/${address}`,
+    label: multiModule ? `Terraform module: ${module.name}` : "Terraform module",
+    url: `https://app.terraform.io/example/registry/modules/${module.address}`,
   };
 }
 
@@ -134,22 +143,26 @@ function moduleEntryTool(address: string): EntryTool {
 export function deriveServiceSourceRecords(discovered: DiscoveredService[]): Source[] {
   const sources: Source[] = [];
   for (const service of discovered) {
-    if (!service.module) {
-      continue;
+    const multiModule = service.modules.length > 1;
+    for (const module of service.modules) {
+      sources.push({
+        id: module.sourceId,
+        // A single-module service names the source after the service; a multi-module
+        // service names each after its module so the sources stay distinguishable.
+        title: multiModule
+          ? `${service.identity.name} — ${module.name} Terraform Module`
+          : `${service.identity.name} Terraform Module`,
+        source_class: "terraform-module",
+        location: module.address,
+        category: service.domain,
+        visibility: "internal",
+        authority_scope: ["module-usage"],
+        authority_level: "authoritative",
+        last_observed_at: FIXED_OBSERVED_AT,
+        last_reviewed_at: FIXED_REVIEWED_AT,
+        review_frequency: REVIEW_FREQUENCY,
+      });
     }
-    sources.push({
-      id: service.module.sourceId,
-      title: `${service.identity.name} Terraform Module`,
-      source_class: "terraform-module",
-      location: service.module.address,
-      category: service.domain,
-      visibility: "internal",
-      authority_scope: ["module-usage"],
-      authority_level: "authoritative",
-      last_observed_at: FIXED_OBSERVED_AT,
-      last_reviewed_at: FIXED_REVIEWED_AT,
-      review_frequency: REVIEW_FREQUENCY,
-    });
   }
   sources.push({
     id: AVAILABILITY_MATRIX_SOURCE_ID,

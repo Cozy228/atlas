@@ -53,10 +53,11 @@ let discoveryCache: { key: string; promise: Promise<Discovered> } | undefined;
 
 /**
  * Parse the explicit service→module map (`TERRAFORM_MODULE_MAP`, a JSON object of
- * `identity.key` → module name). Malformed / non-object JSON is an honest empty map
- * (no modules bound), never a thrown discovery pass.
+ * `identity.key` → module name(s)). A value may be a single module name or a list
+ * (a service can have several modules); both normalize to a string list. Malformed
+ * / non-object JSON is an honest empty map (no modules bound), never a throw.
  */
-function parseModuleMap(raw: string | undefined): Record<string, string> {
+function parseModuleMap(raw: string | undefined): Record<string, string[]> {
   if (!raw) {
     return {};
   }
@@ -65,10 +66,13 @@ function parseModuleMap(raw: string | undefined): Record<string, string> {
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
       return {};
     }
-    const map: Record<string, string> = {};
+    const map: Record<string, string[]> = {};
     for (const [key, value] of Object.entries(parsed)) {
-      if (typeof value === "string" && value.length > 0) {
-        map[key] = value;
+      const names = (Array.isArray(value) ? value : [value]).filter(
+        (name): name is string => typeof name === "string" && name.length > 0,
+      );
+      if (names.length > 0) {
+        map[key] = names;
       }
     }
     return map;

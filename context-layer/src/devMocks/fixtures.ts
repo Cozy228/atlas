@@ -710,15 +710,16 @@ export const TERRAFORM_MODULES: Record<string, TerraformModuleFixture> = {
 export const DEV_TERRAFORM_ORG = "example";
 
 /**
- * Dev service→module map (`identity.key` → module name) derived from the fixture
- * addresses so it stays in sync with `TERRAFORM_MODULES`. In dev the module name
- * equals the service id and the provider is the cloud, so `example/<name>/<provider>`
- * yields `{ "<provider>/<name>": "<name>" }` — the explicit map prod injects via
- * `TERRAFORM_MODULE_MAP`, mirrored here for the zero-config mock spine.
+ * Dev service→module map (`identity.key` → module name LIST) derived from the
+ * fixture addresses so it stays in sync with `TERRAFORM_MODULES`. In dev the module
+ * name equals the service id and the provider is the cloud, so `example/<name>/<provider>`
+ * yields `{ "<provider>/<name>": ["<name>"] }` — the explicit map prod injects via
+ * `TERRAFORM_MODULE_MAP` (values are lists; a service can have several modules),
+ * mirrored here for the zero-config mock spine (each service has one).
  */
-export const DEV_TERRAFORM_MODULE_MAP: Record<string, string> = Object.fromEntries(
+export const DEV_TERRAFORM_MODULE_MAP: Record<string, string[]> = Object.fromEntries(
   Object.keys(TERRAFORM_MODULES).map((address) => {
     const [, name, provider] = address.split("/");
-    return [`${provider}/${name}`, name];
+    return [`${provider}/${name}`, [name]];
   }),
 );
