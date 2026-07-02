@@ -62,7 +62,22 @@ export default defineConfig(({ command }) => ({
       // once on first Azure-zone visit (then cached).
       "aws-react-icons",
     ],
+    // GLIDE's platform-native `.node` package can't be pre-bundled by the dev
+    // depOptimizer (UNLOADABLE_DEPENDENCY: "stream did not contain valid UTF-8").
+    // It's a server-only cache dep, reached via the static import in
+    // context-layer's `valkeyContentCache`; exclude it so the scanner never
+    // follows the native family. The prod build already externalizes it in
+    // `build.rolldownOptions.external`.
+    exclude: ["@valkey/valkey-glide"],
   },
+  // DEV ONLY: keep GLIDE out of Vite's SSR transform so `vite serve` (and the dev
+  // MSW mocks) can boot — let Node require the native binary at runtime. Must NOT
+  // apply to the prod BUILD: there rolldown BUNDLES the JS entry and externalizes
+  // only the native `.node` family (`build.rolldownOptions.external`); externalizing
+  // the JS entry there fails to resolve. String names only — this Vite/rolldown
+  // rejects regex on `ssr.external`; the entry alone is enough since its internal
+  // `require('@valkey/valkey-glide-<platform>')` then also resolves through Node.
+  ...(command === "serve" ? { ssr: { external: ["@valkey/valkey-glide"] } } : {}),
   plugins: [
     tanstackStart({
       router: {
