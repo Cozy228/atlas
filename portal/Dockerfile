@@ -35,12 +35,26 @@ RUN pnpm --filter @atlas/portal build
 
 FROM node:${NODE_VERSION}-bookworm-slim AS runtime
 
+# Valkey client (GLIDE) version — keep in sync with @valkey/valkey-glide in
+# context-layer/package.json.
+ARG GLIDE_VERSION=2.4.2
+
 ENV NODE_ENV=production
 ENV PORT=8080
 
 WORKDIR /app
 
 COPY --from=builder /app/portal/.output ./.output
+
+# GLIDE's platform-native `.node` package is externalized from the server bundle
+# (portal/vite.config.ts); the bundled client `require`s it at runtime. Copy the
+# linux-x64-gnu build resolved during `pnpm install` — the image targets
+# linux/amd64 (ECS Fargate default), matching the CI build platform. GLIDE only
+# loads when CACHE_VALKEY_URL is set; without this the cache would degrade to the
+# in-memory fallback.
+COPY --from=deps \
+  /app/node_modules/.pnpm/@valkey+valkey-glide-linux-x64-gnu@${GLIDE_VERSION}/node_modules/@valkey/valkey-glide-linux-x64-gnu \
+  ./node_modules/@valkey/valkey-glide-linux-x64-gnu
 
 EXPOSE 8080
 

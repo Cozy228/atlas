@@ -101,6 +101,13 @@ export default defineConfig(({ command }) => ({
     // re-bundle pass (UNRESOLVED_IMPORT on importmap-driven SSR chunks).
     // Re-enable if/when nitro/vite resolves importmap chunks.
     rolldownOptions: {
+      // GLIDE's pure-JS entry bundles fine, but its platform-native `.node`
+      // packages (`@valkey/valkey-glide-<platform>`, required at runtime by the
+      // client's platform switch) cannot be inlined (UNLOADABLE_DEPENDENCY).
+      // Externalize only that native family (note the trailing `-`): the JS
+      // entry + long + protobufjs get bundled, and only the single matching
+      // `.node` package needs to be present at runtime. Server-only path.
+      external: [/^@valkey\/valkey-glide-/],
       output: {
         codeSplitting: {
           groups: portalCodeSplittingGroups,

@@ -8,6 +8,9 @@ allowBuilds:
   # MSW's postinstall only copies the browser Service Worker; we use Node mode
   # (msw/node) for dev/integration source-system mocking, so the build is skipped.
   msw: false
+  # GLIDE (@valkey/valkey-glide) pulls protobufjs; its postinstall only patches
+  # the CLI (pbjs/pbts) and is not needed for the runtime API GLIDE uses.
+  protobufjs: false
 
 minimumReleaseAgeExclude:
   - vite@8.1.0

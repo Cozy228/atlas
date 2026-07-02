@@ -1,17 +1,21 @@
+import { GlideClient, TimeUnit } from "@valkey/valkey-glide";
+
 import type { CachedResponse, SourceContentCache } from "./sourceContentCache";
 
 /**
  * ElastiCache (Valkey) adapter for {@link SourceContentCache}
- * (docs/architecture/source-content-cache.md). Active only when
- * `CACHE_VALKEY_URL` is set; `@valkey/valkey-glide` is an OPTIONAL
- * dependency imported lazily, so the default install never pulls a Valkey
- * client (nor its platform-native binaries).
+ * (docs/architecture/source-content-cache.md). Selected only when
+ * `CACHE_VALKEY_URL` is set. `@valkey/valkey-glide` is a hard dependency,
+ * statically imported so the bundler traces it (and its platform-native
+ * binary) into the server output. A backend outage is not handled here — the
+ * adapter throws, and `ResilientContentCache` degrades to the in-memory
+ * fallback one layer up.
  */
 
 /** A GLIDE `get` yields a string or Buffer (GlideString), or null on miss. */
 type GlideString = string | { toString(): string };
 
-/** The slice of the GLIDE `GlideClient` this adapter uses. */
+/** The slice of the GLIDE client this adapter uses (also the injectable test shape). */
 type GlideClientLike = {
   get(key: string): Promise<GlideString | null>;
   set(
@@ -22,23 +26,12 @@ type GlideClientLike = {
   close(): void;
 };
 
-/** The lazily-imported slice of `@valkey/valkey-glide`. */
-type GlideModule = {
-  GlideClient: {
-    createClient(config: {
-      addresses: { host: string; port: number }[];
-      useTLS: boolean;
-    }): Promise<GlideClientLike>;
-  };
-  TimeUnit: { Seconds: unknown };
-};
-
 export type ValkeyContentCacheInput = {
   /** `rediss://host:6379` — `rediss://` enables TLS (required by ElastiCache). */
   url: string;
-  /** Injectable for tests; production constructs a GLIDE client lazily. */
+  /** Injectable for tests; production constructs a GLIDE client on first use. */
   client?: GlideClientLike;
-  /** Injectable for tests; production reads it off the lazy GLIDE import. */
+  /** Injectable for tests; production defaults to GLIDE's seconds TimeUnit. */
   secondsUnit?: unknown;
 };
 
@@ -78,24 +71,12 @@ export class ValkeyContentCache implements SourceContentCache {
     if (this.client) {
       return this.client;
     }
-    // Non-literal specifier: `@valkey/valkey-glide` is optional and may be
-    // absent, so this must not be a statically resolved import.
-    const specifier = "@valkey/valkey-glide";
-    let mod: GlideModule;
-    try {
-      mod = (await import(specifier)) as GlideModule;
-    } catch {
-      throw new Error(
-        "CACHE_VALKEY_URL is set but the '@valkey/valkey-glide' package is not installed. " +
-          "Run `pnpm add @valkey/valkey-glide` in context-layer to enable the Valkey cache adapter.",
-      );
-    }
     const { host, port, useTLS } = parseValkeyUrl(this.url);
-    this.secondsUnit ??= mod.TimeUnit.Seconds;
-    this.client = await mod.GlideClient.createClient({
+    this.secondsUnit ??= TimeUnit.Seconds;
+    this.client = (await GlideClient.createClient({
       addresses: [{ host, port }],
       useTLS,
-    });
+    })) as GlideClientLike;
     return this.client;
   }
 }

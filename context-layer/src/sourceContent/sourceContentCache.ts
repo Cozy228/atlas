@@ -183,26 +183,94 @@ function cacheKey(
 }
 
 /**
+ * Wraps a remote cache (Valkey) with an in-memory fallback. When the primary
+ * throws — e.g. ElastiCache is unreachable — reads and writes degrade to the
+ * process-local {@link InMemoryContentCache}, so a cache outage never fails the
+ * request. Traffic returns to the primary the moment it recovers. The fallback
+ * is per-instance (not shared across Fargate tasks), which is acceptable for a
+ * degraded mode: it still shields the origin from a full-traffic stampede.
+ */
+export class ResilientContentCache implements SourceContentCache {
+  private degraded = false;
+
+  constructor(
+    private readonly primary: SourceContentCache,
+    private readonly fallback: SourceContentCache,
+  ) {}
+
+  async get(key: string): Promise<CachedResponse | undefined> {
+    try {
+      const value = await this.primary.get(key);
+      this.markHealthy();
+      return value;
+    } catch (error) {
+      this.markDegraded(error);
+      return this.fallback.get(key);
+    }
+  }
+
+  async set(key: string, value: CachedResponse, ttlSeconds: number): Promise<void> {
+    try {
+      await this.primary.set(key, value, ttlSeconds);
+      this.markHealthy();
+    } catch (error) {
+      this.markDegraded(error);
+      await this.fallback.set(key, value, ttlSeconds);
+    }
+  }
+
+  // Log only on transition, never per request: an outage is one line, recovery
+  // another. Not gated by the dev-only logger — this is an operational signal
+  // that must surface in production.
+  private markDegraded(error: unknown): void {
+    if (!this.degraded) {
+      this.degraded = true;
+      console.warn(
+        "[atlas:cache] primary cache unavailable; serving from in-memory fallback:",
+        error,
+      );
+    }
+  }
+
+  private markHealthy(): void {
+    if (this.degraded) {
+      this.degraded = false;
+      console.info("[atlas:cache] primary cache recovered");
+    }
+  }
+}
+
+/**
  * Select the cache implementation from the environment, mirroring
- * `createFeedbackRepository`: a Valkey adapter when `CACHE_VALKEY_URL` is
- * set, otherwise the in-memory default. The Valkey client defaults to GLIDE;
- * set `CACHE_VALKEY_CLIENT=iovalkey` to use the pure-JS fallback instead.
- * Both client modules are imported lazily so the default install pulls none.
+ * `createFeedbackRepository`: a Valkey adapter (wrapped in
+ * {@link ResilientContentCache}) when `CACHE_VALKEY_URL` is set, otherwise the
+ * in-memory default. The Valkey client defaults to GLIDE; set
+ * `CACHE_VALKEY_CLIENT=iovalkey` to use the pure-JS fallback instead. The
+ * client modules are code-split via dynamic import, so GLIDE only loads when a
+ * Valkey URL is configured.
  */
 export async function createSourceContentCache(
   env: Record<string, string | undefined>,
 ): Promise<SourceContentCache> {
+  const maxEntries = numberFromEnv(env.CACHE_MAX_ENTRIES, DEFAULT_MAX_ENTRIES);
   const valkeyUrl = env.CACHE_VALKEY_URL;
   if (valkeyUrl) {
-    if (env.CACHE_VALKEY_CLIENT === "iovalkey") {
-      const { IoValkeyContentCache } = await import("./iovalkeyContentCache");
-      return new IoValkeyContentCache({ url: valkeyUrl });
-    }
-    const { ValkeyContentCache } = await import("./valkeyContentCache");
-    return new ValkeyContentCache({ url: valkeyUrl });
+    const primary = await createValkeyCache(env, valkeyUrl);
+    return new ResilientContentCache(primary, new InMemoryContentCache({ maxEntries }));
   }
-  const maxEntries = numberFromEnv(env.CACHE_MAX_ENTRIES, DEFAULT_MAX_ENTRIES);
   return new InMemoryContentCache({ maxEntries });
+}
+
+async function createValkeyCache(
+  env: Record<string, string | undefined>,
+  valkeyUrl: string,
+): Promise<SourceContentCache> {
+  if (env.CACHE_VALKEY_CLIENT === "iovalkey") {
+    const { IoValkeyContentCache } = await import("./iovalkeyContentCache");
+    return new IoValkeyContentCache({ url: valkeyUrl });
+  }
+  const { ValkeyContentCache } = await import("./valkeyContentCache");
+  return new ValkeyContentCache({ url: valkeyUrl });
 }
 
 export function cacheTtlSeconds(env: Record<string, string | undefined>): number {
