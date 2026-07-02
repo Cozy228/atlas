@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 
+import { logger, serializeError } from "../observability/logging";
 import {
   defaultResolutionContext,
   type FetchLike,
@@ -220,14 +221,14 @@ export class ResilientContentCache implements SourceContentCache {
   }
 
   // Log only on transition, never per request: an outage is one line, recovery
-  // another. Not gated by the dev-only logger — this is an operational signal
-  // that must surface in production.
+  // another. Emitted at warn/info (always-on levels) — this is an operational
+  // signal that must surface in production.
   private markDegraded(error: unknown): void {
     if (!this.degraded) {
       this.degraded = true;
-      console.warn(
-        "[atlas:cache] primary cache unavailable; serving from in-memory fallback:",
-        error,
+      logger("cache").warn(
+        { err: serializeError(error) },
+        "primary cache unavailable; serving from in-memory fallback",
       );
     }
   }
@@ -235,7 +236,7 @@ export class ResilientContentCache implements SourceContentCache {
   private markHealthy(): void {
     if (this.degraded) {
       this.degraded = false;
-      console.info("[atlas:cache] primary cache recovered");
+      logger("cache").info("primary cache recovered");
     }
   }
 }

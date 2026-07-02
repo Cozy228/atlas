@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { logger } from "../observability/logging";
 import type { FetchLike } from "../resolvers/resolverTypes";
 import type { CachedResponse, SourceContentCache } from "./sourceContentCache";
 import {
@@ -240,8 +241,9 @@ describe("ResilientContentCache", () => {
   });
 
   it("logs once on degrade and once on recovery, not per request", async () => {
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const info = vi.spyOn(console, "info").mockImplementation(() => {});
+    const cacheLog = logger("cache");
+    const warn = vi.spyOn(cacheLog, "warn").mockImplementation((() => {}) as never);
+    const info = vi.spyOn(cacheLog, "info").mockImplementation((() => {}) as never);
     const primary = new InMemoryContentCache();
     let down = true;
     const flaky: SourceContentCache = {

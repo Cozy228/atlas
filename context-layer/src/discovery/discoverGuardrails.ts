@@ -17,6 +17,7 @@ import {
   confluenceAuthorization,
   fetchConfluenceStorageHtml,
 } from "../sourceContent/confluenceCloudContentProvider";
+import { logger, serializeError } from "../observability/logging";
 import type { ResolutionContext } from "../resolvers/resolverTypes";
 
 /** One discovered security-policy page (descriptive facts only). */
@@ -47,8 +48,18 @@ export async function discoverGuardrails(
   deps: DiscoverGuardrailsDeps,
 ): Promise<DiscoveredGuardrail[]> {
   const { ctx, confluence } = deps;
+  const log = logger("discovery");
   // No Confluence channel configured = honest gap (no guardrails discovered).
   if (!confluence.baseUrl || !confluence.token || !confluence.spaceKey) {
+    const missing = [
+      !confluence.baseUrl ? "baseUrl" : null,
+      !confluence.token ? "token" : null,
+      !confluence.spaceKey ? "spaceKey (CONFLUENCE_SECURITY_SPACE_KEY)" : null,
+    ].filter(Boolean);
+    log.info(
+      { missing },
+      `guardrail confluence channel not configured (${missing.join(", ")} unset) — 0 guardrails discovered`,
+    );
     return [];
   }
 
@@ -68,10 +79,18 @@ export async function discoverGuardrails(
       headers: { Authorization: confluenceAuthorization(config), Accept: "application/json" },
     });
     if (!response.ok) {
+      log.warn(
+        { spaceKey: confluence.spaceKey, status: response.status },
+        `guardrail space listing returned ${response.status} for space ${confluence.spaceKey} — 0 guardrails discovered`,
+      );
       return [];
     }
     listing = (await response.json()) as SpaceListingResponse;
-  } catch {
+  } catch (error) {
+    log.warn(
+      { spaceKey: confluence.spaceKey, err: serializeError(error) },
+      `guardrail space listing failed for space ${confluence.spaceKey} — 0 guardrails discovered`,
+    );
     return [];
   }
 
@@ -99,7 +118,14 @@ export async function discoverGuardrails(
     }),
   );
 
-  return discovered.filter((guardrail): guardrail is DiscoveredGuardrail => guardrail !== null);
+  const guardrails = discovered.filter(
+    (guardrail): guardrail is DiscoveredGuardrail => guardrail !== null,
+  );
+  log.info(
+    { spaceKey: confluence.spaceKey, listed: pages.length, discovered: guardrails.length },
+    `guardrail discovery: ${guardrails.length}/${pages.length} page(s) from space ${confluence.spaceKey}`,
+  );
+  return guardrails;
 }
 
 /** Collect the human text of every storage-HTML SECTION heading, in document

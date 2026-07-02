@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import type { ResourceContextResponse } from "@atlas/schema";
+import { logger, serializeError, errorSummary } from "@atlas/context-layer";
 
 import {
   askAtlas as answerFromProjection,
@@ -61,7 +62,11 @@ async function resolveProjection(data: AskInput): Promise<ResourceContextRespons
   if (!ref) return null;
   try {
     return await serverContextApiClient.getResourceContext(ref.kind, ref.slug);
-  } catch {
+  } catch (error) {
+    logger("ask").warn(
+      { kind: ref.kind, slug: ref.slug, err: serializeError(error) },
+      `ask: resource context resolution failed for ${ref.kind}/${ref.slug} — answering with no evidence`,
+    );
     return null;
   }
 }
@@ -108,6 +113,10 @@ export async function createAskAtlasResponse(input: {
     if (error instanceof Error && error.message === "Ask Atlas daily limit exceeded.") {
       return { answer: "", sources: [], warnings: ["rate-limit-exceeded"] };
     }
+    // Everything else (e.g. an unreachable LLM endpoint surfacing as a bare
+    // `fetch failed`) was rethrown uncaught to the framework logger, which prints
+    // only `error.message`. Log the cause here before it propagates.
+    logger("ask").error({ err: serializeError(error) }, `ask atlas failed: ${errorSummary(error)}`);
     throw error;
   }
 }

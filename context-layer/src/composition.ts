@@ -25,7 +25,12 @@ import { policyDocumentResolver } from "./resolvers/policyDocumentResolver";
 import { createResolverRegistry } from "./resolvers/resolverRegistry";
 import { terraformModuleResolver } from "./resolvers/terraformModuleResolver";
 import { defaultResolutionContext, type FetchLike } from "./resolvers/resolverTypes";
-import { withFetchLogging, withResolverLogging } from "./observability/logging";
+import {
+  logger,
+  serializeError,
+  withFetchLogging,
+  withResolverLogging,
+} from "./observability/logging";
 import {
   createConfluenceReferenceDiscovery,
   type ConfluenceReferenceInstance,
@@ -58,12 +63,20 @@ let discoveryCache: { key: string; promise: Promise<Discovered> } | undefined;
  * / non-object JSON is an honest empty map (no modules bound), never a throw.
  */
 function parseModuleMap(raw: string | undefined): Record<string, string[]> {
+  const log = logger("discovery");
   if (!raw) {
+    // Unset is a legitimate honest-empty (no modules mapped) — not an error, but
+    // worth an info so a "0 TFE fetches" investigation can rule it out.
+    log.info("TERRAFORM_MODULE_MAP is unset — no service is mapped to a module (0 probes)");
     return {};
   }
   try {
     const parsed = JSON.parse(raw) as unknown;
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      log.warn(
+        { rawLength: raw.length },
+        "TERRAFORM_MODULE_MAP parsed to a non-object — every service maps to no module (0 probes)",
+      );
       return {};
     }
     const map: Record<string, string[]> = {};
@@ -75,8 +88,19 @@ function parseModuleMap(raw: string | undefined): Record<string, string[]> {
         map[key] = names;
       }
     }
+    log.info(
+      { serviceKeys: Object.keys(map).length, modules: Object.values(map).flat().length },
+      `TERRAFORM_MODULE_MAP parsed: ${Object.keys(map).length} service key(s) → ${Object.values(map).flat().length} module name(s)`,
+    );
     return map;
-  } catch {
+  } catch (error) {
+    // Malformed JSON (a common ECS env-quoting failure) silently degraded to an
+    // empty map before — the single likeliest reason for "0 TFE fetches" despite
+    // every TERRAFORM_* var being set. Make it loud.
+    log.error(
+      { rawLength: raw.length, err: serializeError(error) },
+      "TERRAFORM_MODULE_MAP is not valid JSON — no service is mapped to a module (0 probes)",
+    );
     return {};
   }
 }
