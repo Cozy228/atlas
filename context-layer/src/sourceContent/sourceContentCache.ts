@@ -271,7 +271,14 @@ async function createValkeyCache(
     return new IoValkeyContentCache({ url: valkeyUrl });
   }
   const { ValkeyContentCache } = await import("./valkeyContentCache");
-  return new ValkeyContentCache({ url: valkeyUrl });
+  // ElastiCache IAM auth activates only when all three are set; otherwise the
+  // adapter connects unauthenticated (backward-compatible).
+  return new ValkeyContentCache({
+    url: valkeyUrl,
+    username: env.CACHE_VALKEY_USERNAME,
+    iamClusterName: env.CACHE_VALKEY_IAM_CLUSTER,
+    region: env.AWS_REGION,
+  });
 }
 
 export function cacheTtlSeconds(env: Record<string, string | undefined>): number {
