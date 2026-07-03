@@ -16,20 +16,18 @@ import {
   fetchResourceRecord,
   fetchSourceDiscovery,
 } from "@/api/server/contextApi";
-import { fetchReleaseNotes, type Release } from "@/api/server/releaseNotes";
-import { fetchAnnouncements, type Announcement } from "@/api/server/announcements";
+import { fetchWhatsNew, type WhatsNewFeed } from "@/api/server/whatsNew";
 import { fetchGuidance } from "@/api/server/guidance";
 import type { Guidance } from "@/lib/guidance";
 
-export const releaseNotesQueryOptions = queryOptions<Release[]>({
-  queryKey: ["release-notes"] as const,
-  queryFn: () => fetchReleaseNotes(),
-  staleTime: 60_000,
-});
-
-export const announcementsQueryOptions = queryOptions<Announcement[]>({
-  queryKey: ["announcements"] as const,
-  queryFn: () => fetchAnnouncements(),
+/**
+ * One key for the whole What's New feed — releases + standalone announcements
+ * both project off a single Confluence page resolve. Home and /whatsnew read the
+ * same cache entry, so navigating between them never re-resolves the page.
+ */
+export const whatsNewQueryOptions = queryOptions<WhatsNewFeed>({
+  queryKey: ["whats-new"] as const,
+  queryFn: () => fetchWhatsNew(),
   staleTime: 60_000,
 });
 

@@ -15,7 +15,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import {
-  announcementsQueryOptions,
+  whatsNewQueryOptions,
   availabilityQueryOptions,
   resourceCatalogQueryOptions,
 } from "@/api/queries";
@@ -49,10 +49,10 @@ export const Route = createFileRoute("/")({
     // reads the warm cache and resolves synchronously — no skeleton flash.
     const announcements = deferUnlessCached(
       context.queryClient,
-      announcementsQueryOptions.queryKey,
-      () => context.queryClient.ensureQueryData(announcementsQueryOptions),
+      whatsNewQueryOptions.queryKey,
+      () => context.queryClient.ensureQueryData(whatsNewQueryOptions),
       (feed): HomeAnnouncement[] =>
-        feed.slice(0, 8).map((a) => {
+        feed.announcements.slice(0, 8).map((a) => {
           const kind = toKind(a.kind);
           return { kind, tone: KIND_TONE[kind], title: a.title };
         }),
