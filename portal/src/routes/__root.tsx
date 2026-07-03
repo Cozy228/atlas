@@ -13,10 +13,6 @@ import { PortalShell } from "@/components/portal-shell";
 import { themeInitScript } from "@/lib/theme-script";
 import faviconSvg from "@/assets/favicon.svg?url";
 import globalsCss from "@/styles/globals.css?url";
-// Preload the latin Inter Variable file so the brand font is discovered in the
-// first HTML response instead of only after globals.css parses — one fewer serial
-// hop before text paints in-brand (swap is on, so this trims the swap-in delay).
-import interLatinWoff2 from "@fontsource-variable/inter/files/inter-latin-wght-normal.woff2?url";
 
 // Toasts only matter once one fires; keep sonner out of the entry chunk and
 // mount the Toaster after hydration so it never blocks first paint.
@@ -43,13 +39,6 @@ export const Route = createRootRouteWithContext<RouterContext>()({
     ],
     links: [
       { rel: "icon", type: "image/svg+xml", href: faviconSvg },
-      {
-        rel: "preload",
-        as: "font",
-        type: "font/woff2",
-        href: interLatinWoff2,
-        crossOrigin: "anonymous",
-      },
       { rel: "stylesheet", href: globalsCss },
       // Agent-discovery hints mirrored into <head> so a body-only reader (not
       // just a client that inspects response `Link` headers) finds the surface.

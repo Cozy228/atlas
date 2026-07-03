@@ -59,7 +59,7 @@ function friendlyDate(iso: string): string | undefined {
   return month ? `${month} ${Number(m[3])}, ${m[1]}` : undefined;
 }
 
-function toKind(raw: string | undefined): ChangeKind {
+export function toKind(raw: string | undefined): ChangeKind {
   return CHANGE_KINDS.includes(raw as ChangeKind) ? (raw as ChangeKind) : "Updated";
 }
 

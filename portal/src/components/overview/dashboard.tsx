@@ -378,7 +378,7 @@ function FleetTable() {
       <div className="overflow-x-auto rounded-[4px] border border-border bg-card">
         <table className="w-full min-w-[640px] border-collapse text-[12.5px]">
           <thead>
-            <tr className="border-b border-border bg-muted text-left font-mono text-[10px] uppercase tracking-[0.06em] text-muted-foreground">
+            <tr className="border-b border-border bg-muted text-left type-eyebrow text-muted-foreground">
               <th className="px-3.5 py-2 font-semibold">Service</th>
               <th className="px-3 py-2 font-semibold">Health</th>
               <th className="px-3 py-2 text-right font-semibold">Uptime</th>

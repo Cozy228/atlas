@@ -4,6 +4,8 @@
  * availability projection instead.
  */
 
+import type { ChangeTone } from "@/components/whatsnew/data";
+
 /** Mainline link targets used by the Home cards (non-parameterised routes). */
 export type MainlineRoute =
   | "/"
@@ -36,7 +38,7 @@ export type DomainSummary = {
 };
 
 /** A recent newsletter entry surfaced on the home "What's new" ticker. */
-export type HomeAnnouncement = { kind: string; title: string };
+export type HomeAnnouncement = { kind: string; tone: ChangeTone; title: string };
 
 export type HomeStats = {
   serviceCount: number;

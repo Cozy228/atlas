@@ -1,4 +1,3 @@
-@import "@fontsource-variable/inter";
 @import "tailwindcss";
 @import "tw-animate-css";
 
@@ -11,14 +10,20 @@
  * No #000 or #fff anywhere.
  */
 @theme inline {
+  /* Native system UI sans: Segoe UI on Windows, SF on macOS. Dropped Inter —
+     the system faces are hinted for small sizes (crisp on Windows ClearType)
+     where a webfont is not, and this removes a render-blocking font download. */
   --font-sans:
-    "Inter Variable", -apple-system, BlinkMacSystemFont,
+    -apple-system, BlinkMacSystemFont,
     "Segoe UI Variable", "Segoe UI",
     system-ui, Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif,
     "Apple Color Emoji", "Segoe UI Emoji";
+  /* Consolas first on Windows (universally installed, best small-size hinting) so
+     every Windows machine renders the same crisp mono; Cascadia only if a dev has
+     it. macOS resolves to SF Mono (Safari) / Menlo (Chrome). */
   --font-mono:
-    ui-monospace, "Cascadia Mono", "Cascadia Code",
-    "SF Mono", SFMono-Regular, Menlo, Monaco, Consolas,
+    ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco,
+    Consolas, "Cascadia Mono", "Cascadia Code",
     "Liberation Mono", "Courier New", monospace;
 
   /* Engineering-drawing radii (DESIGN.md §4 / prototype): control 3px, card 4px,
@@ -128,13 +133,26 @@
 }
 
 @utility type-chip {
-  font-size: 0.625rem;
-  line-height: 0.75rem;
+  font-size: 0.6875rem;
+  line-height: 0.875rem;
 }
 
 @utility type-status-chip {
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+
+/* Canonical small technical eyebrow/label, in mono for the engineering-drawing
+   voice (identifier-like). Floor raised to 11px and letter-spacing normalized so
+   glyphs stay closer to the pixel grid — the ad-hoc
+   `font-mono text-[10px] uppercase tracking-[…]` pattern collapses to this one
+   utility. Call sites keep only colour/weight. */
+@utility type-eyebrow {
+  font-family: var(--font-mono);
   font-size: 0.6875rem;
   line-height: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
 
 @utility type-caption {
@@ -354,9 +372,17 @@
     font-synthesis: none;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    text-rendering: optimizeLegibility;
+    /* `optimizeLegibility` disables Blink's pixel-snapping fast path and is only
+       meant for large text; applied globally it makes small copy softer on
+       Windows (DirectWrite/ClearType). Let small/body text pixel-snap; opt the
+       large display tiers back into legibility below. */
+    text-rendering: optimizeSpeed;
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
+  }
+
+  :where(h1, h2, .type-heading, .type-heading-lg, .type-section, .type-display, .type-display-lg, .type-ordinal) {
+    text-rendering: optimizeLegibility;
   }
 
   :focus-visible {
