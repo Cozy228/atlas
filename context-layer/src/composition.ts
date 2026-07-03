@@ -35,6 +35,10 @@ import {
   createConfluenceReferenceDiscovery,
   type ConfluenceReferenceInstance,
 } from "./sourceContent/confluenceReferenceDiscovery";
+import {
+  createResourceContentDiscovery,
+  type ResourceContentDiscovery,
+} from "./resources/resourceContentDiscovery";
 import { createOnboardingGuidanceSource } from "./sourceContent/confluenceOnboardingProvider";
 import { createConfluenceAvailabilityProvider } from "./sourceContent/confluenceAvailabilityProvider";
 import type { AvailabilityProvider } from "./services/availabilityProvider";
@@ -115,6 +119,7 @@ function discoveryKey(env: Record<string, string | undefined>): string {
     env.CONFLUENCE_TOKEN,
     env.CONFLUENCE_EMAIL,
     env.CONFLUENCE_SECURITY_SPACE_KEY,
+    env.CONFLUENCE_SECURITY_ROOT_PAGE_ID,
     env.CONFLUENCE_SECURITY_BASE_URL,
     env.CONFLUENCE_SECURITY_TOKEN,
     env.CONFLUENCE_AVAILABILITY_PAGE_AWSF,
@@ -122,9 +127,10 @@ function discoveryKey(env: Record<string, string | undefined>): string {
   ].join("|");
 }
 
-/** Run the two live discovery passes (service modules + guardrail space). */
+/** Run the two list-only discovery passes (service modules + guardrail space). */
 async function runDiscovery(
   env: Record<string, string | undefined>,
+  moduleMap: Record<string, string[]>,
   availabilityProvider: AvailabilityProvider,
 ): Promise<Discovered> {
   const ctx = defaultResolutionContext(); // late-bound fetch → MSW/prod
@@ -135,7 +141,7 @@ async function runDiscovery(
       baseUrl: env.TERRAFORM_BASE_URL ?? "",
       token: env.TERRAFORM_TOKEN ?? "",
       org: env.TERRAFORM_ORG ?? "",
-      moduleMap: parseModuleMap(env.TERRAFORM_MODULE_MAP),
+      moduleMap,
     },
   });
   const guardrails = await discoverGuardrails({
@@ -147,6 +153,9 @@ async function runDiscovery(
       token: env.CONFLUENCE_SECURITY_TOKEN ?? env.CONFLUENCE_TOKEN ?? "",
       email: env.CONFLUENCE_SECURITY_EMAIL ?? env.CONFLUENCE_EMAIL,
       spaceKey: env.CONFLUENCE_SECURITY_SPACE_KEY ?? "",
+      // Preferred scope: enumerate only this page's descendants (e.g. the "AWS
+      // Public Cloud" page) instead of the whole security space.
+      rootPageId: env.CONFLUENCE_SECURITY_ROOT_PAGE_ID,
     },
   });
   return { services, guardrails };
@@ -158,15 +167,16 @@ async function runDiscovery(
  */
 function discoverAll(
   env: Record<string, string | undefined>,
+  moduleMap: Record<string, string[]>,
   availabilityProvider: AvailabilityProvider,
   useCache: boolean,
 ): Promise<Discovered> {
   if (!useCache) {
-    return runDiscovery(env, availabilityProvider);
+    return runDiscovery(env, moduleMap, availabilityProvider);
   }
   const key = discoveryKey(env);
   if (discoveryCache?.key !== key) {
-    discoveryCache = { key, promise: runDiscovery(env, availabilityProvider) };
+    discoveryCache = { key, promise: runDiscovery(env, moduleMap, availabilityProvider) };
   }
   return discoveryCache.promise;
 }
@@ -263,8 +273,13 @@ export async function createDefaultContextService(
     options.availabilityProvider ??
     createConfluenceAvailabilityProvider({ fetch: liveFetch, env: options.env });
 
+  // Parse the module map ONCE — list discovery uses it to bind module addresses,
+  // and the lazy content enricher reuses it to fetch a service's README on detail.
+  const moduleMap = parseModuleMap(env.TERRAFORM_MODULE_MAP);
+
   const { services, guardrails } = await discoverAll(
     env,
+    moduleMap,
     availabilityProvider,
     !options.availabilityProvider,
   );
@@ -282,6 +297,26 @@ export async function createDefaultContextService(
     ...deriveGuardrailResources(guardrails),
   ];
 
+  // Lazy per-resource content (plan 0.2.0): the guardrail slug→pageId map is
+  // captured from the space listing so the enricher fetches exactly the one page a
+  // policy read needs; services enrich via the same module map list discovery used.
+  const contentDiscovery: ResourceContentDiscovery =
+    options.contentDiscovery ??
+    createResourceContentDiscovery({
+      terraform: {
+        baseUrl: env.TERRAFORM_BASE_URL ?? "",
+        token: env.TERRAFORM_TOKEN ?? "",
+        org: env.TERRAFORM_ORG ?? "",
+        moduleMap,
+      },
+      guardrail: {
+        baseUrl: env.CONFLUENCE_SECURITY_BASE_URL ?? env.CONFLUENCE_BASE_URL ?? "",
+        token: env.CONFLUENCE_SECURITY_TOKEN ?? env.CONFLUENCE_TOKEN ?? "",
+        email: env.CONFLUENCE_SECURITY_EMAIL ?? env.CONFLUENCE_EMAIL,
+      },
+      guardrailPageIds: new Map(guardrails.map((guardrail) => [guardrail.slug, guardrail.pageId])),
+    });
+
   return {
     registry,
     resolvers: createResolverRegistry(
@@ -294,6 +329,7 @@ export async function createDefaultContextService(
     ),
     availabilityProvider,
     referenceDiscovery: options.referenceDiscovery ?? createReferenceDiscoveryFromEnv(env),
+    contentDiscovery,
     resources,
     now: new Date(),
   };

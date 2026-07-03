@@ -146,7 +146,10 @@ export const mcpTools: McpToolDefinition[] = [
                 id: resource.id,
                 name: resource.name,
                 kind: resource.kind,
-                description: resource.description,
+                // Description is content-derived (a module README's lead paragraph),
+                // so it is absent from the list/search surface until a detail read
+                // (plan 0.2.0 list-only discovery) — omit it rather than emit null.
+                ...(resource.description ? { description: resource.description } : {}),
               })),
       };
     },

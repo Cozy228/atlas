@@ -9,6 +9,7 @@ import type { Registry } from "../registry/registry";
 import type { ResolverRegistry } from "../resolvers/resolverRegistry";
 import type { AvailabilityProvider } from "./availabilityProvider";
 import type { ResourceReferenceDiscovery } from "./resourceReferenceDiscovery";
+import type { ResourceContentDiscovery } from "../resources/resourceContentDiscovery";
 
 /**
  * The assembled Context Layer service container — the registry plus the live
@@ -23,6 +24,9 @@ export type ContextService = {
   /** Reference-only Confluence discovery port (plan 017). Optional: when unset,
    *  resource reads carry an empty `references` list + `null` discovery state. */
   referenceDiscovery?: ResourceReferenceDiscovery;
+  /** Lazy per-resource content discovery (plan 0.2.0). Optional: when unset, a
+   *  resource read projects its list-derived sections without a content fetch. */
+  contentDiscovery?: ResourceContentDiscovery;
   /** Kind-first resource projection records (agent-facing resource surface). */
   resources: ResourceContextRecord[];
   now: Date;
@@ -37,6 +41,8 @@ export type ContextServiceOptions = {
   availabilityProvider?: AvailabilityProvider;
   /** Injection seam: supply a reference-discovery port (tests / live adapter). */
   referenceDiscovery?: ResourceReferenceDiscovery;
+  /** Injection seam: supply a content-discovery port (tests / live adapter). */
+  contentDiscovery?: ResourceContentDiscovery;
   /** Injection seam: override the manifest-loaded resource records (tests). */
   resources?: ResourceContextRecord[];
 };

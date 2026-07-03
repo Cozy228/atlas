@@ -17,6 +17,7 @@ import {
 } from "@atlas/schema";
 import type { AvailabilityProvider } from "../services/availabilityProvider";
 import type { ResourceReferenceDiscovery } from "../services/resourceReferenceDiscovery";
+import type { ResourceContentDiscovery } from "./resourceContentDiscovery";
 import {
   applyOverlayAliases,
   normalizeServiceIdentity,
@@ -54,6 +55,11 @@ export type ResourceContextDeps = {
   /** Reference-only discovery port (plan 017 B4). Optional: absent → empty
    *  `references` + `null` discovery state (never fabricated links). */
   referenceDiscovery?: ResourceReferenceDiscovery;
+  /** Lazy per-resource content discovery (plan 0.2.0). Optional: absent → the
+   *  record's list-derived sections are projected as-is (no content fetch). Present
+   *  → the requested resource's backing document is fetched to derive its Section
+   *  bindings, scoped to that one resource (never on the catalog list build). */
+  contentDiscovery?: ResourceContentDiscovery;
   registry: {
     sources: { getById(id: string): import("@atlas/schema").Source | undefined };
   };
@@ -227,11 +233,19 @@ async function projectConfigured(
 ): Promise<ResourceContextResponse> {
   const requested = resolveRequestedSections(record, params.sections);
 
+  // Lazy per-resource content (plan 0.2.0): list discovery leaves content-derived
+  // sections empty; the enricher fetches THIS resource's backing document to derive
+  // them. Absent enricher → the record's list-derived sections (e.g. a service's
+  // selector-based availability binding) project as-is.
+  const sections = deps.contentDiscovery
+    ? await deps.contentDiscovery.sectionsFor(record, ctx)
+    : record.sections;
+
   const sectionsOut: Record<string, ContextSection> = {};
   const missingSections: MissingSection[] = [];
 
   for (const sectionId of requested) {
-    const bindings = record.sections[sectionId];
+    const bindings = sections[sectionId];
     if (!bindings || bindings.length === 0) {
       missingSections.push({
         section: sectionId,

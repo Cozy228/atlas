@@ -93,12 +93,13 @@ describe("mcp tools against the pilot fixtures", () => {
       total: number;
     };
     expect(data.resources.map((resource) => resource.id)).toContain("service/aws/textract");
-    // CONCISE: high-signal fields only, no owner/support/entry_tools noise. The
-    // description is derived from the module README's lead paragraph (id/name/kind
-    // + description).
+    // CONCISE: high-signal fields only, no owner/support/entry_tools noise. Since
+    // discovery is list-only (plan 0.2.0), the module-README-derived description is
+    // an honest gap on the search/list surface until a detail read — so the concise
+    // shape is id/name/kind only.
     const textract = data.resources.find((resource) => resource.id === "service/aws/textract")!;
-    expect(Object.keys(textract).sort()).toEqual(["description", "id", "kind", "name"]);
-    expect(textract.description).toBeTruthy();
+    expect(Object.keys(textract).sort()).toEqual(["id", "kind", "name"]);
+    expect(textract.description).toBeUndefined();
   });
 
   it("atlas_get_source returns the registry record by semantic id", async () => {
