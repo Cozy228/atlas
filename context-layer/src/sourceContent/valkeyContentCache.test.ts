@@ -82,6 +82,59 @@ describe("ValkeyContentCache (injected client)", () => {
   });
 });
 
+describe("ValkeyContentCache (IAM connection)", () => {
+  it("passes IAM credentials to createClient when the auth triple is set", async () => {
+    const fake = fakeGlideClient();
+    let received: unknown;
+    const cache = new ValkeyContentCache({
+      url: "rediss://cache.example.com:6379",
+      username: "atlas-app",
+      iamClusterName: "atlas-cache",
+      region: "us-east-1",
+      secondsUnit: SECONDS,
+      createClient: async (config) => {
+        received = config;
+        return fake.client;
+      },
+    });
+
+    await cache.set("k", VALUE, 60);
+
+    expect(received).toEqual({
+      addresses: [{ host: "cache.example.com", port: 6379 }],
+      useTLS: true,
+      credentials: {
+        username: "atlas-app",
+        iamConfig: {
+          clusterName: "atlas-cache",
+          service: "Elasticache",
+          region: "us-east-1",
+        },
+      },
+    });
+  });
+
+  it("connects unauthenticated when any IAM field is missing", async () => {
+    const fake = fakeGlideClient();
+    let received: { credentials?: unknown } | undefined;
+    const cache = new ValkeyContentCache({
+      url: "rediss://cache.example.com",
+      username: "atlas-app",
+      // iamClusterName omitted → IAM disabled
+      region: "us-east-1",
+      secondsUnit: SECONDS,
+      createClient: async (config) => {
+        received = config;
+        return fake.client;
+      },
+    });
+
+    await cache.set("k", VALUE, 60);
+
+    expect(received?.credentials).toBeUndefined();
+  });
+});
+
 /**
  * Integration test against a real Valkey/ElastiCache, exercising the lazy
  * `@valkey/valkey-glide` import and a true network round-trip. Skipped unless

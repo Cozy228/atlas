@@ -1,6 +1,12 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { FetchLike } from "../resolvers/resolverTypes";
-import { InMemoryContentCache, createSourceContentCache, withCache } from "./sourceContentCache";
+import type { CachedResponse, SourceContentCache } from "./sourceContentCache";
+import {
+  InMemoryContentCache,
+  ResilientContentCache,
+  createSourceContentCache,
+  withCache,
+} from "./sourceContentCache";
 
 function jsonResponse(body: unknown, status = 200): Awaited<ReturnType<FetchLike>> {
   return { ok: status >= 200 && status < 300, status, json: async () => body };
@@ -163,5 +169,100 @@ describe("createSourceContentCache", () => {
   it("returns the in-memory default when no Valkey URL is configured", async () => {
     const cache = await createSourceContentCache({});
     expect(cache).toBeInstanceOf(InMemoryContentCache);
+  });
+});
+
+describe("ResilientContentCache", () => {
+  const VALUE: CachedResponse = { status: 200, body: "ok" };
+
+  // The transition logs (warn on degrade, info on recover) are operational
+  // noise in tests — silence them and assert behaviour instead.
+  afterEach(() => vi.restoreAllMocks());
+  const silenceLogs = () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    vi.spyOn(console, "info").mockImplementation(() => {});
+  };
+
+  const alwaysDown: SourceContentCache = {
+    async get() {
+      throw new Error("valkey unreachable");
+    },
+    async set() {
+      throw new Error("valkey unreachable");
+    },
+  };
+
+  it("serves from the primary while it is healthy, leaving the fallback untouched", async () => {
+    const primary = new InMemoryContentCache();
+    const fallback = new InMemoryContentCache();
+    const cache = new ResilientContentCache(primary, fallback);
+
+    await cache.set("k", VALUE, 60);
+    expect(await cache.get("k")).toEqual(VALUE);
+    expect(await primary.get("k")).toEqual(VALUE);
+    expect(await fallback.get("k")).toBeUndefined();
+  });
+
+  it("degrades reads and writes to the in-memory fallback when the primary throws", async () => {
+    silenceLogs();
+    const fallback = new InMemoryContentCache();
+    const cache = new ResilientContentCache(alwaysDown, fallback);
+
+    await cache.set("k", VALUE, 60);
+    expect(await fallback.get("k")).toEqual(VALUE);
+    expect(await cache.get("k")).toEqual(VALUE);
+  });
+
+  it("returns to the primary once it recovers", async () => {
+    silenceLogs();
+    const primary = new InMemoryContentCache();
+    const fallback = new InMemoryContentCache();
+    let down = true;
+    const flaky: SourceContentCache = {
+      async get(key) {
+        if (down) throw new Error("down");
+        return primary.get(key);
+      },
+      async set(key, value, ttl) {
+        if (down) throw new Error("down");
+        return primary.set(key, value, ttl);
+      },
+    };
+    const cache = new ResilientContentCache(flaky, fallback);
+
+    await cache.set("degraded", VALUE, 60);
+    expect(await fallback.get("degraded")).toEqual(VALUE);
+
+    down = false;
+    await cache.set("recovered", VALUE, 60);
+    expect(await primary.get("recovered")).toEqual(VALUE);
+    expect(await fallback.get("recovered")).toBeUndefined();
+  });
+
+  it("logs once on degrade and once on recovery, not per request", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const info = vi.spyOn(console, "info").mockImplementation(() => {});
+    const primary = new InMemoryContentCache();
+    let down = true;
+    const flaky: SourceContentCache = {
+      async get(key) {
+        if (down) throw new Error("down");
+        return primary.get(key);
+      },
+      async set(key, value, ttl) {
+        if (down) throw new Error("down");
+        return primary.set(key, value, ttl);
+      },
+    };
+    const cache = new ResilientContentCache(flaky, new InMemoryContentCache());
+
+    await cache.get("a");
+    await cache.get("b");
+    expect(warn).toHaveBeenCalledTimes(1);
+
+    down = false;
+    await cache.get("c");
+    await cache.get("d");
+    expect(info).toHaveBeenCalledTimes(1);
   });
 });
