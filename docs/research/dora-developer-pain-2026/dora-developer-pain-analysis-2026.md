@@ -1,182 +1,172 @@
-# 开发者痛点分析:两份 DORA 报告 + 2026 年田野数据
+# Developer Pain Points: Two DORA Reports + 2026 Field Data
 
-**日期**:2026-07-03
-**目的**:从真实痛点出发,挖掘企业内最需要解决的开发者问题。不预设任何产品定位。
-**方法**:
-1. 通读两份 DORA 报告全文——《DORA 2025 State of AI-assisted Software Development》(142 页,近 5000 名从业者调研,2025.10)与《DORA: The ROI of AI-assisted Software Development》(60 页,2026.1)。源 PDF 与抽取文本随本报告一同归档(`dora-2025.pdf/.txt`、`dora-roi-2026.pdf/.txt`)。
-2. 四轮 Web 调研(Claude Sonnet subagent 执行,已汇总进本文):①2025–2026 token 成本痛点(59 条发现);②企业级 AI 开发痛点六线索(56 条);③10 条弱证据回源验证;④补充搜索面(Reddit 一手情绪、AGENTS.md 维护负担、CI 非确定性、中国企业侧)。
-3. 全部数字标注证据等级:【调查】=结构化问卷/研究,【遥测】=厂商平台数据(方向可用、立场自利),【轶事】=单一来源。经过验证修正的数字以修正后为准。
-
----
-
-## 一、一句话结论
-
-**写代码已经不再是瓶颈。企业现在最痛的,是 AI 高速产出之后的下游承接能力——验证、上下文、稳定性、成本、信任——全部没跟上。** DORA 把这个现象命名为"局部生产力被下游混乱吃掉"(localized pockets of productivity lost to downstream chaos),并给出统一解释:**AI 是镜子和放大器,不是修复器**——它放大高效组织的优势,也放大失能组织的功能障碍。
+**Date**: 2026-07-03
+**Purpose**: Mine real developer pain points and identify the problems enterprises most need solved. No product positioning is presupposed.
+**Method**:
+1. Full read of both DORA reports — *DORA 2025 State of AI-assisted Software Development* (142 pages, ~5,000 practitioners surveyed, Oct 2025) and *DORA: The ROI of AI-assisted Software Development* (60 pages, Jan 2026). Source PDFs and extracted text are archived alongside this report (`dora-2025.pdf/.txt`, `dora-roi-2026.pdf/.txt`).
+2. Four web-research passes (executed by Claude Sonnet subagents, synthesized into this document): ① 2025–2026 token-cost pain landscape (59 findings); ② enterprise AI-development pains across six threads (56 findings); ③ primary-source verification of the 10 weakest-evidence claims; ④ previously-missed surfaces (first-hand Reddit sentiment, AGENTS.md maintenance burden, agent non-determinism in CI).
+3. Every number carries an evidence tier: **[SURVEY]** = structured questionnaire/study, **[TELEMETRY]** = vendor platform data (directionally useful, self-interested), **[ANECDOTE]** = single source. Where verification corrected a figure, the corrected figure is used.
 
 ---
 
-## 二、企业最需要解决的六个痛点(按优先级排序)
+## 1. One-sentence conclusion
 
-### 痛点 1:验证税(Verification Tax)——审查成为新瓶颈,而且在恶化
-
-**这是两份 DORA 报告共同点名、且被 2026 年独立遥测数据反复证实的第一痛点。**
-
-DORA ROI 报告(p40)原文定性:"**The most immediate barrier to ROI is the verification tax**"——开发者审查 AI 输出所花的时间。逻辑链:信任低 → 每行代码二次怀疑 → J 曲线下探更深 → 本该释放的产能被吞掉。报告同时指出(p36,引 Stanford AI Index):推理成本 2022.11→2024.10 已下降 **280 倍**,"查询模型的成本趋近于零,采纳 AI 的真实财务负担已转移到治理成本:管理验证税、调整工作流、人才升级"。
-
-田野数据(2026):
-- 用 AI 的开发者完成任务 +21%、合并 PR +98%,但 **PR 体积 +154%、审查时间 +91%**(DX Q1 2026 报告 + Faros AI "Acceleration Whiplash",2.2 万开发者/4000+ 团队两年遥测——两家数字完全一致,疑似同源数据族,按一个强信号计)。【遥测】
-- Faros:commit 到生产的 lead time **+480%**;组织级 DORA 指标**无可测改善**。【遥测】
-- LinearB 2026 基准(810 万 PR、4800 组织):agentic PR 的等待认领时间是无 AI PR 的 **5.3 倍**(p75:1055 分钟 vs 201 分钟)。【遥测】
-- CircleCI 2026:feature 分支吞吐 +59%,但中位团队主干吞吐**下降**——瓶颈从"写"移到了"能不能合"。【遥测】
-- Sonar 2026 调查(1100+ 开发者):38% 认为审查 AI 代码比审查同事代码更费力;95% 需要花精力审查/测试/修正 AI 输出。【调查】
-- 典型表述:"一个人一天能产 5–6 个 PR,但审查者的吞吐量还是原来那么多。"【轶事,多处重复】
-
-DORA 对冲验证税的三个官方手段(ROI p33):投资自动化测试、用 AI 辅助审查、**给 AI 更好的上下文以提高初始代码质量**——注意第三条,它把痛点 1 和痛点 2 连成了因果链。
-
-### 痛点 2:AI 缺少组织上下文——DORA 实证确认的最强放大器缺口,官方"第一笔投资"
-
-DORA 2025 从 15 个候选能力中筛出 7 个被数据证实能放大 AI 收益的能力,其中**数据/上下文类占了两席**:
-- **AI-accessible internal data**(AI 能访问内部数据):存在时,AI 对个体效能和代码质量的正向影响被显著放大。报告原话:"如果 AI 访问不了公司内部数据,它到底能有多大用?"(p55)
-- **Healthy data ecosystems**(健康数据生态:内部数据高质量、易访问、不割裂):存在时,AI 对组织绩效的影响被放大。(p54)
-
-DORA ROI 报告(2026.1)把它升级为**投资路线图的第一优先级**(p43–44):
-- 第一步 "**Build the context layer**"(CapEx):高质量内部开发者平台 + 健康数据生态,"集中化架构标准、确保文档高保真且**机器可读**",目标是"给 agent 一张清晰、标准化的组织技术版图"。原文:"在 agentic 时代,garbage in, garbage out 指的就是喂给 agent 的上下文。"
-- 第二步 "Empower the human in the loop"(OpEx):点名两个能力——**trust in AI 和 context engineering**。开发者要成为"高级编排者:给 agent 精确的业务上下文 + 严格监督"。
-- 内部开发者平台被重新定义为"agent 的**风险缓释器和上下文供给者**"(p40):平台定义得好,agent"花更少时间幻觉架构模式"。
-
-定性证据(DORA 2025 p85):AI 建议"缺少关键上下文——团队约定、架构历史、过往事故",因为这些"散落在各系统和非正式知识渠道里";文档腐化会让 agent 读到"自动化的公司民间传说"。
-
-田野与学术数据(2026):
-- **正面**:arXiv:2601.20404(2026.1,10 仓库/124 PR 对照实验):存在 AGENTS.md 时,agent 中位运行时间 **−28.64%**、输出 token **−16.58%**。【学术,已回源验证】
-- **反面(重要 nuance)**:arXiv:2602.11988"AGENTbench"(ETH Zurich 系,2026.2,138 个真实 Python 任务):**LLM 自动生成的** AGENTS.md 在 8 个设定中的 5 个反而降低任务成功率(−0.5~−2pp)、每任务多走 2.45–3.92 步、推理成本 +20~23%——因为生成文件只是复读 agent 本可自行发现的内容;**人写的**上下文文件则提升约 4 个百分点。【学术】⇒ 上下文的价值取决于**信息增量**,不是文件的存在本身。
-- 维护负担已成真实痛点但无独立调查量化:上下文文件随代码库演进而漂移、跨工具(CLAUDE.md/AGENTS.md/.cursorrules)多份拷贝失同步、"无自动手段检测过期"(多个 practitioner 指南收敛);社区抱怨"CLAUDE.md 超过约 200 行后模型忽略底部内容";Claude Code 官方仓库 issue #34776(2026.3,被关闭为 not-planned)记录了长期自动记忆的五种失效模式(条目挤出、矛盾累积、无过期机制、无优先级、无审计)。【轶事/一手 issue】
-- Stanford 生产力研究(经 DORA ROI p36 引用):AI 在简单绿地任务上有 35–40% 生产力增益,但在复杂遗留 brownfield 代码上**常常 ≤10%**——企业代码的主体恰恰是后者,通用模型对"你的"旧系统帮助最小。
-
-### 痛点 3:交付不稳定性——连续两年,AI 用得越多系统越不稳
-
-DORA 连续两年最"顽固"的负面发现:
-- 2024:每 25% 的 AI 采纳增长,交付吞吐 −1.5%、交付不稳定性 +7.2%。
-- 2025:吞吐转正(适应发生了),**但不稳定性依然随 AI 采纳上升**,效应量在所有结果中排第二(仅次于个体效能)。
-- DORA 检验过"不稳定换速度值得吗":**否**。不稳定性对产品表现和 burnout 的伤害没有被 AI 削弱(无调节效应),会吞掉吞吐收益。(2025 p41)
-- ROI 报告在自己的示例计算器里都把变更失败率建模为**从 5% 升到 6%**,"不稳定性税"记为 **−$34.4 万/年**。
-
-田野数据:Faros 2026——bug/开发者 **+54%**(2025 年报告时是 +9%)、PR 引发的生产事故**翻三倍**、提交后短期返工(churn)**+10 倍**;GitClear(2.11 亿行代码)——重复代码块 2024 年暴涨 8 倍、"移动/重构"型代码占比跌破 10%(同比 −44%)、两周内返工率从 3.1%(2020)升到 5.7–7.9%(2024)。【遥测】
-
-DORA 的结论:测试、发布、回滚、小批量这些"旧"能力在 AI 时代不是过时了,而是**更生死攸关**——强版本控制(尤其回滚熟练度)和小批量工作都在七能力清单里,且小批量能把 AI 对摩擦的中性影响转为**降低摩擦**。
-
-### 痛点 4:Token 成本失控与不可预测——2026 年爆发的 CFO 级痛点,且无权威框架
-
-DORA 报告对此几乎失明(ROI 计算器假设"每人每年 $80 附加 AI 成本"),而 2026 年上半年现实:
-- Gartner(2026.6.24 新闻稿):近 **1/4** 的技术管理者已在**每开发者每月 $200–500** 的 AI 编码支出上,约 6% 超过 $2000;预测 **2028 年 AI 编码成本将超过开发者平均工资**;并点名批评厂商"对 token 消耗如何计算和计费缺乏透明度"。【调查】
-- Jellyfish 遥测:高用量开发者生产力 ~2 倍但 token 消耗 ~10 倍;**人均 token 消耗 9 个月增长 18.6 倍**。【遥测】
-- 企业实例:Uber 5000 工程师 2025.12 配发 Claude Code,**4 个月烧完全年 AI 预算**(人均 $150–2000/月);Microsoft 2026 年中撤销大部分内部 Claude Code 许可转向 Copilot CLI;Priceline 披露 Cursor 续约成本涨 4–5 倍。【新闻,TechCrunch 2026.6】
-- FinOps Foundation 2026:**98%** 的组织在主动管理 AI 支出(两年前 31%);"管理 token 成本"列为从业者**第一大挑战**;企业 AI 预算普遍**超支 2–3 倍**。【调查】
-- Goldman Sachs《Decoding the Agentic Economy》(2026.5):全球 token 消耗到 2030 年将增长 **24 倍**(~12 亿亿 token/月),主要由常驻 agent 驱动。【已验证,多家财经媒体一致引用】
-- 定价动荡与用户反弹:Copilot(2026.6 改用量计费,agentic 重度用户账单 10–50 倍)、Cursor(2025.6 改版后公开道歉退款)、Windsurf(2026.3 改版)、Codex(2026.4 改 token 计费)——两年内四大工具全部改版计费,可预测性成为普遍抱怨。【新闻/轶事混合】
-- 浪费结构:agent 会话中约 **84%** 的 token 是工具输出而非推理(SWE-agent 类 trace 分析);GitHub 官方 MCP server 单次请求吃 **1.76 万 token** 的工具定义,多 server 叠加超 3 万;MCP 官方仓库 issue #2808 估算每工具 ~1000 token 常驻开销。【遥测/一手 issue】(注:流传的"42% token 花在可避免操作"经回源只是单人 4 天自测;"62% 是重发历史"查无实据——不可外引。)
-- OpenAI 企业负责人原话:"客户对话已经不再关于能力,而是关于可见性、可审计性、token 控制和模型效率。"
-
-**结构判断**:这个痛点新到连 DORA(引用检索截止 2026.2)都没来得及建模——企业面对成本失控**没有任何权威框架可依**,同时缺可见性(消耗哪来的)和可控性(怎么设上限)。
-
-### 痛点 5:信任缺口与"几乎正确"税——用得越多,信得越少
-
-- DORA 2025:90% 使用 AI(同比 +14.1%),>80% 感知生产力提升,但 **30%** 对 AI 生成代码"几乎不信或完全不信"(a little 23% + not at all 7%),高信任仅 24%。DORA 将"信任"列为 AI 采纳因子的三成分之一(使用/依赖/信任),信任低直接压制采纳收益。【调查】
-- Stack Overflow 2025(12 月发布):采纳升到 84%,**对准确性的不信任从 31%(2024)升到 46%(2025)**,高信任仅 3%;**66% 把"AI 答案几乎对但不完全对"列为第一大挫败**;45% 说调试 AI 代码更耗时;75% 说"不信任 AI 答案时"仍会找人类求助(第一大原因)。【调查】
-- Sonar 2026 的"验证缺口":**96%** 不完全信任 AI 代码的正确性,但**只有 48%** 提交前总是验证——而 AI 已占提交代码的 **42%**(开发者预期 2027 年达 65%)。38% 不验证的理由是"验证比审查同事代码更耗时"。【调查】
-- 感知与现实错位:METR 实验(2025.7)——被 AI 拖慢 19% 的资深开源开发者,自己以为快了 20%。DORA 2025 正文引用了这项研究。【实验】
-- 安全面(已回源验证):Apiiro 对 Fortune 50 企业数万仓库的分析——AI 辅助开发者 commit 3–4 倍,但月度安全 finding 从 ~1000 涨到 10000+(10 倍),提权路径 +322%、架构缺陷 +153%;同期语法错误 −76%、逻辑 bug −60%(AI 消灭浅层错误、放大深层风险)。Veracode:100+ LLM 测试中 45% 的生成样本含 OWASP Top 10 漏洞。【遥测/调查】
-- 技能形成断裂(前瞻):Anthropic 研究(2026.2)——依赖 AI 生成代码的开发者对新库的理解测试低 **17%**,debug 题差距最大;LeadDev 2025——**54%** 的工程负责人计划少招 junior。DORA 2025 特邀专栏(Matt Beane)警告:专家自助后,junior 失去学徒机会,"默认的 AI 使用模式正在交付突破性生产力、同时阻断多数开发者的技能发展"。【研究/调查】
-
-企业需要的不是"劝大家更信任 AI",而是**让验证变便宜、让信任有依据**。
-
-### 痛点 6:AI 立场与治理缺位——DORA 证据最强的文化放大器,现实中普遍缺失
-
-- DORA 七能力中证据最强的一个是"**清晰且广泛传达的 AI 立场**":存在时,AI 对个体效能、组织绩效的正向影响被放大,连"摩擦"都从中性转为下降(唯一能翻转摩擦的能力之一)。但访谈显示开发者"普遍且持续地"不清楚公司立场——结果一半人过度保守(不敢用),一半人过度激进(乱用)。(2025 p51–53)
-- 影子 AI:**35%** 的开发者用个人账号访问 AI 编码工具(Sonar 2026);82% 的组织过去一年发现过未知的 AI agent/工作流;仅 12% 对 AI 代码应用与人写代码相同的安全标准(93% 已在用 AI 代码)。【调查】
-- 治理成熟度:88% 的 AI agent 试点从未进入生产;63% 的组织无法约束 agent 用途、60% 无法快速终止失控 agent;78% 的高管承认 90 天内过不了独立 AI 治理审计。【调查,2026 治理研究族】
-- Agent 可靠性成为生产安全话题:PocketOS 事件(2026.4.24,Cursor agent 经权限过大的 Railway token 9 秒删除生产库与全部备份,3.5 万+ 网络反应)是年度最被引用的案例;催生 sandbox 产业(Cloudflare/Vercel/Modal/E2B 等 2026 年初全部推出 agent 沙箱)。Anthropic 自己的 4·23 事后复盘(2026.4.23)证实了另一种失控:三个产品层变更叠加导致约 6 周的静默质量退化(默认推理档位下调、缓存 bug、verbosity 提示词变更,合计可测 3% 质量下降)——"平台/模型版本漂移静默改变 agent 输出"有了第一方实锤。【一手/新闻】
+**Writing code is no longer the bottleneck. What hurts enterprises most now is the downstream capacity to absorb AI-speed output — verification, context, stability, cost, and trust have all failed to keep up.** DORA names the phenomenon "localized pockets of productivity lost to downstream chaos," and offers a unifying explanation: **AI is a mirror and an amplifier, not a fixer** — it magnifies the strengths of high-performing organizations and the dysfunctions of struggling ones.
 
 ---
 
-## 三、DORA 全本细读的补充发现(超出摘要层的信息)
+## 2. The six pain points enterprises most need solved (ranked)
 
-### 3.1 七个团队画像:38% 的团队处于"痛苦画像"
-DORA 2025(p15–18)聚类出七种团队:Foundational challenges(10%,全面挣扎+高 burnout)、Legacy bottleneck(11%,被不稳定系统支配的救火队)、Constrained by process(17%,系统稳定但流程低效、高 burnout 低产出——"跑步机团队")、High impact low cadence(7%,高产出但高摩擦高不稳定,"speed without stability 不可持续")、Stable and methodical(15%)、Pragmatic performers(20%)、Harmonious high-achievers(20%)。**前三类(38%)是 AI 放大器效应下最危险的群体**——AI 会放大他们的既有失能;后两类(40%)证明"速度 vs 稳定"是伪权衡,两者可以兼得。
+### Pain #1: The Verification Tax — review is the new bottleneck, and it is getting worse
 
-### 3.2 平台工程:AI 价值的开关
-- 平台采纳率 90%,76% 有专职平台团队,29% 多平台并存——领导层挑战已从"要不要平台"变成"治理平台之平台"。
-- **关键交互效应(p71)**:平台质量低时,AI 采纳对组织绩效的影响**约等于零**;平台质量高时,强且正。"对 AI 的投资若没有对高质量平台的相应投资,不太可能在组织层面产生显著回报。"
-- 体验缺口:技术能力(可靠性/安全)评分高,而"对反馈的响应""任务自动化程度"垫底——平台普遍"技术先行、体验欠账"。
-- 反直觉发现:高质量平台会**增加**重度 AI 用户的摩擦(护栏限制不当用法),DORA 判断这是可接受的净正效应。
+**Named by both DORA reports and repeatedly confirmed by independent 2026 telemetry.**
 
-### 3.3 VSM 与"从局部到系统"
-价值流管理(可视化从想法到客户的工作流)被证实放大 AI 对组织绩效的影响。典型应用:映射后发现瓶颈在代码审查,则**把 AI 用于改进审查流程本身**,而不是"用 AI 生成更多代码去加剧瓶颈"——这是 DORA 给"AI 应该先用在哪"的方法论答案。
+The DORA ROI report (p. 40) states it flatly: "**The most immediate barrier to ROI is the verification tax**" — the time developers spend reviewing AI outputs. The causal chain: low trust → every line second-guessed → the J-Curve dips deeper → the capacity that should have been freed gets consumed. The same report (p. 36, citing the Stanford AI Index) notes that raw inference costs fell **280x** between Nov 2022 and Oct 2024: "because the cost of querying models is approaching zero, the true financial burden of adoption has shifted to governance cost: managing the verification tax, adjusting workflows, and upskilling talent."
 
-### 3.4 ROI 模型解剖(附录计算器,500 人团队示例)
-- 价值侧 **95% 来自"省下的人时"**($11M/$11.6M,按人均每天省 1 小时计),新功能增收仅 $99 万,不稳定性税 **−$34.4 万**(他们自己假设 CFR 5%→6%)。即:在 DORA 自己的模型里,AI 的可算价值≈开发者时间,交付质量项是净扣分。
-- J 曲线"学费":15% 生产力下探 × 3 个月 = **$330 万**,接近工具硬成本($506.5 万);总首年投入 $836.5 万,ROI 39%,回本 8 个月。
-- 明确反对裁员策略:省下的产能应再投资("free headcount"),留住人比重招便宜(替换一个开发者成本 = 年薪 1.5–2 倍)。
-- 局限自认:"All models are wrong";token 成本假设($80/人/年)与 2026 田野数据($200–500/人/月)差 30–75 倍——报告引用检索止于 2026.2,恰好错过成本爆发。
+Field data (2026):
+- Developers using AI complete 21% more tasks and merge 98% more PRs, but **PR size is up 154% and review time up 91%** (DX Q1 2026 impact report + Faros AI "Acceleration Whiplash," 22,000 developers / 4,000+ teams over two years of telemetry — the two vendors report identical figures, likely the same underlying dataset family; treat as one strong signal). [TELEMETRY]
+- Faros: commit-to-production lead time **+480%**; **no measurable org-level DORA metric improvement**. [TELEMETRY]
+- LinearB 2026 benchmarks (8.1M PRs, 4,800 orgs): agentic-AI PRs wait **5.3x longer** for review pickup than unassisted PRs (1,055 vs. 201 minutes at p75). [TELEMETRY]
+- CircleCI 2026: feature-branch throughput +59% YoY while median main-branch throughput **fell** — the bottleneck moved from writing to merge-readiness. [TELEMETRY]
+- Sonar State of Code 2026 (1,100+ devs): 38% say reviewing AI code takes more effort than reviewing a colleague's code; 95% spend effort reviewing/testing/correcting AI output. [SURVEY]
+- The recurring framing: "A developer with AI tools can produce 5–6 PRs a day; a reviewer can still only handle the same number they always could." [ANECDOTE, widely repeated]
 
-### 3.5 其他值得记录的 DORA 数据点
-- 中位开发者每个工作日与 AI 交互 **2 小时**(工作日的 1/4);任务榜首是写新代码(71%),其后是文献调研 68%、改现有代码 66%。
-- Agent 模式仍是少数:**61% 从未**用过 agent 模式(2025.6–7 调研时点)——企业主流交互仍是 chat + 补全,agentic 浪潮尚在早期。
-- 摩擦与 burnout 对 AI 完全免疫(连续两年无统计关系)。摩擦没有消失而是**搬家**:从手工劳动转移到"prompt 迭代、结果甄别、审查看起来极像正确代码的代码"。产能感知提升甚至引来更高产出预期(工作强化),qualitative 数据里开发者明确表达 deadline 变紧的担忧。
-- 心理面:AI 采纳与"真实自豪感"正相关(通过"更多时间做有价值工作"中介);78% 确信不削弱代码心理所有权(但有 21% 概率存在弱化效应);对工作意义、认知需求、人际连接均无可测影响。
-- UC Berkeley 眼动研究(特邀专栏):解释性任务中开发者对 AI 聊天的视觉注意 <1%(机械任务 ~19%)——深度理解场景下开发者主动忽略 AI,提示"AI 支持要匹配任务的认知性质"。
-- 测量框架章:自报数据 vs 日志数据各有偏差,"日志指标客观"是常见误解;AI 时代不必推倒既有框架,增补即可(如 AI 建议接受率、信任度)。
+DORA's three official mitigations for the verification tax (ROI p. 33): invest in automated testing, use AI to assist code review, and **provide better context to the AI to improve initial code quality** — note the third item: it draws a causal arrow from Pain #2 to Pain #1.
+
+### Pain #2: AI lacks organizational context — DORA's strongest empirically-confirmed amplifier gap, and its official "first investment"
+
+The DORA 2025 AI Capabilities Model screened 15 candidate capabilities down to 7 that demonstrably amplify AI's benefits. **Two of the seven are data/context capabilities**:
+- **AI-accessible internal data**: when present, AI's positive effect on individual effectiveness and code quality is significantly amplified. The report's own words: "if AI can't access internal company data, how useful can it really be?" (p. 55)
+- **Healthy data ecosystems** (internal data that is high-quality, accessible, and unified): when present, AI's effect on organizational performance is amplified. (p. 54)
+
+The ROI report (Jan 2026) promotes this to the **top of the investment roadmap** (pp. 43–44):
+- Step 1, "**Build the context layer**" (CapEx): quality internal developer platform + healthy data ecosystem — "centralizing architectural standards and ensuring documentation is high fidelity and **machine readable**," with the goal of giving agents "a clear, standardized map of the organization's technical landscape." Direct quote: "In an agentic world, garbage in, garbage out refers to the context provided to the agent."
+- Step 2, "Empower the human in the loop" (OpEx): two named capabilities — **trust in AI and context engineering**. Developers become "high-level orchestrators, providing agents with precise business context and maintaining rigorous oversight."
+- The internal developer platform is redefined as "the **risk mitigator and the context provider** for AI agents" (p. 40): with a well-defined platform, agents "spend less time hallucinating architectural patterns."
+
+Qualitative evidence (DORA 2025, p. 85): AI suggestions "frequently miss critical context, such as team conventions, architectural history, or past incidents," because that information is "buried in disparate systems and informal knowledge channels"; documentation rot means an agent can end up consuming "automated folklore."
+
+Field and academic data (2026):
+- **Positive**: arXiv:2601.20404 (Jan 2026; controlled experiment, 10 repos / 124 PRs): with an AGENTS.md present, median agent runtime **−28.64%** and output tokens **−16.58%**. [ACADEMIC, verified against primary source]
+- **Negative (important nuance)**: arXiv:2602.11988 "AGENTbench" (ETH Zurich-affiliated, Feb 2026; 138 real-world Python tasks): **LLM-generated** AGENTS.md files *reduced* task success in 5 of 8 settings (−0.5 to −2 pp), added 2.45–3.92 extra steps per task, and raised inference cost 20–23% — because generated files merely duplicated what the agent could discover itself. **Human-written** context files improved success by ~4 points. [ACADEMIC] ⇒ Context earns its keep through *information gain*, not through a file's mere existence.
+- Maintenance burden is a real pain but has no independent survey quantifying it yet: context files drift as codebases evolve; copies across CLAUDE.md / AGENTS.md / .cursorrules fall out of sync; "no automated way to detect staleness" (multiple independent practitioner guides converge). Community complaint: models effectively ignore CLAUDE.md content past ~200 lines. Claude Code's own repo has issue #34776 (Mar 2026, closed not-planned) documenting five failure modes of long-lived auto-memory: entries crowded out, contradictory corrections accumulating, no expiry, no priority tiers, no audit mechanism. [ANECDOTE / first-party issue]
+- Stanford software-engineering productivity research (cited by DORA ROI p. 36): AI yields **35–40%** productivity gains on simple greenfield tasks but often **≤10%** on complex legacy brownfield code — which is precisely what most enterprise code is. Generic models help least on *your* old systems.
+
+### Pain #3: Delivery instability — two consecutive years of "more AI, less stable"
+
+DORA's most stubborn negative finding, two years running:
+- 2024: for every 25% increase in AI adoption, delivery throughput −1.5%, delivery instability +7.2%.
+- 2025: throughput flipped positive (adaptation happened), **but instability still rises with AI adoption**, with the second-largest effect size of all outcomes studied (after individual effectiveness).
+- DORA explicitly tested the defense "isn't instability an acceptable price for speed?" — **no**. Instability's harm to product performance and burnout is *not* moderated by AI adoption; it eats the throughput gains. (2025, p. 41)
+- The ROI report's own sample calculator models change-failure rate going **up** from 5% to 6% under AI, booking an "instability tax" of **−$344k/year**.
+
+Field data: Faros 2026 — bugs per developer **+54%** (vs. +9% a year earlier), production incidents per PR **tripled**, post-commit churn **+10x**. GitClear (211M lines): duplicated code blocks up **8x** in 2024; "moved" (refactored/reused) code fell below 10% share (−44% YoY); two-week churn rose from 3.1% (2020) to 5.7–7.9% (2024). [TELEMETRY]
+
+DORA's conclusion: testing, deployment pipelines, rollback proficiency, and small batches are not obsolete in the AI era — they are **more existential than ever**. Strong version control (especially rollback fluency) and working in small batches are both in the seven-capability model, and small batches are one of the few capabilities that flip AI's neutral effect on friction into a *reduction*.
+
+### Pain #4: Token cost overrun and unpredictability — the CFO-level pain that exploded in 2026, with no authoritative framework
+
+The DORA reports are nearly blind here (the ROI calculator assumes **$80/user/year** of additional AI/API cost), while H1-2026 reality:
+- Gartner (press release, Jun 24, 2026): nearly **1 in 4** tech leaders already spends **$200–500/developer/month** on AI coding; ~6% exceed $2,000. Prediction: **AI coding costs will surpass the average developer's salary by 2028**. Gartner also faults vendors for "lack[ing] transparency into how token consumption is calculated and billed." [SURVEY]
+- Jellyfish telemetry: heavy-usage developers show ~2x productivity but ~10x token consumption; **per-developer token consumption grew 18.6x in nine months**. [TELEMETRY]
+- Enterprise cases: Uber provisioned 5,000 engineers with Claude Code in Dec 2025 and **exhausted its full-year AI budget in four months** ($150–2,000/engineer/month); Microsoft cancelled most internal Claude Code licenses mid-2026, redirecting to Copilot CLI; Priceline disclosed a 4–5x jump in Cursor renewal cost. [NEWS — TechCrunch, Jun 2026]
+- FinOps Foundation 2026: **98%** of organizations now actively manage AI spend (31% two years prior); "managing token costs" is practitioners' **#1 challenge**; AI budgets routinely overrun forecasts **2–3x**. [SURVEY]
+- Goldman Sachs, *Decoding the Agentic Economy* (May 2026): global token consumption projected to grow **24x by 2030** (~120 quadrillion tokens/month), driven by always-on agents. [VERIFIED — consistently reported across financial press]
+- Pricing turbulence and user backlash: Copilot (Jun 2026 usage-based switch; 10–50x bill increases for agentic-heavy users), Cursor (Jun 2025 overhaul, public apology + refunds), Windsurf (Mar 2026 overhaul), Codex (Apr 2026 switch to token pricing) — all four major tools re-priced within two years; predictability is the universal complaint. [NEWS/ANECDOTE mixed]
+- Waste structure: ~**84%** of tokens in an agentic turn are tool output rather than reasoning (SWE-agent-style trace analysis); GitHub's official MCP server consumes **17,600 tokens** of tool-definition schema per request, and multiple servers stack past 30,000 before any work begins; MCP repo issue #2808 estimates ~1,000 tokens of standing overhead per loaded tool. [TELEMETRY / first-party issue] (Note: the widely-shared "42% of tokens are avoidable" traces back to one person's 4-day self-log; "62% is re-sent history" could not be traced to any source — neither is fit for external citation.)
+- OpenAI's enterprise lead, verbatim: "Our conversations are never about capability anymore — now it's about visibility, auditability, token controls, and model efficiency."
+
+**Structural read**: this pain is so new that even DORA (citations retrieved through Feb 2026) hadn't modeled it — enterprises face runaway cost with **no authoritative framework**, lacking both visibility (where consumption comes from) and control (how to cap it).
+
+### Pain #5: The trust gap and the "almost right" tax — the more it's used, the less it's trusted
+
+- DORA 2025: 90% use AI (+14.1% YoY), >80% perceive productivity gains, yet **30%** have little or no trust in AI-generated code (23% "a little" + 7% "not at all"); only 24% report high trust. DORA models trust as one of the three components of its AI-adoption factor (use / reliance / trust) — low trust directly suppresses adoption benefits. [SURVEY]
+- Stack Overflow 2025 (published Dec 2025): adoption rose to 84% while **distrust of accuracy rose from 31% (2024) to 46% (2025)**; only 3% "highly trust" output. **66% cite "AI solutions that are almost right, but not quite" as the top frustration**; 45% say debugging AI code takes longer; 75% say "when I don't trust AI's answers" is the #1 reason they'd still consult a human. [SURVEY]
+- Sonar 2026's "verification gap": **96%** don't fully trust the functional accuracy of AI code, but **only 48%** always verify before committing — while AI already accounts for **42%** of committed code (devs expect 65% by 2027). Of those who skip verification, 38% say it's because verifying takes longer than reviewing a colleague's code. [SURVEY]
+- Perception vs. reality: the METR experiment (Jul 2025) — experienced open-source developers *slowed down 19%* by AI tools believed they had been sped up 20%. DORA 2025 cites this study in its main text. [EXPERIMENT]
+- Security dimension (verified to primary source): Apiiro's analysis of tens of thousands of Fortune 50 repos — AI-assisted developers commit **3–4x** more, but monthly security findings rose from ~1,000 to 10,000+ (**10x**); privilege-escalation paths +322%, architectural design flaws +153%; in the same data, syntax errors fell 76% and logic bugs fell 60% (AI eliminates shallow errors while amplifying deep risk). Veracode: 45% of AI-generated samples across 100+ LLMs contained OWASP Top 10 vulnerabilities. [TELEMETRY/SURVEY]
+- Skill-formation rupture (leading indicator): Anthropic research (Feb 2026) — developers relying on AI generation scored **17% lower** on comprehension tests for new libraries, with the largest gap on debugging questions; LeadDev 2025 — **54%** of engineering leaders plan to hire fewer juniors. DORA 2025's guest essay (Matt Beane) warns that when experts can self-serve, juniors lose the apprenticeship channel: "default AI usage patterns are delivering breakthrough productivity and blocking skill development for most devs." [STUDY/SURVEY]
+
+What enterprises need is not "persuade people to trust AI more" — it is **making verification cheap and giving trust an evidentiary basis**.
+
+### Pain #6: Missing AI stance and governance — DORA's strongest cultural amplifier, absent in practice
+
+- The single strongest-evidence capability in DORA's model is a "**clear and communicated AI stance**": when present, AI's positive effects on individual effectiveness and organizational performance are amplified, and AI's neutral effect on friction turns into a *decrease* (one of only two capabilities that flip friction). Yet interviews show developers "routinely and consistently" don't know their organization's stance — producing both over-conservative users (afraid to use AI) and over-permissive ones (using it where they shouldn't). (2025, pp. 51–53)
+- Shadow AI: **35%** of developers access AI coding tools via personal accounts (Sonar 2026); 82% of organizations discovered at least one unknown AI agent/workflow in the past year; only 12% apply the same security standards to AI code as to human code (while 93% already use AI code). [SURVEY]
+- Governance maturity: 88% of AI-agent pilots never reach production; 63% of orgs can't enforce purpose limits on agents, 60% can't quickly terminate a misbehaving one; 78% of executives admit they couldn't pass an independent AI-governance audit within 90 days. [SURVEY, 2026 governance research family]
+- Agent reliability is now a production-safety topic: the PocketOS incident (Apr 24, 2026 — a Cursor agent with an over-scoped Railway token deleted the production database and all backups in 9 seconds; 35,000+ online reactions) is the year's most-cited case, and a sandbox industry materialized in response (Cloudflare, Vercel, Modal, E2B all shipped agent sandboxes by early 2026). Anthropic's own April 23, 2026 postmortem confirmed a different failure mode: three overlapping product-layer changes caused ~6 weeks of silent quality degradation (default reasoning-effort downgrade, a caching bug, a verbosity prompt change — a measured 3% quality drop) — first-party proof that **platform/model version drift silently changes agent output**. [FIRST-PARTY/NEWS]
 
 ---
 
-## 四、证据可靠性:回源验证结果
+## 3. Additional findings from the full read (beyond the executive summaries)
 
-对流传最广的 10 条弱证据做了逐条回源(2026.7):
+### 3.1 Seven team profiles: 38% of teams live in a "pain profile"
+DORA 2025 (pp. 15–18) clusters teams into seven archetypes: Foundational challenges (10%; struggling on all fronts, high burnout), Legacy bottleneck (11%; firefighting driven by unstable systems), Constrained by process (17%; stable systems but inefficient process — high burnout, low impact, "a treadmill"), High impact/low cadence (7%; strong output with high friction and instability — "speed without stability is unsustainable"), Stable and methodical (15%), Pragmatic performers (20%), Harmonious high-achievers (20%). **The first three (38%) are the group most endangered by the amplifier effect** — AI magnifies their existing dysfunction. The last two (40%) are empirical proof that the speed-vs-stability trade-off is a myth.
 
-| 声称 | 判定 | 修正 |
+### 3.2 Platform engineering: the on/off switch for AI value
+- Platform adoption is at 90%; 76% of orgs have at least one dedicated platform team; 29% run multiple platforms — the leadership challenge has shifted from "have a platform" to "govern a platform of platforms."
+- **The key interaction effect (p. 71)**: with low platform quality, AI adoption's effect on organizational performance is **negligible**; with high quality, it is strong and positive. "An investment in AI without a corresponding investment in high-quality platforms is unlikely to yield significant returns at the organizational level."
+- The experience gap: technical capabilities (reliability, security) score well while "acting on feedback" and "task automation" lag — platforms are typically built tech-first, experience-later, and "until the user experience is addressed, the platform's full value remains unrealized."
+- Counterintuitive: high-quality platforms *increase* friction for heavy AI users (guardrails blocking inappropriate use); DORA judges this an acceptable net-positive.
+
+### 3.3 Value stream management: "from local to systemic"
+VSM (visualizing and improving flow from idea to customer) is confirmed to amplify AI's impact on organizational performance. The canonical application: if mapping reveals code review as the constraint, **apply AI to improve the review process itself** rather than using AI to generate more code that worsens the bottleneck. This is DORA's methodological answer to "where should AI be applied first."
+
+### 3.4 Dissecting the ROI model (appendix calculator, 500-FTE example)
+- **95% of modeled value is reclaimed developer time** ($11.0M of $11.6M, at ~1 hour/day saved); revenue from extra features is only $0.99M; the instability tax is **−$344k** (their own assumption: CFR 5%→6%). In DORA's own model, AI's calculable value ≈ developer time, and the delivery-quality line item is net negative.
+- The J-Curve "tuition": a 15% productivity dip × 3 months = **$3.3M**, nearly matching hard tooling costs ($5.065M); total first-year investment $8.365M, ROI 39%, payback ~8 months.
+- Explicitly anti-layoff: freed capacity should be reinvested ("free headcount"); replacing a developer costs 1.5–2x annual salary.
+- Self-acknowledged limits: "all models are wrong"; and its token-cost assumption ($80/user/year) is off by 30–75x versus 2026 field data ($200–500/user/month) — the report's citations end Feb 2026, just before the cost explosion.
+
+### 3.5 Other DORA data points worth recording
+- The median developer interacts with AI **2 hours per workday** (a quarter of an 8-hour day). Top task: writing new code (71% of those who code), then literature reviews (68%), modifying existing code (66%).
+- Agent mode is still a minority: **61% never** use agentic AI (survey window Jun–Jul 2025) — mainstream enterprise interaction remains chat + completion; the agentic wave is early.
+- Friction and burnout are completely immune to AI (no statistical relationship, two years running). Friction doesn't vanish — it **relocates**: from manual grind to "prompt iteration, result vetting, and assessing code that looks remarkably similar to correct code." Perceived capacity gains invite higher output expectations (work intensification); interviewees explicitly reported tightened deadlines.
+- Psychology: AI adoption correlates with *authentic pride* (mediated by more time on valuable work); 78% certainty that AI does not diminish psychological ownership of code (with a notable 21% probability that it does); no measurable effect on meaning of work, need for cognition, or workplace connection.
+- UC Berkeley eye-tracking study (guest essay): during interpretive tasks developers gave AI chat <1% of visual attention (vs. ~19% on mechanical tasks) — in deep-understanding contexts developers actively ignore AI, suggesting AI support must match the cognitive nature of the task.
+- Metrics chapter: self-reported and logs-based data each carry bias — "logs-based metrics are objective" is a named misconception; for the AI era, extend existing frameworks (e.g., add suggestion-acceptance rate, trust) rather than replacing them.
+
+---
+
+## 4. Evidence reliability: verification results
+
+The 10 most widely-circulated weak claims were traced to primary sources (Jul 2026):
+
+| Claim | Verdict | Correction |
 |---|---|---|
-| AGENTS.md 使 agent 运行时长 −29%/输出 −17% | **确认** | 实际 −28.64%/−16.58%,arXiv:2601.20404(10 仓库/124 PR) |
-| "84% 的公司在 agent 文档上失败" | **误引** | 作者对一个无出处的"16%"做的减法,无任何研究支撑 |
-| Sherlock Forensics"92% 的 AI 代码库含严重漏洞/均 8.3 个" | 部分确认 | 真报告但样本仅"数十个应用"、无置信区间,且发布者卖审计服务(利益冲突) |
-| Fortune 50:commit 3–4 倍/安全 finding 10 倍 | **确认** | 出处是 Apiiro(非 Veracode/Cycode);同数据中语法错误 −76%、逻辑 bug −60% |
-| "vibe coding 多 1.7 倍 bug/2.25 倍逻辑错误" | **误引** | CodeRabbit 470 PR 研究:总 issue 1.7 倍正确,逻辑错误 ~1.75 倍而非 2.25 倍 |
-| "67% 的企业 AI 部署过不了合规审计" | **查无实据** | 全链条无出处,疑似营销内容生成的数字 |
-| "42% 的 agent token 花在可避免操作" | 部分确认 | 单人 4 天自测(2100 万 token),非正式研究 |
-| "62% 的计费 token 是重发历史" | **查无实据** | 所指页面无此数字,疑与另一个无关的 62% 混淆 |
-| Perplexity CTO"72% context tax"弃用 MCP | 部分确认 | 弃用 MCP 事件真实(Ask 2026,2026.3.11);"72%"无一手记录,各家转述 40–72% 不一 |
-| Goldman Sachs"token 用量 2030 年 24 倍" | **确认** | 《Decoding the Agentic Economy》,多家财经媒体一致 |
+| AGENTS.md → agent runtime −29% / output −17% | **CONFIRMED** | Actual: −28.64% / −16.58%, arXiv:2601.20404 (10 repos / 124 PRs) |
+| "84% of companies fail at agent documentation" | **MISQUOTED** | Author's arithmetic on an uncited "16%" stat; no study behind it |
+| Sherlock Forensics "92% of AI codebases have critical vulns / avg 8.3" | PARTIALLY CONFIRMED | Real report, but sample is "dozens of apps," no confidence intervals, publisher sells audits (COI) |
+| Fortune 50: 3–4x commits / 10x security findings | **CONFIRMED** | Source is Apiiro (not Veracode/Cycode); same data shows syntax errors −76%, logic bugs −60% |
+| "Vibe coding: 1.7x bugs / 2.25x logic errors" | **MISQUOTED** | CodeRabbit 470-PR study: 1.7x total issues correct; logic issues ~1.75x, not 2.25x |
+| "67% of enterprise AI deployments fail compliance audits" | **UNVERIFIABLE** | No source anywhere in the chain; likely fabricated marketing stat |
+| "42% of agent tokens spent on avoidable operations" | PARTIALLY CONFIRMED | One developer's 4-day self-log (21M tokens), not a formal study |
+| "62% of billed tokens are re-sent history" | **UNVERIFIABLE** | Figure absent from the cited pages; likely conflated with an unrelated stat |
+| Perplexity CTO "72% context tax," dropping MCP | PARTIALLY CONFIRMED | The MCP move is real (Ask 2026, Mar 11, 2026); the "72%" has no primary transcript — outlets vary 40–72% |
+| Goldman Sachs "token usage 24x by 2030" | **CONFIRMED** | *Decoding the Agentic Economy*; consistent across financial press |
 
-**使用规则**:标"确认"的可外引;"部分确认"须带 caveat;"误引/查无实据"不得使用。另注意两处数据同源风险:DX 与 Faros 的"91%/154%"疑似同一数据族;"agent 比 chat 耗 10–100 倍 token"是行业汇聚估计、无单一严谨研究。
-
----
-
-## 五、中国企业侧补充(独立搜索面,证据整体偏弱)
-
-- **可用性风险是第一位的、且在恶化**:Anthropic 限制中资持股 >50% 企业使用(多个中文开发者社区独立收敛);2026.6–7 月 Anthropic 与阿里巴巴的指控/反禁用冲突(阿里要求员工 7.10 前卸载全部 Anthropic 产品;Anthropic 指控 2.5 万假账号/2800 万次对话的"工业级蒸馏"并波及 DeepSeek/月之暗面/MiniMax)——此事目前**仅见中文媒体单源转载,未经英文渠道交叉验证**,但与前述政策内在一致。对国内企业的含义:把关键工作流押在境外前沿模型上存在断供级风险。
-- **合规与私有化是刚需而非偏好**:金融/政务/军工优先信创适配、源码可控、等保合规、私有化部署;"担心 AI 引入安全漏洞、代码泄露、幻觉代码难维护"被中文社区表述为企业最核心顾虑。【厂商相关内容,方向可信】
-- **国产模型编程能力**:标准代码生成已接近齐平,残余差距在复杂/模糊的大规模架构设计与超长上下文推理;成本优势显著(有"1% 成本达 90% 能力"的说法,个人月成本 <50 元)。【知乎/社区评测,方法论未验证】
-- **企业 AI 网关**(精细计费、权限管控、效能分析)被中文社区判断为"大厂基础设施标配"的方向——与英文世界 FinOps/LLM 网关趋势完全同构。
-- 数据泄露恐惧常引用的"每 10 万员工向 ChatGPT 发送 5267 次企业数据"实为 **Cyberhaven 2023 年**数据在 2026 年被当新数据转述——引用时须注明年份。
+**Usage rules**: CONFIRMED items may be cited externally; PARTIALLY CONFIRMED only with caveats; MISQUOTED/UNVERIFIABLE must not be used. Two same-source risks to remember: DX and Faros's "91%/154%" figures appear to share a dataset family; the "agents burn 10–100x more tokens than chat" multiplier is a converging industry estimate with no single rigorous study behind it.
 
 ---
 
-## 六、覆盖度与剩余缺口
+## 5. Coverage and remaining gaps
 
-**已覆盖**:两份 DORA 报告全文;token 成本/审查瓶颈/代码质量/上下文/信任/治理/agent 可靠性七个面的英文田野数据;10 条弱证据回源;Reddit(经聚合源)、AGENTS.md 维护负担、CI 非确定性、中国侧四个补充面。
+**Covered**: both DORA reports in full; English-language field data across seven surfaces (token cost, review bottleneck, code quality, context, trust, governance, agent reliability); primary-source verification of 10 weak claims; supplementary passes on Reddit sentiment, AGENTS.md maintenance burden, and CI non-determinism.
 
-**剩余缺口(如需外发或立项,建议补)**:
-1. Reddit 一手帖(WebFetch 被 reddit.com 屏蔽,只拿到聚合转述,赞数未经核实)。
-2. "70% 领导者视非确定性为第一生产化障碍/64% 评估缺口"两个数字未找到署名调查——**勿引用**。
-3. 阿里/Anthropic 事件需英文渠道交叉验证。
-4. "这些痛点上别人已经在做什么"(解决方案格局/竞品)——本轮按要求完全未做。
+**Remaining gaps (worth closing before external publication or investment decisions)**:
+1. First-hand Reddit threads (WebFetch is blocked on reddit.com; sentiment was reconstructed from aggregators quoting specific threads; upvote counts unverified).
+2. Two circulating figures — "70% of leaders name non-determinism as the #1 production-readiness barrier" and "evaluation/observability gaps at 64%" — could not be traced to any named survey. **Do not cite.**
+3. The solution landscape ("who is already building against each pain") was deliberately out of scope for this pass.
 
 ---
 
-## 七、归档文件清单
+## 6. Archived files
 
-| 文件 | 说明 |
+| File | Description |
 |---|---|
-| `dora-2025.pdf` | DORA 2025 State of AI-assisted Software Development,142 页原件(v2025.2) |
-| `dora-2025.txt` | 上件的全文文本抽取(pdf-parse) |
-| `dora-roi-2026.pdf` | DORA: The ROI of AI-assisted Software Development,60 页原件(v2026.1) |
-| `dora-roi-2026.txt` | 上件的全文文本抽取 |
-| `dora-developer-pain-analysis-2026.md` | 本报告(综合分析,已汇总四轮 subagent 调研) |
+| `dora-2025.pdf` | DORA 2025 State of AI-assisted Software Development, 142-page original (v2025.2) |
+| `dora-2025.txt` | Full-text extraction of the above (pdf-parse) |
+| `dora-roi-2026.pdf` | DORA: The ROI of AI-assisted Software Development, 60-page original (v2026.1) |
+| `dora-roi-2026.txt` | Full-text extraction of the above |
+| `dora-developer-pain-analysis-2026.md` | This report (synthesis; incorporates all four subagent research passes) |
+| `dora-developer-pain-analysis-2026.zh.md` | Chinese edition of this analysis (includes an additional China-market section) |
