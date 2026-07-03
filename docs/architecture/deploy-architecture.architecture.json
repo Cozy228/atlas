@@ -3,9 +3,9 @@
   "diagram_type": "architecture",
   "meta": {
     "title": "Atlas Deploy Architecture",
-    "subtitle": "ALB to ECS Fargate with DynamoDB-backed feedback",
+    "subtitle": "ALB to ECS Fargate with Valkey cache and DynamoDB-backed feedback",
     "output": "deploy-architecture.html",
-    "viewBox": [1040, 720]
+    "viewBox": [1220, 720]
   },
   "components": [
     {
@@ -59,11 +59,20 @@
       "size": [160, 62]
     },
     {
+      "id": "valkey",
+      "type": "database",
+      "label": "ElastiCache / Valkey",
+      "sublabel": "source content cache",
+      "pos": [760, 440],
+      "size": [170, 62],
+      "tag": "TTL cache"
+    },
+    {
       "id": "sources",
       "type": "external",
       "label": "Source Systems",
       "sublabel": "Confluence / Terraform / policy docs",
-      "pos": [760, 440],
+      "pos": [990, 440],
       "size": [180, 66]
     }
   ],
@@ -71,7 +80,7 @@
     {
       "kind": "region",
       "label": "AWS Region",
-      "wraps": ["alb", "ecs", "dynamodb", "secrets", "cloudwatch"]
+      "wraps": ["alb", "ecs", "dynamodb", "secrets", "cloudwatch", "valkey"]
     },
     {
       "kind": "security-group",
@@ -119,12 +128,21 @@
     },
     {
       "from": "ecs",
-      "to": "sources",
-      "label": "runtime metadata/excerpt fetch",
-      "variant": "dashed",
+      "to": "valkey",
+      "label": "read-through cache",
+      "variant": "default",
       "fromSide": "bottom",
       "toSide": "left",
-      "labelAt": [718, 405]
+      "labelAt": [725, 392]
+    },
+    {
+      "from": "valkey",
+      "to": "sources",
+      "label": "cache miss fetch",
+      "variant": "dashed",
+      "fromSide": "right",
+      "toSide": "left",
+      "labelAt": [960, 418]
     }
   ],
   "cards": [
@@ -141,7 +159,7 @@
     {
       "dot": "amber",
       "title": "Persistence",
-      "items": ["DynamoDB stores feedback through the Context Layer repository.", "Runtime credentials are referenced from Secrets Manager."]
+      "items": ["DynamoDB stores feedback through the Context Layer repository.", "Valkey caches source content between ECS and source systems."]
     }
   ]
 }
