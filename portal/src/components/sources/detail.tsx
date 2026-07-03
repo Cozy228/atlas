@@ -188,7 +188,7 @@ export function SourceDossier({
                           {r.title}
                         </span>
                       </span>
-                      <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.04em] text-muted-foreground">
+                      <span className="shrink-0 type-eyebrow text-muted-foreground">
                         {CLASS_LABEL[r.source_class]}
                       </span>
                     </Link>
@@ -249,9 +249,7 @@ function MetaRow({
 }) {
   return (
     <div className="flex items-baseline justify-between gap-3 border-b border-border py-2 last:border-b-0">
-      <dt className="font-mono text-[10px] uppercase tracking-[0.06em] text-muted-foreground">
-        {label}
-      </dt>
+      <dt className="type-eyebrow text-muted-foreground">{label}</dt>
       <dd
         className={cn(
           "text-right text-[12.5px] font-semibold text-foreground",

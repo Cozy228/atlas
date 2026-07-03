@@ -420,9 +420,7 @@ function ServiceDetailRoute() {
             Get-started entry tools and the discovered reference documents. */}
         <aside className="flex flex-col gap-4 lg:sticky lg:top-[76px]">
           <div className="flex flex-col gap-3 rounded-[4px] border border-border bg-card p-4">
-            <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-              Actions
-            </span>
+            <span className="type-eyebrow font-semibold text-muted-foreground">Actions</span>
             {entryTools[0] ? (
               <a
                 href={entryTools[0].url}
@@ -450,7 +448,7 @@ function ServiceDetailRoute() {
                 if (references.length === 0) return null;
                 return (
                   <div className="flex flex-col gap-1.5 border-t border-border pt-3">
-                    <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                    <span className="type-eyebrow font-semibold text-muted-foreground">
                       Reference documents
                     </span>
                     {references.map((reference) => (

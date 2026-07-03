@@ -37,9 +37,7 @@ export function LandingZoneSelector() {
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         )}
       >
-        <span className="font-mono text-[10px] uppercase tracking-[0.04em] text-muted-foreground">
-          LZ
-        </span>
+        <span className="type-eyebrow text-muted-foreground">LZ</span>
         <span className="max-w-[20ch] truncate">{current?.name ?? currentLandingZoneId}</span>
         <IconChevronDown size={14} strokeWidth={2} className="text-muted-foreground" aria-hidden />
       </DropdownMenuTrigger>
@@ -58,7 +56,7 @@ export function LandingZoneSelector() {
             <DropdownMenuRadioItem key={zone.id} value={zone.id}>
               <span className="min-w-0 flex-1 truncate">{zone.name}</span>
               {zone.dataStatus === "not-available" ? (
-                <span className="ml-auto shrink-0 whitespace-nowrap font-mono text-[10px] uppercase tracking-[0.04em] text-muted-foreground/70">
+                <span className="ml-auto shrink-0 whitespace-nowrap type-eyebrow text-muted-foreground/70">
                   no data
                 </span>
               ) : null}

@@ -18,6 +18,7 @@ import { AnimatePresence, LazyMotion, MotionConfig, m, type Variants } from "mot
 
 import { useAskAtlas } from "@/components/ask-atlas/context";
 import { JourneyGrid } from "@/components/home/journey-grid";
+import { TONE_DOT } from "@/components/whatsnew/data";
 import { IntentSearch } from "@/components/intent-search";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
@@ -122,7 +123,7 @@ function WhatsNewTicker({ announcements }: { announcements: ReadonlyArray<HomeAn
       aria-label="What's new — read the full dispatch"
       className="group flex w-full items-center gap-4 border-y border-border py-2.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
-      <span className="flex shrink-0 items-center gap-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-brand-ink">
+      <span className="flex shrink-0 items-center gap-1.5 type-eyebrow font-semibold text-brand-ink">
         What&rsquo;s new
         <IconArrowRight
           aria-hidden
@@ -158,10 +159,8 @@ function TickerTrack({
     <div aria-hidden={ariaHidden || undefined} className="flex shrink-0 items-center">
       {announcements.map((item, i) => (
         <span key={`${item.title}-${i}`} className="flex items-center gap-2 whitespace-nowrap px-6">
-          <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-muted-foreground/50" />
-          <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
-            {item.kind}
-          </span>
+          <span aria-hidden className={cn("size-1.5 shrink-0 rounded-full", TONE_DOT[item.tone])} />
+          <span className="type-eyebrow font-semibold text-muted-foreground">{item.kind}</span>
           <span className="text-[12.5px] text-foreground/80">{item.title}</span>
         </span>
       ))}
@@ -228,13 +227,13 @@ function Hero({
       </p>
       <div className="flex w-full max-w-[600px] flex-col items-center gap-3 pt-1">
         <IntentSearch className="h-12 w-full" />
-        <div className="flex flex-wrap items-center justify-center gap-1.5">
-          <span className="text-xs font-medium text-muted-foreground">Popular</span>
+        <div className="flex h-7 w-full flex-wrap content-start items-center gap-1.5 overflow-hidden">
+          <span className="shrink-0 text-xs font-medium text-muted-foreground">Popular</span>
           {POPULAR.map((q) => (
             <Link
               key={q}
               to="/catalog"
-              className="rounded-full border border-border bg-card px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:border-border-strong hover:text-foreground"
+              className="shrink-0 rounded-full border border-border bg-card px-2.5 py-1 text-xs whitespace-nowrap text-muted-foreground transition-colors hover:border-border-strong hover:text-foreground"
             >
               {q}
             </Link>
@@ -344,7 +343,7 @@ function IntentFocus() {
                 </p>
               </div>
             </div>
-            <span className="intent-lands flex items-center gap-1.5 self-center font-mono text-[10px] uppercase tracking-[0.06em] transition-colors duration-200 group-hover/row:text-brand-ink">
+            <span className="intent-lands flex items-center gap-1.5 self-center type-eyebrow transition-colors duration-200 group-hover/row:text-brand-ink">
               {intent.lands}
               <IconArrowRight
                 aria-hidden
@@ -550,7 +549,7 @@ function HelpCloser() {
       data-fab-dismiss
       className="flex flex-col items-center gap-3 border-t border-border py-7 text-center"
     >
-      <span className="flex items-center gap-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-brand-ink">
+      <span className="flex items-center gap-1.5 type-eyebrow font-semibold text-brand-ink">
         <IconMessageCircle aria-hidden className="size-3.5" />
         Ask
       </span>

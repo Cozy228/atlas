@@ -227,11 +227,7 @@ function ContactChip({
       ) : (
         <span className="font-mono text-foreground">{value}</span>
       )}
-      {suffix ? (
-        <span className="font-mono text-[10px] uppercase tracking-[0.04em] text-muted-foreground">
-          {suffix}
-        </span>
-      ) : null}
+      {suffix ? <span className="type-eyebrow text-muted-foreground">{suffix}</span> : null}
       <button
         type="button"
         onClick={copy}

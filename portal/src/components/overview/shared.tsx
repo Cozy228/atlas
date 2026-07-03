@@ -138,9 +138,7 @@ export function AttentionFeed({
               <span className="text-[13.5px] font-bold tracking-[-0.01em] text-foreground">
                 {item.title}
               </span>
-              <span className="font-mono text-[10px] uppercase tracking-[0.05em] text-muted-foreground">
-                {item.kind}
-              </span>
+              <span className="type-eyebrow text-muted-foreground">{item.kind}</span>
             </div>
             <p className="text-[12px] leading-[1.5] text-muted-foreground">{item.note}</p>
             <span className="font-mono text-[10px] tabular-nums text-muted-foreground">

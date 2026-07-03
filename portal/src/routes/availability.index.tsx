@@ -535,7 +535,7 @@ function RegionGroups({
     <div className="flex flex-col gap-1.5">
       {groups.map((group) => (
         <div key={group.label} className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
-          <span className="w-[88px] shrink-0 font-mono text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+          <span className="w-[88px] shrink-0 type-eyebrow font-semibold text-muted-foreground">
             {group.label}
           </span>
           {group.regions.map((region) => (

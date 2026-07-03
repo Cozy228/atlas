@@ -21,6 +21,7 @@ import {
 } from "@/api/queries";
 import { deferUnlessCached } from "@/lib/deferred-cache";
 import { DOMAIN_BLURBS } from "@/components/catalog/data";
+import { KIND_TONE, toKind } from "@/components/whatsnew/data";
 import { HomeWelcome } from "@/components/home/welcome";
 import type {
   DomainService,
@@ -51,7 +52,10 @@ export const Route = createFileRoute("/")({
       announcementsQueryOptions.queryKey,
       () => context.queryClient.ensureQueryData(announcementsQueryOptions),
       (feed): HomeAnnouncement[] =>
-        feed.slice(0, 8).map((a) => ({ kind: a.kind ?? "Update", title: a.title })),
+        feed.slice(0, 8).map((a) => {
+          const kind = toKind(a.kind);
+          return { kind, tone: KIND_TONE[kind], title: a.title };
+        }),
     );
 
     // Slow: availability is a live Confluence fetch + parse in the real adapter —

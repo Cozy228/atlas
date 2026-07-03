@@ -116,9 +116,7 @@ export function KpiCard({
 }) {
   return (
     <div className="flex flex-col gap-1.5 rounded-[4px] border border-border bg-card px-3.5 py-2.5">
-      <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
-        {label}
-      </span>
+      <span className="type-eyebrow font-semibold text-muted-foreground">{label}</span>
       <div className="flex items-end justify-between gap-3">
         <span className="flex items-baseline gap-1">
           <span className="text-[1.5rem] font-bold leading-none tabular-nums tracking-[-0.02em] text-foreground">
@@ -183,9 +181,7 @@ export function ConditionGauge({ pct, label }: { pct: number; label: string }) {
         <span className="text-[1.75rem] font-bold tabular-nums tracking-[-0.02em] text-foreground">
           {pct}%
         </span>
-        <span className="font-mono text-[10px] uppercase tracking-[0.08em] text-muted-foreground">
-          {label}
-        </span>
+        <span className="type-eyebrow text-muted-foreground">{label}</span>
       </span>
     </div>
   );

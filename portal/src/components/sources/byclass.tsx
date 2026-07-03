@@ -115,9 +115,7 @@ export function SourcesByClass({ sources }: { sources: ReadonlyArray<Source> }) 
             />
           </label>
           <div className="flex items-center gap-2">
-            <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-              Group by
-            </span>
+            <span className="type-eyebrow font-semibold text-muted-foreground">Group by</span>
             <div className="flex gap-1">
               {AXES.map((a) => (
                 <Segment key={a.id} active={axis === a.id} onClick={() => setAxis(a.id)}>
@@ -130,7 +128,7 @@ export function SourcesByClass({ sources }: { sources: ReadonlyArray<Source> }) 
 
         {/* Facet filters — by source type + (when present) restricted visibility */}
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
-          <span className="w-[68px] shrink-0 font-mono text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+          <span className="w-[68px] shrink-0 type-eyebrow font-semibold text-muted-foreground">
             Type
           </span>
           {classCounts.map(({ cls, count }) => (

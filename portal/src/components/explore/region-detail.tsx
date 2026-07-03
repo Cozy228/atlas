@@ -42,9 +42,7 @@ export function RegionDetail({ region, health, stats, maintenance, className }: 
       className={cn("flex flex-col gap-4 rounded-xl border border-border bg-card p-5", className)}
     >
       <header className="flex flex-col gap-3">
-        <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-          Selected region
-        </span>
+        <span className="type-eyebrow font-semibold text-muted-foreground">Selected region</span>
         <div className="flex items-start gap-3">
           <span
             aria-hidden
