@@ -26,7 +26,7 @@ import {
   type Change,
   type ChangeKind,
 } from "@/components/whatsnew/data";
-import { announcementsQueryOptions, releaseNotesQueryOptions } from "@/api/queries";
+import { whatsNewQueryOptions } from "@/api/queries";
 import { ReleasesSection } from "@/components/whatsnew/releases";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DeferredRegion } from "@/components/deferred-region";
@@ -39,17 +39,20 @@ export const Route = createFileRoute("/whatsnew")({
     // feeds so only the masthead paints instantly and the body fills in. Skeleton
     // only on a cache MISS (first fetch); a revisit reads the warm cache and
     // resolves synchronously, so the skeletons never reappear.
+    // Both feeds are one cache entry (`whatsNewQueryOptions`): the two defers
+    // ensure the same query — the query client single-flights the resolve, and a
+    // revisit (or a hop from Home, which warmed the same key) reads it warm.
     const announcements = deferUnlessCached(
       context.queryClient,
-      announcementsQueryOptions.queryKey,
-      () => context.queryClient.ensureQueryData(announcementsQueryOptions),
-      (a) => a,
+      whatsNewQueryOptions.queryKey,
+      () => context.queryClient.ensureQueryData(whatsNewQueryOptions),
+      (feed) => feed.announcements,
     );
     const releases = deferUnlessCached(
       context.queryClient,
-      releaseNotesQueryOptions.queryKey,
-      () => context.queryClient.ensureQueryData(releaseNotesQueryOptions),
-      (r) => r,
+      whatsNewQueryOptions.queryKey,
+      () => context.queryClient.ensureQueryData(whatsNewQueryOptions),
+      (feed) => feed.releases,
     );
     return { releases, announcements };
   },
@@ -150,7 +153,7 @@ function Masthead() {
       })}`,
     );
   }, []);
-  const { dataUpdatedAt } = useQuery(announcementsQueryOptions);
+  const { dataUpdatedAt } = useQuery(whatsNewQueryOptions);
 
   return (
     <header className="flex flex-col gap-4 border-b-[3px] border-double border-border-strong pb-5">

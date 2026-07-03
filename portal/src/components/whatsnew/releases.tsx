@@ -6,7 +6,7 @@
  */
 import { Link } from "@tanstack/react-router";
 
-import type { Release } from "@/api/server/releaseNotes";
+import type { Release } from "@/api/server/whatsNew";
 import { TONE_DOT } from "@/components/whatsnew/data";
 import { cn } from "@/lib/utils";
 

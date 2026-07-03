@@ -10,7 +10,7 @@ import { Link, createFileRoute, notFound } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 
 import { LastFetchChip } from "@/components/last-fetch-chip";
-import { releaseNotesQueryOptions } from "@/api/queries";
+import { whatsNewQueryOptions } from "@/api/queries";
 import { categoryCounts } from "@/components/whatsnew/releases";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DeferredRegion } from "@/components/deferred-region";
@@ -32,7 +32,7 @@ const MONTHS = [
 
 export const Route = createFileRoute("/releases/$releaseId")({
   loader: async ({ context, params }) => {
-    const releases = await context.queryClient.ensureQueryData(releaseNotesQueryOptions);
+    const { releases } = await context.queryClient.ensureQueryData(whatsNewQueryOptions);
     const release = releases.find((r) => r.id === params.releaseId);
     if (!release) {
       throw notFound();
@@ -50,7 +50,7 @@ export const Route = createFileRoute("/releases/$releaseId")({
 
 function ReleaseDetailRoute() {
   const { release, rail } = Route.useLoaderData();
-  const { dataUpdatedAt } = useQuery(releaseNotesQueryOptions);
+  const { dataUpdatedAt } = useQuery(whatsNewQueryOptions);
   const categories = categoryCounts(release.items);
 
   return (

@@ -7,7 +7,7 @@
  * releases are rendered separately by `ReleasesSection`. No fixtures live here
  * anymore; `changesFromAnnouncements` is the only producer.
  */
-import type { Announcement } from "@/api/server/announcements";
+import type { Announcement } from "@/api/server/whatsNew";
 
 export type ChangeKind = "New" | "Updated" | "Policy" | "Deprecated" | "Incident";
 
