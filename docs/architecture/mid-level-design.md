@@ -218,9 +218,9 @@ reconciliation pass rides along.
   (compare-and-swap on the **existing Valkey store** — no new infrastructure); the swap winner
   derives events, losers discard. Concurrent ECS tasks cannot emit conflicting baselines.
 - **M11 — Scope passes by value or by reference (the manifest ↔ AppRecord reconciliation).**
-  *By value:* a call carries the repo manifest's declaration (`landingZone`, `services[]`)
-  inline — stateless, zero registration, and a by-value request **never writes** (no
-  upsert-on-read). *By reference:* `appId` → a durable `AppRecord`, needed only where
+  *By value:* a call carries the repo manifest's declaration (`landingZones[]`, `services[]` —
+  set shape per P26) inline — stateless, zero registration, and a by-value request **never
+  writes** (no upsert-on-read). *By reference:* `appId` → a durable `AppRecord`, needed only where
   consumer state must persist (subscriptions, feedback attribution, the "my APP" view).
   Registration is an explicit act (portal or `POST /api/apps`), after which the id is
   written back into the manifest. Brief/resource endpoints accept both forms. Conflict rule:
