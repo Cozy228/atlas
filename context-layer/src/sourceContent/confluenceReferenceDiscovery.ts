@@ -19,6 +19,14 @@
  *      stale + background refresh; >24h refused (`unavailable`, never unbounded
  *      stale); recall truncated at 50 → `incomplete:true` + log.
  *
+ * Space-listing fallback (separate security Cloud): a security-policy instance whose
+ * token lacks the search capability answers CQL search with 401/403 but still serves
+ * plain space listing. So an `extraInstance` channel that hits 401/403 on CQL flips
+ * (stickily) to enumerating its whole space once — cached at the channel level, shared
+ * by every service — and applies the SAME double-hit admission locally per identity.
+ * Only `extraInstances` fall back; the primary channel stays CQL-only (its space may be
+ * large and unbounded to list), so a primary 401/403 is an honest gap as before.
+ *
  * Public-safe: no real space keys / page ids / credentials are baked in — all
  * come from the injected config. Server/Data Center is out of scope (Cloud only).
  */
@@ -26,6 +34,7 @@ import type { DiscoveredReference, DocType, ServiceIdentity } from "@atlas/schem
 import type { FetchLike } from "../resolvers/resolverTypes";
 import {
   confluenceAuthorization,
+  resolveConfluenceNextUrl,
   type ConfluenceLiveConfig,
 } from "./confluenceCloudContentProvider";
 // Doc-type classification is a kernel rule (plan 018 B11) — moved to the
@@ -41,6 +50,10 @@ import type {
 const FRESH_TTL_MS = 60 * 60 * 1000; // 1h — serve cache directly within window
 const MAX_STALENESS_MS = 24 * 60 * 60 * 1000; // 24h — past this → unavailable
 const RECALL_CAP = 50; // per-service recall cap → incomplete + log on truncation
+// Space-listing fallback: page size + max requests per space (bounded crawl — a
+// space larger than this lists `incomplete`, never pages forever).
+const LISTING_PAGE_SIZE = 100;
+const LISTING_MAX_REQUESTS = 20;
 
 /** One Confluence Cloud instance to recall from: its base URL + auth + the space
  *  keys recall is scoped to. */
@@ -76,11 +89,26 @@ export type ConfluenceReferenceDiscoveryDeps = {
   onDiagnostic?: (diagnostic: DiscoveryDiagnostic) => void;
 };
 
+/** One page discovered by space listing, pre-judged for its doc-type (the
+ *  identity-independent half of admission) so per-service filtering is local. */
+type JudgedPage = { title: string; url: string; docType: DocType };
+
+/** A channel-scoped full-space listing (loaded once, shared by every service). */
+type ChannelListing = { pages: JudgedPage[]; observedAtMs: number; incomplete: boolean };
+
 /** A resolved recall target: one Confluence instance's base URL + auth + spaces. */
 type Channel = {
   baseUrl: string;
   authorization: string;
   spaceKeys: string[];
+  /** Only a separate security Cloud (`extraInstances`) may fall back to space
+   *  listing when CQL search is forbidden; the primary channel stays CQL-only. */
+  allowSpaceListingFallback: boolean;
+  /** Sticky: set once CQL search returns 401/403 → route straight to listing after. */
+  cqlForbidden: boolean;
+  /** Channel-scoped listing cache + its single-flight (populated only on fallback). */
+  listing?: ChannelListing;
+  listingInflight?: Promise<ChannelListing | null>;
 };
 
 type ChannelRecall =
@@ -112,11 +140,17 @@ export function createConfluenceReferenceDiscovery(
 
   // The instances recalled per service: the primary (config itself) plus any
   // `extraInstances` (e.g. a separate security-policy Cloud). Each precomputes its
-  // trimmed base URL + auth header once.
-  const channels: Channel[] = [config, ...(config.extraInstances ?? [])].map((instance) => ({
+  // trimmed base URL + auth header once. Only `extraInstances` are listing-fallback
+  // eligible — the primary stays CQL-only (see the file header).
+  const channels: Channel[] = [
+    { instance: config as ConfluenceReferenceInstance, fallback: false },
+    ...(config.extraInstances ?? []).map((instance) => ({ instance, fallback: true })),
+  ].map(({ instance, fallback }) => ({
     baseUrl: instance.baseUrl.replace(/\/+$/, ""),
     authorization: confluenceAuthorization(instance),
     spaceKeys: instance.spaceKeys,
+    allowSpaceListingFallback: fallback,
+    cqlForbidden: false,
   }));
 
   // Per-`identity.key` last-good cache + in-flight single-flight map. In-process
@@ -199,12 +233,21 @@ export function createConfluenceReferenceDiscovery(
     return { ok: true, references, incomplete: anyTruncated || anyFailed, observedAtMs };
   }
 
-  /** One channel's CQL recall + double-hit admission. Never throws (→ ok:false). */
+  /**
+   * One channel's recall + double-hit admission. Never throws (→ ok:false).
+   * A listing-fallback channel already known to lack CQL search (`cqlForbidden`)
+   * recalls straight from the space listing; otherwise it tries CQL first and, on
+   * a 401/403, flips (stickily) to listing.
+   */
   async function recallChannel(
     channel: Channel,
     identity: ServiceIdentity,
     observedAtIso: string,
   ): Promise<ChannelRecall> {
+    if (channel.cqlForbidden) {
+      return recallFromListing(channel, identity, observedAtIso);
+    }
+
     const cql = buildCql(identity.recallAliases, channel.spaceKeys);
     const url = `${channel.baseUrl}/wiki/rest/api/content/search?cql=${encodeURIComponent(cql)}&limit=${RECALL_CAP}`;
 
@@ -215,6 +258,17 @@ export function createConfluenceReferenceDiscovery(
         headers: { Authorization: channel.authorization, Accept: "application/json" },
       });
       if (!response.ok) {
+        // A security instance without search scope 401/403s CQL but still serves
+        // space listing — flip (sticky) and recall from the listing instead of
+        // reporting a gap. Only extra (security) channels do this; the primary's
+        // 401/403 stays an honest gap (its space is unbounded to list).
+        if (
+          channel.allowSpaceListingFallback &&
+          (response.status === 401 || response.status === 403)
+        ) {
+          channel.cqlForbidden = true;
+          return recallFromListing(channel, identity, observedAtIso);
+        }
         return { ok: false };
       }
       payload = (await response.json()) as CqlSearchResponse;
@@ -253,6 +307,142 @@ export function createConfluenceReferenceDiscovery(
     }
 
     return { ok: true, references, truncated, recalled: results.length, rejected };
+  }
+
+  /**
+   * Recall from the channel's cached space listing (loaded once): every listed page
+   * already cleared the doc-type gate, so admission here is just the per-service
+   * identity hit. Failure to load the listing → ok:false (honest gap).
+   */
+  async function recallFromListing(
+    channel: Channel,
+    identity: ServiceIdentity,
+    observedAtIso: string,
+  ): Promise<ChannelRecall> {
+    const listing = await ensureListing(channel);
+    if (!listing) {
+      return { ok: false };
+    }
+    const references: DiscoveredReference[] = [];
+    let rejected = 0;
+    for (const page of listing.pages) {
+      if (!identityHit(page.title, identity.admissionAliases)) {
+        rejected += 1;
+        continue;
+      }
+      references.push(buildReference(page.title, page.url, page.docType, observedAtIso));
+    }
+    return {
+      ok: true,
+      references,
+      truncated: listing.incomplete,
+      recalled: listing.pages.length,
+      rejected,
+    };
+  }
+
+  /**
+   * Load-or-reuse the channel's full-space listing: fresh within `FRESH_TTL_MS`,
+   * otherwise reload (single-flight, so concurrent services share one crawl). On a
+   * failed reload the prior listing is kept (serve last-good) rather than dropped.
+   */
+  function ensureListing(channel: Channel): Promise<ChannelListing | null> {
+    const nowMs = now();
+    if (channel.listing && nowMs - channel.listing.observedAtMs <= FRESH_TTL_MS) {
+      return Promise.resolve(channel.listing);
+    }
+    if (channel.listingInflight) {
+      return channel.listingInflight;
+    }
+    const promise = loadSpaceListing(channel)
+      .then((loaded) => {
+        channel.listingInflight = undefined;
+        if (loaded) {
+          channel.listing = { ...loaded, observedAtMs: now() };
+          return channel.listing;
+        }
+        return channel.listing ?? null;
+      })
+      .catch(() => {
+        channel.listingInflight = undefined;
+        return channel.listing ?? null;
+      });
+    channel.listingInflight = promise;
+    return promise;
+  }
+
+  /**
+   * Enumerate every page across the channel's spaces, pre-judging each title's
+   * doc-type (dropping non-doc pages). A space that cannot be listed fails the whole
+   * channel (null → honest gap). `incomplete` when any space's crawl was capped.
+   */
+  async function loadSpaceListing(
+    channel: Channel,
+  ): Promise<Omit<ChannelListing, "observedAtMs"> | null> {
+    const pages: JudgedPage[] = [];
+    let incomplete = false;
+    for (const spaceKey of channel.spaceKeys) {
+      const listed = await listSpace(channel, spaceKey);
+      if (!listed.ok) {
+        return null;
+      }
+      incomplete = incomplete || listed.truncated;
+      for (const raw of listed.pages) {
+        const docType = judgeDocType(raw.title);
+        if (!docType) {
+          continue; // non-doc page → not reference-eligible (same doc-type gate as CQL)
+        }
+        pages.push({ title: raw.title, url: absoluteUrl(channel.baseUrl, raw.webui), docType });
+      }
+    }
+    return { pages, incomplete };
+  }
+
+  /** List one space via the v1 space-content endpoint, following `_links.next`
+   *  (bounded by `LISTING_MAX_REQUESTS`). Never throws (→ ok:false). */
+  async function listSpace(
+    channel: Channel,
+    spaceKey: string,
+  ): Promise<
+    { ok: true; pages: Array<{ title: string; webui: string }>; truncated: boolean } | { ok: false }
+  > {
+    const pages: Array<{ title: string; webui: string }> = [];
+    let next: string | undefined = `${channel.baseUrl}/wiki/rest/api/space/${encodeURIComponent(
+      spaceKey,
+    )}/content/page?limit=${LISTING_PAGE_SIZE}`;
+    let requests = 0;
+
+    while (next) {
+      if (requests >= LISTING_MAX_REQUESTS) {
+        return { ok: true, pages, truncated: true };
+      }
+      requests += 1;
+
+      let payload: SpaceContentResponse;
+      try {
+        const response = await deps.fetch(next, {
+          method: "GET",
+          headers: { Authorization: channel.authorization, Accept: "application/json" },
+        });
+        if (!response.ok) {
+          return { ok: false };
+        }
+        payload = (await response.json()) as SpaceContentResponse;
+      } catch {
+        return { ok: false };
+      }
+
+      for (const result of payload.results ?? []) {
+        const title = result.title;
+        const webui = result._links?.webui;
+        if (title && webui) {
+          pages.push({ title, webui });
+        }
+      }
+      next = resolveConfluenceNextUrl(channel.baseUrl, payload._links);
+    }
+
+    return { ok: true, pages, truncated: false };
   }
 
   function serve(entry: CacheEntry, status: ResourceReferenceDiscoveryResult["status"]) {
@@ -405,4 +595,14 @@ type CqlSearchResponse = {
   results?: CqlSearchResult[];
   totalSize?: number;
   _links?: { next?: string };
+};
+
+/* -------------------------------------------------------------------------- *
+ * Confluence v1 space-content listing response (the fallback recall subset)   */
+
+type SpaceContentResult = { title?: string; _links?: { webui?: string } };
+
+type SpaceContentResponse = {
+  results?: SpaceContentResult[];
+  _links?: { next?: string; base?: string };
 };

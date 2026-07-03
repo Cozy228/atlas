@@ -2,11 +2,16 @@
  * Guardrail discovery (plan 018 G5) — the security-policy analog of service
  * source discovery. Services come from the availability spine; guardrails are
  * discovered by crawling a dedicated security-policy Confluence SPACE: list every
- * page in the space (CQL `space = <KEY> AND type = page`), then fetch each page
- * and read its storage-HTML heading TOC. The descriptive half (which page exists
- * / its headings) lives here; the normative half (which heading backs which
- * section) is the kernel's `SECTION_RULES.guardrail`, applied in
- * `deriveGuardrails`.
+ * page in the space via the v1 space-content listing (`GET /wiki/rest/api/space/
+ * <KEY>/content/page`, paginated), then fetch each page and read its storage-HTML
+ * heading TOC. The descriptive half (which page exists / its headings) lives here;
+ * the normative half (which heading backs which section) is the kernel's
+ * `SECTION_RULES.guardrail`, applied in `deriveGuardrails`.
+ *
+ * The listing endpoint is a plain space enumeration, NOT the CQL search endpoint
+ * (`/wiki/rest/api/content/search`): a security-policy Confluence instance whose
+ * token lacks the search capability answers CQL search with 403 but still serves
+ * space listing — so crawling by listing is the path that works there.
  *
  * Single live path: the only fetch target is the Confluence source system (dev =
  * MSW, prod = real), reached through `ctx.fetch`. An unconfigured channel is an
@@ -16,9 +21,15 @@ import { parse } from "node-html-parser";
 import {
   confluenceAuthorization,
   fetchConfluenceStorageHtml,
+  resolveConfluenceNextUrl,
 } from "../sourceContent/confluenceCloudContentProvider";
 import { logger, serializeError } from "../observability/logging";
 import type { ResolutionContext } from "../resolvers/resolverTypes";
+
+/** Page size per listing request, and the max requests before a crawl is capped
+ *  (bounded even for an unexpectedly large space → truncated, never unbounded). */
+const LISTING_PAGE_SIZE = 100;
+const LISTING_MAX_REQUESTS = 20;
 
 /** One discovered security-policy page (descriptive facts only). */
 export type DiscoveredGuardrail = {
@@ -69,39 +80,19 @@ export async function discoverGuardrails(
     email: confluence.email,
   };
   const baseUrl = confluence.baseUrl.replace(/\/+$/, "");
-  const cql = `space = ${confluence.spaceKey} AND type = page`;
-  const url = `${baseUrl}/wiki/rest/api/content/search?cql=${encodeURIComponent(cql)}`;
+  const authorization = confluenceAuthorization(config);
 
-  let listing: SpaceListingResponse;
-  try {
-    const response = await ctx.fetch(url, {
-      method: "GET",
-      headers: { Authorization: confluenceAuthorization(config), Accept: "application/json" },
-    });
-    if (!response.ok) {
-      log.warn(
-        { spaceKey: confluence.spaceKey, status: response.status },
-        `guardrail space listing returned ${response.status} for space ${confluence.spaceKey} — 0 guardrails discovered`,
-      );
-      return [];
-    }
-    listing = (await response.json()) as SpaceListingResponse;
-  } catch (error) {
+  const listed = await listSpacePages(ctx, baseUrl, authorization, confluence.spaceKey);
+  if (!listed.ok) {
     log.warn(
-      { spaceKey: confluence.spaceKey, err: serializeError(error) },
-      `guardrail space listing failed for space ${confluence.spaceKey} — 0 guardrails discovered`,
+      { spaceKey: confluence.spaceKey, status: listed.status, err: listed.err },
+      listed.status === undefined
+        ? `guardrail space listing failed for space ${confluence.spaceKey} — 0 guardrails discovered`
+        : `guardrail space listing returned ${listed.status} for space ${confluence.spaceKey} — 0 guardrails discovered`,
     );
     return [];
   }
-
-  const pages = (listing.results ?? [])
-    .map((result) => {
-      const title = result.title ?? result.content?.title;
-      const webui = result._links?.webui ?? result.content?._links?.webui;
-      const pageId = webui?.match(/\/pages\/(\d+)/)?.[1];
-      return title && pageId ? { title, pageId } : null;
-    })
-    .filter((page): page is { title: string; pageId: string } => page !== null);
+  const pages = listed.pages;
 
   const discovered = await Promise.all(
     pages.map(async ({ title, pageId }): Promise<DiscoveredGuardrail | null> => {
@@ -151,12 +142,69 @@ function slugify(value: string): string {
 }
 
 /* -------------------------------------------------------------------------- *
- * Confluence CQL v1 search response (the subset we read for space listing)    */
+ * Space-content listing (v1) — page enumeration for one space                 */
 
-type SpaceListingResult = {
-  title?: string;
-  _links?: { webui?: string };
-  content?: { title?: string; _links?: { webui?: string } };
+type ListedPages =
+  | { ok: true; pages: Array<{ title: string; pageId: string }> }
+  | { ok: false; status?: number; err?: ReturnType<typeof serializeError> };
+
+/**
+ * Enumerate every page in `spaceKey` via the v1 space-content listing, following
+ * `_links.next` (bounded by `LISTING_MAX_REQUESTS`). Any non-OK status or transport
+ * failure short-circuits to `ok:false` so the caller reports an honest gap (never a
+ * partial guardrail set silently passed off as complete).
+ */
+async function listSpacePages(
+  ctx: ResolutionContext,
+  baseUrl: string,
+  authorization: string,
+  spaceKey: string,
+): Promise<ListedPages> {
+  const collected: Array<{ title: string; pageId: string }> = [];
+  let next: string | undefined = `${baseUrl}/wiki/rest/api/space/${encodeURIComponent(
+    spaceKey,
+  )}/content/page?limit=${LISTING_PAGE_SIZE}`;
+  let requests = 0;
+
+  while (next) {
+    if (requests >= LISTING_MAX_REQUESTS) {
+      break; // bounded crawl — a runaway space stops here rather than paging forever
+    }
+    requests += 1;
+
+    let payload: SpaceContentResponse;
+    try {
+      const response = await ctx.fetch(next, {
+        method: "GET",
+        headers: { Authorization: authorization, Accept: "application/json" },
+      });
+      if (!response.ok) {
+        return { ok: false, status: response.status };
+      }
+      payload = (await response.json()) as SpaceContentResponse;
+    } catch (error) {
+      return { ok: false, err: serializeError(error) };
+    }
+
+    for (const result of payload.results ?? []) {
+      const title = result.title;
+      const pageId = result.id ?? result._links?.webui?.match(/\/pages\/(\d+)/)?.[1];
+      if (title && pageId) {
+        collected.push({ title, pageId });
+      }
+    }
+    next = resolveConfluenceNextUrl(baseUrl, payload._links);
+  }
+
+  return { ok: true, pages: collected };
+}
+
+/* -------------------------------------------------------------------------- *
+ * Confluence v1 space-content response (the subset we read)                   */
+
+type SpaceContentResult = { id?: string; title?: string; _links?: { webui?: string } };
+
+type SpaceContentResponse = {
+  results?: SpaceContentResult[];
+  _links?: { next?: string; base?: string };
 };
-
-type SpaceListingResponse = { results?: SpaceListingResult[] };

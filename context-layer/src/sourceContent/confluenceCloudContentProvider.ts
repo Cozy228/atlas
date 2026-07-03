@@ -270,6 +270,34 @@ export function confluenceAuthorization(config: ConfluenceLiveConfig): string {
   return `Bearer ${config.token}`;
 }
 
+/**
+ * Resolve a Confluence v1 pagination `_links.next` into an absolute URL. Confluence
+ * returns `next` relative to `_links.base` (which includes `/wiki`), so prefer that;
+ * fall back to prefixing the site base + `/wiki` when `base` is absent. Returns
+ * `undefined` at the last page. Shared by the space-listing crawlers (guardrail
+ * discovery + the reference-discovery listing fallback) so pagination behaves
+ * identically across both.
+ */
+export function resolveConfluenceNextUrl(
+  siteBaseUrl: string,
+  links: { next?: string; base?: string } | undefined,
+): string | undefined {
+  const next = links?.next;
+  if (!next) {
+    return undefined;
+  }
+  if (/^https?:\/\//i.test(next)) {
+    return next;
+  }
+  const base = links?.base?.replace(/\/+$/, "");
+  if (base) {
+    return `${base}${next.startsWith("/") ? "" : "/"}${next}`;
+  }
+  const site = siteBaseUrl.replace(/\/+$/, "");
+  const path = next.startsWith("/wiki") ? next : `/wiki${next.startsWith("/") ? "" : "/"}${next}`;
+  return `${site}${path}`;
+}
+
 function driftWarningFor(
   source: Source,
   liveVersion: number | undefined,

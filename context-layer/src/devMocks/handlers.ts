@@ -17,15 +17,16 @@ import {
 } from "./fixtures";
 import { DEV_GUIDANCE_MANIFESTS, DEV_GUIDANCE_URL } from "./guidanceFixture";
 /**
- * Space-only listing recall (plan 018 G5): all pages under a space, used by
- * guardrail discovery's `space = SECPOL AND type = page` crawl. Sourced from the
+ * Space-content listing (plan 018 G5): all pages under a space, used by guardrail
+ * discovery's `GET /wiki/rest/api/space/<KEY>/content/page` crawl. Sourced from the
  * page fixtures themselves (single source of truth) — every page whose webui sits
- * under `/spaces/<spaceKey>/` is returned in the CQL search result shape.
+ * under `/spaces/<spaceKey>/` is returned in the v1 space-content result shape
+ * (top-level `id` + `title` + `_links.webui`).
  */
 function listSpacePages(spaceKey: string) {
   return Object.values(CONFLUENCE_PAGES)
     .filter((page) => page._links.webui.includes(`/spaces/${spaceKey}/`))
-    .map((page) => ({ title: page.title, _links: { webui: page._links.webui } }));
+    .map((page) => ({ id: page.id, title: page.title, _links: { webui: page._links.webui } }));
 }
 
 /** Configurable injected latency (ms) so dev render shows real loading states. */
@@ -56,8 +57,8 @@ const confluencePageHandlers = [
 ];
 
 /**
- * Confluence Cloud CQL search (v1) — the reference-discovery adapter's fetch
- * target. Reproduces Confluence `title ~` fuzzy recall over {@link CQL_REFERENCE_CORPUS}:
+ * Confluence Cloud CQL search (v1) — the reference-discovery adapter's `title ~`
+ * recall target. Reproduces Confluence fuzzy recall over {@link CQL_REFERENCE_CORPUS}:
  * extract the quoted aliases from the `cql` param and return every candidate whose
  * title contains any alias. The adapter applies its own double-hit admission on top,
  * so noise candidates recalled here are filtered there. Honest 5xx/4xx and truncation
@@ -71,21 +72,31 @@ const cqlSearchHandlers = [
       m[1].toLowerCase().trim(),
     );
 
-    // Space-only listing (no `title ~` clause): a `space = <KEY>` crawl returns
-    // every page in that space — the guardrail-discovery recall path (G5). The
-    // title-recall path (any `title ~`) keeps its exact prior behaviour.
-    if (aliases.length === 0) {
-      const spaceKey = cql.match(/space\s*=\s*"?([A-Za-z0-9_-]+)"?/)?.[1];
-      const results = spaceKey ? listSpacePages(spaceKey) : [];
-      return HttpResponse.json({ results, totalSize: results.length, _links: {} });
-    }
-
     const results = CQL_REFERENCE_CORPUS.filter((candidate) => {
       const title = candidate.title.toLowerCase();
       return aliases.some((alias) => alias.length > 0 && title.includes(alias));
     }).map((candidate) => ({ title: candidate.title, _links: { webui: candidate.webui } }));
     return HttpResponse.json({ results, totalSize: results.length, _links: {} });
   }),
+];
+
+/**
+ * Confluence Cloud space-content listing (v1) — the guardrail-discovery crawl target
+ * (`GET /wiki/rest/api/space/<KEY>/content/page`) and the reference-discovery listing
+ * fallback. Returns every page under the space; single-page (no `_links.next`) since
+ * the fixture corpus is small. This is a plain enumeration, NOT CQL search, so it
+ * stands in for the endpoint that stays reachable when a security instance's token
+ * lacks the search capability.
+ */
+const spaceContentHandlers = [
+  http.get(
+    `${DEV_CONFLUENCE_BASE_URL}/wiki/rest/api/space/:spaceKey/content/page`,
+    async ({ params }) => {
+      await delay(devMockLatencyMs());
+      const results = listSpacePages(String(params.spaceKey));
+      return HttpResponse.json({ results, size: results.length, _links: {} });
+    },
+  ),
 ];
 
 /**
@@ -127,6 +138,7 @@ const guidanceStoreHandlers = [
 export const handlers = [
   ...confluencePageHandlers,
   ...cqlSearchHandlers,
+  ...spaceContentHandlers,
   ...terraformModuleHandlers,
   ...guidanceStoreHandlers,
 ];
