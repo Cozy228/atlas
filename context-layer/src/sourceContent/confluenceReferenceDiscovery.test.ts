@@ -296,3 +296,117 @@ describe("createConfluenceReferenceDiscovery — extra instances (separate secur
     expect(result.incomplete).toBe(true); // the failed instance is unknown
   });
 });
+
+describe("createConfluenceReferenceDiscovery — space-listing fallback (CQL search forbidden)", () => {
+  const SECURITY: ConfluenceReferenceDiscoveryConfig = {
+    ...CONFIG,
+    extraInstances: [
+      {
+        token: "sec-token",
+        baseUrl: "https://security.example.com",
+        email: "sec-bot@example.com",
+        spaceKeys: ["SECPOL"],
+      },
+    ],
+  };
+
+  const s3: ServiceIdentity = {
+    provider: "aws",
+    id: "s3",
+    name: "Amazon S3",
+    key: "aws/s3",
+    recallAliases: ["amazon s3", "s3"],
+    admissionAliases: ["amazon s3"],
+  };
+
+  /**
+   * A fetch routed by URL: the primary Cloud's CQL search works (200), the security
+   * Cloud's CQL search is forbidden (403), and the security space listing works (200).
+   * Records how many times each surface is hit so the sticky-flip is observable.
+   */
+  function routedFetch() {
+    const counts = { primarySearch: 0, securitySearch: 0, securityListing: 0 };
+    const fetch: FetchLike = async (url) => {
+      const isSecurity = url.startsWith("https://security.example.com");
+      if (url.includes("/content/search")) {
+        if (isSecurity) {
+          counts.securitySearch += 1;
+          return { ok: false, status: 403, json: async () => ({}) };
+        }
+        counts.primarySearch += 1;
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            results: [page("Amazon Textract Design", "/wiki/x/1")],
+            totalSize: 1,
+          }),
+        };
+      }
+      if (isSecurity && url.includes("/content/page")) {
+        counts.securityListing += 1;
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            results: [
+              page("Amazon Textract Data Policy", "/policy/9"),
+              page("Sprint Planning Notes", "/notes/1"), // no doc-type → dropped at listing
+            ],
+            _links: {},
+          }),
+        };
+      }
+      return { ok: false, status: 404, json: async () => ({}) };
+    };
+    return { fetch, counts };
+  }
+
+  it("falls back to space listing when the security instance 403s CQL search", async () => {
+    const { fetch, counts } = routedFetch();
+    const discovery = createConfluenceReferenceDiscovery(SECURITY, { fetch });
+
+    const result = await discovery.discover(textract);
+
+    expect(result.status).toBe("fresh");
+    expect(result.incomplete).toBe(false); // fallback succeeded → not a gap
+    // primary design + security policy (recalled from the listing, admitted locally);
+    // the non-doc "Sprint Planning Notes" is dropped at listing time.
+    expect(result.references.map((r) => r.doc_type).sort()).toEqual(["design", "policy"]);
+    expect(result.references.find((r) => r.doc_type === "policy")?.url).toBe(
+      "https://security.example.com/policy/9",
+    );
+    expect(counts.securitySearch).toBe(1); // tried CQL once
+    expect(counts.securityListing).toBe(1); // then listed the space
+  });
+
+  it("stickily prefers listing after the first 403 and lists the space only once", async () => {
+    const { fetch, counts } = routedFetch();
+    // Fixed clock → the channel listing stays fresh across both discover calls.
+    const discovery = createConfluenceReferenceDiscovery(SECURITY, { fetch, now: () => 1_000 });
+
+    await discovery.discover(textract);
+    await discovery.discover(s3); // different service → cold key, recalls both channels
+
+    // The 403 flip is sticky: security CQL is not retried, and the channel-level
+    // listing is fetched once and shared across services.
+    expect(counts.securitySearch).toBe(1);
+    expect(counts.securityListing).toBe(1);
+  });
+
+  it("does NOT fall back for the PRIMARY instance (its 403 is an honest gap)", async () => {
+    const calls: string[] = [];
+    const fetch: FetchLike = async (url) => {
+      calls.push(url);
+      return { ok: false, status: 403, json: async () => ({}) };
+    };
+    const discovery = createConfluenceReferenceDiscovery(CONFIG, { fetch });
+
+    const result = await discovery.discover(textract);
+
+    expect(result.status).toBe("unavailable");
+    expect(result.references).toEqual([]);
+    // Only the CQL search was attempted — no listing fallback on the primary.
+    expect(calls.every((url) => url.includes("/content/search"))).toBe(true);
+  });
+});
