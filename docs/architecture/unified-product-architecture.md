@@ -2,6 +2,9 @@
 
 > **Status:** accepted design, evolved 2026-07-03 (supersedes the 2026-07-02 estate-model draft of
 > this same file; the estate model survives as the platform-side half of the context graph).
+> Amended 2026-07-04 per **P26–P29** (multicloud + DORA calibration: §7 capability rows, §9
+> landability items; schema consequence in `mid-level-design.md` §1, roadmap in
+> `implementation-plan.md` §7).
 > **Ground truth:** `PROJECT-CONTEXT-PACK.md` (pack — the pre-analysis snapshot, not updated).
 > Binding positions: pack §9 **P1–P6** (priors) + `direction-decision-log.md` **P7–P16**
 > (the direction-analysis and design rulings this document realizes).
@@ -235,8 +238,9 @@ landability (**Capability-bounded**; verify landability before building — pack
 | Curation overlay beyond exception fallback | Unsupported by design (P14) |
 | Grounded Ask synthesis (citation-enforced) | On-demand behind an explicit gate |
 | Status/log value aggregation, history, alerting | Outside current product scope (ADR-0003) |
-| Additional landing zones beyond `awsf` | Capability-bounded (data landability, O3) |
-| Cross-cloud (>3) unified entry | Outside current product scope (terminal frame, P6) |
+| Additional landing zones beyond `awsf` | Capability-bounded (data landability, O3; landability verification scheduled as falsifier A3 → roadmap R3, P29) |
+| Cross-cloud (>3) unified entry | Outside current product scope (terminal frame, P6; the two-cloud estate is *inside* the frame — P26) |
+| Sibling portals / RAG chatbots as sources | Unsupported by design (P27 — no provenance, encodes judgment; their doc surfaces are the adapter targets; the chatbot is a candidate *consumer* of the agent face) |
 | Provisioning / CICD triggering | Unsupported permanently (P2) |
 
 ## 8. Consequences for the current codebase (dependency order)
@@ -262,7 +266,8 @@ landability (**Capability-bounded**; verify landability before building — pack
 
 - **Landability facts to verify**: an APP registry (now an *upgrade path* for self-declared APPs
   per P17, no longer gating the APP entry); log/CI sources for debug values (these DO gate the
-  debug moment's value resolution); the second landing zone's availability source.
+  debug moment's value resolution); the second cloud's doc surfaces / availability equivalent
+  (now formalized as falsifier A3, `implementation-plan.md` §6, P29).
 - **CONTEXT.md additions:** moment, brief, operational location, context adapter (definitions in
   §2–§3); mark "wayfinding" as subsumed by the situated-merge framing (P12) rather than retired.
 - **Push event-class list** is closed by design; extending it is a product decision, not a config.

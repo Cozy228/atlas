@@ -3,7 +3,8 @@
 > **Status:** accepted design (decisions M1–M12, §10; M1–M4 owner-confirmed 2026-07-03,
 > M5–M10 presented and folded the same day; M11–M12 owner-confirmed 2026-07-03 in the
 > realization round, together with implementation decisions I1–I6 — see
-> `implementation-plan.md`).
+> `implementation-plan.md`). Amended 2026-07-04 per **P26** (multicloud situation shape:
+> `AppRecord.landingZoneIds[]`, per-zone brief blocks).
 > Companion to `unified-product-architecture.md` (high-level, CLOSED per decision log P17).
 > This document pins schemas, persistence, API surface, execution model, module boundaries,
 > validation, and migration order. It stays above code: shapes are described, not typed out.
@@ -31,9 +32,12 @@ vocabulary.
   "pipeline" | "logs" | "dashboard" | "runbook"), url, discoveredFrom }`. A pointer record
   (ADR-0003 seat): the pointer's *existence* is discovered (with provenance); any *value* fetched
   through it is operational status — uncited, never stored, never Evidence.
-- **`AppRecord`** (consumer state) — `{ id, name, landingZoneId, serviceSlugs[], origin:
+- **`AppRecord`** (consumer state) — `{ id, name, landingZoneIds[], serviceSlugs[], origin:
   "self-declared" | "registry", declaredAt, updatedAt }`. `origin` drives the UI label and the
   edge provenance; a registry adapter later rewrites `origin` in place (P17 upgrade).
+  `landingZoneIds` is a **set** (P26): an APP may hold deployments in several zones across
+  clouds; an LZ id carries its cloud identity, so no separate cloud dimension exists. One
+  `app-landing-zone` edge is derived per member. The repo manifest (P21) declares the same set.
 - **`Subscription`** (consumer state) — `{ id, appId, channel: "newsletter" | "feed",
   eventClasses?: EventClass[] (default: all), createdAt }`.
 - **`ChangeEvent`** — `{ id, class: EventClass, subject: NodeRef | EdgeKey, landingZoneId?,
@@ -43,10 +47,13 @@ vocabulary.
   `owner-changed`. `EdgeKey = (from, to, type)`. Both ends cite the parses they came from —
   a change is Evidence about structure.
 - **`Brief`** — `{ moment: "adopt" | "build" | "debug" | "change", situation: { appId?,
-  landingZoneId, origin }, blocks: BriefBlock[], resolvedAt }`.
-  **`BriefBlock`** — `{ id, question, status, evidence[] (cited section content),
-  pointers[] (OperationalLocation), warnings[] }`. Evidence and pointers are separate arrays by
-  construction — the ADR-0003 line is a type property, not a style rule.
+  landingZoneIds[], origin }, blocks: BriefBlock[], resolvedAt }`. The situation carries the
+  scope's LZ **set** (P26); LZ-dependent blocks (availability, policy) render per member zone,
+  LZ-independent blocks render once.
+  **`BriefBlock`** — `{ id, question, landingZoneId?, status, evidence[] (cited section
+  content), pointers[] (OperationalLocation), warnings[] }`. `landingZoneId` is set on
+  per-zone blocks only. Evidence and pointers are separate arrays by construction — the
+  ADR-0003 line is a type property, not a style rule.
 
 ## 2. State & persistence map (who owns what, where)
 

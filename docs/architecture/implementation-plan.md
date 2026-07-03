@@ -144,9 +144,19 @@ never-store-secrets) are constituents of L2 and L0 respectively — see
   feed demotes from "return reason" to "instrument data" (it still ships — Step 6 needs
   it); push/subscription investment waits until cadence exists. **Run before Step 2's
   What's New rewiring.**
+- **A3 — Second-cloud source landability (P29).** *Assumption:* the second cloud's
+  documentation surfaces (doc pages, self-service portal data) are structured enough to
+  parse, and fetch access is attainable. *Experiment:* inventory its availability
+  equivalent, doc-page format, and API/auth reality; run one throwaway parse against a
+  real page snapshot (conformance-kit style, I5). *Consequence if false:* R3 stays behind
+  P23's pause (its exit condition unmet); Track B keeps contract v0 (P22) on the table
+  with that cloud's owning team — the negotiation continues, the build does not start.
+  **Gates R3 only; runnable any time, cheapest once Step 2's adapter seams exist.**
+  Note the P27 boundary: the cloud's RAG chatbot is never a source; only the doc surfaces
+  beneath it are landability candidates.
 
-The third falsifier — the four-moment taxonomy — stays where P19 put it: field ② of every
-pain-point record (Track B), continuously.
+The remaining falsifier — the four-moment taxonomy — stays where P19 put it: field ② of
+every pain-point record (Track B), continuously.
 
 ## 7. The walk — build order along the new spine
 
@@ -191,7 +201,10 @@ independently.
   registration only (`POST /api/apps`, portal), the APP selector subsuming the LZ
   selector; the repo manifest spec published (file name, fields, validation; the id
   written back on registration). `serviceSlugs` validate against discovered records;
-  dangling declarations warn, never silently drop.
+  dangling declarations warn, never silently drop. **Scope shape per P26:** an APP
+  declares a *set* of landing zones (`landingZoneIds[]`, manifest included); scope
+  resolution yields the set — ruled before this step ships because the record is durable
+  and the manifest spec, once in team repos, is unrecallable.
 - **Verify.** E2E: agent reads manifest → by-value scoped answer with zero registration;
   registration → by-reference flow → subscriptions attach. `self-declared` labeling
   unconditional; mutations logged.
@@ -204,7 +217,11 @@ independently.
   contracts, no brief-level cache (M4), bounded-concurrency executor (ADR-0014 §2)
   threading Step 1's context. The representation layer (I3): **one serialized Brief
   value** rendered as `GET /api/briefs/{moment}`, `/briefs/{moment}.md`, Portal page
-  props, and later Atom items. `?depth=citations|excerpts` per M9.
+  props, and later Atom items. `?depth=citations|excerpts` per M9 — an **acceptance
+  property, not an option** (P28 token economy: the agent face must be consumable at
+  citation depth without paying excerpt cost). Per-zone blocks render for the situation's
+  LZ set (P26). Template discipline per P28: a block must deliver the join — never
+  re-serve content the agent can discover itself from its repo or the source directly.
 - **Verify.** Template honesty tests (table-driven, no network): missing data ⇒
   `unresolved` + the correct warning code, never an absent block; failed fetch ⇒
   `partial` + warning, never silent truncation. Transport-wiring guard extends to briefs.
@@ -224,9 +241,11 @@ independently.
 
 ### Step 6 — Honesty instruments
 
-- **Intent.** **time-to-brief** (the merge time the product collapses), **per-block
+- **Intent.** **time-to-brief** (the merge time the product collapses), **time-to-verify**
+  (citation-follow to source — the verification-tax metric, P28), **per-block
   unresolved rate grouped by missing source** (= the negotiation queue, P16/P22
-  prioritization by data), change-feed event volume by class, agent call share (P20's
+  prioritization by data), **tokens-per-brief** by depth tier (the agent-face cost
+  metric, P28), change-feed event volume by class, agent call share (P20's
   metric). Internal dashboard surface over existing pino streams.
 - **Verify.** The dashboard answers "which source next"; Track B consumes it directly.
 - **Revert.** Pure read-side.
@@ -248,6 +267,21 @@ independently.
   reaches any durable store; no secret field exists in the registration schema.
 - **Revert.** Registrations are consumer state (kept); the board is a pure read-time
   render.
+
+### Roadmap view — R0–R4 (P29, 2026-07-04)
+
+The steps above are a dependency order; this is the same order read as delivery phases,
+with the multicloud supply line and the ecosystem line attached. Gates are named, not
+dated.
+
+| Phase | Delivers | Steps | Gate |
+|---|---|---|---|
+| **R0 — app-scope** | governed gate + self-declared APP scope (multi-LZ shape per P26), manifest spec, APP selector | 1, 3 | **A1 runs now** (needs nothing built); A2 before R1 |
+| **R1 — the merge live** | graph, change feed, briefs — the DORA Pain-#2 core made real | 2, 4 | Step 1 done; A2 sets What's New posture |
+| **R2 — two front doors + instruments** | APP home, MCP three-call flow, honesty dashboard (time-to-brief, time-to-verify, tokens-per-brief, unresolved-rate queue) | 5, 6 | A1 passed |
+| **R3 — multicloud landing** | second cloud's doc surfaces as adapters through the I5 kit; new LZ roots in config; adopt brief gains the cross-cloud decision shape (structure encodes the question, never the answer — P15) | I5 exercise | **A3 passed**; Step 2 landed. Negotiation starts parallel to R1/R2 |
+| **R4 — enforcement + ecosystem** | Entra slice per `entra-app-scope-implementation-plan.md` (BFF → L2 factory input → fail-closed gate → `visibility:app` ingestion → MCP OAuth); the sibling cloud's RAG chatbot onboarded as a *consumer* of the agent face (P27); push bindings if A2 shows cadence | 7 + Entra WS1–6 | Valkey infra (WS6) first; WS3's no-DCR precondition folded into A1 |
+| **Track B — supply** | pain points, contract v0, fetch-access negotiations — now a two-cloud owner queue, prioritized by the Step-6 unresolved-rate data, argued with the DORA citations (P28) | ongoing | — |
 
 ## 8. Keep/rebuild crosswalk — where the current tree stands vs the optimum
 
@@ -296,7 +330,8 @@ assembly/representation layers → L3/L4 new; the catalog-first Portal IA → I6
 Unchanged capability states from `unified-product-architecture.md` §7: debug **value**
 resolution beyond adapter-capable systems (Capability-bounded on fetch-access
 landability); a second landing zone and per-LZ content variants (Capability-bounded,
-O3); grounded Ask synthesis (On-demand behind its explicit gate, currently dormant);
+O3 — now with a scheduled exit: A3 gates R3, P29); grounded Ask synthesis (On-demand
+behind its explicit gate, currently dormant);
 status aggregation-at-rest / history / alerting (Outside current product scope, P24);
 provisioning / CICD triggering (Unsupported permanently, P2).
 
@@ -308,7 +343,8 @@ provisioning / CICD triggering (Unsupported permanently, P2).
 | A1 | Falsification: agent reachability of `/mcp` | — | TODO (run during Step 1) |
 | 2 | L1 graph layer (snapshots · deriveGraph · differ · events · feed) | 1 | TODO |
 | A2 | Falsification: 90-day change cadence of landed sources | — | TODO (run before Step 2's What's New rewiring) |
-| 3 | Consumer state + situation entry (manifest, M11) | 1 | TODO |
+| A3 | Falsification: second-cloud source landability (P29) | — | TODO (gates R3 only) |
+| 3 | Consumer state + situation entry (manifest, M11, multi-LZ per P26) | 1 | TODO |
 | 4 | L3+L4 assembly + representation (I3/I4) | 1, 2, 3 | TODO |
 | 5 | Front doors: APP home + MCP three-call flow (I6) | 4, A1 | TODO |
 | 6 | Honesty instruments | 2, 4 | TODO |
