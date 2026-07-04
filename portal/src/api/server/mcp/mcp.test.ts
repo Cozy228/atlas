@@ -1,6 +1,11 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { ResourceContextResponseSchema } from "@atlas/schema";
-import { server, setDevDiscoveryEnv } from "@atlas/context-layer/devMocks";
+import {
+  DEV_CONFLUENCE_BASE_URL,
+  DEV_TERRAFORM_BASE_URL,
+  server,
+  setDevDiscoveryEnv,
+} from "@atlas/context-layer/devMocks";
 
 import { serverContextApiClient } from "../serverContextApiClient";
 import { buildMcpServerCard, handleMcpRequest } from "./handler";
@@ -168,6 +173,55 @@ describe("mcp tools against the pilot fixtures", () => {
     expect(result.isError).toBe(true);
     expect(result.content[0]!.text).toContain("source_not_found");
     expect(result.content[0]!.text).toContain(`{"source_id": "textract-module-readme"}`);
+  });
+});
+
+describe("mcp governance gate (Step 1)", () => {
+  it("D4: the in-process fallback threads the caller Bearer to the upstream source fetch", async () => {
+    // Force the in-process fallback: no CONTEXT_API_BASE_URL means the tool
+    // call builds the in-process client rather than the HTTP one.
+    delete process.env.CONTEXT_API_BASE_URL;
+
+    const token = "fictional-mcp-caller-token-456";
+    const upstreamAuthorization: (string | null)[] = [];
+    server.events.on("request:start", ({ request }) => {
+      if (
+        request.url.startsWith(DEV_TERRAFORM_BASE_URL) ||
+        request.url.startsWith(DEV_CONFLUENCE_BASE_URL)
+      ) {
+        upstreamAuthorization.push(request.headers.get("authorization"));
+      }
+    });
+
+    try {
+      const request = new Request("https://portal.example.com/mcp", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: 41,
+          method: "tools/call",
+          params: {
+            name: "atlas_get_resource_context",
+            arguments: { kind: "service", slug: "aws/textract", response_format: "DETAILED" },
+          },
+        }),
+      });
+      const response = await handleMcpRequest(request);
+      expect(response.status).toBe(200);
+
+      // The caller's opaque Bearer (ADR-0001) must reach the resolver's
+      // ctx.token and therefore the upstream source fetch — the in-process
+      // fallback may not silently drop it (Step 1 D4). The caller-bearer
+      // cache key is unique to this test, so at least one live fetch happens.
+      expect(upstreamAuthorization.length).toBeGreaterThan(0);
+      expect(upstreamAuthorization).toContain(`Bearer ${token}`);
+    } finally {
+      server.events.removeAllListeners("request:start");
+    }
   });
 });
 

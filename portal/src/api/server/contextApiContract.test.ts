@@ -1,9 +1,10 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { ResourceContextResponseSchema } from "@atlas/schema";
 import { handleHttpRequest } from "@atlas/context-layer";
-import { server, setDevDiscoveryEnv } from "@atlas/context-layer/devMocks";
+import { DEV_TERRAFORM_BASE_URL, server, setDevDiscoveryEnv } from "@atlas/context-layer/devMocks";
 
 import { createFetchContextApiClient } from "./httpContextApiClient";
+import { serverContextApiClient } from "./inProcessContextApi";
 
 // Post-flip (plan 018 G5) the catalog is the OUTPUT of live discovery, so boot
 // the MSW server + point the discovery channels at the fixtures. Reference space
@@ -214,5 +215,55 @@ describe("Context API consumer contract", () => {
 
     // The projection is what reaches the browser; the token must not be in it.
     expect(JSON.stringify(projection)).not.toContain(CALLER_TOKEN);
+  });
+
+  it("D9: the in-process face and the HTTP face return one governed projection from one shared cache", async () => {
+    // Transport-wiring guard (Step 1): the Portal's in-process client and the
+    // raw HTTP router are two faces of the SAME governed read. Both reads run
+    // anonymously so the content cache's auth-digested key is identical across
+    // the two faces; the Bearer-threading half of the guard is asserted on the
+    // HTTP face below (the in-process face is honest-anonymous until a Portal
+    // identity exists — locked decision 7).
+    const httpSeen: SeenRequest[] = [];
+    const httpProjection = await rawHttpGet({
+      path: "/api/resources/service/aws/textract",
+      seen: httpSeen,
+    });
+
+    // Wire-level cache observability: the HTTP read above (and this file's
+    // earlier anonymous reads) already resolved this resource through the
+    // shared cache, so a governed in-process read re-fetches NOTHING upstream.
+    const upstreamDuringInProcessRead: string[] = [];
+    server.events.on("request:start", ({ request }) => {
+      if (request.url.startsWith(DEV_TERRAFORM_BASE_URL)) {
+        upstreamDuringInProcessRead.push(request.url);
+      }
+    });
+    let inProcessProjection: unknown;
+    try {
+      inProcessProjection = await serverContextApiClient.getResourceContext(
+        "service",
+        "aws/textract",
+      );
+    } finally {
+      server.events.removeAllListeners("request:start");
+    }
+
+    // Both faces share ONE process-wide content cache: upstream fetch count
+    // across the two reads stays at the first read's count.
+    expect(upstreamDuringInProcessRead).toEqual([]);
+
+    // Identical governed projection — one contract, two transports (normalize
+    // the per-call projection stamp like the equivalence tests above).
+    expect(stripResolvedAt(inProcessProjection)).toEqual(stripResolvedAt(httpProjection));
+
+    // The HTTP face threads the caller Bearer where the surface accepts one.
+    const bearerSeen: SeenRequest[] = [];
+    await rawHttpGet({
+      path: "/api/resources/service/aws/textract",
+      token: CALLER_TOKEN,
+      seen: bearerSeen,
+    });
+    expect(bearerSeen[0]?.authorization).toBe(`Bearer ${CALLER_TOKEN}`);
   });
 });

@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { server, setDevDiscoveryEnv } from "@atlas/context-layer/devMocks";
+import { DEV_TERRAFORM_BASE_URL, server, setDevDiscoveryEnv } from "@atlas/context-layer/devMocks";
 
 import { serverContextApiClient } from "./inProcessContextApi";
 
@@ -85,5 +85,30 @@ describe("serverContextApiClient", () => {
     expect(record.entry_tools?.length ?? 0).toBeGreaterThan(0);
     expect(record.owner_team).toBeUndefined();
     expect(record.support_channel).toBeUndefined();
+  });
+
+  it("D3: two consecutive in-process reads share the governed content cache (second read fetches upstream zero times)", async () => {
+    // Warm read: discovery is memoized at module scope, and the governed
+    // factory (Step 1) wires the process-shared content cache into this
+    // previously ungoverned in-process path.
+    await serverContextApiClient.getResourceContext("service", "aws/textract");
+
+    // Wire-level cache observability: count upstream registry fetches during
+    // the SECOND read. A cache hit = the module content is re-fetched zero
+    // times. (Terraform-only filter keeps the count independent of Confluence
+    // reference/availability traffic.)
+    const upstreamDuringSecondRead: string[] = [];
+    server.events.on("request:start", ({ request }) => {
+      if (request.url.startsWith(DEV_TERRAFORM_BASE_URL)) {
+        upstreamDuringSecondRead.push(request.url);
+      }
+    });
+    try {
+      await serverContextApiClient.getResourceContext("service", "aws/textract");
+    } finally {
+      server.events.removeAllListeners("request:start");
+    }
+
+    expect(upstreamDuringSecondRead).toEqual([]);
   });
 });

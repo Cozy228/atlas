@@ -24,6 +24,12 @@ export {
   type ResourceKindDef,
   type SectionDef,
 } from "./resources/resourceKindRegistry";
+export {
+  createResolutionContext,
+  nullAppDirectoryAdapter,
+  type AppDirectoryPort,
+  type GovernedResolutionContext,
+} from "./resolvers/createResolutionContext";
 export { LANDING_ZONES } from "./landingZones";
 export { resolveReleaseNotes } from "./releaseNotes/resolveReleaseNotes";
 export { loadConfluenceGuidance } from "./composition";
