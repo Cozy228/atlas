@@ -27,6 +27,11 @@ import {
   ResourceSearchResponseSchema,
   SourceDiscoveryResponseSchema,
   SourceResponseSchema,
+  type AppListResponse,
+  type AppMutationResponse,
+  type AppRegistrationRequest,
+  type AppResponse,
+  type AppUpdateRequest,
   type AvailabilityReadResponse,
   type FeedbackResponse,
   type FeedbackSubmission,
@@ -39,7 +44,7 @@ import {
   type SourceResponse,
 } from "@atlas/schema";
 
-import type { ContextApiClient } from "../contextApiClient";
+import type { AvailabilityScope, ContextApiClient } from "../contextApiClient";
 import { ContextApiError } from "../contextApiError";
 
 type HandlerResult = { status: number; body: unknown };
@@ -76,8 +81,23 @@ export function createInProcessContextApiClient(
     async getSource(id: string): Promise<SourceResponse> {
       return unwrap(await handleSourceRequest(id), SourceResponseSchema);
     },
-    async getAvailability(): Promise<AvailabilityReadResponse> {
+    async getAvailability(_scope?: AvailabilityScope): Promise<AvailabilityReadResponse> {
+      // Step 3 Batch 3: thread the scope through `createResolutionContext` into
+      // `handleAvailabilityRequest(ctx)` (which takes the governed ctx from then
+      // on). Batch 0 keeps today's unscoped call so the tree stays green.
       return unwrap(await handleAvailabilityRequest(), AvailabilityReadResponseSchema);
+    },
+    async listApps(): Promise<AppListResponse> {
+      throw new Error("unimplemented (Step 3 Batch 3)");
+    },
+    async getApp(_id: string): Promise<AppResponse> {
+      throw new Error("unimplemented (Step 3 Batch 3)");
+    },
+    async registerApp(_request: AppRegistrationRequest): Promise<AppMutationResponse> {
+      throw new Error("unimplemented (Step 3 Batch 3)");
+    },
+    async updateApp(_id: string, _request: AppUpdateRequest): Promise<AppMutationResponse> {
+      throw new Error("unimplemented (Step 3 Batch 3)");
     },
     async getResourceContext(kind: string, slug: string): Promise<ResourceContextResponse> {
       const ctx = await createResolutionContext({ identity: { bearer: options.token } });

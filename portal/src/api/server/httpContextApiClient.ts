@@ -8,11 +8,16 @@ import {
   ResourceSearchResponseSchema,
   SourceDiscoveryResponseSchema,
   SourceResponseSchema,
+  type AppListResponse,
+  type AppMutationResponse,
+  type AppRegistrationRequest,
+  type AppResponse,
+  type AppUpdateRequest,
   type FeedbackSubmission,
   type SourceDiscoveryRequest,
 } from "@atlas/schema";
 
-import type { ContextApiClient } from "../contextApiClient";
+import type { AvailabilityScope, ContextApiClient } from "../contextApiClient";
 import { ContextApiError } from "../contextApiError";
 import { createInProcessContextApiClient } from "./inProcessContextApi";
 
@@ -71,12 +76,33 @@ export function createFetchContextApiClient(input: {
         url: `${baseUrl}/sources/${encodeURIComponent(id)}`,
       });
     },
-    async getAvailability() {
+    async getAvailability(scope?: AvailabilityScope) {
+      // Step 3 Batch 3: serialize the scope as the documented `?landingZones=`
+      // (comma-joined) / `?appId=` query the governed router already parses.
+      // Batch 0 keeps the bare unscoped URL so the tree stays green.
+      const query: Record<string, string | undefined> = scope
+        ? {
+            landingZones: scope.landingZones?.length ? scope.landingZones.join(",") : undefined,
+            appId: scope.appId,
+          }
+        : {};
       return requestJson({
         fetch: fetchImpl,
         schema: AvailabilityReadResponseSchema,
-        url: `${baseUrl}/availability`,
+        url: withQuery(`${baseUrl}/availability`, query),
       });
+    },
+    async listApps(): Promise<AppListResponse> {
+      throw new Error("unimplemented (Step 3 Batch 3)");
+    },
+    async getApp(_id: string): Promise<AppResponse> {
+      throw new Error("unimplemented (Step 3 Batch 3)");
+    },
+    async registerApp(_request: AppRegistrationRequest): Promise<AppMutationResponse> {
+      throw new Error("unimplemented (Step 3 Batch 3)");
+    },
+    async updateApp(_id: string, _request: AppUpdateRequest): Promise<AppMutationResponse> {
+      throw new Error("unimplemented (Step 3 Batch 3)");
     },
     async getResourceContext(kind: string, slug: string) {
       // slug may carry path separators (service slug = "{provider}/{id}"): encode

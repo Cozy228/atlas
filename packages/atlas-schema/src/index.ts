@@ -810,6 +810,111 @@ export type LandingZoneAvailability = z.infer<typeof LandingZoneAvailabilitySche
 export type AvailabilityResponse = z.infer<typeof AvailabilityResponseSchema>;
 export type AvailabilityReadResponse = z.infer<typeof AvailabilityReadResponseSchema>;
 
+/* -------------------------------------------------------------------------- *
+ * Consumer state — AppRecord + the repo manifest (Step 3: P17/P21/P26, M3/M11)
+ *
+ * The APP is the situation entry: a durable, self-declared, always-labeled
+ * consumer-state record mapping to a landing-zone *set* (P26). The repo
+ * manifest (`atlas.app.yaml`, P21) declares the same set by value; its field
+ * names deliberately match Step 1's by-value `ScopeInput` vocabulary
+ * (`landingZones` / `services`). `origin` is set by the server, never by the
+ * caller; `"registry"` exists in the enum from day one (the P17 in-place
+ * upgrade seat) but nothing writes it in Step 3.
+ *
+ * STEP 3 BATCH 0 STUBS: the hand-written types below are the frozen contract
+ * (goal_prompt_step3_consumer_state.md, locked decision 1); every schema value
+ * throws `unimplemented` until Batch 1 lands the real zod shapes. Batch 1 must:
+ *   - make every object schema `.strict()` (a caller-supplied `origin` or any
+ *     unknown field is structural invalidity, hence 400 at the routes);
+ *   - require `landingZoneIds` / `landingZones` non-empty (min 1);
+ *   - keep `serviceSlugs` required on `AppRecord` (empty array is legal);
+ *   - validate `declaredAt` / `updatedAt` as ISO datetimes;
+ *   - require at least one field on `AppUpdateRequest`;
+ *   - append `"unknown_service"` + `"unknown_landing_zone"` to `warningCodes`
+ *     and `"app_not_found"` to `apiErrorCodes` (deliberately NOT added in
+ *     Batch 0 — Step 1 precedent: the frozen suite asserts them as runtime
+ *     strings and stays typecheck-green against today's unions).
+ * -------------------------------------------------------------------------- */
+
+export const appOrigins = ["self-declared", "registry"] as const;
+export type AppOrigin = (typeof appOrigins)[number];
+
+/** Durable consumer-state record (mid-level §1). Never Evidence, always labeled. */
+export type AppRecord = {
+  id: string;
+  name: string;
+  /** P26: an APP maps to a landing-zone SET; an LZ id carries its cloud identity. */
+  landingZoneIds: string[];
+  /** Declared services-in-use (service-kind slugs, e.g. "aws/textract"). */
+  serviceSlugs: string[];
+  /** Server-set provenance label; drives the unconditional `self-declared` badge. */
+  origin: AppOrigin;
+  declaredAt: string;
+  updatedAt: string;
+};
+
+/**
+ * The repo manifest (`atlas.app.yaml` at the consuming repo's root, P21/M11).
+ * fs-free like `guidanceManifest`: callers parse YAML and pass the object in.
+ * An agent reads it and passes `landingZones`/`services` BY VALUE — zero
+ * registration, never a write. After explicit registration the team commits
+ * the returned `appId` back into the manifest themselves (PR is the
+ * maintenance surface); Atlas never writes to a team repo.
+ */
+export type AppManifest = {
+  name: string;
+  landingZones: string[];
+  services?: string[];
+  appId?: string;
+};
+
+/** POST /api/apps body. `origin`/`id` are server-owned: supplying them is a 400. */
+export type AppRegistrationRequest = {
+  name: string;
+  landingZoneIds: string[];
+  serviceSlugs?: string[];
+};
+
+/** PATCH /api/apps/{id} body: partial, at least one field. */
+export type AppUpdateRequest = {
+  name?: string;
+  landingZoneIds?: string[];
+  serviceSlugs?: string[];
+};
+
+/** GET /api/apps/{id} body. */
+export type AppResponse = { app: AppRecord };
+/** POST/PATCH body: the stored record plus the dangling-declaration warnings
+ *  (`unknown_service` / `unknown_landing_zone`) — kept verbatim, warned, never
+ *  dropped (locked decision 5). */
+export type AppMutationResponse = { app: AppRecord; warnings: Warning[] };
+/** GET /api/apps body. */
+export type AppListResponse = { apps: AppRecord[] };
+
+/** Batch 0 stub: any parse throws until Batch 1 lands the real zod shape. */
+function unimplementedSchema<T>(name: string): z.ZodType<T> {
+  return z.custom<T>(() => {
+    throw new Error(
+      `${name} is unimplemented (Step 3 Batch 1 — goal_prompt_step3_consumer_state.md)`,
+    );
+  });
+}
+
+export const AppOriginSchema = z.enum(appOrigins);
+export const AppRecordSchema: z.ZodType<AppRecord> = unimplementedSchema("AppRecordSchema");
+export const AppManifestSchema: z.ZodType<AppManifest> = unimplementedSchema("AppManifestSchema");
+export const AppRegistrationRequestSchema: z.ZodType<AppRegistrationRequest> = unimplementedSchema(
+  "AppRegistrationRequestSchema",
+);
+export const AppUpdateRequestSchema: z.ZodType<AppUpdateRequest> =
+  unimplementedSchema("AppUpdateRequestSchema");
+export const AppResponseSchema: z.ZodType<AppResponse> = unimplementedSchema("AppResponseSchema");
+export const AppMutationResponseSchema: z.ZodType<AppMutationResponse> = unimplementedSchema(
+  "AppMutationResponseSchema",
+);
+export const AppListResponseSchema: z.ZodType<AppListResponse> =
+  unimplementedSchema("AppListResponseSchema");
+
 export {
   validateGuidanceDocument,
   validateGuidanceManifest,

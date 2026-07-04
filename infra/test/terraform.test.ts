@@ -23,6 +23,17 @@ describe("Atlas Terraform deployment", () => {
     expect(mainTerraform).toContain('resource "aws_dynamodb_table" "feedback"');
   });
 
+  // D10 — the consumer-state `apps` table is provisioned like feedback (Step 3,
+  // locked decision 3): the table, the task-role IAM to read/write it, and the
+  // `APPS_TABLE` ECS env wiring that the prod fail-fast guard reads.
+  it("provisions the DynamoDB apps table, its IAM access, and the APPS_TABLE env", () => {
+    expect(mainTerraform).toContain('resource "aws_dynamodb_table" "apps"');
+    expect(mainTerraform).toContain("aws_dynamodb_table.apps.arn");
+    expect(mainTerraform).toContain(
+      '{ name = "APPS_TABLE", value = aws_dynamodb_table.apps.name }',
+    );
+  });
+
   it("keeps Lambda Web Adapter, Lambda, and API Gateway out of the deployment", () => {
     expect(combinedTerraform).not.toContain("aws_lambda_function");
     expect(combinedTerraform).not.toContain("aws_apigatewayv2_api");

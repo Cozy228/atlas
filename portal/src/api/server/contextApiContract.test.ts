@@ -1,5 +1,9 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { ResourceContextResponseSchema } from "@atlas/schema";
+import {
+  AppListResponseSchema,
+  AvailabilityReadResponseSchema,
+  ResourceContextResponseSchema,
+} from "@atlas/schema";
 import { handleHttpRequest } from "@atlas/context-layer";
 import { DEV_TERRAFORM_BASE_URL, server, setDevDiscoveryEnv } from "@atlas/context-layer/devMocks";
 
@@ -265,5 +269,65 @@ describe("Context API consumer contract", () => {
       seen: bearerSeen,
     });
     expect(bearerSeen[0]?.authorization).toBe(`Bearer ${CALLER_TOKEN}`);
+  });
+});
+
+/**
+ * D8 — the Step 3 consumer-state surface obeys the same transport-wiring guard:
+ * `GET`/`POST /api/apps` and scoped availability agree between the Portal's
+ * in-process client and the raw `handleHttpRequest` router. One governed
+ * contract, two transports.
+ */
+describe("Context API consumer contract — Step 3 consumer state (D8)", () => {
+  async function rawAvailabilityZones(query: Record<string, string>): Promise<string[]> {
+    const response = await handleHttpRequest({ method: "GET", path: "/api/availability", query });
+    return AvailabilityReadResponseSchema.parse(JSON.parse(response.body)).zones.map(
+      (zone) => zone.id,
+    );
+  }
+
+  it("registration agrees: POST via the client, then GET list via both faces", async () => {
+    // POST through the Portal's real fetch client (bridged into the router).
+    const client = createFetchContextApiClient({
+      baseUrl: BASE_URL,
+      fetch: contextLayerBridge([]),
+    });
+    const registered = await client.registerApp({
+      name: "Orion Checkout",
+      landingZoneIds: ["awsf"],
+      serviceSlugs: ["aws/textract"],
+    });
+    const appId = registered.app.id;
+    expect(registered.app.origin).toBe("self-declared");
+
+    // GET list via the raw HTTP router...
+    const httpList = await handleHttpRequest({ method: "GET", path: "/api/apps" });
+    const httpApps = AppListResponseSchema.parse(JSON.parse(httpList.body)).apps;
+
+    // ...and via the in-process client (same process, same shared store).
+    const inProcessApps = (await serverContextApiClient.listApps()).apps;
+
+    expect(httpApps.some((app) => app.id === appId)).toBe(true);
+    expect(inProcessApps.some((app) => app.id === appId)).toBe(true);
+    // Both faces observe the identical record for the registered id.
+    expect(inProcessApps.find((app) => app.id === appId)).toEqual(
+      httpApps.find((app) => app.id === appId),
+    );
+  });
+
+  it("scoped availability agrees: by-value scope narrows to the member zones on both faces", async () => {
+    const scope = { landingZones: ["awsf"] };
+
+    const httpZones = await rawAvailabilityZones({ landingZones: "awsf" });
+    const inProcessZones = (await serverContextApiClient.getAvailability(scope)).zones.map(
+      (zone) => zone.id,
+    );
+
+    expect(httpZones).toEqual(["awsf"]);
+    expect(inProcessZones).toEqual(["awsf"]);
+
+    // The scoping is real: an unscoped read returns the full topology.
+    const unscoped = await rawAvailabilityZones({});
+    expect(unscoped.length).toBeGreaterThan(1);
   });
 });

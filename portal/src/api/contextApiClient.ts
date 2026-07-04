@@ -7,6 +7,11 @@ import {
   ResourceSearchResponseSchema,
   SourceDiscoveryResponseSchema,
   SourceResponseSchema,
+  type AppListResponse,
+  type AppMutationResponse,
+  type AppRegistrationRequest,
+  type AppResponse,
+  type AppUpdateRequest,
   type AvailabilityReadResponse,
   type FeedbackResponse,
   type FeedbackSubmission,
@@ -19,9 +24,26 @@ import {
   type SourceResponse,
 } from "@atlas/schema";
 
+/**
+ * By-value / by-reference scope declaration threaded to the governed context
+ * (Step 3 locked decision 7): `landingZones` inline (manifest value) and/or
+ * `appId` (registered record). The in-process face passes it into
+ * `createResolutionContext`; the HTTP face serializes it as the documented
+ * `?landingZones=` / `?appId=` query params.
+ */
+export type AvailabilityScope = { landingZones?: string[]; appId?: string };
+
 export type ContextApiClient = {
   getSource(id: string): Promise<SourceResponse>;
-  getAvailability(): Promise<AvailabilityReadResponse>;
+  /** Scoped availability (Step 3 D5/D8): with a scope, only the member zones
+   *  return (unknown ids simply absent); without one, today's full grid. */
+  getAvailability(scope?: AvailabilityScope): Promise<AvailabilityReadResponse>;
+  /** Consumer state (Step 3, mid-level §3). Registration is an explicit act
+   *  (M11) — these are the only writers; `origin` is always server-set. */
+  listApps(): Promise<AppListResponse>;
+  getApp(id: string): Promise<AppResponse>;
+  registerApp(request: AppRegistrationRequest): Promise<AppMutationResponse>;
+  updateApp(id: string, request: AppUpdateRequest): Promise<AppMutationResponse>;
   /** Live resource projection (plan 017): governed sections + reference-only
    *  discovery links for a canonical `{kind}/{slug}`. */
   getResourceContext(kind: string, slug: string): Promise<ResourceContextResponse>;
@@ -75,8 +97,22 @@ export function createStaticContextApiClient({
       if (!source) throw new Error(`Source not found: ${id}`);
       return SourceResponseSchema.parse({ source });
     },
-    async getAvailability(): Promise<AvailabilityReadResponse> {
+    async getAvailability(_scope?: AvailabilityScope): Promise<AvailabilityReadResponse> {
+      // Static face ignores scope for now; the frozen Step 3 suite covers the
+      // in-process + HTTP faces only (Batch 3).
       return AvailabilityReadResponseSchema.parse(availability ?? EMPTY_AVAILABILITY);
+    },
+    async listApps(): Promise<AppListResponse> {
+      throw new Error("unimplemented (Step 3 Batch 4)");
+    },
+    async getApp(_id: string): Promise<AppResponse> {
+      throw new Error("unimplemented (Step 3 Batch 4)");
+    },
+    async registerApp(_request: AppRegistrationRequest): Promise<AppMutationResponse> {
+      throw new Error("unimplemented (Step 3 Batch 4)");
+    },
+    async updateApp(_id: string, _request: AppUpdateRequest): Promise<AppMutationResponse> {
+      throw new Error("unimplemented (Step 3 Batch 4)");
     },
     async getResourceContext(kind: string, slug: string): Promise<ResourceContextResponse> {
       const projection = resourceContexts?.[`${kind}/${slug}`];

@@ -1,4 +1,10 @@
 export { handleAvailabilityRequest } from "./api/availabilityRoute";
+export {
+  handleAppRegistrationRequest,
+  handleAppRequest,
+  handleAppsListRequest,
+  handleAppUpdateRequest,
+} from "./api/appsRoutes";
 export { handleFeedbackRequest } from "./api/feedbackRoute";
 export { handleHttpRequest } from "./api/httpRoute";
 export { handleSourceDiscoveryRequest } from "./api/sourceDiscoveryRoute";
@@ -30,6 +36,9 @@ export {
   type AppDirectoryPort,
   type GovernedResolutionContext,
 } from "./resolvers/createResolutionContext";
+export { type AppsRepository } from "./repositories/appsRepository";
+export { createAppsRepository, sharedAppsRepository } from "./repositories/appsRepositoryFactory";
+export { createSelfDeclaredAppsAdapter } from "./repositories/selfDeclaredAppsAdapter";
 export { LANDING_ZONES } from "./landingZones";
 export { resolveReleaseNotes } from "./releaseNotes/resolveReleaseNotes";
 export { loadConfluenceGuidance } from "./composition";
