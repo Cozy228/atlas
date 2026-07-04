@@ -23,13 +23,17 @@ import { expectShellWithMockBadge } from "./helpers";
  * All data is fictional (public-safe).
  */
 
-const APP_NAME = "Orion Checkout (e2e)";
+// No regex-special characters: the name is fed straight into `new RegExp(...)`.
+const APP_NAME = "Orion Checkout E2E";
 
 test("declare an app → it appears in the selector, self-declared, and narrows the zones", async ({
   page,
 }) => {
   await page.goto("/availability");
   await expectShellWithMockBadge(page);
+  // Let the heavy availability route finish hydrating before interacting, so the
+  // dropdown trigger's handler is wired (same networkidle gate as core-journey).
+  await page.waitForLoadState("networkidle");
 
   // Open the combined APP / landing-zone selector.
   await page.getByRole("button", { name: /app \/ landing zone/i }).click();
@@ -45,6 +49,9 @@ test("declare an app → it appears in the selector, self-declared, and narrows 
     .getByRole("checkbox", { name: /AWS Foundation/i })
     .check();
   await page.getByRole("button", { name: /^(save|declare|register)/i }).click();
+
+  // The registration round-trips + the apps query refetches; let it settle.
+  await page.waitForLoadState("networkidle");
 
   // The APP now appears in the selector, carrying the unconditional badge.
   await page.getByRole("button", { name: /app \/ landing zone/i }).click();

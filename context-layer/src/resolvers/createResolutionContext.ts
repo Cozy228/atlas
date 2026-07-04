@@ -21,6 +21,8 @@
 import type { FetchLike, ResolutionContext, ResolverWarning } from "./resolverTypes";
 import { withFetchLogging } from "../observability/logging";
 import { cacheTtlSeconds, sharedCache, withCache } from "../sourceContent/sourceContentCache";
+import { sharedAppsRepository } from "../repositories/appsRepositoryFactory";
+import { createSelfDeclaredAppsAdapter } from "../repositories/selfDeclaredAppsAdapter";
 
 /**
  * Module-private brand: NEVER exported (not from this module's public face
@@ -70,14 +72,28 @@ export interface AppDirectoryPort {
 }
 
 /**
- * Step-1 adapter: always not-found. An unknown/unresolvable `appId` yields a
- * context with no app scope and a `scope_unresolved` warning (honest-empty).
+ * The empty directory: always not-found. An unknown/unresolvable `appId` yields
+ * a context with no app scope and a `scope_unresolved` warning (honest-empty).
+ * Kept exported for callers/tests that want the empty directory; the factory
+ * DEFAULT is now the self-declared adapter over the shared apps store (Step 3).
  */
 export const nullAppDirectoryAdapter: AppDirectoryPort = {
   async lookup() {
     return null;
   },
 };
+
+/**
+ * The process-shared default directory (Step 3): the self-declared adapter over
+ * `sharedAppsRepository(env)`, memoized like `sharedCache` (first-env wins), so
+ * by-reference scope resolves through the real consumer-state store. The
+ * Entra-era `registryAppsAdapter` is a pure swap of this default over the same
+ * port.
+ */
+let defaultAppDirectoryMemo: AppDirectoryPort | undefined;
+function defaultAppDirectory(env: Record<string, string | undefined>): AppDirectoryPort {
+  return (defaultAppDirectoryMemo ??= createSelfDeclaredAppsAdapter(sharedAppsRepository(env)));
+}
 
 export type CreateResolutionContextInput = {
   /**
@@ -110,7 +126,7 @@ export async function createResolutionContext(
   const cache = await sharedCache(env);
   const fetch = withCache(lateBoundFetch(), cache, cacheTtlSeconds(env));
 
-  const vetted = await vetScope(input.scope, input.appDirectory ?? nullAppDirectoryAdapter);
+  const vetted = await vetScope(input.scope, input.appDirectory ?? defaultAppDirectory(env));
 
   const governed: GovernedResolutionContext = {
     // Opaque caller Bearer (ADR-0001): threaded unparsed, never interpreted.

@@ -1,5 +1,8 @@
 import {
   ApiErrorResponseSchema,
+  AppListResponseSchema,
+  AppMutationResponseSchema,
+  AppResponseSchema,
   AvailabilityReadResponseSchema,
   FeedbackResponseSchema,
   ResourceCatalogResponseSchema,
@@ -93,16 +96,34 @@ export function createFetchContextApiClient(input: {
       });
     },
     async listApps(): Promise<AppListResponse> {
-      throw new Error("unimplemented (Step 3 Batch 3)");
+      return requestJson({
+        fetch: fetchImpl,
+        schema: AppListResponseSchema,
+        url: `${baseUrl}/apps`,
+      });
     },
-    async getApp(_id: string): Promise<AppResponse> {
-      throw new Error("unimplemented (Step 3 Batch 3)");
+    async getApp(id: string): Promise<AppResponse> {
+      return requestJson({
+        fetch: fetchImpl,
+        schema: AppResponseSchema,
+        url: `${baseUrl}/apps/${encodeURIComponent(id)}`,
+      });
     },
-    async registerApp(_request: AppRegistrationRequest): Promise<AppMutationResponse> {
-      throw new Error("unimplemented (Step 3 Batch 3)");
+    async registerApp(request: AppRegistrationRequest): Promise<AppMutationResponse> {
+      return requestJson({
+        fetch: fetchImpl,
+        schema: AppMutationResponseSchema,
+        url: `${baseUrl}/apps`,
+        init: jsonPost(request),
+      });
     },
-    async updateApp(_id: string, _request: AppUpdateRequest): Promise<AppMutationResponse> {
-      throw new Error("unimplemented (Step 3 Batch 3)");
+    async updateApp(id: string, request: AppUpdateRequest): Promise<AppMutationResponse> {
+      return requestJson({
+        fetch: fetchImpl,
+        schema: AppMutationResponseSchema,
+        url: `${baseUrl}/apps/${encodeURIComponent(id)}`,
+        init: jsonPatch(request),
+      });
     },
     async getResourceContext(kind: string, slug: string) {
       // slug may carry path separators (service slug = "{provider}/{id}"): encode
@@ -190,6 +211,14 @@ async function requestJson<TBody>(input: {
 function jsonPost(body: unknown): RequestInit {
   return {
     method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body),
+  };
+}
+
+function jsonPatch(body: unknown): RequestInit {
+  return {
+    method: "PATCH",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(body),
   };

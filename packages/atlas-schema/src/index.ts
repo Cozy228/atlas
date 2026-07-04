@@ -38,6 +38,12 @@ export const warningCodes = [
   // through the AppDirectory (honest-empty — no app scope is seated).
   "scope_drift",
   "scope_unresolved",
+  // Consumer-state dangling declarations (Step 3, M11). An APP's declared
+  // `serviceSlugs` / `landingZoneIds` are stored VERBATIM and warned, never
+  // dropped: a manifest legitimately declares a service Atlas has not discovered
+  // yet, or a zone outside the topology — that gap is signal, not error.
+  "unknown_service",
+  "unknown_landing_zone",
 ] as const;
 
 export const apiErrorCodes = [
@@ -48,6 +54,9 @@ export const apiErrorCodes = [
   // No such resource is registered on the kind-first resource surface; the
   // caller should resolve the canonical id via searchResources.
   "resource_not_found",
+  // No such registered APP (Step 3). An APP is a scope entity, not a Resource
+  // (mid-level §1 NodeRef), so `resource_not_found` must not blur that boundary.
+  "app_not_found",
   "invalid_request",
 ] as const;
 
@@ -821,37 +830,33 @@ export type AvailabilityReadResponse = z.infer<typeof AvailabilityReadResponseSc
  * caller; `"registry"` exists in the enum from day one (the P17 in-place
  * upgrade seat) but nothing writes it in Step 3.
  *
- * STEP 3 BATCH 0 STUBS: the hand-written types below are the frozen contract
- * (goal_prompt_step3_consumer_state.md, locked decision 1); every schema value
- * throws `unimplemented` until Batch 1 lands the real zod shapes. Batch 1 must:
- *   - make every object schema `.strict()` (a caller-supplied `origin` or any
- *     unknown field is structural invalidity, hence 400 at the routes);
- *   - require `landingZoneIds` / `landingZones` non-empty (min 1);
- *   - keep `serviceSlugs` required on `AppRecord` (empty array is legal);
- *   - validate `declaredAt` / `updatedAt` as ISO datetimes;
- *   - require at least one field on `AppUpdateRequest`;
- *   - append `"unknown_service"` + `"unknown_landing_zone"` to `warningCodes`
- *     and `"app_not_found"` to `apiErrorCodes` (deliberately NOT added in
- *     Batch 0 — Step 1 precedent: the frozen suite asserts them as runtime
- *     strings and stays typecheck-green against today's unions).
+ * Every object schema is `.strict()`: a caller-supplied `origin`/`id` or any
+ * unknown field is structural invalidity (400 at the routes), and the manifest
+ * spec is frozen into team repos so it rejects stray fields too. `landingZoneIds`
+ * / `landingZones` are non-empty sets (P26); `serviceSlugs` is required on the
+ * record but may be empty. `origin` is server-set — it lives on the record and
+ * the manifest's `appId` seat, never on a write request.
  * -------------------------------------------------------------------------- */
 
 export const appOrigins = ["self-declared", "registry"] as const;
-export type AppOrigin = (typeof appOrigins)[number];
+export const AppOriginSchema = z.enum(appOrigins);
 
 /** Durable consumer-state record (mid-level §1). Never Evidence, always labeled. */
-export type AppRecord = {
-  id: string;
-  name: string;
-  /** P26: an APP maps to a landing-zone SET; an LZ id carries its cloud identity. */
-  landingZoneIds: string[];
-  /** Declared services-in-use (service-kind slugs, e.g. "aws/textract"). */
-  serviceSlugs: string[];
-  /** Server-set provenance label; drives the unconditional `self-declared` badge. */
-  origin: AppOrigin;
-  declaredAt: string;
-  updatedAt: string;
-};
+export const AppRecordSchema = z
+  .object({
+    id: z.string().min(1),
+    name: z.string().min(1),
+    // P26: an APP maps to a landing-zone SET; an LZ id carries its cloud identity.
+    landingZoneIds: z.array(z.string().min(1)).min(1),
+    // Declared services-in-use (service-kind slugs, e.g. "aws/textract"); empty
+    // is legal (a freshly declared APP may not name any service yet).
+    serviceSlugs: z.array(z.string().min(1)),
+    // Server-set provenance label; drives the unconditional `self-declared` badge.
+    origin: AppOriginSchema,
+    declaredAt: z.string().datetime(),
+    updatedAt: z.string().datetime(),
+  })
+  .strict();
 
 /**
  * The repo manifest (`atlas.app.yaml` at the consuming repo's root, P21/M11).
@@ -859,61 +864,58 @@ export type AppRecord = {
  * An agent reads it and passes `landingZones`/`services` BY VALUE — zero
  * registration, never a write. After explicit registration the team commits
  * the returned `appId` back into the manifest themselves (PR is the
- * maintenance surface); Atlas never writes to a team repo.
+ * maintenance surface); Atlas never writes to a team repo. Field names match
+ * Step 1's by-value `ScopeInput` vocabulary on purpose.
  */
-export type AppManifest = {
-  name: string;
-  landingZones: string[];
-  services?: string[];
-  appId?: string;
-};
+export const AppManifestSchema = z
+  .object({
+    name: z.string().min(1),
+    landingZones: z.array(z.string().min(1)).min(1),
+    services: z.array(z.string().min(1)).optional(),
+    appId: z.string().min(1).optional(),
+  })
+  .strict();
 
 /** POST /api/apps body. `origin`/`id` are server-owned: supplying them is a 400. */
-export type AppRegistrationRequest = {
-  name: string;
-  landingZoneIds: string[];
-  serviceSlugs?: string[];
-};
+export const AppRegistrationRequestSchema = z
+  .object({
+    name: z.string().min(1),
+    landingZoneIds: z.array(z.string().min(1)).min(1),
+    serviceSlugs: z.array(z.string().min(1)).optional(),
+  })
+  .strict();
 
-/** PATCH /api/apps/{id} body: partial, at least one field. */
-export type AppUpdateRequest = {
-  name?: string;
-  landingZoneIds?: string[];
-  serviceSlugs?: string[];
-};
+/** PATCH /api/apps/{id} body: partial update, at least one mutable field. */
+export const AppUpdateRequestSchema = z
+  .object({
+    name: z.string().min(1).optional(),
+    landingZoneIds: z.array(z.string().min(1)).min(1).optional(),
+    serviceSlugs: z.array(z.string().min(1)).optional(),
+  })
+  .strict()
+  .refine((patch) => Object.keys(patch).length > 0, {
+    message: "an update must change at least one field",
+  });
 
 /** GET /api/apps/{id} body. */
-export type AppResponse = { app: AppRecord };
+export const AppResponseSchema = z.object({ app: AppRecordSchema }).strict();
 /** POST/PATCH body: the stored record plus the dangling-declaration warnings
  *  (`unknown_service` / `unknown_landing_zone`) — kept verbatim, warned, never
  *  dropped (locked decision 5). */
-export type AppMutationResponse = { app: AppRecord; warnings: Warning[] };
+export const AppMutationResponseSchema = z
+  .object({ app: AppRecordSchema, warnings: z.array(WarningSchema) })
+  .strict();
 /** GET /api/apps body. */
-export type AppListResponse = { apps: AppRecord[] };
+export const AppListResponseSchema = z.object({ apps: z.array(AppRecordSchema) }).strict();
 
-/** Batch 0 stub: any parse throws until Batch 1 lands the real zod shape. */
-function unimplementedSchema<T>(name: string): z.ZodType<T> {
-  return z.custom<T>(() => {
-    throw new Error(
-      `${name} is unimplemented (Step 3 Batch 1 — goal_prompt_step3_consumer_state.md)`,
-    );
-  });
-}
-
-export const AppOriginSchema = z.enum(appOrigins);
-export const AppRecordSchema: z.ZodType<AppRecord> = unimplementedSchema("AppRecordSchema");
-export const AppManifestSchema: z.ZodType<AppManifest> = unimplementedSchema("AppManifestSchema");
-export const AppRegistrationRequestSchema: z.ZodType<AppRegistrationRequest> = unimplementedSchema(
-  "AppRegistrationRequestSchema",
-);
-export const AppUpdateRequestSchema: z.ZodType<AppUpdateRequest> =
-  unimplementedSchema("AppUpdateRequestSchema");
-export const AppResponseSchema: z.ZodType<AppResponse> = unimplementedSchema("AppResponseSchema");
-export const AppMutationResponseSchema: z.ZodType<AppMutationResponse> = unimplementedSchema(
-  "AppMutationResponseSchema",
-);
-export const AppListResponseSchema: z.ZodType<AppListResponse> =
-  unimplementedSchema("AppListResponseSchema");
+export type AppOrigin = z.infer<typeof AppOriginSchema>;
+export type AppRecord = z.infer<typeof AppRecordSchema>;
+export type AppManifest = z.infer<typeof AppManifestSchema>;
+export type AppRegistrationRequest = z.infer<typeof AppRegistrationRequestSchema>;
+export type AppUpdateRequest = z.infer<typeof AppUpdateRequestSchema>;
+export type AppResponse = z.infer<typeof AppResponseSchema>;
+export type AppMutationResponse = z.infer<typeof AppMutationResponseSchema>;
+export type AppListResponse = z.infer<typeof AppListResponseSchema>;
 
 export {
   validateGuidanceDocument,

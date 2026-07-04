@@ -58,6 +58,10 @@ const WARNING_PRIORITY: Record<Warning["code"], number> = {
   // Governance-gate scope warnings (Step 1): lowest severity — advisory only.
   scope_drift: 8,
   scope_unresolved: 9,
+  // Consumer-state dangling declarations (Step 3): advisory — the declaration is
+  // kept verbatim, the warning is signal, not a defect.
+  unknown_service: 10,
+  unknown_landing_zone: 11,
 };
 
 export function highestPriorityWarning(warnings: ReadonlyArray<Warning>): Warning | undefined {

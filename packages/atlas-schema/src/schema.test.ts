@@ -83,6 +83,7 @@ describe("contract enums", () => {
       "source_unavailable",
       "access_denied",
       "resource_not_found",
+      "app_not_found",
       "invalid_request",
     ]);
   });

@@ -1,5 +1,6 @@
 import { queryOptions } from "@tanstack/react-query";
 import type {
+  AppListResponse,
   LandingZone,
   ResourceCatalogResponse,
   ResourceContextResponse,
@@ -8,6 +9,7 @@ import type {
   SourceDiscoveryResponse,
 } from "@atlas/schema";
 
+import { fetchApps } from "@/api/server/apps";
 import { fetchAvailability, type AvailabilityResponse } from "@/api/server/availability";
 import {
   fetchLandingZones,
@@ -45,11 +47,36 @@ export const availabilityQueryOptions = queryOptions<AvailabilityResponse>({
   staleTime: Infinity,
 });
 
+/**
+ * Scoped availability (Step 3 decision 8): when the situation carries a selected
+ * APP, its landing-zone set is threaded to the server as by-value scope so the
+ * *server* returns only the member zones — closing Step 1's decision-7 tail on
+ * the live surface. No scope ⇒ the shared unscoped query (LZ-only, unchanged).
+ */
+export function availabilityQueryOptionsFor(landingZones?: string[]) {
+  if (!landingZones?.length) {
+    return availabilityQueryOptions;
+  }
+  const key = [...landingZones].sort().join(",");
+  return queryOptions<AvailabilityResponse>({
+    queryKey: ["availability", "scoped", key] as const,
+    queryFn: () => fetchAvailability({ data: { landingZones } }),
+    staleTime: Infinity,
+  });
+}
+
 export const landingZonesQueryOptions = queryOptions<LandingZone[]>({
   queryKey: ["landing-zones"] as const,
   queryFn: () => fetchLandingZones(),
   // The LZ topology is config (dev=prod), effectively static within a session.
   staleTime: Infinity,
+});
+
+/** Registered self-declared APPs (Step 3) — the situation selector's app list. */
+export const appsQueryOptions = queryOptions<AppListResponse>({
+  queryKey: ["apps"] as const,
+  queryFn: () => fetchApps(),
+  staleTime: 30_000,
 });
 
 export const resourceCatalogQueryOptions = queryOptions<ResourceCatalogResponse>({

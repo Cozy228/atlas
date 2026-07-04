@@ -61,29 +61,40 @@ export const fetchSource = createServerFn(SERVER_FN_OPTIONS)
  * availability read (plan 014). Drops the read's citation/warnings and returns
  * just the `{ zones }` wire shape the Explore + catalog consumers depend on.
  */
-// Process-level memo for the availability read. The in-process availability path
-// fetches through an UNcached live fetch (unlike the release-notes path, which
-// uses the shared source-content cache), so without this every full-page refresh
-// (a fresh per-request queryClient) would re-pay the live Confluence fetch + dev
-// latency. Memoizing the response here gives availability the same "first read is
-// slow, every refresh is instant" behaviour the cached paths already have. TTL
-// mirrors the source-content cache (5 min); the client's React Query cache covers
-// intra-session navigation on top of this.
+// Process-level memo for the availability read, keyed by scope. The in-process
+// availability path fetches through an UNcached live fetch (unlike the
+// release-notes path, which uses the shared source-content cache), so without
+// this every full-page refresh (a fresh per-request queryClient) would re-pay
+// the live Confluence fetch + dev latency. Memoizing the response here gives
+// availability the same "first read is slow, every refresh is instant" behaviour
+// the cached paths already have. TTL mirrors the source-content cache (5 min);
+// the client's React Query cache covers intra-session navigation on top of this.
 const AVAILABILITY_MEMO_MS = 5 * 60_000;
-let availabilityMemo: { at: number; data: AvailabilityResponse } | undefined;
+const availabilityMemo = new Map<string, { at: number; data: AvailabilityResponse }>();
 
-export const fetchAvailability = createServerFn(SERVER_FN_OPTIONS).handler(
-  async (): Promise<AvailabilityResponse> => {
+// By-value availability scope (Step 3 decision 7/8): the situation's landing-zone
+// set, threaded from the Portal APP selector so a scoped answer is produced by
+// SERVER code, not client-side filtering. Absent ⇒ the full topology (LZ-only).
+const availabilityScopeSchema = z
+  .object({ landingZones: z.array(z.string().min(1)).min(1).optional() })
+  .optional();
+
+export const fetchAvailability = createServerFn(SERVER_FN_OPTIONS)
+  .validator((input: unknown) => availabilityScopeSchema.parse(input))
+  .handler(async ({ data: scope }): Promise<AvailabilityResponse> => {
+    const key = scope?.landingZones?.length ? scope.landingZones.join(",") : "";
     const now = Date.now();
-    if (availabilityMemo && now - availabilityMemo.at < AVAILABILITY_MEMO_MS) {
-      return availabilityMemo.data;
+    const cached = availabilityMemo.get(key);
+    if (cached && now - cached.at < AVAILABILITY_MEMO_MS) {
+      return cached.data;
     }
-    const { zones } = await contextApiForRequest().getAvailability();
+    const { zones } = await contextApiForRequest().getAvailability(
+      scope?.landingZones?.length ? { landingZones: scope.landingZones } : undefined,
+    );
     const data: AvailabilityResponse = { zones };
-    availabilityMemo = { at: now, data };
+    availabilityMemo.set(key, { at: now, data });
     return data;
-  },
-);
+  });
 
 /**
  * The landing-zone topology (plan 021 G3, ADR-0017) — the discovery root's LZ

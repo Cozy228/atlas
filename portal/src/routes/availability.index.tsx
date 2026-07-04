@@ -22,9 +22,9 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { IconMapPin } from "@tabler/icons-react";
 
-import { availabilityQueryOptions } from "@/api/queries";
+import { availabilityQueryOptions, availabilityQueryOptionsFor } from "@/api/queries";
 import type { Location, LocationStatus } from "@/api/server/availability";
-import { useCurrentLandingZone } from "@/components/landing-zone/context";
+import { useCurrentLandingZone, useSituation } from "@/components/landing-zone/context";
 import { DataNotAvailableForZone } from "@/components/landing-zone/data-not-available";
 import { MatrixView } from "@/components/explore/matrix-view";
 import { RegionMap, regionLabel, type RegionHealth } from "@/components/explore/region-map";
@@ -149,10 +149,15 @@ function RegionsRoute() {
 }
 
 function RegionsContent() {
+  // Step 3 decision 8: when an APP is selected, thread its declared landing-zone
+  // set to the server as by-value scope (the server returns only the member
+  // zones) — closing Step 1's decision-7 tail on the live surface. No APP ⇒ the
+  // unscoped full topology, LZ-only, unchanged.
+  const { selectedApp } = useSituation();
   const {
     data: { zones },
     dataUpdatedAt,
-  } = useSuspenseQuery(availabilityQueryOptions);
+  } = useSuspenseQuery(availabilityQueryOptionsFor(selectedApp?.landingZoneIds));
 
   const { currentLandingZoneId } = useCurrentLandingZone();
   const [state, dispatch] = useReducer(reducer, {

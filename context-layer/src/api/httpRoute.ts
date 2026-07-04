@@ -1,4 +1,10 @@
 import type { ApiErrorResponse, ResourceContextResponse } from "@atlas/schema";
+import {
+  handleAppRegistrationRequest,
+  handleAppRequest,
+  handleAppsListRequest,
+  handleAppUpdateRequest,
+} from "./appsRoutes";
 import { handleAvailabilityRequest } from "./availabilityRoute";
 import { handleFeedbackRequest } from "./feedbackRoute";
 import {
@@ -53,7 +59,7 @@ export async function handleHttpRequest(request: HttpRequest): Promise<HttpRespo
   }
 
   if (method === "GET" && path === "/availability") {
-    return jsonResponse(await handleAvailabilityRequest());
+    return jsonResponse(await handleAvailabilityRequest(ctx));
   }
 
   if (method === "GET" && path === "/resources/catalog") {
@@ -97,6 +103,27 @@ export async function handleHttpRequest(request: HttpRequest): Promise<HttpRespo
 
   if (method === "POST" && path === "/feedback") {
     return jsonResponse(await handleFeedbackRequest(parseJsonBody(request.body)));
+  }
+
+  // Consumer state (Step 3, mid-level §3): the apps store's only writers.
+  if (path === "/apps") {
+    if (method === "GET") {
+      return jsonResponse(await handleAppsListRequest());
+    }
+    if (method === "POST") {
+      return jsonResponse(await handleAppRegistrationRequest(parseJsonBody(request.body)));
+    }
+  }
+
+  const appIdMatch = path.match(/^\/apps\/([^/]+)$/);
+  if (appIdMatch) {
+    const appId = decodeURIComponent(appIdMatch[1]);
+    if (method === "GET") {
+      return jsonResponse(await handleAppRequest(appId));
+    }
+    if (method === "PATCH") {
+      return jsonResponse(await handleAppUpdateRequest(appId, parseJsonBody(request.body)));
+    }
   }
 
   return jsonResponse({

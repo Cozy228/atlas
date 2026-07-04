@@ -1,11 +1,14 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { IconChevronDown } from "@tabler/icons-react";
 
-import { landingZonesQueryOptions } from "@/api/queries";
+import { appsQueryOptions, landingZonesQueryOptions } from "@/api/queries";
+import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuGroup,
+  DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
@@ -14,56 +17,117 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 
-import { useCurrentLandingZone } from "./context";
+import { AppDeclareDialog } from "./app-declare-dialog";
+import { useSituation } from "./context";
 
 /**
- * Top-nav current-landing-zone selector (plan 021 G3, ADR-0017 d.7). Lists every
- * registered landing zone — wired and unwired alike (unwired are NOT hidden;
- * selecting one is an honest dead-end, ADR-0006). Switching sets the global
- * current-LZ that the LZ-aware surfaces read.
+ * Top-nav situation selector (Step 3, locked decision 8; P17/P21/M3). The APP
+ * selector SUBSUMES the LZ selector: registered self-declared APPs are offered
+ * above the raw landing-zone list. Choosing an APP (a) narrows the zone choice
+ * to the APP's declared set (default: first member) and (b) shows the APP name
+ * with the unconditional `self-declared` badge. A self-declare form drives
+ * registration — the P21 fallback for non-repo situations. No APP selected ⇒
+ * LZ-only behavior, unchanged (the revert posture). Unwired LZs are listed, not
+ * hidden — selecting one is an honest dead-end (ADR-0006).
  */
 export function LandingZoneSelector() {
-  const { currentLandingZoneId, setCurrentLandingZoneId } = useCurrentLandingZone();
+  const { currentLandingZoneId, setCurrentLandingZoneId, selectedApp, selectApp } = useSituation();
   const { data: zones = [] } = useQuery(landingZonesQueryOptions);
-  const current = zones.find((zone) => zone.id === currentLandingZoneId);
+  const { data: appsData } = useQuery(appsQueryOptions);
+  const apps = appsData?.apps ?? [];
+  const [formOpen, setFormOpen] = useState(false);
+
+  // When an APP is selected, the zone choice narrows to its declared set.
+  const visibleZones = selectedApp
+    ? zones.filter((zone) => selectedApp.landingZoneIds.includes(zone.id))
+    : zones;
+
+  const currentZone = zones.find((zone) => zone.id === currentLandingZoneId);
+  const triggerLabel = selectedApp ? selectedApp.name : (currentZone?.name ?? currentLandingZoneId);
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        aria-label="Current landing zone"
-        className={cn(
-          "flex h-8 items-center gap-1.5 rounded-md border border-border bg-card px-2.5 text-sm font-medium text-foreground",
-          "transition-colors hover:bg-muted",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-        )}
-      >
-        <span className="type-eyebrow text-muted-foreground">LZ</span>
-        <span className="max-w-[20ch] truncate">{current?.name ?? currentLandingZoneId}</span>
-        <IconChevronDown size={14} strokeWidth={2} className="text-muted-foreground" aria-hidden />
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="min-w-[15rem]">
-        {/* GroupLabel requires a Menu.Group ancestor (Base UI) — wrap it so the
-            label renders without throwing MenuGroupContext-missing. */}
-        <DropdownMenuGroup>
-          <DropdownMenuLabel>Landing zone</DropdownMenuLabel>
-        </DropdownMenuGroup>
-        <DropdownMenuSeparator />
-        <DropdownMenuRadioGroup
-          value={currentLandingZoneId}
-          onValueChange={(value) => setCurrentLandingZoneId(value)}
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          aria-label="App / landing zone"
+          className={cn(
+            "flex h-8 items-center gap-1.5 rounded-md border border-border bg-card px-2.5 text-sm font-medium text-foreground",
+            "transition-colors hover:bg-muted",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          )}
         >
-          {zones.map((zone) => (
-            <DropdownMenuRadioItem key={zone.id} value={zone.id}>
-              <span className="min-w-0 flex-1 truncate">{zone.name}</span>
-              {zone.dataStatus === "not-available" ? (
-                <span className="ml-auto shrink-0 whitespace-nowrap type-eyebrow text-muted-foreground/70">
-                  no data
-                </span>
-              ) : null}
-            </DropdownMenuRadioItem>
-          ))}
-        </DropdownMenuRadioGroup>
-      </DropdownMenuContent>
-    </DropdownMenu>
+          <span className="type-eyebrow text-muted-foreground">{selectedApp ? "APP" : "LZ"}</span>
+          <span className="max-w-[20ch] truncate">{triggerLabel}</span>
+          {selectedApp ? (
+            <Badge variant="neutral" className="shrink-0">
+              self-declared
+            </Badge>
+          ) : null}
+          <IconChevronDown
+            size={14}
+            strokeWidth={2}
+            className="text-muted-foreground"
+            aria-hidden
+          />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="min-w-[16rem]">
+          {apps.length > 0 ? (
+            <>
+              <DropdownMenuGroup>
+                <DropdownMenuLabel>Apps</DropdownMenuLabel>
+              </DropdownMenuGroup>
+              <DropdownMenuRadioGroup
+                value={selectedApp?.id ?? ""}
+                onValueChange={(value) => selectApp(apps.find((app) => app.id === value) ?? null)}
+              >
+                {apps.map((app) => (
+                  <DropdownMenuRadioItem key={app.id} value={app.id}>
+                    <span className="min-w-0 flex-1 truncate">{app.name}</span>
+                    <Badge variant="neutral" className="ml-auto shrink-0">
+                      self-declared
+                    </Badge>
+                  </DropdownMenuRadioItem>
+                ))}
+              </DropdownMenuRadioGroup>
+              <DropdownMenuSeparator />
+            </>
+          ) : null}
+
+          <DropdownMenuItem onClick={() => setFormOpen(true)}>Declare an app</DropdownMenuItem>
+          {selectedApp ? (
+            <DropdownMenuItem onClick={() => selectApp(null)}>
+              Clear app (landing zones only)
+            </DropdownMenuItem>
+          ) : null}
+
+          <DropdownMenuSeparator />
+          <DropdownMenuGroup>
+            <DropdownMenuLabel>Landing zone</DropdownMenuLabel>
+          </DropdownMenuGroup>
+          <DropdownMenuRadioGroup
+            value={currentLandingZoneId}
+            onValueChange={(value) => setCurrentLandingZoneId(value)}
+          >
+            {visibleZones.map((zone) => (
+              <DropdownMenuRadioItem key={zone.id} value={zone.id}>
+                <span className="min-w-0 flex-1 truncate">{zone.name}</span>
+                {zone.dataStatus === "not-available" ? (
+                  <span className="ml-auto shrink-0 whitespace-nowrap type-eyebrow text-muted-foreground/70">
+                    no data
+                  </span>
+                ) : null}
+              </DropdownMenuRadioItem>
+            ))}
+          </DropdownMenuRadioGroup>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <AppDeclareDialog
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        zones={zones}
+        onDeclared={(app) => selectApp(app)}
+      />
+    </>
   );
 }

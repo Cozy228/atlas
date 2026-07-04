@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { AvailabilityReadResponseSchema } from "@atlas/schema";
 import { setDevDiscoveryEnv } from "../devMocks";
+import { createResolutionContext } from "../resolvers/createResolutionContext";
 import { handleAvailabilityRequest } from "./availabilityRoute";
 import { handleHttpRequest } from "./httpRoute";
 
@@ -22,7 +23,8 @@ afterAll(() => {
 
 describe("availability read", () => {
   it("returns the landing zones with the governing availability-matrix Citation", async () => {
-    const result = await handleAvailabilityRequest();
+    // Unscoped governed ctx → the full topology, byte-identical to pre-Step-3.
+    const result = await handleAvailabilityRequest(await createResolutionContext());
     expect(result.status).toBe(200);
 
     const body = AvailabilityReadResponseSchema.parse(result.body);
@@ -54,5 +56,13 @@ describe("availability read", () => {
 
     const body = AvailabilityReadResponseSchema.parse(JSON.parse(response.body));
     expect(body.zones).toHaveLength(3);
+  });
+
+  it("scopes to the member zones when the governed ctx carries a landing-zone set (Step 3)", async () => {
+    const scoped = await handleAvailabilityRequest(
+      await createResolutionContext({ scope: { kind: "by-value", landingZones: ["awsf"] } }),
+    );
+    const body = AvailabilityReadResponseSchema.parse(scoped.body);
+    expect(body.zones.map((zone) => zone.id)).toEqual(["awsf"]);
   });
 });

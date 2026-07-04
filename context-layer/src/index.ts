@@ -35,6 +35,7 @@ export {
   nullAppDirectoryAdapter,
   type AppDirectoryPort,
   type GovernedResolutionContext,
+  type ScopeInput,
 } from "./resolvers/createResolutionContext";
 export { type AppsRepository } from "./repositories/appsRepository";
 export { createAppsRepository, sharedAppsRepository } from "./repositories/appsRepositoryFactory";

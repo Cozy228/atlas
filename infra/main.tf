@@ -313,6 +313,48 @@ resource "aws_dynamodb_table" "feedback" {
   })
 }
 
+resource "aws_dynamodb_table" "apps" {
+  name         = "${local.name_prefix}-apps"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "pk"
+  range_key    = "sk"
+
+  attribute {
+    name = "pk"
+    type = "S"
+  }
+
+  attribute {
+    name = "sk"
+    type = "S"
+  }
+
+  attribute {
+    name = "gsi1pk"
+    type = "S"
+  }
+
+  attribute {
+    name = "gsi1sk"
+    type = "S"
+  }
+
+  global_secondary_index {
+    name            = "gsi1"
+    hash_key        = "gsi1pk"
+    range_key       = "gsi1sk"
+    projection_type = "ALL"
+  }
+
+  server_side_encryption {
+    enabled = true
+  }
+
+  tags = merge(local.common_tags, {
+    Name = "${local.name_prefix}-apps"
+  })
+}
+
 resource "aws_secretsmanager_secret" "runtime" {
   name = "${local.name_prefix}/runtime"
 
@@ -387,7 +429,9 @@ resource "aws_iam_role_policy" "task" {
         Effect = "Allow"
         Resource = [
           aws_dynamodb_table.feedback.arn,
-          "${aws_dynamodb_table.feedback.arn}/index/*"
+          "${aws_dynamodb_table.feedback.arn}/index/*",
+          aws_dynamodb_table.apps.arn,
+          "${aws_dynamodb_table.apps.arn}/index/*"
         ]
       },
       {
@@ -459,6 +503,7 @@ resource "aws_ecs_task_definition" "portal" {
         { name = "PORT", value = tostring(var.container_port) },
         { name = "PORTAL_ORIGIN", value = var.portal_origin },
         { name = "FEEDBACK_TABLE", value = aws_dynamodb_table.feedback.name },
+        { name = "APPS_TABLE", value = aws_dynamodb_table.apps.name },
         { name = "RUNTIME_SECRET", value = aws_secretsmanager_secret.runtime.name },
         { name = "AWS_REGION", value = var.aws_region },
         # Content cache + session store share one serverless cache, distinct keyspaces.

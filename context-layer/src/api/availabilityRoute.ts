@@ -1,6 +1,7 @@
 import { type ApiErrorResponse, type AvailabilityReadResponse } from "@atlas/schema";
 import { createDefaultContextService } from "../composition";
 import { isStale } from "../services/freshness";
+import type { GovernedResolutionContext } from "../resolvers/createResolutionContext";
 import type { ApiResponse } from "./routeTypes";
 import { errorResponse } from "./routeTypes";
 
@@ -21,10 +22,15 @@ const AVAILABILITY_SOURCE_ID = "availability-matrix";
  * Confluence page (dev → MSW, prod → the real space; plan 021 G3) — one live
  * path, no in-memory dataset. A missing Source 404s rather than serving an
  * uncited grid — honesty over resilience (ADR-0009 §4).
+ *
+ * First scoped answer (Step 3, locked decision 7): the read is governed. When
+ * `ctx.scope.landingZoneIds` is present, only the member zones are returned
+ * (unknown ids are simply absent); with no scope the full topology returns,
+ * byte-identical to the pre-Step-3 behavior.
  */
-export async function handleAvailabilityRequest(): Promise<
-  ApiResponse<ApiErrorResponse | AvailabilityReadResponse>
-> {
+export async function handleAvailabilityRequest(
+  ctx: GovernedResolutionContext,
+): Promise<ApiResponse<ApiErrorResponse | AvailabilityReadResponse>> {
   const service = await createDefaultContextService();
   const source = service.registry.sources.getById(AVAILABILITY_SOURCE_ID);
   if (!source) {
@@ -51,10 +57,14 @@ export async function handleAvailabilityRequest(): Promise<
     });
   }
 
+  const allZones = await service.availabilityProvider.getZones();
+  const scopeIds = ctx.scope?.landingZoneIds;
+  const zones = scopeIds ? allZones.filter((zone) => scopeIds.includes(zone.id)) : allZones;
+
   return {
     status: 200,
     body: {
-      zones: await service.availabilityProvider.getZones(),
+      zones,
       citation: {
         source_id: source.id,
         label: source.title,

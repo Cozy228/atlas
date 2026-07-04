@@ -8,6 +8,10 @@
  */
 import {
   createResolutionContext,
+  handleAppRegistrationRequest,
+  handleAppRequest,
+  handleAppsListRequest,
+  handleAppUpdateRequest,
   handleAvailabilityRequest,
   handleFeedbackRequest,
   handleResourceCatalogRequest,
@@ -16,9 +20,13 @@ import {
   handleResourceSearchRequest,
   handleSourceDiscoveryRequest,
   handleSourceRequest,
+  type ScopeInput,
 } from "@atlas/context-layer";
 import {
   ApiErrorResponseSchema,
+  AppListResponseSchema,
+  AppMutationResponseSchema,
+  AppResponseSchema,
   AvailabilityReadResponseSchema,
   FeedbackResponseSchema,
   ResourceCatalogResponseSchema,
@@ -45,6 +53,23 @@ import {
 } from "@atlas/schema";
 
 import type { AvailabilityScope, ContextApiClient } from "../contextApiClient";
+
+/** Map the client-facing availability scope to Step 1's `ScopeInput` union. */
+function toScopeInput(scope: AvailabilityScope | undefined): ScopeInput | undefined {
+  const landingZones = scope?.landingZones?.filter((zone) => zone.length > 0) ?? [];
+  const appId = scope?.appId?.trim() || undefined;
+  const hasValue = landingZones.length > 0;
+  if (hasValue && appId) {
+    return { kind: "both", landingZones, appId };
+  }
+  if (hasValue) {
+    return { kind: "by-value", landingZones };
+  }
+  if (appId) {
+    return { kind: "by-reference", appId };
+  }
+  return undefined;
+}
 import { ContextApiError } from "../contextApiError";
 
 type HandlerResult = { status: number; body: unknown };
@@ -81,23 +106,26 @@ export function createInProcessContextApiClient(
     async getSource(id: string): Promise<SourceResponse> {
       return unwrap(await handleSourceRequest(id), SourceResponseSchema);
     },
-    async getAvailability(_scope?: AvailabilityScope): Promise<AvailabilityReadResponse> {
-      // Step 3 Batch 3: thread the scope through `createResolutionContext` into
-      // `handleAvailabilityRequest(ctx)` (which takes the governed ctx from then
-      // on). Batch 0 keeps today's unscoped call so the tree stays green.
-      return unwrap(await handleAvailabilityRequest(), AvailabilityReadResponseSchema);
+    async getAvailability(scope?: AvailabilityScope): Promise<AvailabilityReadResponse> {
+      // The governed availability read (Step 3 decision 7): thread the caller
+      // scope through the one governance-gate factory into the ctx-taking handler.
+      const ctx = await createResolutionContext({
+        identity: { bearer: options.token },
+        scope: toScopeInput(scope),
+      });
+      return unwrap(await handleAvailabilityRequest(ctx), AvailabilityReadResponseSchema);
     },
     async listApps(): Promise<AppListResponse> {
-      throw new Error("unimplemented (Step 3 Batch 3)");
+      return unwrap(await handleAppsListRequest(), AppListResponseSchema);
     },
-    async getApp(_id: string): Promise<AppResponse> {
-      throw new Error("unimplemented (Step 3 Batch 3)");
+    async getApp(id: string): Promise<AppResponse> {
+      return unwrap(await handleAppRequest(id), AppResponseSchema);
     },
-    async registerApp(_request: AppRegistrationRequest): Promise<AppMutationResponse> {
-      throw new Error("unimplemented (Step 3 Batch 3)");
+    async registerApp(request: AppRegistrationRequest): Promise<AppMutationResponse> {
+      return unwrap(await handleAppRegistrationRequest(request), AppMutationResponseSchema);
     },
-    async updateApp(_id: string, _request: AppUpdateRequest): Promise<AppMutationResponse> {
-      throw new Error("unimplemented (Step 3 Batch 3)");
+    async updateApp(id: string, request: AppUpdateRequest): Promise<AppMutationResponse> {
+      return unwrap(await handleAppUpdateRequest(id, request), AppMutationResponseSchema);
     },
     async getResourceContext(kind: string, slug: string): Promise<ResourceContextResponse> {
       const ctx = await createResolutionContext({ identity: { bearer: options.token } });

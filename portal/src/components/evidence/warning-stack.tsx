@@ -68,6 +68,18 @@ const WARNING_META: Record<
     category: "info",
     icon: IconHelpHexagon,
   },
+  // Consumer-state dangling declarations (Step 3): the declared service/zone is
+  // kept verbatim; the info badge flags that Atlas has not discovered it yet.
+  unknown_service: {
+    label: "Undiscovered service",
+    category: "info",
+    icon: IconHelpHexagon,
+  },
+  unknown_landing_zone: {
+    label: "Unknown landing zone",
+    category: "info",
+    icon: IconHelpHexagon,
+  },
 };
 
 const CATEGORY_CLASS: Record<WarningCategory, string> = {

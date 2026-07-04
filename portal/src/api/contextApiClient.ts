@@ -102,17 +102,21 @@ export function createStaticContextApiClient({
       // in-process + HTTP faces only (Batch 3).
       return AvailabilityReadResponseSchema.parse(availability ?? EMPTY_AVAILABILITY);
     },
+    // Consumer state (self-declared APPs) is durable server-side state; the
+    // static browser client is a read-only snapshot, so it has no APPs to list
+    // and cannot persist a registration. The Portal's self-declare form drives
+    // the server-side client (in-process / HTTP), never this one.
     async listApps(): Promise<AppListResponse> {
-      throw new Error("unimplemented (Step 3 Batch 4)");
+      return { apps: [] };
     },
-    async getApp(_id: string): Promise<AppResponse> {
-      throw new Error("unimplemented (Step 3 Batch 4)");
+    async getApp(id: string): Promise<AppResponse> {
+      throw new Error(`Static context client has no app '${id}'.`);
     },
     async registerApp(_request: AppRegistrationRequest): Promise<AppMutationResponse> {
-      throw new Error("unimplemented (Step 3 Batch 4)");
+      throw new Error("Static context client cannot register an app (server-side consumer state).");
     },
-    async updateApp(_id: string, _request: AppUpdateRequest): Promise<AppMutationResponse> {
-      throw new Error("unimplemented (Step 3 Batch 4)");
+    async updateApp(id: string, _request: AppUpdateRequest): Promise<AppMutationResponse> {
+      throw new Error(`Static context client cannot update app '${id}'.`);
     },
     async getResourceContext(kind: string, slug: string): Promise<ResourceContextResponse> {
       const projection = resourceContexts?.[`${kind}/${slug}`];
