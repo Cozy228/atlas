@@ -123,7 +123,7 @@ never-store-secrets) are constituents of L2 and L0 respectively — see
 |---|---------|--------------|-------------|
 | A | 一体两面 is structural: the faces cannot drift | L4 (I3) + L2 (I2) | one Brief value consumed by all renders; transport-wiring CI green |
 | B | The product survives its sources: instant cold start, one root failing ages one subgraph visibly | L1 snapshots + parse contracts | cold-start serve latency; per-root staleness age visible in UI and logs |
-| C | The platform knows what changed and can prove it | L1 differ + events | events flowing with damping; What's New fed by derivation, not editing |
+| C | The platform knows what changed and can prove it | L1 differ + events | events flowing with damping; the *my changes* dashboard surface fed by derivation (What's New stays editorial by design — P31) |
 | D | Every answer is *for me, here, now* | L2 scope (M11) + consumer state | scoped brief e2e from a repo manifest through MCP, zero registration required |
 | E | The in-head merge is externalized | L3 + L4 | time-to-brief live; adopt/build/change briefs on all surfaces |
 | F | Honesty is measured and drives supply | instruments | per-block unresolved rate by missing source = the negotiation queue |
@@ -142,8 +142,9 @@ never-store-secrets) are constituents of L2 and L0 respectively — see
   from the availability page's Confluence version history and TFE module version history
   over the trailing 90 days; record the number in §12. *Consequence if near-zero:* the
   feed demotes from "return reason" to "instrument data" (it still ships — Step 6 needs
-  it); push/subscription investment waits until cadence exists. **Run before Step 2's
-  What's New rewiring.**
+  it); push/subscription investment waits until cadence exists. A2 gates **push/subscription
+  posture only** — not a "What's New rewiring", which does not exist (P31: What's New stays
+  editorial; the differ feeds the separate *my changes* surface).
 (There is no second-cloud "landability" falsifier here. Per P29, verifying a real cloud's
 source is **company-side work, not a gate in this public-safe repo**; it lives as a Track-B
 note — a new cloud's owning side confirms its source is parseable before that adapter is
@@ -190,15 +191,18 @@ independently.
   `deriveGraph` as a pure function producing a **versioned graph** pinned per request
   (I1) → the differ (pure: two parses → `ChangeEvent[]`, closed `EventClass`, stability
   damping M6) → DynamoDB `events` (append-only, content-hash idempotent, M1), derived
-  inline at snapshot transition — no free-running worker. What's New consumes the feed;
-  per-scope Atom feed + `GET /api/changes` (M8). Per-root parse-contract fixtures fail CI
+  inline at snapshot transition — no free-running worker. The **my changes** dashboard
+  surface consumes the feed (the I6 change-feed slice); per-scope Atom feed +
+  `GET /api/changes` (M8). **What's New is not touched** — it stays the editorial Confluence
+  projection (`resolveReleaseNotes`); the differ never rewires it (P31). Per-root
+  parse-contract fixtures fail CI
   on format drift (P16). A failed root serves its last good parse, honestly aged, banner
   loud; other roots stay live.
 - **Verify.** Cold start serves from snapshot, no crawl. Dev drill: kill one root → one
   subgraph ages. Differ golden tests; degradation-gap pair → zero events + one aging
   note; single-parse flap emits nothing. Drift/freshness recomputed per read — the
-  snapshot never becomes a second clock (ADR-0013 §6). **A2 runs before the What's New
-  rewiring.**
+  snapshot never becomes a second clock (ADR-0013 §6). **A2 informs push/subscription
+  posture** (there is no What's New rewiring — P31).
 - **Revert.** Snapshots are derivation cache (loss ⇒ re-discover); feed consumers fall
   back to editorial What's New; `events` is append-only and keeps history for re-enable.
 

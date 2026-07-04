@@ -246,3 +246,22 @@ now stated in team terms.
     until Entra's `registryAppsAdapter`. Self-declared serves as the honest, labeled fallback
     while Entra is not yet wired, and upgrades in place when it is. What changes is the **design
     positioning across the docs**, not the code.
+
+- **P31 — The machine-derived change feed and the editorial What's New are two distinct
+  surfaces; the differ never rewires What's New.** (Owner, 2026-07-05, correcting the Step 2
+  framing.) Two independent change surfaces exist and must not be conflated:
+  - **What's New = editorial newsletter.** A live projection of the federated-platform
+    Confluence "What's New" page into releases + announcements (`resolveReleaseNotes` /
+    `whatsNew.ts`) — **human-authored, curated announcement copy**. It stays exactly as built;
+    Step 2 does not touch it.
+  - **"My changes" = machine-derived feed.** The differ's `ChangeEvent[]` (Step 2), scoped by
+    `ctx.scope`, cited and aging, surfaced on the **app-home / dashboard** side (the I6 "my
+    change-feed slice") + a per-scope Atom feed + `GET /api/changes`. This is exactly M8's
+    original wording ("in-portal *my changes* surface + per-scope Atom feed") — the conflation
+    lived only in `implementation-plan.md`'s Step 2 prose, not in the mid-level design.
+  - **Consequences (amends implementation-plan.md only).** §7 Step 2 "What's New consumes the
+    feed" → the *my changes* surface consumes the feed, What's New stays editorial; §5
+    acceptance line C "What's New fed by derivation, not editing" → the *my changes* surface is
+    derivation-fed (What's New remains editorial by design, not a defect); §6 A2's "What's New
+    fed by derivation" reads the same way, and A2 no longer gates a "What's New rewiring" (there
+    is none) — it informs push/subscription posture only. No teardown; positioning only.
