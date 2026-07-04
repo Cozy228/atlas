@@ -215,3 +215,34 @@ now stated in team terms.
     a **cross-cutting acceptance line across all steps** (§2/§7), not a phase; every goal prompt
     carries it as a Constraint and, where a contract touches cloud/LZ, a DoD item guarding
     against single-cloud assumptions.
+
+- **P30 — Situation identity is resolved from a provenanced source; self-declared / manifest
+  are provenance-less fallbacks, never the anchor or the truth.** (Owner, 2026-07-05, correcting
+  the framing of P17/P21.) The problem Atlas must solve for a situated answer is *provenanced
+  identity resolution* — "which APP are you," with an origin — **not storing scope**. (Owner
+  correction to an earlier "it goes stale" argument: scope is **stable**, not drift-prone —
+  "today AWS, next month Azure" barely happens — so the objection to a stored `AppRecord`/
+  manifest is NOT staleness; it is that a **self-declared, stored** identity has **no
+  provenance** and competes with the authoritative sources, violating P14.) Consequences:
+  - **Identity source ladder.** *Provenanced (main path):* Entra claims (Portal login → which
+    APP/team) and repo context (an agent infers the APP from its working directory — IaC/CI,
+    not a hand-authored file). *Provenance-less (fallback only):* Portal self-declare and a
+    manual LZ pick (session-only) — always labeled, never an anchor.
+  - **Manifest demoted (amends P21).** `atlas.app.yaml` is NOT a mandated anchor a team must
+    author and maintain. An agent should infer scope from the repo's existing signals first
+    (P28 information-gain: never re-serve repo-discoverable content); the manifest is an
+    **optional explicit override**, not the primary situation source. Atlas never reads it
+    directly regardless — the agent passes the values by value.
+  - **AppRecord demoted (amends P17).** `AppRecord` is NOT the situation's truth/foundation and
+    nothing platform-side derives from it (consumer state is never Evidence — unchanged). Its
+    `origin: self-declared → registry` remains the no-provenance → provenanced **upgrade seat**
+    (P17 intact). Its **persistence is justified only by a durable consumer-state need —
+    subscriptions/feedback (Step 2)** — and even then it holds an *identity association*, not a
+    scope snapshot; scope follows from the provenanced identity.
+  - **No teardown — a positioning change only.** Every Step-3 scaffold stays (it IS the
+    foundation the provenanced upgrade builds on): `AppDirectoryPort` + adapters, `AppRecord`,
+    the apps store/routes, the Portal selector, scoped availability. By-reference scope resolves
+    only through a provenanced `AppDirectory` adapter; the default stays `nullAppDirectoryAdapter`
+    until Entra's `registryAppsAdapter`. Self-declared serves as the honest, labeled fallback
+    while Entra is not yet wired, and upgrades in place when it is. What changes is the **design
+    positioning across the docs**, not the code.

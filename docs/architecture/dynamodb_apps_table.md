@@ -10,6 +10,13 @@ and never read directly by browser code. Registration is an explicit act
 (`POST /api/apps` or the Portal self-declare form); there is no upsert-on-read
 (M11) — the routes are the only writers.
 
+**(P30, 2026-07-05.)** This table is consumer state, NOT a situation truth source. A
+self-declared record is a provenance-less, labeled fallback; nothing platform-side derives from
+it (never Evidence). Situation identity's provenanced main path is Entra / repo inference; the
+`origin: self-declared → registry` field is the provenance upgrade seat (P17). The store's real
+justification is the durable subscription/feedback anchor (Step 2), not storing scope — so while
+Entra is unwired it is the honest, labeled fallback, not the foundation.
+
 ## Table
 
 - Table name: provided by `APPS_TABLE`

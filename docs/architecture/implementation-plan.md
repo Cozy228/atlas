@@ -204,6 +204,16 @@ independently.
 
 ### Step 3 — Consumer state + situation entry (P17/P21, M3, M11)
 
+> **P30 realignment (2026-07-05).** The durable substance of Step 3 is the governance gate
+> (Step 1) plus **by-value scoped availability** — both identity-agnostic. Situation identity is
+> NOT self-declared-and-stored: the provenanced main path is Entra (Portal login) / repo (agent
+> inference); self-declared APP + manual LZ pick are provenance-less, labeled **fallbacks**, and
+> the `atlas.app.yaml` manifest is an optional explicit override, not a mandated anchor. The
+> `AppRecord` store/routes/adapter and the Portal APP selector are kept scaffolding for the
+> provenanced upgrade (Entra `registryAppsAdapter`) and the Step-2 subscription anchor; nothing
+> platform-side derives from a self-declared record (never Evidence). See P30; positioning
+> change only, no teardown.
+
 - **Intent.** `AppRecord` in DynamoDB `apps` (fail-fast in production), explicit
   registration only (`POST /api/apps`, portal), the APP selector subsuming the LZ
   selector; the repo manifest spec published (file name, fields, validation; the id

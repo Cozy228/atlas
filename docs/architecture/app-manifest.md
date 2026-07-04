@@ -2,15 +2,18 @@
 
 ## Purpose
 
-The app manifest is how a consuming team **anchors their situation in their own
-repository** (P21). It is a minimal, identity-free declaration — the APP's name,
-its landing-zone *set*, and the services it uses — that an agent reads from the
-working directory and passes to Atlas **by value**, with zero registration
-(M11). The Portal self-declare form is the fallback for situations without a
-repo; the manifest is the primary, version-controlled anchor.
+The app manifest is a way for a consuming team to make its situation explicit **in its own
+repository** — a minimal, identity-free declaration (the APP's name, its landing-zone *set*, the
+services it uses) that an agent reads from the working directory and passes to Atlas **by value**,
+with zero registration (M11). Atlas never reads it directly and never writes to a team repo.
 
-An agent bootstraps from `atlas.app.yaml`; **PR review is the maintenance
-surface**. Atlas never writes to a team repo.
+**(P30, 2026-07-05.) The manifest is an optional explicit override, NOT a mandated anchor.**
+Situation identity's provenanced main path is Entra (Portal login) / repo inference — an agent
+should infer scope from the repo's existing signals (IaC/CI) first, never re-serving
+repo-discoverable content (P28). `atlas.app.yaml` exists for teams that want to pin the
+declaration explicitly, or when inference is unreliable; it is a provenance-less input, never the
+situation's truth or a required file. **PR review is the maintenance surface** when a team does
+use it.
 
 ## File
 

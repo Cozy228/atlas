@@ -38,6 +38,14 @@ vocabulary.
   `landingZoneIds` is a **set** (P26): an APP may hold deployments in several zones across
   clouds; an LZ id carries its cloud identity, so no separate cloud dimension exists. One
   `app-landing-zone` edge is derived per member. The repo manifest (P21) declares the same set.
+  **(P30, 2026-07-05.)** `AppRecord` is NOT the situation's truth source and nothing
+  platform-side derives from it (consumer state is never Evidence). Identity is resolved from a
+  **provenanced source** — Entra (Portal login) / repo (agent inference); self-declared is the
+  labeled, provenance-less fallback. `origin: self-declared → registry` is the provenance
+  **upgrade seat**. Persistence is justified only by a durable consumer-state need
+  (subscriptions/feedback, Step 2) and holds an *identity association*, not a scope snapshot —
+  scope follows from the provenanced identity. The manifest is an optional explicit override,
+  not a mandated anchor (an agent infers scope from the repo first, P28).
 - **`Subscription`** (consumer state) — `{ id, appId, channel: "newsletter" | "feed",
   eventClasses?: EventClass[] (default: all), createdAt }`.
 - **`ChangeEvent`** — `{ id, class: EventClass, subject: NodeRef | EdgeKey, landingZoneId?,
@@ -65,6 +73,11 @@ vocabulary.
 | **Git overlay** | curation exception (P14) | only fields with no derivable source | versioned in Git; PR is the review surface |
 
 Nothing else is durable. Source content never lands in any of these (P7).
+
+**(P30, 2026-07-05.)** The `apps` row is consumer state, not a situation truth source: a
+self-declared APP is a provenance-less, labeled fallback, and its persistence is justified by
+the subscription/feedback anchor need (Step 2), not by storing scope — identity resolves from a
+provenanced source (Entra/repo). `subscriptions` arrive in Step 2.
 
 ## 3. API surface (all through the one governed router, P10)
 

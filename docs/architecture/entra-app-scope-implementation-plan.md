@@ -16,6 +16,16 @@ Date: 2026-07-03
 > later as (a) the **identity input** to the L2 factory and (b) an **`AppDirectoryPort` adapter swap**.
 > This supersedes ADR-0012's "Entra *gates* app-scope" reading, per the trilogy's newer P17/M3 rulings.
 >
+> **P30 (2026-07-05) sharpens the framing.** "Ships first, self-declared" does NOT make
+> self-declared the anchor — it is the **provenance-less fallback** used while Entra is not yet
+> wired. Entra (and repo inference for agents) is the **provenanced main path** for situation
+> identity; self-declared/manifest never become the truth or the anchor. Concretely: the
+> `AppDirectoryPort` default stays `nullAppDirectoryAdapter` (by-reference honest-empty) until
+> the **`registryAppsAdapter`** provides a provenanced identity; `AppRecord.origin:
+> self-declared → registry` is exactly the no-provenance → provenanced upgrade this plan lands;
+> and `AppRecord` persists as a subscription/feedback anchor (Step 2), not as a stored scope
+> declaration.
+>
 > Builds on [ADR-0012](../adr/0012-app-scoped-entra-identity.md) (app-scope),
 > [ADR-0001](../adr/0001-identity-agnostic-bearer-pipe.md) (Bearer pipe),
 > [ADR-0007](../adr/0007-runtime-object-ingestion-seam.md) (ingestion seam), and the public-safe
