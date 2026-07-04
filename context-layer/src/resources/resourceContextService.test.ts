@@ -16,6 +16,19 @@ import {
   InvalidResourceRequestError,
   searchResources,
 } from "./resourceContextService";
+import { createTestResolutionContext } from "../resolvers/testResolutionContext";
+
+/**
+ * `getResourceContext` now requires a governed context (Step 1): build one
+ * through the real factory for every read so tests exercise the same gate the
+ * handlers do.
+ */
+function readContext(
+  deps: Parameters<typeof getResourceContext>[0],
+  params: Parameters<typeof getResourceContext>[1],
+): Promise<Awaited<ReturnType<typeof getResourceContext>>> {
+  return createTestResolutionContext().then((ctx) => getResourceContext(deps, params, ctx));
+}
 
 // Pin `now` so freshness is deterministic regardless of the wall clock: the
 // derived sources are within review at this instant.
@@ -108,7 +121,7 @@ describe("searchResources", () => {
 
 describe("getResourceContext — pre-flight gate (service/aws/textract)", () => {
   it("returns network + availability both available, each with a citation", async () => {
-    const response = await getResourceContext(await pilotService(), {
+    const response = await readContext(await pilotService(), {
       kind: "service",
       slug: "aws/textract",
       sections: ["network", "availability"],
@@ -135,7 +148,7 @@ describe("getResourceContext — pre-flight gate (service/aws/textract)", () => 
   });
 
   it("stamps each citation with the excerpt provenance time, not the request time", async () => {
-    const response = await getResourceContext(await pilotService(), {
+    const response = await readContext(await pilotService(), {
       kind: "service",
       slug: "aws/textract",
       sections: ["availability"],
@@ -149,7 +162,7 @@ describe("getResourceContext — pre-flight gate (service/aws/textract)", () => 
   });
 
   it("defaults to every registered section for the kind when none is requested", async () => {
-    const response = await getResourceContext(await pilotService(), {
+    const response = await readContext(await pilotService(), {
       kind: "service",
       slug: "aws/textract",
     });
@@ -163,7 +176,7 @@ describe("getResourceContext — pre-flight gate (service/aws/textract)", () => 
 
 describe("getResourceContext — honesty axes", () => {
   it("reports a requested but unregistered section as missing (no_registered_source)", async () => {
-    const response = await getResourceContext(await pilotService(), {
+    const response = await readContext(await pilotService(), {
       kind: "service",
       slug: "aws/textract",
       sections: ["pricing"],
@@ -194,10 +207,11 @@ describe("getResourceContext — honesty axes", () => {
         },
       },
     ];
-    const response = await getResourceContext(
-      withUnresolvableSource(await pilotService({ resources })),
-      { kind: "service", slug: "aws/textract", sections: ["network"] },
-    );
+    const response = await readContext(withUnresolvableSource(await pilotService({ resources })), {
+      kind: "service",
+      slug: "aws/textract",
+      sections: ["network"],
+    });
 
     const network = response?.sections.network;
     expect(network?.status).toBe("unresolved");
@@ -222,17 +236,18 @@ describe("getResourceContext — honesty axes", () => {
         },
       },
     ];
-    const response = await getResourceContext(
-      withUnresolvableSource(await pilotService({ resources })),
-      { kind: "service", slug: "aws/textract", sections: ["network"] },
-    );
+    const response = await readContext(withUnresolvableSource(await pilotService({ resources })), {
+      kind: "service",
+      slug: "aws/textract",
+      sections: ["network"],
+    });
     expect(response?.sections.network?.status).toBe("partial");
     expect(response?.sections.network?.content?.toLowerCase()).toContain("private subnet");
   });
 
   it("rejects an unknown section with InvalidResourceRequestError", async () => {
     await expect(
-      getResourceContext(await pilotService(), {
+      readContext(await pilotService(), {
         kind: "service",
         slug: "aws/textract",
         sections: ["totally-made-up"],
@@ -241,7 +256,7 @@ describe("getResourceContext — honesty axes", () => {
   });
 
   it("returns null for an unregistered resource (HTTP maps to 404)", async () => {
-    const response = await getResourceContext(await pilotService(), {
+    const response = await readContext(await pilotService(), {
       kind: "service",
       slug: "aws/nonexistent",
     });
@@ -253,7 +268,7 @@ describe("getResourceContext — name normalization (single-candidate fallback)"
   it.each(["textract", "Textract", "aws-textract", "AWS Textract", "Amazon Textract"])(
     "resolves the non-canonical slug %j to the canonical resource",
     async (slug) => {
-      const response = await getResourceContext(await pilotService(), {
+      const response = await readContext(await pilotService(), {
         kind: "service",
         slug,
         sections: ["network"],
@@ -267,7 +282,7 @@ describe("getResourceContext — name normalization (single-candidate fallback)"
 
   it("still returns null for a name that matches no record", async () => {
     expect(
-      await getResourceContext(await pilotService(), { kind: "service", slug: "nonexistent" }),
+      await readContext(await pilotService(), { kind: "service", slug: "nonexistent" }),
     ).toBeNull();
   });
 
@@ -299,7 +314,7 @@ describe("getResourceContext — name normalization (single-candidate fallback)"
       },
     ];
     expect(
-      await getResourceContext(await pilotService({ resources }), {
+      await readContext(await pilotService({ resources }), {
         kind: "service",
         slug: "shared service",
       }),
@@ -311,7 +326,7 @@ describe("getResourceContext — identity-first spine (plan 017 B4/B6)", () => {
   it("renders a spine-only service (in the grid, not yet derived) with empty sections, not 404", async () => {
     // With `resources: []` no service has a derived record, so aws/cloudwatch is
     // spine-only (in the awsf grid) — the identity-first path still renders it.
-    const response = await getResourceContext(
+    const response = await readContext(
       await pilotService({ resources: [], referenceDiscovery: liveReferenceDiscovery() }),
       { kind: "service", slug: "aws/cloudwatch" },
     );
@@ -327,7 +342,7 @@ describe("getResourceContext — identity-first spine (plan 017 B4/B6)", () => {
   });
 
   it("resolves a discovered service's requested sections", async () => {
-    const response = await getResourceContext(await pilotService(), {
+    const response = await readContext(await pilotService(), {
       kind: "service",
       slug: "aws/textract",
       sections: ["network"],
@@ -336,7 +351,7 @@ describe("getResourceContext — identity-first spine (plan 017 B4/B6)", () => {
   });
 
   it("renders a non-service kind from its derived record (no spine)", async () => {
-    const response = await getResourceContext(await pilotService(), {
+    const response = await readContext(await pilotService(), {
       kind: "guardrail",
       slug: "public-access-controls",
     });
@@ -346,7 +361,7 @@ describe("getResourceContext — identity-first spine (plan 017 B4/B6)", () => {
 
   it("still 404s a service that is neither in the spine nor overlaid", async () => {
     expect(
-      await getResourceContext(await pilotService(), {
+      await readContext(await pilotService(), {
         kind: "service",
         slug: "aws/not-a-real-service",
       }),
@@ -356,7 +371,7 @@ describe("getResourceContext — identity-first spine (plan 017 B4/B6)", () => {
 
 describe("getResourceContext — reference discovery merge (plan 017 B4)", () => {
   it("merges reference-only links alongside a configured service's governed sections", async () => {
-    const response = await getResourceContext(
+    const response = await readContext(
       await pilotService({ referenceDiscovery: liveReferenceDiscovery() }),
       { kind: "service", slug: "aws/textract", sections: ["network"] },
     );
@@ -373,7 +388,7 @@ describe("getResourceContext — reference discovery merge (plan 017 B4)", () =>
   });
 
   it("runs no discovery for a non-service kind: empty references, null discovery state", async () => {
-    const response = await getResourceContext(await pilotService(), {
+    const response = await readContext(await pilotService(), {
       kind: "guardrail",
       slug: "public-access-controls",
     });
@@ -382,7 +397,7 @@ describe("getResourceContext — reference discovery merge (plan 017 B4)", () =>
   });
 
   it("omits discovery entirely when no port is wired (honest absence)", async () => {
-    const response = await getResourceContext(
+    const response = await readContext(
       await pilotService({ resources: [], referenceDiscovery: undefined }),
       { kind: "service", slug: "aws/cloudwatch" },
     );
@@ -393,7 +408,7 @@ describe("getResourceContext — reference discovery merge (plan 017 B4)", () =>
 
 describe("getResourceContext — multi-kind (guardrail) extensibility", () => {
   it("projects a non-service kind, surfacing cited enforced + exceptions sections", async () => {
-    const response = await getResourceContext(await pilotService(), {
+    const response = await readContext(await pilotService(), {
       kind: "guardrail",
       slug: "public-access-controls",
     });

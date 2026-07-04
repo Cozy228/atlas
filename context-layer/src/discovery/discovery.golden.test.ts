@@ -30,7 +30,7 @@ import {
   DEV_TERRAFORM_ORG,
 } from "../devMocks";
 import { createConfluenceAvailabilityProvider } from "../sourceContent/confluenceAvailabilityProvider";
-import { defaultResolutionContext } from "../resolvers/resolverTypes";
+import { createTestResolutionContext } from "../resolvers/testResolutionContext";
 import { discoverServiceSources, type DiscoverServiceSourcesDeps } from "./discoverSources";
 import { deriveServiceResources, deriveServiceSourceRecords } from "./deriveResources";
 import { createResourceContentDiscovery } from "../resources/resourceContentDiscovery";
@@ -50,7 +50,7 @@ describe("service discovery → resource derivation (golden)", () => {
     process.env.CONFLUENCE_TOKEN = "dev-mock-token";
     process.env.CONFLUENCE_AVAILABILITY_PAGE_AWSF = DEV_AVAILABILITY_PAGE_ID_AWSF;
 
-    const ctx = defaultResolutionContext(); // late-bound fetch → MSW interceptor
+    const ctx = await createTestResolutionContext(); // late-bound fetch → MSW interceptor
     const deps: DiscoverServiceSourcesDeps = {
       availabilityProvider: createConfluenceAvailabilityProvider({ fetch: ctx.fetch }),
       ctx,
@@ -84,7 +84,7 @@ describe("service discovery → resource derivation (golden)", () => {
         records.map(
           async (record): Promise<[string, Record<string, ResourceSectionBinding[]>]> => [
             `${record.kind}/${record.slug}`,
-            await contentDiscovery.sectionsFor(record, defaultResolutionContext()),
+            await contentDiscovery.sectionsFor(record, await createTestResolutionContext()),
           ],
         ),
       ),

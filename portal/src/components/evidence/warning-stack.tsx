@@ -56,6 +56,18 @@ const WARNING_META: Record<
     category: "critical",
     icon: IconBan,
   },
+  // Governance-gate scope warnings (Step 1) reuse the existing warning/info
+  // treatment — no new Portal display state (locked decision 5).
+  scope_drift: {
+    label: "Scope drift",
+    category: "warning",
+    icon: IconAlertTriangle,
+  },
+  scope_unresolved: {
+    label: "Scope unresolved",
+    category: "info",
+    icon: IconHelpHexagon,
+  },
 };
 
 const CATEGORY_CLASS: Record<WarningCategory, string> = {

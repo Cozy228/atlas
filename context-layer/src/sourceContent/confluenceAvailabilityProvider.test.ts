@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { DEV_AVAILABILITY_PAGE_ID_AWSF, DEV_CONFLUENCE_BASE_URL } from "../devMocks";
-import { defaultResolutionContext } from "../resolvers/resolverTypes";
+import { createTestResolutionContext } from "../resolvers/testResolutionContext";
 import { createConfluenceAvailabilityProvider } from "./confluenceAvailabilityProvider";
 
 const env = {
@@ -9,16 +9,16 @@ const env = {
   CONFLUENCE_AVAILABILITY_PAGE_AWSF: DEV_AVAILABILITY_PAGE_ID_AWSF,
 };
 
-function provider(envOverride: Record<string, string | undefined> = env) {
+async function provider(envOverride: Record<string, string | undefined> = env) {
   return createConfluenceAvailabilityProvider({
-    fetch: defaultResolutionContext().fetch,
+    fetch: (await createTestResolutionContext()).fetch,
     env: envOverride,
   });
 }
 
 describe("createConfluenceAvailabilityProvider — LZ-aware availability (plan 021 G3)", () => {
   it("discovers the wired awsf grid from its MSW page; awsc/azure are honest-empty", async () => {
-    const zones = await provider().getZones();
+    const zones = await (await provider()).getZones();
     expect(zones.map((zone) => zone.id)).toEqual(["awsf", "awsc", "azure"]);
 
     const awsf = zones.find((zone) => zone.id === "awsf")!;
@@ -44,7 +44,7 @@ describe("createConfluenceAvailabilityProvider — LZ-aware availability (plan 0
   });
 
   it("flattens the spine keyed by {cloud}/{id} — the cloud, never the LZ id, is the provider", async () => {
-    const services = await provider().listServices();
+    const services = await (await provider()).listServices();
     const keys = new Set(services.map((service) => service.key));
 
     expect(keys.has("aws/textract")).toBe(true);
@@ -56,11 +56,11 @@ describe("createConfluenceAvailabilityProvider — LZ-aware availability (plan 0
   });
 
   it("returns honest-empty grids + spine when the Confluence channel is unconfigured", async () => {
-    const zones = await provider({}).getZones();
+    const zones = await (await provider({})).getZones();
     for (const zone of zones) {
       expect(zone.services).toEqual([]);
       expect(zone.locations).toEqual([]);
     }
-    expect(await provider({}).listServices()).toEqual([]);
+    expect(await (await provider({})).listServices()).toEqual([]);
   });
 });

@@ -14,7 +14,7 @@ import {
 
 import type { ContextApiClient } from "../contextApiClient";
 import { ContextApiError } from "../contextApiError";
-import { serverContextApiClient as inProcessContextApiClient } from "./inProcessContextApi";
+import { createInProcessContextApiClient } from "./inProcessContextApi";
 
 type FetchLike = (input: string, init?: RequestInit) => Promise<Response>;
 
@@ -38,7 +38,9 @@ export function createServerContextApiClient(
   }
 
   return {
-    ...inProcessContextApiClient,
+    // The in-process fallback threads the caller Bearer into the governance-gate
+    // factory (Step 1 D4) instead of silently dropping it.
+    ...createInProcessContextApiClient({ token: input.token }),
     kind: "in-process",
   };
 }

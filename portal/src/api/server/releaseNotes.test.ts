@@ -4,7 +4,7 @@ import {
   DEV_CONFLUENCE_BASE_URL,
   DEV_RELEASE_NOTES_PAGE_ID,
 } from "@atlas/context-layer/devMocks";
-import { cachedResolutionContext, resolveReleaseNotes } from "@atlas/context-layer";
+import { createResolutionContext, resolveReleaseNotes } from "@atlas/context-layer";
 
 // Integration (plan 018 G6): the What's New server fns — `fetchReleaseNotes` and
 // `fetchAnnouncements` — both delegate to `resolveReleaseNotes(await
@@ -25,7 +25,7 @@ afterAll(() => {
 
 describe("What's New resolution (releases + announcements via MSW)", () => {
   it("resolves the releases that back fetchReleaseNotes from the live page", async () => {
-    const result = await resolveReleaseNotes(await cachedResolutionContext());
+    const result = await resolveReleaseNotes(await createResolutionContext());
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -37,7 +37,7 @@ describe("What's New resolution (releases + announcements via MSW)", () => {
   });
 
   it("resolves the standalone announcements that back fetchAnnouncements from the same page", async () => {
-    const result = await resolveReleaseNotes(await cachedResolutionContext());
+    const result = await resolveReleaseNotes(await createResolutionContext());
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;

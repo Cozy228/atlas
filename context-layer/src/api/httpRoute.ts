@@ -10,8 +10,11 @@ import {
 import { handleSourceDiscoveryRequest } from "./sourceDiscoveryRoute";
 import { handleSourceRequest } from "./sourceRoute";
 import { renderResourceMarkdown } from "../resources/renderResourceMarkdown";
-import type { ResolutionContext } from "../resolvers/resolverTypes";
-import { cachedResolutionContext } from "../sourceContent/sourceContentCache";
+import {
+  createResolutionContext,
+  type GovernedResolutionContext,
+  type ScopeInput,
+} from "../resolvers/createResolutionContext";
 
 export type HttpRequest = {
   method: string;
@@ -38,7 +41,7 @@ type RouteResult = {
 export async function handleHttpRequest(request: HttpRequest): Promise<HttpResponse> {
   const method = request.method.toUpperCase();
   const path = normalizePath(request.path);
-  const ctx = await resolutionContextFromHeaders(request.headers);
+  const ctx = await resolutionContextFromRequest(request);
 
   if (method === "GET" && path === "/sources") {
     return jsonResponse(await handleSourceDiscoveryRequest(compactQuery(request.query)));
@@ -108,17 +111,44 @@ export async function handleHttpRequest(request: HttpRequest): Promise<HttpRespo
 }
 
 /**
- * Read the opaque caller Bearer from the `Authorization` header and build the
- * request-scoped resolution context over the shared cached fetch. The token is
- * threaded unparsed and unpersisted; Confluence enforces ACL against whatever
- * identity it represents.
+ * Delegate to the one governance-gate factory (Step 1): the opaque caller Bearer
+ * from `Authorization` (threaded unparsed — Confluence enforces ACL against
+ * whatever identity it represents) plus any scope declared on the query (locked
+ * decision 7). The factory wires the shared cached fetch and vets the scope.
  */
-async function resolutionContextFromHeaders(
-  headers: HttpRequest["headers"],
-): Promise<ResolutionContext> {
-  const base = await cachedResolutionContext();
-  const token = bearerToken(headers);
-  return token ? { ...base, token } : base;
+async function resolutionContextFromRequest(
+  request: HttpRequest,
+): Promise<GovernedResolutionContext> {
+  return createResolutionContext({
+    identity: { bearer: bearerToken(request.headers) },
+    scope: scopeFromQuery(request.query),
+  });
+}
+
+/**
+ * Read a scope declaration off the query (locked decision 7). `landingZones`
+ * (comma-separated) declares scope by value; `appId` declares it by reference;
+ * both together are reconciled by the factory (value wins, `scope_drift` on
+ * disagreement). Absent ⇒ an anonymous unscoped context.
+ */
+function scopeFromQuery(query: HttpRequest["query"]): ScopeInput | undefined {
+  const appId = query?.appId?.trim() || undefined;
+  const landingZones = (query?.landingZones ?? "")
+    .split(",")
+    .map((zone) => zone.trim())
+    .filter((zone) => zone.length > 0);
+  const hasValue = landingZones.length > 0;
+
+  if (hasValue && appId) {
+    return { kind: "both", landingZones, appId };
+  }
+  if (hasValue) {
+    return { kind: "by-value", landingZones };
+  }
+  if (appId) {
+    return { kind: "by-reference", appId };
+  }
+  return undefined;
 }
 
 function bearerToken(headers: HttpRequest["headers"]): string | undefined {

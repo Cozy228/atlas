@@ -21,7 +21,7 @@ import {
   type Source,
 } from "@atlas/schema";
 import { DEV_CONFLUENCE_BASE_URL, DEV_CONFLUENCE_SECURITY_SPACE_KEY } from "../devMocks";
-import { defaultResolutionContext } from "../resolvers/resolverTypes";
+import { createTestResolutionContext } from "../resolvers/testResolutionContext";
 import {
   discoverGuardrails,
   type DiscoveredGuardrail,
@@ -42,7 +42,7 @@ describe("guardrail discovery → derivation (golden)", () => {
     process.env.CONFLUENCE_BASE_URL = DEV_CONFLUENCE_BASE_URL;
     process.env.CONFLUENCE_TOKEN = "dev-mock-token";
 
-    const ctx = defaultResolutionContext(); // late-bound fetch → MSW interceptor
+    const ctx = await createTestResolutionContext(); // late-bound fetch → MSW interceptor
     const deps: DiscoverGuardrailsDeps = {
       ctx,
       confluence: {
@@ -69,7 +69,7 @@ describe("guardrail discovery → derivation (golden)", () => {
         records.map(
           async (record): Promise<[string, Record<string, ResourceSectionBinding[]>]> => [
             record.slug,
-            await contentDiscovery.sectionsFor(record, defaultResolutionContext()),
+            await contentDiscovery.sectionsFor(record, await createTestResolutionContext()),
           ],
         ),
       ),

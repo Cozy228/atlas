@@ -15,7 +15,7 @@ import {
   listResourceCatalog,
   searchResources,
 } from "../resources/resourceContextService";
-import type { ResolutionContext } from "../resolvers/resolverTypes";
+import type { GovernedResolutionContext } from "../resolvers/createResolutionContext";
 import { errorResponse, type ApiResponse } from "./routeTypes";
 
 /**
@@ -92,7 +92,7 @@ export type ResourceContextRouteParams = {
  */
 export async function handleResourceContextRequest(
   params: ResourceContextRouteParams,
-  ctx?: ResolutionContext,
+  ctx: GovernedResolutionContext,
 ): Promise<ApiResponse<ResourceContextResponse | ApiErrorResponse>> {
   if (!getResourceKindDef(params.kind)) {
     return errorResponse(

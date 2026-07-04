@@ -18,7 +18,9 @@
  * yields a context with no app scope and a `scope_unresolved` warning.
  * Absent scope = anonymous unscoped context (open discovery posture).
  */
-import type { ResolutionContext } from "./resolverTypes";
+import type { FetchLike, ResolutionContext, ResolverWarning } from "./resolverTypes";
+import { withFetchLogging } from "../observability/logging";
+import { cacheTtlSeconds, sharedCache, withCache } from "../sourceContent/sourceContentCache";
 
 /**
  * Module-private brand: NEVER exported (not from this module's public face
@@ -38,12 +40,7 @@ const governedContextBrand: unique symbol = Symbol("atlas.governedResolutionCont
  */
 export type GovernedResolutionContext = ResolutionContext & {
   readonly [governedContextBrand]: true;
-  readonly scope?: {
-    landingZoneIds?: string[];
-    appId?: string;
-    origin?: "by-value" | "by-reference";
-  };
-  readonly warnings: ReadonlyArray<{ code: string; message: string }>;
+  readonly warnings: ReadonlyArray<ResolverWarning>;
 };
 
 /**
@@ -105,8 +102,138 @@ export type CreateResolutionContextInput = {
 export async function createResolutionContext(
   input: CreateResolutionContextInput = {},
 ): Promise<GovernedResolutionContext> {
-  void input;
-  // Batch 0 skeleton: the contract above is frozen by the D1–D9 test suite;
-  // behavior lands in Batch 1.
-  throw new Error("unimplemented");
+  const env = input.env ?? readProcessEnv();
+
+  // Absorb `cachedResolutionContext`'s role: a late-bound fetch (re-reads
+  // `globalThis.fetch` per call so the dev/integration MSW interceptor is always
+  // picked up) wrapped by the process-shared content cache.
+  const cache = await sharedCache(env);
+  const fetch = withCache(lateBoundFetch(), cache, cacheTtlSeconds(env));
+
+  const vetted = await vetScope(input.scope, input.appDirectory ?? nullAppDirectoryAdapter);
+
+  const governed: GovernedResolutionContext = {
+    // Opaque caller Bearer (ADR-0001): threaded unparsed, never interpreted.
+    token: input.identity?.bearer,
+    fetch,
+    scope: vetted.scope,
+    warnings: vetted.warnings,
+    [governedContextBrand]: true,
+  };
+  return governed;
+}
+
+/** The vetted scope + the governance warnings accrued while vetting it. */
+type VettedScope = {
+  scope: GovernedResolutionContext["scope"];
+  warnings: ResolverWarning[];
+};
+
+/**
+ * Vet an incoming {@link ScopeInput} into the seated P26 scope (M11):
+ * - by-value: the caller's declaration is seated verbatim; the directory is
+ *   NEVER consulted (a by-value read never writes and never looks up).
+ * - by-reference: resolved through the port; unknown ⇒ no app scope +
+ *   `scope_unresolved`.
+ * - both: the value wins (`origin: "by-value"`); the reference is a lookup-only
+ *   reconciliation — `scope_drift` when the resolved set disagrees,
+ *   `scope_unresolved` when the reference does not resolve at all.
+ * - absent: an anonymous unscoped context (open discovery posture).
+ */
+async function vetScope(
+  scope: ScopeInput | undefined,
+  appDirectory: AppDirectoryPort,
+): Promise<VettedScope> {
+  if (!scope) {
+    return { scope: undefined, warnings: [] };
+  }
+
+  if (scope.kind === "by-value") {
+    return {
+      scope: { landingZoneIds: scope.landingZones, origin: "by-value" },
+      warnings: [],
+    };
+  }
+
+  if (scope.kind === "by-reference") {
+    const resolved = await appDirectory.lookup(scope.appId);
+    if (!resolved) {
+      return {
+        scope: undefined,
+        warnings: [
+          {
+            code: "scope_unresolved",
+            message: `AppRecord '${scope.appId}' could not be resolved; no app scope was seated.`,
+          },
+        ],
+      };
+    }
+    return {
+      scope: {
+        landingZoneIds: resolved.landingZoneIds,
+        appId: scope.appId,
+        origin: "by-reference",
+      },
+      warnings: [],
+    };
+  }
+
+  // both: the caller supplied the manifest value AND an appId. The value wins;
+  // the reference is a read-only reconciliation.
+  const resolved = await appDirectory.lookup(scope.appId);
+  const seated: GovernedResolutionContext["scope"] = {
+    landingZoneIds: scope.landingZones,
+    origin: "by-value",
+  };
+  if (!resolved) {
+    return {
+      scope: seated,
+      warnings: [
+        {
+          code: "scope_unresolved",
+          message: `AppRecord '${scope.appId}' could not be resolved; the by-value declaration stands.`,
+        },
+      ],
+    };
+  }
+  if (!sameSet(scope.landingZones, resolved.landingZoneIds)) {
+    return {
+      scope: seated,
+      warnings: [
+        {
+          code: "scope_drift",
+          message: `AppRecord '${scope.appId}' declares [${resolved.landingZoneIds.join(", ")}] but the by-value scope declares [${scope.landingZones.join(", ")}]; the by-value declaration wins.`,
+        },
+      ],
+    };
+  }
+  return { scope: seated, warnings: [] };
+}
+
+/** Order-insensitive set equality over landing-zone id lists. */
+function sameSet(a: string[], b: string[]): boolean {
+  if (a.length !== b.length) {
+    return false;
+  }
+  const seen = new Set(a);
+  return b.every((id) => seen.has(id));
+}
+
+/**
+ * A late-bound `FetchLike`: re-reads `globalThis.fetch` on every call rather
+ * than capturing it once, so the dev/integration MSW interceptor (which patches
+ * `globalThis.fetch` when its server starts) is always picked up. In prod this
+ * is the real `globalThis.fetch`.
+ */
+function lateBoundFetch(): FetchLike {
+  return withFetchLogging(
+    (input, init) => globalThis.fetch(input, init as RequestInit) as ReturnType<FetchLike>,
+  );
+}
+
+function readProcessEnv(): Record<string, string | undefined> {
+  const processLike = globalThis as typeof globalThis & {
+    process?: { env?: Record<string, string | undefined> };
+  };
+  return processLike.process?.env ?? {};
 }

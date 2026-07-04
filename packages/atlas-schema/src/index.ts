@@ -32,6 +32,12 @@ export const warningCodes = [
   // Honest dead-end for an availability matrix that cannot be fetched/parsed
   // (ADR-0009 §4): no availability data is returned and never a stale matrix.
   "availability_unavailable",
+  // Governance-gate scope vetting (Step 1, M11). `scope_drift`: a by-value
+  // declaration and its referenced AppRecord disagree (value wins, the reference
+  // is advisory). `scope_unresolved`: a by-reference `appId` could not be resolved
+  // through the AppDirectory (honest-empty — no app scope is seated).
+  "scope_drift",
+  "scope_unresolved",
 ] as const;
 
 export const apiErrorCodes = [

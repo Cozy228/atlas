@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { ResourceContextResponseSchema, ResourceSearchResponseSchema } from "@atlas/schema";
 import {
+  createResolutionContext,
   handleResourceContextRequest,
   handleResourceRecordRequest,
   handleResourceSearchRequest,
@@ -13,6 +14,12 @@ import {
   loadGuidance,
   type LlmAdapter,
 } from "@atlas/portal";
+
+/** Project a resource through the governance gate (Step 1): the handler now
+ *  requires a factory-built governed context. */
+async function projectResource(params: { kind: string; slug: string }) {
+  return handleResourceContextRequest(params, await createResolutionContext());
+}
 
 // Single live path (plan 018 G5): the registry + resource records are the OUTPUT
 // of live discovery, so every discovery channel must point at the MSW fixtures —
@@ -37,7 +44,7 @@ afterAll(() => {
  */
 describe("Atlas V1 acceptance", () => {
   it("projects a governed service with cited Section content from seed data", async () => {
-    const response = await handleResourceContextRequest({ kind: "service", slug: "aws/textract" });
+    const response = await projectResource({ kind: "service", slug: "aws/textract" });
     expect(response.status).toBe(200);
     const projection = ResourceContextResponseSchema.parse(response.body);
 
@@ -60,7 +67,7 @@ describe("Atlas V1 acceptance", () => {
   });
 
   it("answers Ask Atlas only with accepted citations", async () => {
-    const response = await handleResourceContextRequest({ kind: "service", slug: "aws/textract" });
+    const response = await projectResource({ kind: "service", slug: "aws/textract" });
     const projection = ResourceContextResponseSchema.parse(response.body);
 
     const adapter: LlmAdapter = {
@@ -96,7 +103,7 @@ describe("Atlas V1 acceptance", () => {
     // A security policy is a discovered Resource (a guardrail): its governed
     // documents project as cited Sections, bound by heading to the discovered
     // SECPOL policy page.
-    const response = await handleResourceContextRequest({
+    const response = await projectResource({
       kind: "guardrail",
       slug: "public-access-controls",
     });

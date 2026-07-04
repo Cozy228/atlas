@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { Source } from "@atlas/schema";
 import { DEV_AVAILABILITY_PAGE_ID_AWSF, DEV_CONFLUENCE_BASE_URL } from "../devMocks";
-import { defaultResolutionContext } from "./resolverTypes";
+import { createTestResolutionContext } from "./testResolutionContext";
 import { availabilityMatrixResolver } from "./availabilityMatrixResolver";
 
 /**
@@ -43,9 +43,9 @@ afterAll(() => {
   restore("CONFLUENCE_TOKEN", saved.token);
 });
 
-function resolve(selector: Record<string, string>, citationLabel?: string) {
+async function resolve(selector: Record<string, string>, citationLabel?: string) {
   return availabilityMatrixResolver.resolve({
-    ctx: defaultResolutionContext(),
+    ctx: await createTestResolutionContext(),
     source,
     selector,
     citationLabel,

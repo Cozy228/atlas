@@ -24,7 +24,8 @@ import { confluencePageResolver } from "./resolvers/confluencePageResolver";
 import { policyDocumentResolver } from "./resolvers/policyDocumentResolver";
 import { createResolverRegistry } from "./resolvers/resolverRegistry";
 import { terraformModuleResolver } from "./resolvers/terraformModuleResolver";
-import { defaultResolutionContext, type FetchLike } from "./resolvers/resolverTypes";
+import type { FetchLike } from "./resolvers/resolverTypes";
+import { createResolutionContext } from "./resolvers/createResolutionContext";
 import {
   logger,
   serializeError,
@@ -133,7 +134,9 @@ async function runDiscovery(
   moduleMap: Record<string, string[]>,
   availabilityProvider: AvailabilityProvider,
 ): Promise<Discovered> {
-  const ctx = defaultResolutionContext(); // late-bound fetch → MSW/prod
+  // Discovery runs as the system's own governed context (no caller identity):
+  // the factory wires the process-shared cache + late-bound fetch (MSW/prod).
+  const ctx = await createResolutionContext({ env });
   const services = await discoverServiceSources({
     availabilityProvider,
     ctx,

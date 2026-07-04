@@ -55,6 +55,9 @@ const WARNING_PRIORITY: Record<Warning["code"], number> = {
   stale_source: 5,
   weak_anchoring: 6,
   no_registered_source: 7,
+  // Governance-gate scope warnings (Step 1): lowest severity — advisory only.
+  scope_drift: 8,
+  scope_unresolved: 9,
 };
 
 export function highestPriorityWarning(warnings: ReadonlyArray<Warning>): Warning | undefined {

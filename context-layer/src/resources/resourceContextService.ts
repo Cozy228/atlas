@@ -23,7 +23,8 @@ import {
   normalizeServiceIdentity,
 } from "../services/serviceIdentityNormalizer";
 import type { ResolverRegistry } from "../resolvers/resolverRegistry";
-import { defaultResolutionContext, type ResolutionContext } from "../resolvers/resolverTypes";
+import type { ResolutionContext } from "../resolvers/resolverTypes";
+import type { GovernedResolutionContext } from "../resolvers/createResolutionContext";
 import { isStale } from "../services/freshness";
 import { getResourceKindDef } from "./resourceKindRegistry";
 
@@ -133,7 +134,7 @@ export type GetResourceContextParams = {
 export async function getResourceContext(
   deps: ResourceContextDeps,
   params: GetResourceContextParams,
-  ctx: ResolutionContext = defaultResolutionContext(),
+  ctx: GovernedResolutionContext,
 ): Promise<ResourceContextResponse | null> {
   const overlay = findRecord(deps.resources, params.kind, params.slug);
 

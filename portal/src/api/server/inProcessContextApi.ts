@@ -7,6 +7,7 @@
  * the same `ContextApiClient` interface so route loaders do not change.
  */
 import {
+  createResolutionContext,
   handleAvailabilityRequest,
   handleFeedbackRequest,
   handleResourceCatalogRequest,
@@ -61,32 +62,49 @@ function unwrap<TBody>(result: HandlerResult, schema: { parse(input: unknown): T
   return schema.parse(result.body);
 }
 
-export const serverContextApiClient: ContextApiClient = {
-  async getSource(id: string): Promise<SourceResponse> {
-    return unwrap(await handleSourceRequest(id), SourceResponseSchema);
-  },
-  async getAvailability(): Promise<AvailabilityReadResponse> {
-    return unwrap(await handleAvailabilityRequest(), AvailabilityReadResponseSchema);
-  },
-  async getResourceContext(kind: string, slug: string): Promise<ResourceContextResponse> {
-    return unwrap(
-      await handleResourceContextRequest({ kind, slug }),
-      ResourceContextResponseSchema,
-    );
-  },
-  async getResourceRecord(kind: string, slug: string): Promise<ResourceRecordResponse> {
-    return unwrap(await handleResourceRecordRequest({ kind, slug }), ResourceRecordResponseSchema);
-  },
-  async searchResources(query: string): Promise<ResourceSearchResponse> {
-    return unwrap(await handleResourceSearchRequest(query, {}), ResourceSearchResponseSchema);
-  },
-  async discoverSources(request: SourceDiscoveryRequest = {}): Promise<SourceDiscoveryResponse> {
-    return unwrap(await handleSourceDiscoveryRequest(request), SourceDiscoveryResponseSchema);
-  },
-  async discoverResources(): Promise<ResourceCatalogResponse> {
-    return unwrap(await handleResourceCatalogRequest(), ResourceCatalogResponseSchema);
-  },
-  async submitFeedback(request: FeedbackSubmission): Promise<FeedbackResponse> {
-    return unwrap(await handleFeedbackRequest(request), FeedbackResponseSchema);
-  },
-};
+/**
+ * Build an in-process Context API client that constructs its resolution context
+ * through the one governance-gate factory (Step 1). This closes the previously
+ * ungoverned in-process path: the resource read wires the process-shared content
+ * cache and threads the caller Bearer (when the caller has one — the MCP
+ * in-process fallback supplies it; the Portal is honest-anonymous today).
+ */
+export function createInProcessContextApiClient(
+  options: { token?: string } = {},
+): ContextApiClient {
+  return {
+    async getSource(id: string): Promise<SourceResponse> {
+      return unwrap(await handleSourceRequest(id), SourceResponseSchema);
+    },
+    async getAvailability(): Promise<AvailabilityReadResponse> {
+      return unwrap(await handleAvailabilityRequest(), AvailabilityReadResponseSchema);
+    },
+    async getResourceContext(kind: string, slug: string): Promise<ResourceContextResponse> {
+      const ctx = await createResolutionContext({ identity: { bearer: options.token } });
+      return unwrap(
+        await handleResourceContextRequest({ kind, slug }, ctx),
+        ResourceContextResponseSchema,
+      );
+    },
+    async getResourceRecord(kind: string, slug: string): Promise<ResourceRecordResponse> {
+      return unwrap(
+        await handleResourceRecordRequest({ kind, slug }),
+        ResourceRecordResponseSchema,
+      );
+    },
+    async searchResources(query: string): Promise<ResourceSearchResponse> {
+      return unwrap(await handleResourceSearchRequest(query, {}), ResourceSearchResponseSchema);
+    },
+    async discoverSources(request: SourceDiscoveryRequest = {}): Promise<SourceDiscoveryResponse> {
+      return unwrap(await handleSourceDiscoveryRequest(request), SourceDiscoveryResponseSchema);
+    },
+    async discoverResources(): Promise<ResourceCatalogResponse> {
+      return unwrap(await handleResourceCatalogRequest(), ResourceCatalogResponseSchema);
+    },
+    async submitFeedback(request: FeedbackSubmission): Promise<FeedbackResponse> {
+      return unwrap(await handleFeedbackRequest(request), FeedbackResponseSchema);
+    },
+  };
+}
+
+export const serverContextApiClient: ContextApiClient = createInProcessContextApiClient();

@@ -1,11 +1,7 @@
 import { createHash } from "node:crypto";
 
 import { logger, serializeError } from "../observability/logging";
-import {
-  defaultResolutionContext,
-  type FetchLike,
-  type ResolutionContext,
-} from "../resolvers/resolverTypes";
+import type { FetchLike } from "../resolvers/resolverTypes";
 
 /**
  * Source-content cache (docs/architecture/source-content-cache.md). Removes the
@@ -286,33 +282,14 @@ export function cacheTtlSeconds(env: Record<string, string | undefined>): number
 }
 
 // One shared cache across every entry point — it is useless if rebuilt per
-// request, so memoize it at module scope like the default registry.
+// request, so memoize it at module scope like the default registry. The
+// governance-gate factory (`createResolutionContext`) wires this same
+// process-shared cache into every governed context's `fetch`, so a repeat
+// Confluence/Terraform fetch is served from cache regardless of entry point.
 let sharedCachePromise: Promise<SourceContentCache> | undefined;
 
-function sharedCache(env: Record<string, string | undefined>): Promise<SourceContentCache> {
+export function sharedCache(env: Record<string, string | undefined>): Promise<SourceContentCache> {
   return (sharedCachePromise ??= createSourceContentCache(env));
-}
-
-/**
- * The default resolution context for live source resolution, with `fetch`
- * wrapped by the shared cache. Used by both the HTTP router and the in-process
- * route, so a repeat Confluence/Terraform fetch is served from cache regardless
- * of entry point. `defaultResolutionContext()` stays cache-free for tests and
- * callers that pass their own context.
- */
-export async function cachedResolutionContext(
-  env: Record<string, string | undefined> = readProcessEnv(),
-): Promise<ResolutionContext> {
-  const base = defaultResolutionContext();
-  const cache = await sharedCache(env);
-  return { ...base, fetch: withCache(base.fetch, cache, cacheTtlSeconds(env)) };
-}
-
-function readProcessEnv(): Record<string, string | undefined> {
-  const processLike = globalThis as typeof globalThis & {
-    process?: { env?: Record<string, string | undefined> };
-  };
-  return processLike.process?.env ?? {};
 }
 
 function numberFromEnv(raw: string | undefined, fallback: number): number {

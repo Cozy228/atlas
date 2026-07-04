@@ -15,7 +15,7 @@
  */
 import { createServerFn } from "@tanstack/react-start";
 import {
-  cachedResolutionContext,
+  createResolutionContext,
   resolveReleaseNotes,
   type Announcement,
   type Release,
@@ -29,7 +29,7 @@ export const fetchWhatsNew = createServerFn({
   method: "GET",
   strict: { output: false },
 }).handler(async (): Promise<WhatsNewFeed> => {
-  const result = await resolveReleaseNotes(await cachedResolutionContext());
+  const result = await resolveReleaseNotes(await createResolutionContext());
   return result.ok
     ? { releases: result.releases, announcements: result.announcements }
     : { releases: [], announcements: [] };

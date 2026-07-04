@@ -1,5 +1,4 @@
 import type { Source, SourceClass } from "@atlas/schema";
-import { withFetchLogging } from "../observability/logging";
 
 export type ResolvedExcerpt = {
   anchor_id?: string;
@@ -27,7 +26,11 @@ export type ResolverWarning = {
     | "weak_anchoring"
     | "restricted_source"
     | "stale_source"
-    | "availability_unavailable";
+    | "availability_unavailable"
+    // Governance-gate scope vetting (Step 1, M11): drift = value/reference
+    // disagreement (value wins); unresolved = a by-reference appId with no record.
+    | "scope_drift"
+    | "scope_unresolved";
   message: string;
   source_id?: string;
   anchor_id?: string;
@@ -63,33 +66,16 @@ export type ResolutionContext = {
    */
   pageCache?: Map<string, Promise<unknown>>;
   /**
-   * The visibility/scope seam reserved by ADR-0015 §5, first *filled* by ADR-0017.
-   * A no-op by default: absent ⇒ today's full, global-visible return, so every
-   * un-migrated read path is unchanged (progressive safety). `landingZoneId` fills
-   * the seam first (LZ-rooted discovery); `appId` stays reserved for ADR-0012 APP
-   * scope. Like `app_id`, scope *filters* — it never enters the `{kind}/{slug}`
-   * address. No resolver reads it yet; it rides along the context to resolvers.
+   * The visibility/scope seam reserved by ADR-0015 §5, filled by the governance
+   * gate (Step 1, M11 + P26). A no-op by default: absent ⇒ today's full,
+   * global-visible return, so every un-migrated read path is unchanged
+   * (progressive safety). Carries the vetted scope in the P26 set shape
+   * (`landingZoneIds[]` — an APP may span zones across clouds) with its
+   * provenance (`origin`). Like `app_id`, scope *filters* — it never enters the
+   * `{kind}/{slug}` address. No resolver reads it yet; it rides along the context.
    */
-  scope?: { landingZoneId?: string; appId?: string };
+  scope?: { landingZoneIds?: string[]; appId?: string; origin?: "by-value" | "by-reference" };
 };
-
-/**
- * Default context for callers that do not supply one (in-process callers and
- * tests). `fetch` is **late-bound** — it re-reads `globalThis.fetch` on every
- * call rather than capturing it once — so the dev/integration MSW interceptor,
- * which patches `globalThis.fetch` when its server starts, is always picked up
- * even if the context object was created before `server.listen()` (plan 018
- * Risk #1). In prod this is the real `globalThis.fetch`; no token still means a
- * resolver with no configured source yields an honest gap rather than a fake.
- */
-export function defaultResolutionContext(): ResolutionContext {
-  return {
-    token: undefined,
-    fetch: withFetchLogging(
-      (input, init) => globalThis.fetch(input, init as RequestInit) as ReturnType<FetchLike>,
-    ),
-  };
-}
 
 export type ResolveRequest = {
   source: Source;
