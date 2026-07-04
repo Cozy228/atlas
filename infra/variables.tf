@@ -62,3 +62,15 @@ variable "portal_origin" {
   default     = ""
   description = "Canonical Portal origin. Leave empty to derive it from load-balancer headers."
 }
+
+variable "valkey_max_storage_gb" {
+  type        = number
+  default     = 5
+  description = "ElastiCache Serverless (Valkey) max data storage in GB."
+}
+
+variable "valkey_max_ecpu" {
+  type        = number
+  default     = 5000
+  description = "ElastiCache Serverless (Valkey) max ElastiCache Processing Units per second."
+}

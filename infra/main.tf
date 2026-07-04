@@ -123,6 +123,108 @@ resource "aws_security_group" "ecs_tasks" {
   })
 }
 
+resource "aws_security_group" "valkey" {
+  name        = "${local.name_prefix}-valkey"
+  description = "Atlas ElastiCache (Valkey) ingress from the ECS tasks"
+  vpc_id      = aws_vpc.atlas.id
+
+  ingress {
+    from_port       = 6379
+    to_port         = 6379
+    protocol        = "tcp"
+    security_groups = [aws_security_group.ecs_tasks.id]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = merge(local.common_tags, {
+    Name = "${local.name_prefix}-valkey"
+  })
+}
+
+# ElastiCache IAM-auth user. Its user_name is the identity the app authenticates
+# as; it MUST equal CACHE_VALKEY_USERNAME wired into the task (see the container
+# environment below). GLIDE mints the IAM token at connect time — no password is
+# stored anywhere. The task role is granted elasticache:Connect for this user.
+resource "aws_elasticache_user" "valkey_iam" {
+  user_id       = "${local.name_prefix}-app"
+  user_name     = "${local.name_prefix}-app"
+  engine        = "valkey"
+  access_string = "on ~* +@all"
+
+  authentication_mode {
+    type = "iam"
+  }
+
+  tags = local.common_tags
+}
+
+# A user group must include a "default" user; keep it disabled (no-access) so the
+# only usable identity is the IAM user above.
+resource "aws_elasticache_user" "valkey_default" {
+  user_id       = "${local.name_prefix}-default"
+  user_name     = "default"
+  engine        = "valkey"
+  access_string = "off -@all"
+
+  authentication_mode {
+    type = "no-password-required"
+  }
+
+  tags = local.common_tags
+}
+
+resource "aws_elasticache_user_group" "valkey" {
+  user_group_id = local.name_prefix
+  engine        = "valkey"
+  user_ids = [
+    aws_elasticache_user.valkey_default.user_id,
+    aws_elasticache_user.valkey_iam.user_id,
+  ]
+
+  tags = local.common_tags
+}
+
+# Serverless Valkey: a KV+TTL workload (content cache + sessions in distinct
+# keyspaces). Serverless avoids node sizing and matches the bursty access shape.
+resource "aws_elasticache_serverless_cache" "valkey" {
+  name   = "${local.name_prefix}-valkey"
+  engine = "valkey"
+
+  cache_usage_limits {
+    data_storage {
+      maximum = var.valkey_max_storage_gb
+      unit    = "GB"
+    }
+
+    ecpu_per_second {
+      maximum = var.valkey_max_ecpu
+    }
+  }
+
+  security_group_ids = [aws_security_group.valkey.id]
+  subnet_ids         = aws_subnet.public[*].id
+  user_group_id      = aws_elasticache_user_group.valkey.user_group_id
+
+  tags = merge(local.common_tags, {
+    Name = "${local.name_prefix}-valkey"
+  })
+}
+
+# Session signing key + Entra confidential-client certificate live here; content
+# is populated out-of-band (never in Terraform state or this repo). The task role
+# already holds secretsmanager:GetSecretValue for both the runtime and this secret.
+resource "aws_secretsmanager_secret" "session" {
+  name = "${local.name_prefix}/session"
+
+  tags = local.common_tags
+}
+
 resource "aws_lb" "portal" {
   name               = "${local.name_prefix}-portal"
   internal           = false
@@ -240,6 +342,27 @@ resource "aws_iam_role_policy_attachment" "task_execution" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
+# The EXECUTION role (not the task role) resolves container `secrets` at launch,
+# so it needs read access to every secret the task def injects via valueFrom.
+resource "aws_iam_role_policy" "task_execution_secrets" {
+  name = "${local.name_prefix}-task-execution-secrets"
+  role = aws_iam_role.task_execution.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = ["secretsmanager:GetSecretValue"]
+        Effect = "Allow"
+        Resource = [
+          aws_secretsmanager_secret.runtime.arn,
+          aws_secretsmanager_secret.session.arn
+        ]
+      }
+    ]
+  })
+}
+
 resource "aws_iam_role" "task" {
   name               = "${local.name_prefix}-task"
   assume_role_policy = data.aws_iam_policy_document.ecs_tasks_assume_role.json
@@ -271,8 +394,20 @@ resource "aws_iam_role_policy" "task" {
         Action = [
           "secretsmanager:GetSecretValue"
         ]
-        Effect   = "Allow"
-        Resource = aws_secretsmanager_secret.runtime.arn
+        Effect = "Allow"
+        Resource = [
+          aws_secretsmanager_secret.runtime.arn,
+          aws_secretsmanager_secret.session.arn
+        ]
+      },
+      {
+        # IAM-auth connect to the Valkey cache as the RBAC user (no password).
+        Action = ["elasticache:Connect"]
+        Effect = "Allow"
+        Resource = [
+          aws_elasticache_serverless_cache.valkey.arn,
+          aws_elasticache_user.valkey_iam.arn
+        ]
       }
     ]
   })
@@ -324,7 +459,27 @@ resource "aws_ecs_task_definition" "portal" {
         { name = "PORT", value = tostring(var.container_port) },
         { name = "PORTAL_ORIGIN", value = var.portal_origin },
         { name = "FEEDBACK_TABLE", value = aws_dynamodb_table.feedback.name },
-        { name = "RUNTIME_SECRET", value = aws_secretsmanager_secret.runtime.name }
+        { name = "RUNTIME_SECRET", value = aws_secretsmanager_secret.runtime.name },
+        { name = "AWS_REGION", value = var.aws_region },
+        # Content cache + session store share one serverless cache, distinct keyspaces.
+        # IAM auth: no password — GLIDE mints the token from the task role.
+        { name = "CACHE_VALKEY_URL", value = "rediss://${aws_elasticache_serverless_cache.valkey.endpoint[0].address}:${aws_elasticache_serverless_cache.valkey.endpoint[0].port}" },
+        { name = "CACHE_VALKEY_USERNAME", value = aws_elasticache_user.valkey_iam.user_name },
+        { name = "CACHE_VALKEY_IAM_CLUSTER", value = aws_elasticache_serverless_cache.valkey.name },
+        { name = "SESSION_VALKEY_URL", value = "rediss://${aws_elasticache_serverless_cache.valkey.endpoint[0].address}:${aws_elasticache_serverless_cache.valkey.endpoint[0].port}" }
+      ]
+
+      # Sensitive values injected by ECS from Secrets Manager as env vars at launch.
+      # Each entry pulls one JSON key from a secret; the secret CONTENTS are managed
+      # out-of-band and never live in Terraform state or this repo (ADR-0004).
+      # Source-system tokens live in the runtime secret; session/Entra keys in the
+      # session secret. Valkey is absent here on purpose — it is IAM-auth, no secret.
+      secrets = [
+        { name = "CONFLUENCE_TOKEN", valueFrom = "${aws_secretsmanager_secret.runtime.arn}:CONFLUENCE_TOKEN::" },
+        { name = "CONFLUENCE_SECURITY_TOKEN", valueFrom = "${aws_secretsmanager_secret.runtime.arn}:CONFLUENCE_SECURITY_TOKEN::" },
+        { name = "TERRAFORM_TOKEN", valueFrom = "${aws_secretsmanager_secret.runtime.arn}:TERRAFORM_TOKEN::" },
+        { name = "SESSION_SECRET", valueFrom = "${aws_secretsmanager_secret.session.arn}:SESSION_SECRET::" },
+        { name = "ENTRA_CLIENT_CERT", valueFrom = "${aws_secretsmanager_secret.session.arn}:ENTRA_CLIENT_CERT::" }
       ]
 
       logConfiguration = {
