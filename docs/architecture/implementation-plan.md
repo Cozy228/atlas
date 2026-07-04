@@ -144,19 +144,26 @@ never-store-secrets) are constituents of L2 and L0 respectively — see
   feed demotes from "return reason" to "instrument data" (it still ships — Step 6 needs
   it); push/subscription investment waits until cadence exists. **Run before Step 2's
   What's New rewiring.**
-- **A3 — Second-cloud source landability (P29).** *Assumption:* the second cloud's
-  documentation surfaces (doc pages, self-service portal data) are structured enough to
-  parse, and fetch access is attainable. *Experiment:* inventory its availability
-  equivalent, doc-page format, and API/auth reality; run one throwaway parse against a
-  real page snapshot (conformance-kit style, I5). *Consequence if false:* R3 stays behind
-  P23's pause (its exit condition unmet); Track B keeps contract v0 (P22) on the table
-  with that cloud's owning team — the negotiation continues, the build does not start.
-  **Gates R3 only; runnable any time, cheapest once Step 2's adapter seams exist.**
-  Note the P27 boundary: the cloud's RAG chatbot is never a source; only the doc surfaces
-  beneath it are landability candidates.
+(There is no second-cloud "landability" falsifier here. Per P29, verifying a real cloud's
+source is **company-side work, not a gate in this public-safe repo**; it lives as a Track-B
+note — a new cloud's owning side confirms its source is parseable before that adapter is
+written. The repo's job is that the seam is ready, which is the cross-cutting constraint below,
+not an experiment.)
 
 The remaining falsifier — the four-moment taxonomy — stays where P19 put it: field ② of
 every pain-point record (Track B), continuously.
+
+### Cross-cutting constraint — multicloud is native, not a phase (P29)
+
+This is not a step; it is an **acceptance line every step is measured against.** The
+foundation, interfaces, and contracts are **multi-cloud / multi-LZ native from the first
+line**: any cloud or landing zone plugs in **behind the adapter port (L0) with zero change to
+the foundation, interfaces, or contracts** — only its adapter/resolver is added, incrementally.
+A single-cloud / single-LZ assumption or a hardcoded singular is a **defect caught by type or
+test in the step that introduces it**, never deferred to a migration. This repo is public-safe
+(ADR-0004): generic seam + mocks only; it owns no real cloud's data. Every goal prompt carries
+this as a Constraint, and where a contract touches cloud/LZ it carries a DoD item guarding the
+plural shape (e.g. Step 1: scope is `landingZoneIds[]`, no singular survives — P26).
 
 ## 7. The walk — build order along the new spine
 
@@ -268,20 +275,27 @@ independently.
 - **Revert.** Registrations are consumer state (kept); the board is a pure read-time
   render.
 
-### Roadmap view — R0–R4 (P29, 2026-07-04)
+### Roadmap view (P29, 2026-07-04)
 
-The steps above are a dependency order; this is the same order read as delivery phases,
-with the multicloud supply line and the ecosystem line attached. Gates are named, not
+The steps above are a dependency order; this reads that order as delivery milestones for the
+**app team on, or migrating onto, the cloud**. Multicloud is **not** a milestone here — it is
+the cross-cutting constraint above, satisfied inside every milestone. New cloud/LZ adapters are
+incremental plug-ins behind the port, added when a real one needs connecting (no phase, no
+gate). Entra enforcement is a **movable feature**, not a terminal phase. Gates are named, not
 dated.
 
-| Phase | Delivers | Steps | Gate |
+| Milestone | Delivers to the app team | Steps | Gate |
 |---|---|---|---|
-| **R0 — app-scope** | governed gate + self-declared APP scope (multi-LZ shape per P26), manifest spec, APP selector | 1, 3 | **A1 runs now** (needs nothing built); A2 before R1 |
-| **R1 — the merge live** | graph, change feed, briefs — the DORA Pain-#2 core made real | 2, 4 | Step 1 done; A2 sets What's New posture |
-| **R2 — two front doors + instruments** | APP home, MCP three-call flow, honesty dashboard (time-to-brief, time-to-verify, tokens-per-brief, unresolved-rate queue) | 5, 6 | A1 passed |
-| **R3 — multicloud landing** | second cloud's doc surfaces as adapters through the I5 kit; new LZ roots in config; adopt brief gains the cross-cloud decision shape (structure encodes the question, never the answer — P15) | I5 exercise | **A3 passed**; Step 2 landed. Negotiation starts parallel to R1/R2 |
-| **R4 — enforcement + ecosystem** | Entra slice per `entra-app-scope-implementation-plan.md` (BFF → L2 factory input → fail-closed gate → `visibility:app` ingestion → MCP OAuth); the sibling cloud's RAG chatbot onboarded as a *consumer* of the agent face (P27); push bindings if A2 shows cadence | 7 + Entra WS1–6 | Valkey infra (WS6) first; WS3's no-DCR precondition folded into A1 |
-| **Track B — supply** | pain points, contract v0, fetch-access negotiations — now a two-cloud owner queue, prioritized by the Step-6 unresolved-rate data, argued with the DORA citations (P28) | ongoing | — |
+| **Foundation** | governed gate + self-declared APP scope (multi-LZ native per P26), manifest spec, APP selector | 1, 3 | **A1 runs now** (needs nothing built); A2 before the next |
+| **The merge live** | graph, change feed, briefs — the DORA Pain-#2 core: "for my app, in my LZs, now", every line cited | 2, 4 | Foundation done; A2 sets What's New posture |
+| **Two front doors + instruments** | APP home (human), MCP three-call flow (agent), honesty dashboard (time-to-brief, time-to-verify, tokens-per-brief, unresolved-rate queue) | 5, 6 | A1 passed |
+| **Status board** | location index + at-read live values, self-service registration (P24/M12) | 7 | Steps 2, 3 |
+| **Entra app-scope enforcement** *(movable — schedulable any time after Step 3)* | verified identity → fail-closed gate on `visibility:app`; per `entra-app-scope-implementation-plan.md` (BFF → factory input → gate → ingestion → MCP OAuth) | Entra WS1–6 | Valkey infra (WS6, now in `infra/`) first; WS3 no-DCR folded into A1 |
+| **Ecosystem** *(opportunistic)* | a sibling cloud's RAG chatbot onboarded as a *consumer* of the agent face (P27); push bindings if A2 shows cadence | — | consumer demand |
+| **Track B — supply** *(ongoing)* | pain points, contract v0, fetch-access negotiations, prioritized by Step-6 unresolved-rate data, argued with DORA citations (P28); a new cloud's owning side confirms source parseability before its adapter is written | — | — |
+
+New cloud/LZ adapters are **not a row** — they enter behind the L0 port whenever a real source
+lands, changing no foundation/interface/contract (P29 cross-cutting constraint).
 
 ## 8. Keep/rebuild crosswalk — where the current tree stands vs the optimum
 
@@ -329,9 +343,9 @@ assembly/representation layers → L3/L4 new; the catalog-first Portal IA → I6
 
 Unchanged capability states from `unified-product-architecture.md` §7: debug **value**
 resolution beyond adapter-capable systems (Capability-bounded on fetch-access
-landability); a second landing zone and per-LZ content variants (Capability-bounded,
-O3 — now with a scheduled exit: A3 gates R3, P29); grounded Ask synthesis (On-demand
-behind its explicit gate, currently dormant);
+landability); a real second cloud's content (Capability-bounded on that cloud's own
+source landing — the *shape* is native per P26, the *data* is company-side, P29); grounded
+Ask synthesis (On-demand behind its explicit gate, currently dormant);
 status aggregation-at-rest / history / alerting (Outside current product scope, P24);
 provisioning / CICD triggering (Unsupported permanently, P2).
 
@@ -343,7 +357,6 @@ provisioning / CICD triggering (Unsupported permanently, P2).
 | A1 | Falsification: agent reachability of `/mcp` | — | TODO (run during Step 1) |
 | 2 | L1 graph layer (snapshots · deriveGraph · differ · events · feed) | 1 | TODO |
 | A2 | Falsification: 90-day change cadence of landed sources | — | TODO (run before Step 2's What's New rewiring) |
-| A3 | Falsification: second-cloud source landability (P29) | — | TODO (gates R3 only) |
 | 3 | Consumer state + situation entry (manifest, M11, multi-LZ per P26) | 1 | TODO |
 | 4 | L3+L4 assembly + representation (I3/I4) | 1, 2, 3 | TODO |
 | 5 | Front doors: APP home + MCP three-call flow (I6) | 4, A1 | TODO |

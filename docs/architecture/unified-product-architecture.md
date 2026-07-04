@@ -238,8 +238,9 @@ landability (**Capability-bounded**; verify landability before building — pack
 | Curation overlay beyond exception fallback | Unsupported by design (P14) |
 | Grounded Ask synthesis (citation-enforced) | On-demand behind an explicit gate |
 | Status/log value aggregation, history, alerting | Outside current product scope (ADR-0003) |
-| Additional landing zones beyond `awsf` | Capability-bounded (data landability, O3; landability verification scheduled as falsifier A3 → roadmap R3, P29) |
-| Cross-cloud (>3) unified entry | Outside current product scope (terminal frame, P6; the two-cloud estate is *inside* the frame — P26) |
+| Multi-cloud / multi-LZ *shape* (foundation, interfaces, contracts) | Required — native from the first line, a cross-cutting constraint every step is tested against (P29) |
+| A real additional cloud/LZ's *data* | Capability-bounded on that cloud's own source landing; its adapter/resolver plugs in behind the L0 port with no foundation/contract change — incremental, company-side, not a phase (P29) |
+| Cross-cloud (>3) unified entry | Outside current product scope (terminal frame, P6). Note: a team's experience is single-situated, never a cloud-comparison (P26/P29) |
 | Sibling portals / RAG chatbots as sources | Unsupported by design (P27 — no provenance, encodes judgment; their doc surfaces are the adapter targets; the chatbot is a candidate *consumer* of the agent face) |
 | Provisioning / CICD triggering | Unsupported permanently (P2) |
 
@@ -266,8 +267,8 @@ landability (**Capability-bounded**; verify landability before building — pack
 
 - **Landability facts to verify**: an APP registry (now an *upgrade path* for self-declared APPs
   per P17, no longer gating the APP entry); log/CI sources for debug values (these DO gate the
-  debug moment's value resolution); the second cloud's doc surfaces / availability equivalent
-  (now formalized as falsifier A3, `implementation-plan.md` §6, P29).
+  debug moment's value resolution). A real second cloud's source is **company-side** landability,
+  not a repo gate (P29); the shape is already native (P26).
 - **CONTEXT.md additions:** moment, brief, operational location, context adapter (definitions in
   §2–§3); mark "wayfinding" as subsumed by the situated-merge framing (P12) rather than retired.
 - **Push event-class list** is closed by design; extending it is a product decision, not a config.

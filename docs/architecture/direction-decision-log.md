@@ -146,12 +146,18 @@
 ## Rulings of 2026-07-04 (multicloud + DORA calibration, owner-approved)
 
 New inputs reviewed from first principles against the closed design: (a) the estate is
-**multicloud** — two mature clouds are candidate estates, one of which runs its own doc pages,
-self-service portal, and RAG chatbot; (b) the DORA evidence base
+**multicloud** — the platform serves app teams across more than one cloud, one of which runs its
+own doc pages, self-service portal, and RAG chatbot; (b) the DORA evidence base
 (`docs/research/dora-developer-pain-2026/dora-developer-pain-analysis-2026.md`). Verdict: the
 engine (P25), the data constitution (P14), the brief contract (P13/P15), and the B→Entra
 sequencing all hold — they were derived from invariants that are cloud-count-independent. Four
 calibrations follow.
+
+**Audience (sharpened).** The user is the **app team on the company cloud platform, or the app
+team migrating onto it** — not a "cross-cloud" role. Each team's experience is single-situated
+(my app, my landing zones, now); the platform is multicloud because it serves teams on cloud A
+and teams on cloud B, not because any one team compares clouds. This is the wedge P9/P12 named,
+now stated in team terms.
 
 - **P26 — The situation is multi-LZ: an APP maps to a *set* of landing zones.** "One APP → one
   LZ" was an accident of the single-cloud bootstrap, never an invariant: with two clouds, one
@@ -161,16 +167,16 @@ calibrations follow.
   brief traversal renders per-LZ; the repo-manifest spec (P21) declares the set. ADR-0015
   unchanged: scope still filters, never addresses. Ruled **now** because Step 3 is about to
   persist `AppRecord`s durably and publish the manifest spec into team repos — one field today,
-  a migration and a spec recall later. Multicloud *strengthens* P12's categorical claim: "which
-  cloud's service, under which guardrails, for **my** APP" is a join no single cloud's surface
-  can compute.
+  a migration and a spec recall later. The value to the team is not cloud comparison but "for
+  **my** app, in **my** landing zones, now" holding true even when those zones span clouds.
 - **P27 — Sibling portals and RAG chatbots are never sources; they are candidate consumers.**
   A chatbot's output is synthesized content: it has no stable provenance (violates P14) and it
   encodes judgment (violates P15) — it cannot be Evidence. The **doc pages underneath it** are
   the legitimate adapter targets. The chatbot itself sits on the other side of the product: a
   ready-made *consumer* of the agent face (agent×pull binding, P13) that can ground its answers
   in Atlas briefs/resource atoms. Competitive posture follows: Atlas does **not** compete with a
-  cloud's own portal on single-cloud Q&A — its categorical win is the scoped cross-cloud join.
+  cloud's own portal on single-cloud Q&A — its categorical win is the situated, cited,
+  agent-consumable brief ("for my app, here, now"), the same on whichever cloud a team runs.
 - **P28 — DORA calibration: token economy and verification cost are contract properties, not
   implementation details.** DORA ROI names "build the context layer" the first enterprise AI
   investment and machine-readable context the mechanism — external confirmation of P12/P20/P22;
@@ -185,11 +191,27 @@ calibrations follow.
   (P20) is DORA's "make verification cheap, give trust an evidentiary basis" — **time-to-verify**
   (citation-follow to source) joins time-to-brief in Step 6. Track B carries the DORA citations
   into every fetch-access negotiation.
-- **P29 — Second cloud scheduled: falsifier A3 is the exit condition of P23's pause.** P23
-  paused the second landing zone for want of a source; the multicloud fact supplies a named
-  landability candidate (the second cloud's doc surfaces). A new falsification experiment
-  **A3 — second-cloud source landability** enters `implementation-plan.md` §6; passing it turns
-  the second cloud's landing into an I5 conformance-kit checklist (the adapter growth axis's
-  first real exercise, P22), not a design event. The build order (Steps 1–7) is unchanged;
-  a roadmap view (R0–R4: app-scope → merge live → two front doors + instruments → multicloud
-  landing → enforcement + ecosystem) is recorded in `implementation-plan.md` §7.
+- **P29 — Multicloud is a cross-cutting design constraint on the foundation, interfaces, and
+  contracts — never a roadmap phase.** (Owner, correcting the first draft of this ruling.) Every
+  seam and data shape is **multi-cloud / multi-LZ native from the first line**: any cloud or
+  landing zone plugs in **behind the adapter port with zero change to the foundation, interfaces,
+  or contracts** — only its adapter/resolver is added, incrementally, whenever a real one needs
+  connecting. A single-cloud / single-LZ assumption or a hardcoded singular is a **defect**, to
+  be caught by type or test **at every step**, not deferred to a future migration. This repo is
+  **public-safe** (ADR-0004): it ships only the generic seam + mocks; it does **not** own any
+  real cloud's availability data, and **verifying a real cloud's landability is company-side
+  work, not a gate in this plan**. Consequences that retract the first draft:
+  - The **A3 "second-cloud landability" falsifier is withdrawn** — it described company-side data
+    verification, not repo work (it survives only as a Track-B note: when a team wants a new
+    cloud connected, its owning side confirms the source is parseable before the adapter is
+    written).
+  - The **R3 "multicloud landing" milestone is dissolved** — there is no such phase. What P26
+    already did (set-shaped scope, adapter growth axis) *is* the multicloud work; new
+    cloud/LZ adapters are incremental plug-ins behind the port, not a scheduled step.
+  - **Entra app-scope enforcement is a movable feature, not a terminal phase** — it can be
+    sequenced early (right after self-declared app-scope, Step 3), per
+    `entra-app-scope-implementation-plan.md`; the "R4" ordering is dropped.
+  - The build order (Steps 1–7) is unchanged. `implementation-plan.md` records the constraint as
+    a **cross-cutting acceptance line across all steps** (§2/§7), not a phase; every goal prompt
+    carries it as a Constraint and, where a contract touches cloud/LZ, a DoD item guarding
+    against single-cloud assumptions.

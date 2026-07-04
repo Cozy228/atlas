@@ -117,6 +117,10 @@ portal (loaders · /api bridge · .md route · MCP)
 
 ## Constraints
 
+- **Multicloud-native (cross-cutting, P29).** Foundation, interfaces, and contracts are
+  multi-cloud / multi-LZ native. In this step: scope is `landingZoneIds[]` (a set) end to end —
+  no singular `landingZoneId` survives in the factory input, the vetted context, or any signature
+  it touches. A hardcoded single cloud/LZ assumption is a defect. Guarded by D11.
 - Public-safe (ADR-0004): fictional data only; no real tenant/tokens.
 - Tests-not-gutted: no existing test deleted or weakened to get green; update
   call sites to construct via the factory instead.
@@ -138,6 +142,7 @@ portal (loaders · /api bridge · .md route · MCP)
 | D8 | By-reference honest-empty | factory unit test: unknown `appId` via null `AppDirectoryPort` → no app scope + `scope_unresolved` |
 | D9 | Transport-wiring guard: in-process face ≡ HTTP face | extend `contextApiContract.test.ts`: same resource read through in-process client and `handleHttpRequest` yields identical governed projection; both share cache + thread Bearer |
 | D10 | Whole repo green | `pnpm -r typecheck` and `pnpm -r test` pass; no skipped/deleted tests vs. baseline |
+| D11 | Scope is multi-LZ native (P29) | grep/type test: no singular `landingZoneId` in the factory input, vetted context, or touched signatures; factory unit test passes a two-LZ set through and both survive |
 
 ## Batches
 
