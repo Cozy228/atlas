@@ -1,8 +1,10 @@
 import { queryOptions } from "@tanstack/react-query";
 import type {
   AppListResponse,
+  Brief,
   ChangesResponse,
   LandingZone,
+  Moment,
   ResourceCatalogResponse,
   ResourceContextResponse,
   ResourceRecordResponse,
@@ -13,6 +15,7 @@ import type {
 import { fetchApps } from "@/api/server/apps";
 import { fetchAvailability, type AvailabilityResponse } from "@/api/server/availability";
 import {
+  fetchBrief,
   fetchChanges,
   fetchLandingZones,
   fetchResourceCatalog,
@@ -78,6 +81,34 @@ export function changesQueryOptionsFor(landingZones?: string[]) {
   return queryOptions<ChangesResponse>({
     queryKey: ["changes", key] as const,
     queryFn: () => fetchChanges({ data: key ? { landingZones } : undefined }),
+    staleTime: 30_000,
+  });
+}
+
+/**
+ * The one serialized moment `Brief` (Step 4, I3/M9). Keyed by moment + the
+ * situation's LZ scope + the adopt/build target service, so switching APP/LZ or
+ * moment re-assembles the scoped Brief. The Portal human render asks the server
+ * for `excerpts` depth (the section bodies); the same value backs the `.md` +
+ * `/api/briefs/*` faces (face drift is structurally inexpressible, I3).
+ */
+export function briefQueryOptionsFor(
+  moment: Moment,
+  scope?: { landingZones?: string[]; service?: string },
+) {
+  const zonesKey = scope?.landingZones?.length ? [...scope.landingZones].sort().join(",") : "";
+  const serviceKey = scope?.service ?? "";
+  return queryOptions<Brief>({
+    queryKey: ["brief", moment, zonesKey, serviceKey] as const,
+    queryFn: () =>
+      fetchBrief({
+        data: {
+          moment,
+          ...(scope?.landingZones?.length ? { landingZones: scope.landingZones } : {}),
+          ...(scope?.service ? { service: scope.service } : {}),
+          depth: "excerpts",
+        },
+      }),
     staleTime: 30_000,
   });
 }

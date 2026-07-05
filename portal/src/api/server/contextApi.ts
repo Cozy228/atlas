@@ -10,9 +10,13 @@ import { createServerFn } from "@tanstack/react-start";
 import { getRequestHeader } from "@tanstack/react-start/server";
 import {
   SourceDiscoveryRequestSchema,
+  moments,
   type AvailabilityResponse,
+  type Brief,
+  type BriefDepth,
   type ChangesResponse,
   type LandingZone,
+  type Moment,
   type SourceDiscoveryRequest,
 } from "@atlas/schema";
 import { LANDING_ZONES } from "@atlas/context-layer";
@@ -21,6 +25,7 @@ import { z } from "zod";
 import { createServerContextApiClient } from "./httpContextApiClient";
 import { resolveDataMode } from "./dataMode";
 import { mockChangesFeed } from "./changesMock";
+import { mockBrief } from "./briefsMock";
 
 /**
  * Build a Context API client for the current request, forwarding whatever
@@ -122,6 +127,37 @@ export const fetchChanges = createServerFn(SERVER_FN_OPTIONS)
         ? { landingZones: data?.landingZones, appId: data?.appId }
         : undefined;
     return contextApiForRequest().getChanges(scope, data?.since);
+  });
+
+// The one serialized moment Brief (Step 4, I3/M9). Scope is the situation's
+// landing-zone set (by value) and/or `appId`, plus the adopt/build target
+// `service` and the change `since` cursor. The Portal human render asks
+// `excerpts` explicitly (mid-level §3); in mock mode a deterministic fixture
+// Brief renders the surface, live assembles the real value through the router.
+const briefRequestSchema = z.object({
+  moment: z.enum(moments),
+  landingZones: z.array(z.string().min(1)).min(1).optional(),
+  appId: z.string().min(1).optional(),
+  service: z.string().min(1).optional(),
+  since: z.string().min(1).optional(),
+  depth: z.enum(["citations", "excerpts"]).optional(),
+});
+
+export const fetchBrief = createServerFn(SERVER_FN_OPTIONS)
+  .validator((input: unknown) => briefRequestSchema.parse(input))
+  .handler(async ({ data }): Promise<Brief> => {
+    const depth: BriefDepth = data.depth ?? "excerpts";
+    if (resolveDataMode() === "mock") {
+      return mockBrief(data.moment as Moment, {
+        landingZones: data.landingZones,
+        service: data.service,
+      });
+    }
+    const scope =
+      data.landingZones?.length || data.appId || data.service
+        ? { landingZones: data.landingZones, appId: data.appId, service: data.service }
+        : undefined;
+    return contextApiForRequest().getBrief(data.moment, scope, depth);
   });
 
 /**

@@ -8,20 +8,48 @@
  * to re-serve content the agent can discover itself from its repo or the source
  * directly (P28).
  *
- * Batch-0: signatures only (throw `unimplemented`). Batch 2 lands adopt, Batch 3
- * build, Batch 4 change.
+ * adopt / build plan from `(graph, scope)`; change is threaded the derived feed.
  */
-import type { ChangeEvent, GraphVersion } from "@atlas/schema";
+import type { ChangeEvent, GraphVersion, SectionId } from "@atlas/schema";
 import type { BlockRequest, BriefScope, BriefTemplate } from "./briefTypes";
-import { unimplemented } from "./unimplemented";
 
 /**
- * Adopt (D4): "can I adopt this service here?" — follows the adopt edge/section
- * contract and emits per-zone availability + policy blocks for the situation's LZ
- * set, plus the LZ-independent service blocks once (P26). Batch 2.
+ * Adopt (D4): "can I adopt this service here?" — the adopt relevance contract
+ * (M5, closed sets, no budget):
+ *
+ *   - LZ-DEPENDENT (P26): the `availability` section is asked ONCE PER member zone
+ *     in the situation's LZ set — the whole point of adopt is "available HERE?",
+ *     answered for every candidate zone (honest-empty where a zone has no data,
+ *     never an absent block).
+ *   - LZ-INDEPENDENT: the service's adoption context — `overview`, `network` (only
+ *     when the graph shows the service uses a module — `uses-module`), and
+ *     `security` — rendered ONCE (no `landingZoneId`).
+ *
+ * Every block's subject is the target service (a block delivers the JOIN, never a
+ * re-served body the agent can read itself, P28). Pure: `(graph, scope)` only —
+ * no I/O, no `now()`.
  */
-export const adoptTemplate: BriefTemplate = (_graph: GraphVersion, _scope: BriefScope) => {
-  return unimplemented("adoptTemplate");
+export const adoptTemplate: BriefTemplate = (graph: GraphVersion, scope: BriefScope) => {
+  const requests: BlockRequest[] = [];
+  for (const slug of scope.serviceSlugs) {
+    const subject = { kind: "service", id: slug };
+
+    // LZ-dependent: availability per member zone (the fan-out follows the LZ set).
+    for (const landingZoneId of scope.landingZoneIds) {
+      requests.push({ subject, sections: ["availability"], landingZoneId });
+    }
+
+    // LZ-independent: the once-rendered adoption context. `network` is only in the
+    // closed subset when the graph witnesses a module edge for the service.
+    const usesModule = graph.edges.some(
+      (edge) => edge.type === "uses-module" && edge.from === slug,
+    );
+    const sections: SectionId[] = usesModule
+      ? ["overview", "network", "security"]
+      : ["overview", "security"];
+    requests.push({ subject, sections });
+  }
+  return requests;
 };
 
 /**
@@ -29,8 +57,23 @@ export const adoptTemplate: BriefTemplate = (_graph: GraphVersion, _scope: Brief
  * services (their modules/policies/guidance), the fan-out following the data (a
  * service with 8 modules shows 8, M5). Batch 3.
  */
-export const buildTemplate: BriefTemplate = (_graph: GraphVersion, _scope: BriefScope) => {
-  return unimplemented("buildTemplate");
+export const buildTemplate: BriefTemplate = (graph: GraphVersion, scope: BriefScope) => {
+  const requests: BlockRequest[] = [];
+  for (const slug of scope.serviceSlugs) {
+    const subject = { kind: "service", id: slug };
+    // The "my context" join for one declared service. `network`/`examples` are in
+    // the closed subset only when the graph witnesses a module edge; the section
+    // resolution then fans out one citation per bound module — a service with N
+    // modules shows N (M5, no numeric budget), the fan-out following the data.
+    const usesModule = graph.edges.some(
+      (edge) => edge.type === "uses-module" && edge.from === slug,
+    );
+    const sections: SectionId[] = usesModule
+      ? ["overview", "network", "security", "examples"]
+      : ["overview", "security"];
+    requests.push({ subject, sections });
+  }
+  return requests;
 };
 
 /**
@@ -48,9 +91,20 @@ export const buildTemplate: BriefTemplate = (_graph: GraphVersion, _scope: Brief
 export function changeTemplate(
   _graph: GraphVersion,
   _scope: BriefScope,
-  _events: ChangeEvent[],
+  events: ChangeEvent[],
 ): BlockRequest[] {
-  return unimplemented("changeTemplate");
+  // One planned block per relevant change, in feed order. The `events` are the
+  // planner's substrate (already scope-filtered by the executor's
+  // `handleChangesRequest` read); `graph`/`scope` ride the frozen pure signature
+  // (I1 pin) but the change moment's truth is the derived feed. `sections` is
+  // empty by construction: a change block DELIVERS the announcement, it never
+  // re-serves the changed resource's body — the agent follows the feed / resource
+  // atom for that (P28). A single-zone event carries its member zone (P26).
+  return events.map((event) => ({
+    subject: { kind: event.subject.kind, id: event.subject.id },
+    sections: [] as SectionId[],
+    ...(event.landingZoneIds.length === 1 ? { landingZoneId: event.landingZoneIds[0] } : {}),
+  }));
 }
 
 /**
@@ -60,5 +114,5 @@ export function changeTemplate(
  * neither routes through here.
  */
 export function templateForMoment(moment: "adopt" | "build"): BriefTemplate {
-  return unimplemented(`templateForMoment(${moment})`);
+  return moment === "adopt" ? adoptTemplate : buildTemplate;
 }

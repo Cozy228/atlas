@@ -24,11 +24,9 @@ import { createConfluenceAvailabilityProvider } from "../sourceContent/confluenc
 import type { AvailabilityProvider } from "../services/availabilityProvider";
 import { logger, serializeError } from "../observability/logging";
 import { sharedEventsRepository } from "../repositories/eventsRepositoryFactory";
-import { LANDING_ZONES } from "../landingZones";
 import type { AgingNote } from "./graphTypes";
 import { sharedSnapshotStore } from "./snapshotStoreFactory";
-import { availabilityRootId, SECURITY_ROOT_ID, TERRAFORM_ROOT_ID } from "./rootIds";
-import { parseAvailabilityRoot, parseSecurityRoot, parseTerraformRoot } from "./rootParsers";
+import { buildRootDescriptors } from "./rootConfig";
 import { serveRootSnapshot, type ServeRootSnapshotDeps } from "./snapshotTransition";
 
 const log = logger("graph");
@@ -47,24 +45,6 @@ export type RefreshGraphSnapshotsResult = {
   aging: AgingNote[];
 };
 
-function parseModuleMap(raw: string | undefined): Record<string, string[]> {
-  if (!raw) return {};
-  try {
-    const parsed = JSON.parse(raw) as unknown;
-    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
-    const map: Record<string, string[]> = {};
-    for (const [key, value] of Object.entries(parsed)) {
-      const names = (Array.isArray(value) ? value : [value]).filter(
-        (name): name is string => typeof name === "string" && name.length > 0,
-      );
-      if (names.length > 0) map[key] = names;
-    }
-    return map;
-  } catch {
-    return {};
-  }
-}
-
 export async function refreshGraphSnapshots(
   options: RefreshGraphSnapshotsOptions = {},
 ): Promise<RefreshGraphSnapshotsResult> {
@@ -72,7 +52,6 @@ export async function refreshGraphSnapshots(
   const ctx = await createResolutionContext({ env });
   const availabilityProvider =
     options.availabilityProvider ?? createConfluenceAvailabilityProvider({ fetch: ctx.fetch, env });
-  const moduleMap = parseModuleMap(env.TERRAFORM_MODULE_MAP);
 
   const deps: ServeRootSnapshotDeps = {
     store: sharedSnapshotStore(env),
@@ -81,57 +60,18 @@ export async function refreshGraphSnapshots(
   };
 
   // One thunk per root; a root's own failure is isolated (one subgraph ages, the
-  // others stay live — acceptance B).
-  const roots: { id: string; crawl: () => Promise<import("./graphTypes").RootSnapshot> }[] = [
-    ...LANDING_ZONES.map((zone) => ({
-      id: availabilityRootId(zone.id),
-      crawl: () =>
-        parseAvailabilityRoot(zone.id, { ctx, availabilityProvider }).then((parse) => ({
-          rootId: availabilityRootId(zone.id),
-          parse,
-          resolvedAt: deps.now().toISOString(),
-          contractVersion: "availability-v1",
-        })),
-    })),
-    {
-      id: TERRAFORM_ROOT_ID,
-      crawl: () =>
-        parseTerraformRoot({
-          ctx,
-          availabilityProvider,
-          terraform: {
-            baseUrl: env.TERRAFORM_BASE_URL ?? "",
-            token: env.TERRAFORM_TOKEN ?? "",
-            org: env.TERRAFORM_ORG ?? "",
-            moduleMap,
-          },
-        }).then((parse) => ({
-          rootId: TERRAFORM_ROOT_ID,
-          parse,
-          resolvedAt: deps.now().toISOString(),
-          contractVersion: "terraform-v1",
-        })),
-    },
-    {
-      id: SECURITY_ROOT_ID,
-      crawl: () =>
-        parseSecurityRoot({
-          ctx,
-          confluence: {
-            baseUrl: env.CONFLUENCE_SECURITY_BASE_URL ?? env.CONFLUENCE_BASE_URL ?? "",
-            token: env.CONFLUENCE_SECURITY_TOKEN ?? env.CONFLUENCE_TOKEN ?? "",
-            email: env.CONFLUENCE_SECURITY_EMAIL ?? env.CONFLUENCE_EMAIL,
-            spaceKey: env.CONFLUENCE_SECURITY_SPACE_KEY ?? "",
-            rootPageId: env.CONFLUENCE_SECURITY_ROOT_PAGE_ID,
-          },
-        }).then((parse) => ({
-          rootId: SECURITY_ROOT_ID,
-          parse,
-          resolvedAt: deps.now().toISOString(),
-          contractVersion: "security-v1",
-        })),
-    },
-  ];
+  // others stay live — acceptance B). The refresh stamps `resolvedAt` with its
+  // injectable clock (`deps.now`) around the shared descriptor's parse.
+  const roots = buildRootDescriptors({ ctx, availabilityProvider, env }).map((root) => ({
+    id: root.rootId,
+    crawl: (): Promise<import("./graphTypes").RootSnapshot> =>
+      root.parse().then((parse) => ({
+        rootId: root.rootId,
+        parse,
+        resolvedAt: deps.now().toISOString(),
+        contractVersion: root.contractVersion,
+      })),
+  }));
 
   let events = 0;
   const aging: AgingNote[] = [];

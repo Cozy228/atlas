@@ -17,6 +17,7 @@ import { z } from "zod";
 import {
   ApiErrorResponseSchema,
   AvailabilityReadResponseSchema,
+  BriefSchema,
   ChangesResponseSchema,
   ContextSectionSchema,
   FeedbackResponseSchema,
@@ -436,6 +437,40 @@ function internalPaths() {
         },
       },
     },
+    "/briefs/{moment}": {
+      get: {
+        tags: [READ_FACE.registry],
+        operationId: "getBrief",
+        summary: "Assemble one cited moment Brief for the situation",
+        description:
+          "The one serialized `Brief` value (Step 4, I3): a pure template plans the blocks from the pinned graph version + scope, the bounded-concurrency executor resolves them through the same governed content path, and every face (`/api/briefs/{moment}`, `/briefs/{moment}.md`, the Portal page) renders THIS value. `moment` is one of `adopt` / `build` / `change` (`debug` is an honest not-yet-available response until Step 7). `?depth=citations` (default) returns structure + citations with no excerpt bodies; `?depth=excerpts` adds them. Per-zone blocks (availability, policy) carry `landingZoneId` and render once per member zone (P26); a missing/failed section is honest-empty (`unresolved`/`partial` + a warning), never an absent block. The `.md` representation of the same value is served at `/briefs/{moment}.md`.",
+        parameters: [
+          {
+            name: "moment",
+            in: "path",
+            required: true,
+            description: "The moment to assemble: `adopt`, `build`, `change`, or `debug`.",
+            schema: { type: "string", enum: ["adopt", "build", "change", "debug"] },
+          },
+          queryParam("service", "Target service slug for the adopt / build moments."),
+          queryParam("since", "Opaque incremental cursor for the change moment."),
+          queryParam("depth", "`citations` (default) or `excerpts` (M9).", {
+            type: "string",
+            enum: ["citations", "excerpts"],
+          }),
+          queryParam("landingZones", "Comma-separated landing-zone scope (by value)."),
+          queryParam("appId", "Registered APP id (scope by reference)."),
+        ],
+        responses: {
+          "200": {
+            description:
+              "The one assembled Brief value. Relay every block's `warnings[]` verbatim; absence of data is never a negative answer.",
+            content: jsonContent("Brief"),
+          },
+          "400": errorResponse("`invalid_request` — unknown moment."),
+        },
+      },
+    },
     "/feedback": {
       post: {
         tags: [READ_FACE.management],
@@ -575,6 +610,7 @@ export function buildInternalOpenApiDocument(origin: string = DEFAULT_PORTAL_ORI
         SourceResponse: toJsonSchema(SourceResponseSchema),
         AvailabilityReadResponse: toJsonSchema(AvailabilityReadResponseSchema),
         ChangesResponse: toJsonSchema(ChangesResponseSchema),
+        Brief: toJsonSchema(BriefSchema),
         FeedbackSubmission: toJsonSchema(FeedbackSubmissionSchema),
         FeedbackResponse: toJsonSchema(FeedbackResponseSchema),
         ApiErrorResponse: toJsonSchema(ApiErrorResponseSchema),

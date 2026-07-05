@@ -27,6 +27,7 @@ import { Route as SourcesSourceIdRouteImport } from './routes/sources.$sourceId'
 import { Route as ReleasesReleaseIdRouteImport } from './routes/releases.$releaseId'
 import { Route as PoliciesPolicyIdRouteImport } from './routes/policies.$policyId'
 import { Route as GuidanceGuidanceIdRouteImport } from './routes/guidance.$guidanceId'
+import { Route as BriefsMomentRouteImport } from './routes/briefs.$moment'
 import { Route as ServiceProviderIdRouteImport } from './routes/service.$provider.$id'
 
 const WhatsnewRoute = WhatsnewRouteImport.update({
@@ -119,6 +120,11 @@ const GuidanceGuidanceIdRoute = GuidanceGuidanceIdRouteImport.update({
   path: '/$guidanceId',
   getParentRoute: () => GuidanceRoute,
 } as any)
+const BriefsMomentRoute = BriefsMomentRouteImport.update({
+  id: '/briefs/$moment',
+  path: '/briefs/$moment',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ServiceProviderIdRoute = ServiceProviderIdRouteImport.update({
   id: '/service/$provider/$id',
   path: '/service/$provider/$id',
@@ -135,6 +141,7 @@ export interface FileRoutesByFullPath {
   '/sources': typeof SourcesRouteWithChildren
   '/support': typeof SupportRoute
   '/whatsnew': typeof WhatsnewRoute
+  '/briefs/$moment': typeof BriefsMomentRoute
   '/guidance/$guidanceId': typeof GuidanceGuidanceIdRoute
   '/policies/$policyId': typeof PoliciesPolicyIdRoute
   '/releases/$releaseId': typeof ReleasesReleaseIdRoute
@@ -152,6 +159,7 @@ export interface FileRoutesByTo {
   '/overview': typeof OverviewRoute
   '/support': typeof SupportRoute
   '/whatsnew': typeof WhatsnewRoute
+  '/briefs/$moment': typeof BriefsMomentRoute
   '/guidance/$guidanceId': typeof GuidanceGuidanceIdRoute
   '/policies/$policyId': typeof PoliciesPolicyIdRoute
   '/releases/$releaseId': typeof ReleasesReleaseIdRoute
@@ -174,6 +182,7 @@ export interface FileRoutesById {
   '/sources': typeof SourcesRouteWithChildren
   '/support': typeof SupportRoute
   '/whatsnew': typeof WhatsnewRoute
+  '/briefs/$moment': typeof BriefsMomentRoute
   '/guidance/$guidanceId': typeof GuidanceGuidanceIdRoute
   '/policies/$policyId': typeof PoliciesPolicyIdRoute
   '/releases/$releaseId': typeof ReleasesReleaseIdRoute
@@ -197,6 +206,7 @@ export interface FileRouteTypes {
     | '/sources'
     | '/support'
     | '/whatsnew'
+    | '/briefs/$moment'
     | '/guidance/$guidanceId'
     | '/policies/$policyId'
     | '/releases/$releaseId'
@@ -214,6 +224,7 @@ export interface FileRouteTypes {
     | '/overview'
     | '/support'
     | '/whatsnew'
+    | '/briefs/$moment'
     | '/guidance/$guidanceId'
     | '/policies/$policyId'
     | '/releases/$releaseId'
@@ -235,6 +246,7 @@ export interface FileRouteTypes {
     | '/sources'
     | '/support'
     | '/whatsnew'
+    | '/briefs/$moment'
     | '/guidance/$guidanceId'
     | '/policies/$policyId'
     | '/releases/$releaseId'
@@ -257,6 +269,7 @@ export interface RootRouteChildren {
   SourcesRoute: typeof SourcesRouteWithChildren
   SupportRoute: typeof SupportRoute
   WhatsnewRoute: typeof WhatsnewRoute
+  BriefsMomentRoute: typeof BriefsMomentRoute
   PoliciesPolicyIdRoute: typeof PoliciesPolicyIdRoute
   ReleasesReleaseIdRoute: typeof ReleasesReleaseIdRoute
   SkillsIndexRoute: typeof SkillsIndexRoute
@@ -391,6 +404,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GuidanceGuidanceIdRouteImport
       parentRoute: typeof GuidanceRoute
     }
+    '/briefs/$moment': {
+      id: '/briefs/$moment'
+      path: '/briefs/$moment'
+      fullPath: '/briefs/$moment'
+      preLoaderRoute: typeof BriefsMomentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/service/$provider/$id': {
       id: '/service/$provider/$id'
       path: '/service/$provider/$id'
@@ -461,6 +481,7 @@ const rootRouteChildren: RootRouteChildren = {
   SourcesRoute: SourcesRouteWithChildren,
   SupportRoute: SupportRoute,
   WhatsnewRoute: WhatsnewRoute,
+  BriefsMomentRoute: BriefsMomentRoute,
   PoliciesPolicyIdRoute: PoliciesPolicyIdRoute,
   ReleasesReleaseIdRoute: ReleasesReleaseIdRoute,
   SkillsIndexRoute: SkillsIndexRoute,
