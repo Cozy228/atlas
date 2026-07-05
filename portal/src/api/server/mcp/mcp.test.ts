@@ -62,7 +62,12 @@ describe("mcp protocol surface", () => {
     );
   });
 
-  it("lists exactly the four read-only atlas_* tools", async () => {
+  it("lists the read-only atlas_* tools — the four atoms plus the Step-5 moment tools", async () => {
+    // Step 5 (front doors) adds `atlas_bootstrap` + the three moment tools to
+    // tools/list — a legitimate growth of the surface. The four original atoms
+    // remain (agents may have them memorized); `atlas_explain_error` is Step 7
+    // and deliberately absent (locked decision 5). Every listed tool stays
+    // read-only.
     const response = await handleMcpRequest(rpc("tools/list"));
     const body = await response.json();
     const tools = body.result.tools as {
@@ -70,11 +75,16 @@ describe("mcp protocol surface", () => {
       annotations: { readOnlyHint: boolean };
     }[];
     expect(tools.map((tool) => tool.name).sort()).toEqual([
+      "atlas_bootstrap",
+      "atlas_check_adoption",
       "atlas_get_availability",
+      "atlas_get_my_context",
       "atlas_get_resource_context",
       "atlas_get_source",
       "atlas_search_service",
+      "atlas_whats_changed",
     ]);
+    expect(tools.map((tool) => tool.name)).not.toContain("atlas_explain_error");
     for (const tool of tools) {
       expect(tool.name).toMatch(/^atlas_/);
       expect(tool.annotations.readOnlyHint).toBe(true);
