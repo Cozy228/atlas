@@ -7,6 +7,19 @@ export {
 } from "./api/appsRoutes";
 export { handleFeedbackRequest } from "./api/feedbackRoute";
 export { handleChangesRequest, type ChangesRequestOptions } from "./api/changesRoute";
+export {
+  handleBriefRequest,
+  renderBriefMarkdown,
+  type BriefRequestOptions,
+} from "./api/briefsRoute";
+export { assembleBrief } from "./briefs/assembleBrief";
+export {
+  adoptTemplate,
+  buildTemplate,
+  changeTemplate,
+  templateForMoment,
+} from "./briefs/templates";
+export type { BlockRequest, BriefPlan, BriefScope, BriefTemplate } from "./briefs/briefTypes";
 export { handleHttpRequest } from "./api/httpRoute";
 export { handleSourceDiscoveryRequest } from "./api/sourceDiscoveryRoute";
 export { handleSourceRequest } from "./api/sourceRoute";

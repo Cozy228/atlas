@@ -14,6 +14,8 @@ import {
   type AppResponse,
   type AppUpdateRequest,
   type AvailabilityReadResponse,
+  type Brief,
+  type BriefDepth,
   type ChangesResponse,
   type FeedbackResponse,
   type FeedbackSubmission,
@@ -35,6 +37,14 @@ import {
  */
 export type AvailabilityScope = { landingZones?: string[]; appId?: string };
 
+/**
+ * The brief request scope (Step 4, mid-level §3): the availability scope plus the
+ * adopt/build target service, which rides the scope so the 3-arg `getBrief`
+ * signature stays goal-prompt-pinned. The HTTP face serializes it as `?service=`;
+ * the in-process face threads it into the brief handler options.
+ */
+export type BriefRequestScope = AvailabilityScope & { service?: string };
+
 export type ContextApiClient = {
   getSource(id: string): Promise<SourceResponse>;
   /** Scoped availability (Step 3 D5/D8): with a scope, only the member zones
@@ -43,6 +53,11 @@ export type ContextApiClient = {
   /** The per-scope change feed (Step 2, M8): derived `ChangeEvent`s filtered to
    *  the scope; `since` is an opaque incremental cursor from a prior response. */
   getChanges(scope?: AvailabilityScope, since?: string): Promise<ChangesResponse>;
+  /** The one serialized moment `Brief` (Step 4, I3/M9): assembled for the scope
+   *  and rendered identically across every face. The scope carries the adopt/build
+   *  target `service` (mid-level §3 `?service=`). `depth` selects citations vs
+   *  excerpts (M9/P28); `debug` returns an honest not-yet-available brief. */
+  getBrief(moment: string, scope?: BriefRequestScope, depth?: BriefDepth): Promise<Brief>;
   /** Consumer state (Step 3, mid-level §3). Registration is an explicit act
    *  (M11) — these are the only writers; `origin` is always server-set. */
   listApps(): Promise<AppListResponse>;
@@ -111,6 +126,17 @@ export function createStaticContextApiClient({
       // The change feed is derived server-side state; the read-only browser
       // snapshot has none. The in-process / HTTP faces carry it (Batch 4).
       return ChangesResponseSchema.parse({ events: [], cursor: null });
+    },
+    async getBrief(
+      _moment: string,
+      _scope?: BriefRequestScope,
+      _depth?: BriefDepth,
+    ): Promise<Brief> {
+      // A Brief is assembled server-side from the governed graph + content path;
+      // the read-only browser snapshot cannot honestly construct a situation, so
+      // it declines rather than fabricate one. The in-process / HTTP faces carry
+      // brief assembly (Step 4 Batch 5).
+      throw new Error("Static context client cannot assemble a brief (server-side assembly).");
     },
     // Consumer state (self-declared APPs) is durable server-side state; the
     // static browser client is a read-only snapshot, so it has no APPs to list

@@ -1075,6 +1075,160 @@ export type EventClass = z.infer<typeof EventClassSchema>;
 export type ChangeEvent = z.infer<typeof ChangeEventSchema>;
 export type ChangesResponse = z.infer<typeof ChangesResponseSchema>;
 
+/* -------------------------------------------------------------------------- *
+ * Moment briefs — L3/L4 assembly + representation (Step 4: I3/I4, M4/M5/M9,
+ * P26/P28)
+ *
+ * A `Brief` is the one serialized value every surface consumes (I3): the pure
+ * template plans `BlockRequest[]` (graph + scope), the bounded-concurrency
+ * executor resolves them into `BriefBlock[]`, and this shape is what
+ * `GET /api/briefs/{moment}`, `/briefs/{moment}.md`, and the Portal page props
+ * all render — byte-identically, so face drift is structurally inexpressible.
+ *
+ * Reuse discipline (locked decision 1): the two-axis status is `sectionStatuses`
+ * (`available | partial | unresolved`); reasons are `warningCodes` via
+ * `ResourceWarning` — NO parallel status vocabulary. Evidence (cited section
+ * content) and pointers (`OperationalLocation`) are SEPARATE arrays by
+ * construction — the ADR-0003 line is a type property, not a style rule.
+ * -------------------------------------------------------------------------- */
+
+export const moments = ["adopt", "build", "debug", "change"] as const;
+export const MomentSchema = z.enum(moments);
+
+/**
+ * `?depth=citations|excerpts` is an acceptance property, not an option (M9/P28).
+ * `citations` returns structure + citations with NO excerpt bodies (the agent
+ * face is consumable without paying excerpt cost); `excerpts` includes bodies
+ * (the human render default).
+ */
+export const briefDepths = ["citations", "excerpts"] as const;
+export const BriefDepthSchema = z.enum(briefDepths);
+
+/**
+ * The situation's scope-provenance. NOTE (doc reconciliation, flagged for review,
+ * 2026-07-05): mid-level §1 writes `Brief.situation.origin` without pinning its
+ * enum, while listing `AppRecord.origin ∈ self-declared|registry`. The situation
+ * is built from the wired `ctx.scope.origin` (Step 1 governance gate), whose
+ * closed values are `by-value|by-reference` — how the scope entered (manifest
+ * value vs a registered `appId`). This schema carries THAT value, so the
+ * executor maps `ctx.scope.origin → situation.origin` directly with no
+ * consumer-state read (P30: consumer state is never Evidence). It is deliberately
+ * NOT `AppOrigin` (that is the AppRecord's provenance label, a different axis).
+ */
+export const situationOrigins = ["by-value", "by-reference"] as const;
+export const SituationOriginSchema = z.enum(situationOrigins);
+
+/**
+ * `OperationalLocation` (mid-level §1; ADR-0003 pointer seat). A pointer record:
+ * its *existence* is discovered with provenance; any *value* fetched through it
+ * is operational status — uncited, never stored, never Evidence. Empty/unused
+ * until Step 7 fills it (the debug floor); the schema lands now so `pointers[]`
+ * has a type from the first line. `system` is open-ended ("tfe" | "harness" | …);
+ * the value channel + auth mode is the owning adapter's property (M12), never an
+ * arbitrary URL GET.
+ */
+export const operationalLocationKinds = [
+  "workspace",
+  "pipeline",
+  "logs",
+  "dashboard",
+  "runbook",
+] as const;
+export const OperationalLocationKindSchema = z.enum(operationalLocationKinds);
+
+export const OperationalLocationSchema = z
+  .object({
+    id: z.string().min(1),
+    system: z.string().min(1),
+    kind: OperationalLocationKindSchema,
+    url: z.string().min(1),
+    discoveredFrom: z.string().min(1),
+  })
+  .strict();
+
+/**
+ * One piece of cited section content inside a block (the "join" a block delivers,
+ * P28 — never re-serving repo-discoverable content). `citations` are always
+ * present (structure + citations survive at `depth=citations`); `excerpt` is the
+ * resolved section body, non-null ONLY at `depth=excerpts` and `null` at
+ * `depth=citations` (M9). On a perf-cache hit each citation's `resolvedAt` is the
+ * original parse time frozen with the excerpt (ADR-0013 §6), never the request
+ * time.
+ */
+export const BriefEvidenceSchema = z
+  .object({
+    // The resource + section this content was resolved from (the join target).
+    resourceId: z.string().min(1), // canonical {kind}/{slug}
+    sectionId: z.string().min(1),
+    citations: z.array(ResourceCitationSchema).min(1),
+    excerpt: z.string().min(1).nullable(),
+  })
+  .strict();
+
+/**
+ * `BriefBlock` (mid-level §1). `landingZoneId` is set on per-zone blocks ONLY
+ * (P26): LZ-dependent blocks (availability, policy) render once per member zone;
+ * LZ-independent blocks omit it and render once. `status` is the two-axis
+ * resolution result (honest-empty per ADR-0013 §4: a missing block is `unresolved`
+ * + a warning, NEVER an absent block; a failed fetch is `partial` + a warning,
+ * NEVER silent truncation).
+ */
+export const BriefBlockSchema = z
+  .object({
+    id: z.string().min(1),
+    question: z.string().min(1),
+    landingZoneId: z.string().min(1).optional(),
+    // axis 1 — resolution status, reusing sectionStatuses (no parallel vocabulary).
+    status: SectionStatusSchema,
+    // Evidence vs pointers: separate arrays by construction (ADR-0003).
+    evidence: z.array(BriefEvidenceSchema),
+    pointers: z.array(OperationalLocationSchema),
+    // axis 2 — reasons via warningCodes (ResourceWarning), never a status word.
+    warnings: z.array(ResourceWarningSchema),
+  })
+  .strict();
+
+/**
+ * The situation the brief answers for: "for my app, in my landing zones, now".
+ * `appId` is present only for a by-reference scope; `landingZoneIds` is the P26
+ * SET the per-zone blocks fan out over (an LZ id carries its cloud identity — no
+ * separate cloud dimension; plural from the first line, a hardcoded singular is a
+ * defect).
+ */
+export const SituationSchema = z
+  .object({
+    appId: z.string().min(1).optional(),
+    landingZoneIds: z.array(z.string().min(1)),
+    origin: SituationOriginSchema,
+  })
+  .strict();
+
+/**
+ * The one serialized `Brief` value (I3). `resolvedAt` is the moment THIS brief
+ * was assembled (ADR-0013 §3 — a resolution time, not a build time; the stable
+ * `/briefs/{moment}.md` address restamps it every render, it is not a stored
+ * file). No brief-level cache stamps it (M4): the content cache underneath is the
+ * only cache, one clock (ADR-0013 §6).
+ */
+export const BriefSchema = z
+  .object({
+    moment: MomentSchema,
+    situation: SituationSchema,
+    blocks: z.array(BriefBlockSchema),
+    resolvedAt: z.string().datetime(),
+  })
+  .strict();
+
+export type Moment = z.infer<typeof MomentSchema>;
+export type BriefDepth = z.infer<typeof BriefDepthSchema>;
+export type SituationOrigin = z.infer<typeof SituationOriginSchema>;
+export type OperationalLocationKind = z.infer<typeof OperationalLocationKindSchema>;
+export type OperationalLocation = z.infer<typeof OperationalLocationSchema>;
+export type BriefEvidence = z.infer<typeof BriefEvidenceSchema>;
+export type BriefBlock = z.infer<typeof BriefBlockSchema>;
+export type Situation = z.infer<typeof SituationSchema>;
+export type Brief = z.infer<typeof BriefSchema>;
+
 export {
   validateGuidanceDocument,
   validateGuidanceManifest,

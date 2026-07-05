@@ -4,6 +4,7 @@ import {
   AppMutationResponseSchema,
   AppResponseSchema,
   AvailabilityReadResponseSchema,
+  BriefSchema,
   ChangesResponseSchema,
   FeedbackResponseSchema,
   ResourceCatalogResponseSchema,
@@ -17,11 +18,13 @@ import {
   type AppRegistrationRequest,
   type AppResponse,
   type AppUpdateRequest,
+  type Brief,
+  type BriefDepth,
   type FeedbackSubmission,
   type SourceDiscoveryRequest,
 } from "@atlas/schema";
 
-import type { AvailabilityScope, ContextApiClient } from "../contextApiClient";
+import type { AvailabilityScope, BriefRequestScope, ContextApiClient } from "../contextApiClient";
 import { ContextApiError } from "../contextApiError";
 import { createInProcessContextApiClient } from "./inProcessContextApi";
 
@@ -108,6 +111,23 @@ export function createFetchContextApiClient(input: {
         fetch: fetchImpl,
         schema: ChangesResponseSchema,
         url: withQuery(`${baseUrl}/changes`, query),
+      });
+    },
+    async getBrief(moment: string, scope?: BriefRequestScope, depth?: BriefDepth): Promise<Brief> {
+      // Same scope serialization as availability/changes (`?landingZones=`/
+      // `?appId=`), plus the adopt/build target `?service=` (mid-level §3) and the
+      // `?depth=` tier (M9). The moment is a path segment, mirroring
+      // `/resources/{kind}/{slug}`.
+      const query: Record<string, string | undefined> = {
+        landingZones: scope?.landingZones?.length ? scope.landingZones.join(",") : undefined,
+        appId: scope?.appId,
+        service: scope?.service,
+        depth,
+      };
+      return requestJson({
+        fetch: fetchImpl,
+        schema: BriefSchema,
+        url: withQuery(`${baseUrl}/briefs/${encodeURIComponent(moment)}`, query),
       });
     },
     async listApps(): Promise<AppListResponse> {

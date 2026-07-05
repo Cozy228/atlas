@@ -13,6 +13,7 @@ import {
   handleAppsListRequest,
   handleAppUpdateRequest,
   handleAvailabilityRequest,
+  handleBriefRequest,
   handleChangesRequest,
   handleFeedbackRequest,
   handleResourceCatalogRequest,
@@ -29,6 +30,7 @@ import {
   AppMutationResponseSchema,
   AppResponseSchema,
   AvailabilityReadResponseSchema,
+  BriefSchema,
   ChangesResponseSchema,
   FeedbackResponseSchema,
   ResourceCatalogResponseSchema,
@@ -43,6 +45,8 @@ import {
   type AppResponse,
   type AppUpdateRequest,
   type AvailabilityReadResponse,
+  type Brief,
+  type BriefDepth,
   type ChangesResponse,
   type FeedbackResponse,
   type FeedbackSubmission,
@@ -55,7 +59,7 @@ import {
   type SourceResponse,
 } from "@atlas/schema";
 
-import type { AvailabilityScope, ContextApiClient } from "../contextApiClient";
+import type { AvailabilityScope, BriefRequestScope, ContextApiClient } from "../contextApiClient";
 
 /** Map the client-facing availability scope to Step 1's `ScopeInput` union. */
 function toScopeInput(scope: AvailabilityScope | undefined): ScopeInput | undefined {
@@ -126,6 +130,21 @@ export function createInProcessContextApiClient(
         scope: toScopeInput(scope),
       });
       return unwrap(await handleChangesRequest(ctx, { since }), ChangesResponseSchema);
+    },
+    async getBrief(moment: string, scope?: BriefRequestScope, depth?: BriefDepth): Promise<Brief> {
+      // The governed brief read (Step 4, I3): thread the caller scope + Bearer
+      // through the one governance-gate factory into the ctx-taking handler; the
+      // adopt/build target `service` rides the scope into the handler options
+      // (mid-level §3 `?service=`). The one Brief value is validated against the
+      // shared schema like every face.
+      const ctx = await createResolutionContext({
+        identity: { bearer: options.token },
+        scope: toScopeInput(scope),
+      });
+      return unwrap(
+        await handleBriefRequest(moment, ctx, { service: scope?.service, depth }),
+        BriefSchema,
+      );
     },
     async listApps(): Promise<AppListResponse> {
       return unwrap(await handleAppsListRequest(), AppListResponseSchema);

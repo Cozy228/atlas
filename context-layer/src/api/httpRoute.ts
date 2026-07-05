@@ -1,4 +1,10 @@
-import type { ApiErrorResponse, ChangesResponse, ResourceContextResponse } from "@atlas/schema";
+import type {
+  ApiErrorResponse,
+  Brief,
+  BriefDepth,
+  ChangesResponse,
+  ResourceContextResponse,
+} from "@atlas/schema";
 import {
   handleAppRegistrationRequest,
   handleAppRequest,
@@ -6,6 +12,7 @@ import {
   handleAppUpdateRequest,
 } from "./appsRoutes";
 import { handleAvailabilityRequest } from "./availabilityRoute";
+import { handleBriefRequest, renderBriefMarkdown, type BriefRequestOptions } from "./briefsRoute";
 import { handleChangesRequest, renderChangesAtom } from "./changesRoute";
 import { handleFeedbackRequest } from "./feedbackRoute";
 import {
@@ -78,6 +85,26 @@ export async function handleHttpRequest(request: HttpRequest): Promise<HttpRespo
   }
   if (method === "GET" && path === "/changes") {
     return jsonResponse(await handleChangesRequest(ctx, { since: request.query?.since }));
+  }
+
+  // Moment briefs (Step 4, mid-level §3): governed + scoped via `ctx`. One
+  // `/briefs/` branch serves both `/briefs/{moment}` (JSON) and the
+  // `/briefs/{moment}.md` representation — the `.md` render is the SAME Brief
+  // value as Markdown (a stable address ≠ a stored file; stamped `resolvedAt`),
+  // the same seam as `/resources/{…}.md`. `?service`/`?since`/`?depth` ride the
+  // query; `debug` is an honest not-yet-available response (Step 7). Matched via
+  // `startsWith` (like `/changes.atom`) so this representation family stays off
+  // the OpenAPI JSON surface.
+  if (method === "GET" && path.startsWith("/briefs/")) {
+    const wantsMarkdown = path.endsWith(".md");
+    const moment = decodeURIComponent(
+      wantsMarkdown ? path.slice("/briefs/".length, -".md".length) : path.slice("/briefs/".length),
+    );
+    const result = await handleBriefRequest(moment, ctx, briefOptions(request.query));
+    if (wantsMarkdown && result.status === 200) {
+      return markdownResponse(renderBriefMarkdown(result.body as Brief));
+    }
+    return jsonResponse(result);
   }
 
   if (method === "GET" && path === "/resources/catalog") {
@@ -194,6 +221,23 @@ function scopeFromQuery(query: HttpRequest["query"]): ScopeInput | undefined {
     return { kind: "by-reference", appId };
   }
   return undefined;
+}
+
+/**
+ * Read the brief query options (Step 4): the target `?service=`, the change
+ * `?since=` cursor, and the `?depth=` tier (M9). `depth` is validated to the
+ * closed `citations|excerpts` set; anything else (or absent) leaves it unset so
+ * the handler applies its per-face default.
+ */
+function briefOptions(query: HttpRequest["query"]): BriefRequestOptions {
+  const depthRaw = query?.depth;
+  const depth: BriefDepth | undefined =
+    depthRaw === "citations" || depthRaw === "excerpts" ? depthRaw : undefined;
+  return {
+    service: query?.service?.trim() || undefined,
+    since: query?.since?.trim() || undefined,
+    ...(depth ? { depth } : {}),
+  };
 }
 
 function bearerToken(headers: HttpRequest["headers"]): string | undefined {

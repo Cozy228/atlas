@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   AppListResponseSchema,
   AvailabilityReadResponseSchema,
+  BriefSchema,
   ChangesResponseSchema,
   ResourceContextResponseSchema,
   type ChangeEvent,
@@ -375,5 +376,41 @@ describe("Context API consumer contract — Step 2 change feed (D9)", () => {
     expect(httpBody.events.map((e) => e.id)).toEqual(["awsf-svc"]);
     expect(inProcess.events.map((e) => e.id)).toEqual(["awsf-svc"]);
     expect(inProcess.events).toEqual(httpBody.events);
+  });
+});
+
+/**
+ * D9/D10 — the moment brief obeys the same transport-wiring guard (Step 4, I3):
+ * the Portal's in-process `getBrief`, `GET /api/briefs/{moment}`, and the `.md`
+ * render all serialize ONE Brief value for a sampled scope. I3 makes face drift
+ * unwritable by construction; this guard proves the wiring. Public-safe fixtures.
+ */
+describe("Context API consumer contract — Step 4 briefs (D9/D10)", () => {
+  it("one Brief value across the in-process and HTTP faces for a sampled scope", async () => {
+    const httpResponse = await handleHttpRequest({
+      method: "GET",
+      path: "/api/briefs/adopt",
+      query: { service: "aws/textract", landingZones: "awsf" },
+    });
+    const httpBrief = BriefSchema.parse(JSON.parse(httpResponse.body));
+
+    const inProcessBrief = await serverContextApiClient.getBrief("adopt", {
+      landingZones: ["awsf"],
+      service: "aws/textract",
+    });
+
+    // One serialized Brief, two transports (normalize the per-call top-level stamp).
+    expect(stripResolvedAt(inProcessBrief)).toEqual(stripResolvedAt(httpBrief));
+  });
+
+  it("the .md face renders the same Brief value (stable address ≠ stored file)", async () => {
+    const markdown = await handleHttpRequest({
+      method: "GET",
+      path: "/api/briefs/adopt.md",
+      query: { service: "aws/textract", landingZones: "awsf" },
+    });
+    expect(markdown.status).toBe(200);
+    expect(markdown.headers["content-type"]).toContain("text/markdown");
+    expect(markdown.body.length).toBeGreaterThan(0);
   });
 });
