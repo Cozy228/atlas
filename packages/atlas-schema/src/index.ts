@@ -917,6 +917,164 @@ export type AppResponse = z.infer<typeof AppResponseSchema>;
 export type AppMutationResponse = z.infer<typeof AppMutationResponseSchema>;
 export type AppListResponse = z.infer<typeof AppListResponseSchema>;
 
+/* -------------------------------------------------------------------------- *
+ * The graph layer — versioned graph + change feed (Step 2: I1, M1/M6/M10, P31)
+ *
+ * The platform's truth is a versioned, aging, self-witnessing graph derived
+ * from the three landed source roots (availability page per LZ, the TFE module
+ * probe set, the guardrail Confluence space). `deriveGraph` turns per-root
+ * snapshots into a content-hashed `GraphVersion`; the differ turns two
+ * successive versions into `ChangeEvent`s over a CLOSED `EventClass` set; the
+ * change feed reads the durable `events` store scoped by `ctx.scope`.
+ *
+ * Closed vocabulary, grounded in what discovery actually witnesses today (P22
+ * growth axis — this set grows only when a new adapter witnesses a new delta
+ * kind, never speculatively):
+ *   nodes  = service | landingZone | module | guardrail
+ *   edges  = available-in (service→LZ) | uses-module (service→module)
+ *            | governed-by (service→guardrail)
+ *
+ * NOTE (doc reconciliation, 2026-07-05): mid-level-design §1 sketches an older,
+ * broader event vocabulary (`catalog-added`, `availability-changed`, …) framed
+ * on the eventual full graph (app-*, guidance, location edges). Step 2's goal
+ * prompt (newer, and DoD-encoded at D4) narrows to the closed set below,
+ * grounded in the three LANDED sources. The narrower set wins here; the broader
+ * set returns as adapters land their deltas. Flagged for the reviewer.
+ * -------------------------------------------------------------------------- */
+
+export const graphNodeKinds = ["service", "landingZone", "module", "guardrail"] as const;
+export const graphEdgeTypes = ["available-in", "uses-module", "governed-by"] as const;
+
+export const GraphNodeKindSchema = z.enum(graphNodeKinds);
+export const GraphEdgeTypeSchema = z.enum(graphEdgeTypes);
+
+/** A stable reference to a graph node: its kind + its stable id (a service
+ *  slug `aws/textract`, an LZ id `awsf`, a module address, a guardrail slug). */
+export const GraphNodeRefSchema = z
+  .object({ kind: GraphNodeKindSchema, id: z.string().min(1) })
+  .strict();
+
+/** A graph node — a node ref plus its display name (presentation only). */
+export const GraphNodeSchema = GraphNodeRefSchema.extend({
+  name: z.string().min(1),
+}).strict();
+
+/**
+ * A directed graph edge with per-edge provenance (P14: every edge answers
+ * "where was I discovered from"). `from`/`to` are node ids; `rootId` names the
+ * source root that witnessed the edge and `resolvedAt` is that root's parse
+ * clock. `version` (module edges only) carries the module's published version,
+ * so a version change is a value delta on a stable edge, not an edge churn.
+ */
+export const GraphEdgeSchema = z
+  .object({
+    type: GraphEdgeTypeSchema,
+    from: z.string().min(1),
+    to: z.string().min(1),
+    rootId: z.string().min(1),
+    resolvedAt: z.string().datetime(),
+    version: z.string().min(1).optional(),
+  })
+  .strict();
+
+/** Per-root freshness on a graph version: the root's parse clock + whether it
+ *  is being served stale (last-good after a failed refresh — decision 8). */
+export const PerRootFreshnessSchema = z
+  .object({
+    rootId: z.string().min(1),
+    resolvedAt: z.string().datetime(),
+    stale: z.boolean(),
+  })
+  .strict();
+
+/**
+ * A versioned graph (I1). `version` is a stable CONTENT hash of the inputs, so
+ * identical snapshots ⇒ identical version and a changed snapshot ⇒ a new
+ * version. Every request pins ONE version at entry; the registry and resource
+ * records are byte-stable projections of it.
+ */
+export const GraphVersionSchema = z
+  .object({
+    version: z.string().min(1),
+    nodes: z.array(GraphNodeSchema),
+    edges: z.array(GraphEdgeSchema),
+    perRootFreshness: z.array(PerRootFreshnessSchema),
+  })
+  .strict();
+
+/**
+ * The closed `EventClass` set (P13/P22). A slug rename surfaces honestly as
+ * `service-removed` + `service-added` (discovery cannot see intent — M6).
+ * `uses-module` edges never emit add/remove events — the only module-edge delta
+ * that is Evidence is a published-version change (`module-version-changed`).
+ */
+export const eventClasses = [
+  "service-added",
+  "service-removed",
+  "available-in-added",
+  "available-in-removed",
+  "module-version-changed",
+  "governed-by-added",
+  "governed-by-removed",
+] as const;
+export const EventClassSchema = z.enum(eventClasses);
+
+/**
+ * A derived change (M1). Append-only, durable, idempotent: `id` is a content
+ * hash of `(class, subject, object, from, to, graphVersionFrom→To)` so a
+ * re-derivation of the same transition is a no-op conditional put.
+ *
+ *   - `subject`  the node the event is about (the service for edge/version
+ *                events; the added/removed node for node events).
+ *   - `object`   the related node for edge events: the LZ (available-in), the
+ *                guardrail (governed-by), the module (module-version-changed).
+ *   - `landingZoneIds`  the zones the subject touches at the moment of the
+ *                event — the scope-filter key (M8/decision 6). An empty set is
+ *                only ever visible on an unscoped read.
+ *   - `from`/`to`  the value delta for `module-version-changed` (the published
+ *                version strings); unset for structural add/remove events.
+ *   - `rootId` + `graphVersionFrom`/`graphVersionTo` + `derivedAt`  provenance:
+ *                which root witnessed it, across which two graph versions.
+ */
+export const ChangeEventSchema = z
+  .object({
+    id: z.string().min(1),
+    class: EventClassSchema,
+    subject: GraphNodeRefSchema,
+    object: GraphNodeRefSchema.optional(),
+    landingZoneIds: z.array(z.string().min(1)),
+    from: z.string().min(1).optional(),
+    to: z.string().min(1).optional(),
+    rootId: z.string().min(1),
+    graphVersionFrom: z.string().min(1),
+    graphVersionTo: z.string().min(1),
+    derivedAt: z.string().datetime(),
+  })
+  .strict();
+
+/**
+ * The change-feed read (M8). `events` are ordered oldest→newest; `cursor` is
+ * the opaque incremental read position (the last event's time index), `null`
+ * when the feed is empty. `GET /api/changes?since=<cursor>` walks forward.
+ */
+export const ChangesResponseSchema = z
+  .object({
+    events: z.array(ChangeEventSchema),
+    cursor: z.string().min(1).nullable(),
+  })
+  .strict();
+
+export type GraphNodeKind = z.infer<typeof GraphNodeKindSchema>;
+export type GraphEdgeType = z.infer<typeof GraphEdgeTypeSchema>;
+export type GraphNodeRef = z.infer<typeof GraphNodeRefSchema>;
+export type GraphNode = z.infer<typeof GraphNodeSchema>;
+export type GraphEdge = z.infer<typeof GraphEdgeSchema>;
+export type PerRootFreshness = z.infer<typeof PerRootFreshnessSchema>;
+export type GraphVersion = z.infer<typeof GraphVersionSchema>;
+export type EventClass = z.infer<typeof EventClassSchema>;
+export type ChangeEvent = z.infer<typeof ChangeEventSchema>;
+export type ChangesResponse = z.infer<typeof ChangesResponseSchema>;
+
 export {
   validateGuidanceDocument,
   validateGuidanceManifest,

@@ -1,5 +1,6 @@
 import {
   AvailabilityReadResponseSchema,
+  ChangesResponseSchema,
   FeedbackResponseSchema,
   ResourceCatalogResponseSchema,
   ResourceContextResponseSchema,
@@ -13,6 +14,7 @@ import {
   type AppResponse,
   type AppUpdateRequest,
   type AvailabilityReadResponse,
+  type ChangesResponse,
   type FeedbackResponse,
   type FeedbackSubmission,
   type ResourceCatalogResponse,
@@ -38,6 +40,9 @@ export type ContextApiClient = {
   /** Scoped availability (Step 3 D5/D8): with a scope, only the member zones
    *  return (unknown ids simply absent); without one, today's full grid. */
   getAvailability(scope?: AvailabilityScope): Promise<AvailabilityReadResponse>;
+  /** The per-scope change feed (Step 2, M8): derived `ChangeEvent`s filtered to
+   *  the scope; `since` is an opaque incremental cursor from a prior response. */
+  getChanges(scope?: AvailabilityScope, since?: string): Promise<ChangesResponse>;
   /** Consumer state (Step 3, mid-level §3). Registration is an explicit act
    *  (M11) — these are the only writers; `origin` is always server-set. */
   listApps(): Promise<AppListResponse>;
@@ -101,6 +106,11 @@ export function createStaticContextApiClient({
       // Static face ignores scope for now; the frozen Step 3 suite covers the
       // in-process + HTTP faces only (Batch 3).
       return AvailabilityReadResponseSchema.parse(availability ?? EMPTY_AVAILABILITY);
+    },
+    async getChanges(_scope?: AvailabilityScope, _since?: string): Promise<ChangesResponse> {
+      // The change feed is derived server-side state; the read-only browser
+      // snapshot has none. The in-process / HTTP faces carry it (Batch 4).
+      return ChangesResponseSchema.parse({ events: [], cursor: null });
     },
     // Consumer state (self-declared APPs) is durable server-side state; the
     // static browser client is a read-only snapshot, so it has no APPs to list

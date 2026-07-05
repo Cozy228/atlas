@@ -13,6 +13,7 @@ import {
   handleAppsListRequest,
   handleAppUpdateRequest,
   handleAvailabilityRequest,
+  handleChangesRequest,
   handleFeedbackRequest,
   handleResourceCatalogRequest,
   handleResourceContextRequest,
@@ -28,6 +29,7 @@ import {
   AppMutationResponseSchema,
   AppResponseSchema,
   AvailabilityReadResponseSchema,
+  ChangesResponseSchema,
   FeedbackResponseSchema,
   ResourceCatalogResponseSchema,
   ResourceContextResponseSchema,
@@ -41,6 +43,7 @@ import {
   type AppResponse,
   type AppUpdateRequest,
   type AvailabilityReadResponse,
+  type ChangesResponse,
   type FeedbackResponse,
   type FeedbackSubmission,
   type ResourceCatalogResponse,
@@ -114,6 +117,15 @@ export function createInProcessContextApiClient(
         scope: toScopeInput(scope),
       });
       return unwrap(await handleAvailabilityRequest(ctx), AvailabilityReadResponseSchema);
+    },
+    async getChanges(scope?: AvailabilityScope, since?: string): Promise<ChangesResponse> {
+      // The governed change feed (Step 2 decision 6): thread the caller scope
+      // through the one governance-gate factory into the ctx-taking handler.
+      const ctx = await createResolutionContext({
+        identity: { bearer: options.token },
+        scope: toScopeInput(scope),
+      });
+      return unwrap(await handleChangesRequest(ctx, { since }), ChangesResponseSchema);
     },
     async listApps(): Promise<AppListResponse> {
       return unwrap(await handleAppsListRequest(), AppListResponseSchema);

@@ -355,6 +355,51 @@ resource "aws_dynamodb_table" "apps" {
   })
 }
 
+# Durable change feed (Step 2, M1): append-only, content-hash-idempotent
+# ChangeEvents. Single-table pk/sk + one time-ordered gsi1 partition for
+# `since=` incremental reads. Same house style as apps/feedback.
+resource "aws_dynamodb_table" "events" {
+  name         = "${local.name_prefix}-events"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "pk"
+  range_key    = "sk"
+
+  attribute {
+    name = "pk"
+    type = "S"
+  }
+
+  attribute {
+    name = "sk"
+    type = "S"
+  }
+
+  attribute {
+    name = "gsi1pk"
+    type = "S"
+  }
+
+  attribute {
+    name = "gsi1sk"
+    type = "S"
+  }
+
+  global_secondary_index {
+    name            = "gsi1"
+    hash_key        = "gsi1pk"
+    range_key       = "gsi1sk"
+    projection_type = "ALL"
+  }
+
+  server_side_encryption {
+    enabled = true
+  }
+
+  tags = merge(local.common_tags, {
+    Name = "${local.name_prefix}-events"
+  })
+}
+
 resource "aws_secretsmanager_secret" "runtime" {
   name = "${local.name_prefix}/runtime"
 
@@ -431,7 +476,9 @@ resource "aws_iam_role_policy" "task" {
           aws_dynamodb_table.feedback.arn,
           "${aws_dynamodb_table.feedback.arn}/index/*",
           aws_dynamodb_table.apps.arn,
-          "${aws_dynamodb_table.apps.arn}/index/*"
+          "${aws_dynamodb_table.apps.arn}/index/*",
+          aws_dynamodb_table.events.arn,
+          "${aws_dynamodb_table.events.arn}/index/*"
         ]
       },
       {
@@ -504,6 +551,7 @@ resource "aws_ecs_task_definition" "portal" {
         { name = "PORTAL_ORIGIN", value = var.portal_origin },
         { name = "FEEDBACK_TABLE", value = aws_dynamodb_table.feedback.name },
         { name = "APPS_TABLE", value = aws_dynamodb_table.apps.name },
+        { name = "EVENTS_TABLE", value = aws_dynamodb_table.events.name },
         { name = "RUNTIME_SECRET", value = aws_secretsmanager_secret.runtime.name },
         { name = "AWS_REGION", value = var.aws_region },
         # Content cache + session store share one serverless cache, distinct keyspaces.

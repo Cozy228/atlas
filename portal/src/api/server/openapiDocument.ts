@@ -17,6 +17,7 @@ import { z } from "zod";
 import {
   ApiErrorResponseSchema,
   AvailabilityReadResponseSchema,
+  ChangesResponseSchema,
   ContextSectionSchema,
   FeedbackResponseSchema,
   FeedbackSubmissionSchema,
@@ -415,6 +416,26 @@ function internalPaths() {
     "/resources": searchResourcesOperation(),
     "/resources/{kind}/{slug}": getResourceContextOperation(),
     "/resources/{kind}/{slug}/record": getResourceRecordOperation(),
+    "/changes": {
+      get: {
+        tags: [READ_FACE.registry],
+        operationId: "getChanges",
+        summary: "Read the per-scope derived change feed",
+        description:
+          "The machine-derived change feed (Step 2): `ChangeEvent`s over the closed EventClass set, scoped through the request's landing-zone scope and read incrementally with `?since=<cursor>`. Distinct from the editorial What's New (which stays a curated Confluence projection). An Atom rendering of the same scoped payload is served at `/changes.atom`.",
+        parameters: [
+          queryParam("since", "Opaque incremental cursor from a prior response's `cursor`."),
+          queryParam("landingZones", "Comma-separated landing-zone scope (by value)."),
+          queryParam("appId", "Registered APP id (scope by reference)."),
+        ],
+        responses: {
+          "200": {
+            description: "The scoped change feed with its incremental cursor.",
+            content: jsonContent("ChangesResponse"),
+          },
+        },
+      },
+    },
     "/feedback": {
       post: {
         tags: [READ_FACE.management],
@@ -553,6 +574,7 @@ export function buildInternalOpenApiDocument(origin: string = DEFAULT_PORTAL_ORI
         SourceDiscoveryResponse: toJsonSchema(SourceDiscoveryResponseSchema),
         SourceResponse: toJsonSchema(SourceResponseSchema),
         AvailabilityReadResponse: toJsonSchema(AvailabilityReadResponseSchema),
+        ChangesResponse: toJsonSchema(ChangesResponseSchema),
         FeedbackSubmission: toJsonSchema(FeedbackSubmissionSchema),
         FeedbackResponse: toJsonSchema(FeedbackResponseSchema),
         ApiErrorResponse: toJsonSchema(ApiErrorResponseSchema),

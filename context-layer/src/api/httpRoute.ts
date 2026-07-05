@@ -1,4 +1,4 @@
-import type { ApiErrorResponse, ResourceContextResponse } from "@atlas/schema";
+import type { ApiErrorResponse, ChangesResponse, ResourceContextResponse } from "@atlas/schema";
 import {
   handleAppRegistrationRequest,
   handleAppRequest,
@@ -6,6 +6,7 @@ import {
   handleAppUpdateRequest,
 } from "./appsRoutes";
 import { handleAvailabilityRequest } from "./availabilityRoute";
+import { handleChangesRequest, renderChangesAtom } from "./changesRoute";
 import { handleFeedbackRequest } from "./feedbackRoute";
 import {
   handleResourceCatalogRequest,
@@ -60,6 +61,23 @@ export async function handleHttpRequest(request: HttpRequest): Promise<HttpRespo
 
   if (method === "GET" && path === "/availability") {
     return jsonResponse(await handleAvailabilityRequest(ctx));
+  }
+
+  // Change feed (Step 2, M8): governed + scoped via `ctx`; `?since=<cursor>` for
+  // incremental reads. The `.atom` alias renders the SAME scoped payload as an
+  // Atom feed — a representation of `/changes`, not a distinct JSON operation
+  // (so it stays off the OpenAPI JSON surface, like the `.md` markdown seam).
+  if (method === "GET" && path.endsWith("/changes.atom")) {
+    const result = await handleChangesRequest(ctx, { since: request.query?.since });
+    if (result.status !== 200) {
+      return jsonResponse(result);
+    }
+    return atomResponse(
+      renderChangesAtom(result.body as ChangesResponse, { selfUrl: request.origin }),
+    );
+  }
+  if (method === "GET" && path === "/changes") {
+    return jsonResponse(await handleChangesRequest(ctx, { since: request.query?.since }));
   }
 
   if (method === "GET" && path === "/resources/catalog") {
@@ -232,6 +250,14 @@ function markdownResponse(body: string): HttpResponse {
   return {
     status: 200,
     headers: { "content-type": "text/markdown; charset=utf-8" },
+    body,
+  };
+}
+
+function atomResponse(body: string): HttpResponse {
+  return {
+    status: 200,
+    headers: { "content-type": "application/atom+xml; charset=utf-8" },
     body,
   };
 }

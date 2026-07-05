@@ -6,6 +6,7 @@ export {
   handleAppUpdateRequest,
 } from "./api/appsRoutes";
 export { handleFeedbackRequest } from "./api/feedbackRoute";
+export { handleChangesRequest, type ChangesRequestOptions } from "./api/changesRoute";
 export { handleHttpRequest } from "./api/httpRoute";
 export { handleSourceDiscoveryRequest } from "./api/sourceDiscoveryRoute";
 export { handleSourceRequest } from "./api/sourceRoute";
@@ -40,6 +41,11 @@ export {
 export { type AppsRepository } from "./repositories/appsRepository";
 export { createAppsRepository, sharedAppsRepository } from "./repositories/appsRepositoryFactory";
 export { createSelfDeclaredAppsAdapter } from "./repositories/selfDeclaredAppsAdapter";
+export { type EventsRepository } from "./repositories/eventsRepository";
+export {
+  createEventsRepository,
+  sharedEventsRepository,
+} from "./repositories/eventsRepositoryFactory";
 export { LANDING_ZONES } from "./landingZones";
 export { resolveReleaseNotes } from "./releaseNotes/resolveReleaseNotes";
 export { loadConfluenceGuidance } from "./composition";

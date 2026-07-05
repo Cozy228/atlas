@@ -34,6 +34,18 @@ describe("Atlas Terraform deployment", () => {
     );
   });
 
+  // D13 — the durable change-feed `events` table is provisioned like apps/feedback
+  // (Step 2, M1): the table, task-role IAM to read/write it + its gsi1 index, and
+  // the `EVENTS_TABLE` ECS env wiring the prod fail-fast guard reads.
+  it("provisions the DynamoDB events table, its IAM access, and the EVENTS_TABLE env", () => {
+    expect(mainTerraform).toContain('resource "aws_dynamodb_table" "events"');
+    expect(mainTerraform).toContain("aws_dynamodb_table.events.arn");
+    expect(mainTerraform).toContain('"${aws_dynamodb_table.events.arn}/index/*"');
+    expect(mainTerraform).toContain(
+      '{ name = "EVENTS_TABLE", value = aws_dynamodb_table.events.name }',
+    );
+  });
+
   it("keeps Lambda Web Adapter, Lambda, and API Gateway out of the deployment", () => {
     expect(combinedTerraform).not.toContain("aws_lambda_function");
     expect(combinedTerraform).not.toContain("aws_apigatewayv2_api");

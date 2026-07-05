@@ -4,6 +4,7 @@ import {
   AppMutationResponseSchema,
   AppResponseSchema,
   AvailabilityReadResponseSchema,
+  ChangesResponseSchema,
   FeedbackResponseSchema,
   ResourceCatalogResponseSchema,
   ResourceContextResponseSchema,
@@ -93,6 +94,20 @@ export function createFetchContextApiClient(input: {
         fetch: fetchImpl,
         schema: AvailabilityReadResponseSchema,
         url: withQuery(`${baseUrl}/availability`, query),
+      });
+    },
+    async getChanges(scope?: AvailabilityScope, since?: string) {
+      // Same scope serialization as availability (`?landingZones=`/`?appId=`),
+      // plus the opaque `?since=` cursor the governed router already parses.
+      const query: Record<string, string | undefined> = {
+        landingZones: scope?.landingZones?.length ? scope.landingZones.join(",") : undefined,
+        appId: scope?.appId,
+        since,
+      };
+      return requestJson({
+        fetch: fetchImpl,
+        schema: ChangesResponseSchema,
+        url: withQuery(`${baseUrl}/changes`, query),
       });
     },
     async listApps(): Promise<AppListResponse> {

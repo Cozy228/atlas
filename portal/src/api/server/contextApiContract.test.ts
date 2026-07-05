@@ -2,9 +2,11 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   AppListResponseSchema,
   AvailabilityReadResponseSchema,
+  ChangesResponseSchema,
   ResourceContextResponseSchema,
+  type ChangeEvent,
 } from "@atlas/schema";
-import { handleHttpRequest } from "@atlas/context-layer";
+import { handleHttpRequest, sharedEventsRepository } from "@atlas/context-layer";
 import { DEV_TERRAFORM_BASE_URL, server, setDevDiscoveryEnv } from "@atlas/context-layer/devMocks";
 
 import { createFetchContextApiClient } from "./httpContextApiClient";
@@ -329,5 +331,49 @@ describe("Context API consumer contract — Step 3 consumer state (D8)", () => {
     // The scoping is real: an unscoped read returns the full topology.
     const unscoped = await rawAvailabilityZones({});
     expect(unscoped.length).toBeGreaterThan(1);
+  });
+});
+
+/**
+ * D9 — the change feed obeys the same transport-wiring guard (Step 2, M8): a
+ * seeded event read via `GET /api/changes` and via the Portal's in-process
+ * `getChanges` returns one governed, scope-filtered payload on both faces.
+ */
+describe("Context API consumer contract — Step 2 change feed (D9)", () => {
+  function changeEvent(id: string, landingZoneIds: string[], derivedAt: string): ChangeEvent {
+    return {
+      id,
+      class: "service-added",
+      subject: { kind: "service", id: `cloudx/${id}` },
+      landingZoneIds,
+      rootId: `availability:${landingZoneIds[0]}`,
+      graphVersionFrom: "v0",
+      graphVersionTo: "v1",
+      derivedAt,
+    };
+  }
+
+  it("scoped change feed agrees across the in-process and HTTP faces", async () => {
+    await sharedEventsRepository(process.env).append([
+      changeEvent("awsf-svc", ["awsf"], "2026-07-01T00:00:00.000Z"),
+      changeEvent("azure-svc", ["azuref"], "2026-07-02T00:00:00.000Z"),
+    ]);
+
+    const httpBody = ChangesResponseSchema.parse(
+      JSON.parse(
+        (
+          await handleHttpRequest({
+            method: "GET",
+            path: "/api/changes",
+            query: { landingZones: "awsf" },
+          })
+        ).body,
+      ),
+    );
+    const inProcess = await serverContextApiClient.getChanges({ landingZones: ["awsf"] });
+
+    expect(httpBody.events.map((e) => e.id)).toEqual(["awsf-svc"]);
+    expect(inProcess.events.map((e) => e.id)).toEqual(["awsf-svc"]);
+    expect(inProcess.events).toEqual(httpBody.events);
   });
 });

@@ -1,6 +1,7 @@
 import { queryOptions } from "@tanstack/react-query";
 import type {
   AppListResponse,
+  ChangesResponse,
   LandingZone,
   ResourceCatalogResponse,
   ResourceContextResponse,
@@ -12,6 +13,7 @@ import type {
 import { fetchApps } from "@/api/server/apps";
 import { fetchAvailability, type AvailabilityResponse } from "@/api/server/availability";
 import {
+  fetchChanges,
   fetchLandingZones,
   fetchResourceCatalog,
   fetchResourceContext,
@@ -62,6 +64,21 @@ export function availabilityQueryOptionsFor(landingZones?: string[]) {
     queryKey: ["availability", "scoped", key] as const,
     queryFn: () => fetchAvailability({ data: { landingZones } }),
     staleTime: Infinity,
+  });
+}
+
+/**
+ * The per-scope derived change feed (Step 2, M8 / P31). Keyed by the situation's
+ * landing-zone scope so switching APP/LZ narrows the "my changes" surface. This
+ * is the machine-derived feed — SEPARATE from the editorial What's New
+ * (`whatsNewQueryOptions`), which stays a curated Confluence projection.
+ */
+export function changesQueryOptionsFor(landingZones?: string[]) {
+  const key = landingZones?.length ? [...landingZones].sort().join(",") : "";
+  return queryOptions<ChangesResponse>({
+    queryKey: ["changes", key] as const,
+    queryFn: () => fetchChanges({ data: key ? { landingZones } : undefined }),
+    staleTime: 30_000,
   });
 }
 

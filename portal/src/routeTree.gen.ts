@@ -14,6 +14,7 @@ import { Route as SupportRouteImport } from './routes/support'
 import { Route as SourcesRouteImport } from './routes/sources'
 import { Route as OverviewRouteImport } from './routes/overview'
 import { Route as GuidanceRouteImport } from './routes/guidance'
+import { Route as ChangesRouteImport } from './routes/changes'
 import { Route as CatalogRouteImport } from './routes/catalog'
 import { Route as AvailabilityRouteImport } from './routes/availability'
 import { Route as IndexRouteImport } from './routes/index'
@@ -51,6 +52,11 @@ const OverviewRoute = OverviewRouteImport.update({
 const GuidanceRoute = GuidanceRouteImport.update({
   id: '/guidance',
   path: '/guidance',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ChangesRoute = ChangesRouteImport.update({
+  id: '/changes',
+  path: '/changes',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CatalogRoute = CatalogRouteImport.update({
@@ -123,6 +129,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/availability': typeof AvailabilityRouteWithChildren
   '/catalog': typeof CatalogRouteWithChildren
+  '/changes': typeof ChangesRoute
   '/guidance': typeof GuidanceRouteWithChildren
   '/overview': typeof OverviewRoute
   '/sources': typeof SourcesRouteWithChildren
@@ -141,6 +148,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/changes': typeof ChangesRoute
   '/overview': typeof OverviewRoute
   '/support': typeof SupportRoute
   '/whatsnew': typeof WhatsnewRoute
@@ -160,6 +168,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/availability': typeof AvailabilityRouteWithChildren
   '/catalog': typeof CatalogRouteWithChildren
+  '/changes': typeof ChangesRoute
   '/guidance': typeof GuidanceRouteWithChildren
   '/overview': typeof OverviewRoute
   '/sources': typeof SourcesRouteWithChildren
@@ -182,6 +191,7 @@ export interface FileRouteTypes {
     | '/'
     | '/availability'
     | '/catalog'
+    | '/changes'
     | '/guidance'
     | '/overview'
     | '/sources'
@@ -200,6 +210,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/changes'
     | '/overview'
     | '/support'
     | '/whatsnew'
@@ -218,6 +229,7 @@ export interface FileRouteTypes {
     | '/'
     | '/availability'
     | '/catalog'
+    | '/changes'
     | '/guidance'
     | '/overview'
     | '/sources'
@@ -239,6 +251,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AvailabilityRoute: typeof AvailabilityRouteWithChildren
   CatalogRoute: typeof CatalogRouteWithChildren
+  ChangesRoute: typeof ChangesRoute
   GuidanceRoute: typeof GuidanceRouteWithChildren
   OverviewRoute: typeof OverviewRoute
   SourcesRoute: typeof SourcesRouteWithChildren
@@ -285,6 +298,13 @@ declare module '@tanstack/react-router' {
       path: '/guidance'
       fullPath: '/guidance'
       preLoaderRoute: typeof GuidanceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/changes': {
+      id: '/changes'
+      path: '/changes'
+      fullPath: '/changes'
+      preLoaderRoute: typeof ChangesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/catalog': {
@@ -435,6 +455,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AvailabilityRoute: AvailabilityRouteWithChildren,
   CatalogRoute: CatalogRouteWithChildren,
+  ChangesRoute: ChangesRoute,
   GuidanceRoute: GuidanceRouteWithChildren,
   OverviewRoute: OverviewRoute,
   SourcesRoute: SourcesRouteWithChildren,

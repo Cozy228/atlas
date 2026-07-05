@@ -11,6 +11,7 @@ import { getRequestHeader } from "@tanstack/react-start/server";
 import {
   SourceDiscoveryRequestSchema,
   type AvailabilityResponse,
+  type ChangesResponse,
   type LandingZone,
   type SourceDiscoveryRequest,
 } from "@atlas/schema";
@@ -18,6 +19,8 @@ import { LANDING_ZONES } from "@atlas/context-layer";
 import { z } from "zod";
 
 import { createServerContextApiClient } from "./httpContextApiClient";
+import { resolveDataMode } from "./dataMode";
+import { mockChangesFeed } from "./changesMock";
 
 /**
  * Build a Context API client for the current request, forwarding whatever
@@ -94,6 +97,31 @@ export const fetchAvailability = createServerFn(SERVER_FN_OPTIONS)
     const data: AvailabilityResponse = { zones };
     availabilityMemo.set(key, { at: now, data });
     return data;
+  });
+
+// The per-scope derived change feed (Step 2, M8). Scope is the situation's
+// landing-zone set (by value) and/or `appId`; `since` is the incremental cursor.
+// In mock mode a deterministic fixture feed renders the surface; live reads the
+// real derived feed through the governed router.
+const changesScopeSchema = z
+  .object({
+    landingZones: z.array(z.string().min(1)).min(1).optional(),
+    appId: z.string().min(1).optional(),
+    since: z.string().min(1).optional(),
+  })
+  .optional();
+
+export const fetchChanges = createServerFn(SERVER_FN_OPTIONS)
+  .validator((input: unknown) => changesScopeSchema.parse(input))
+  .handler(async ({ data }): Promise<ChangesResponse> => {
+    if (resolveDataMode() === "mock") {
+      return mockChangesFeed({ landingZones: data?.landingZones, since: data?.since });
+    }
+    const scope =
+      data?.landingZones?.length || data?.appId
+        ? { landingZones: data?.landingZones, appId: data?.appId }
+        : undefined;
+    return contextApiForRequest().getChanges(scope, data?.since);
   });
 
 /**
