@@ -552,6 +552,8 @@ resource "aws_ecs_task_definition" "portal" {
         { name = "FEEDBACK_TABLE", value = aws_dynamodb_table.feedback.name },
         { name = "APPS_TABLE", value = aws_dynamodb_table.apps.name },
         { name = "EVENTS_TABLE", value = aws_dynamodb_table.events.name },
+        # Enables the lifecycle-plane graph snapshot refresh (15 min cadence; unset = off).
+        { name = "GRAPH_REFRESH_INTERVAL_MS", value = "900000" },
         { name = "RUNTIME_SECRET", value = aws_secretsmanager_secret.runtime.name },
         { name = "AWS_REGION", value = var.aws_region },
         # Content cache + session store share one serverless cache, distinct keyspaces.

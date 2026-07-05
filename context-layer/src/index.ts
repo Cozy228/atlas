@@ -8,6 +8,11 @@ export {
 export { handleFeedbackRequest } from "./api/feedbackRoute";
 export { handleChangesRequest, type ChangesRequestOptions } from "./api/changesRoute";
 export {
+  refreshGraphSnapshots,
+  type RefreshGraphSnapshotsOptions,
+  type RefreshGraphSnapshotsResult,
+} from "./graph/refreshGraphSnapshots";
+export {
   handleBriefRequest,
   renderBriefMarkdown,
   type BriefRequestOptions,

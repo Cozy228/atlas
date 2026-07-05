@@ -12,12 +12,27 @@
  * root's baseline SILENTLY (no storm), and subsequent passes emit only confirmed,
  * damped deltas.
  *
- * ⚠️ SCOPED GAP (flagged for the reviewer): NO production caller exists yet — no
- * scheduler, admin route, or Nitro plugin invokes this pass, and composition.ts
- * still serves discovery from its in-process memo. Until the lifecycle trigger
- * and the composition rewire land, the live `/api/changes` feed stays empty
- * (dev renders via `changesMock`); the spine below is proven as library
- * behavior by `changeFeed.feature.test.ts`, not as wired system behavior.
+ * PRODUCTION CALLER (Step-2 tail, closed): the portal Nitro plugin
+ * `portal/server/plugins/graphRefresh.ts` schedules this pass on server start —
+ * one run shortly after boot, then every `GRAPH_REFRESH_INTERVAL_MS` — gated off
+ * under vitest / `NODE_ENV=test` and in DEV_MOCKS mock mode (schedule + gate logic
+ * in `portal/server/lifecycle/graphRefreshSchedule.ts`). Derivation stays inline
+ * at each snapshot transition (M10); the plugin only schedules the pass.
+ *
+ * ⚠️ SCOPED GAP (still open, flagged for the reviewer): `composition.ts` continues
+ * to serve request-time discovery from its in-process memo (the "composition memo
+ * → snapshot" rewire was assessed NOT surgically feasible — the memo caches the
+ * RICH `DiscoveredService[]`/`DiscoveredGuardrail[]` that `deriveRegistry`/
+ * `deriveResources` consume, whereas the per-root snapshots hold the LOSSY
+ * graph-facing parse; reconstructing the former from the latter IS the deferred
+ * D3 projection inversion). So this pass now warms snapshots and feeds
+ * `/api/changes` on a live server, but the registry/resource read path is still
+ * the memo, not these snapshots.
+ *
+ * ⚠️ Snapshots are still PER-TASK in-memory (`sharedSnapshotStore`) — the
+ * `ValkeySnapshotStore` adapter remains the deferred prod-hardening follow-up.
+ * Each ECS task warms + transitions its own snapshots; the durable, content-hash
+ * idempotent `events` store (M1) collapses cross-task duplicate derivation.
  */
 import { createResolutionContext } from "../resolvers/createResolutionContext";
 import { createConfluenceAvailabilityProvider } from "../sourceContent/confluenceAvailabilityProvider";

@@ -46,6 +46,12 @@ describe("Atlas Terraform deployment", () => {
     );
   });
 
+  // The lifecycle-plane graph snapshot refresh is opt-in via GRAPH_REFRESH_INTERVAL_MS;
+  // prod ECS must set the recommended 15 min cadence or the live change feed stays unfed.
+  it("wires the GRAPH_REFRESH_INTERVAL_MS env for the lifecycle graph refresh", () => {
+    expect(mainTerraform).toContain('{ name = "GRAPH_REFRESH_INTERVAL_MS", value = "900000" }');
+  });
+
   it("keeps Lambda Web Adapter, Lambda, and API Gateway out of the deployment", () => {
     expect(combinedTerraform).not.toContain("aws_lambda_function");
     expect(combinedTerraform).not.toContain("aws_apigatewayv2_api");
