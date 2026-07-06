@@ -12,8 +12,11 @@ import type {
   SourceDiscoveryResponse,
 } from "@atlas/schema";
 
+import type { StatusBoardResponse } from "@atlas/schema";
+
 import { fetchApps } from "@/api/server/apps";
 import { fetchAvailability, type AvailabilityResponse } from "@/api/server/availability";
+import { fetchStatusBoard } from "@/api/server/locations";
 import {
   fetchBrief,
   fetchChanges,
@@ -126,6 +129,22 @@ export const appsQueryOptions = queryOptions<AppListResponse>({
   queryFn: () => fetchApps(),
   staleTime: 30_000,
 });
+
+/**
+ * The status board for a selected APP (Step 7, P24). Aggregation-at-read: every
+ * fetch recomputes the scope's registered locations' live values — no store, no
+ * history. Keyed by `appId` so switching APP re-reads. A short staleTime keeps it
+ * fresh on re-nav without hammering the live adapters; a registration invalidates
+ * it explicitly. Enabled only when an APP is selected (a registration belongs to
+ * an APP, so the board is meaningless without one).
+ */
+export function statusBoardQueryOptionsFor(appId: string) {
+  return queryOptions<StatusBoardResponse>({
+    queryKey: ["status-board", appId] as const,
+    queryFn: () => fetchStatusBoard({ data: { appId } }),
+    staleTime: 15_000,
+  });
+}
 
 export const resourceCatalogQueryOptions = queryOptions<ResourceCatalogResponse>({
   queryKey: ["resource-catalog"] as const,

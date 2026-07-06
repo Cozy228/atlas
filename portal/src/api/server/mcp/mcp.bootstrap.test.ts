@@ -10,15 +10,16 @@ import { handleMcpRequest } from "./handler";
  * SET, its origin, and any scope_drift / scope_unresolved warnings, M11), the
  * tool inventory grouped moment-tools-then-atoms, and the depth contract
  * statement (M9). It is identity/scope discovery only — a by-value scope NEVER
- * writes (M11), and `atlas_explain_error` is Step 7, so bootstrap lists it as
- * not-yet-available rather than fabricating a stub tool (locked decision 5).
+ * writes (M11). Since Step 7, `atlas_explain_error` is a registered debug moment
+ * (the M7 floor), so bootstrap groups it with the moment tools and its
+ * not-yet-available list is empty (reviewer ruling 2026-07-07).
  *
  * Red in Batch 0: `atlas_bootstrap`'s `run` throws `unimplemented`, which the MCP
  * handler surfaces as an `isError` tool result with no `structuredContent` — so
  * every behavioral assertion below fails for that reason, never an import/type
- * error. The tools/list registration assertions (explain_error absent; the four
- * moment/bootstrap tools present) are satisfied by the Batch-0 registration
- * itself and are green now — they pin the surface the behavior must fill.
+ * error. The tools/list registration assertions (explain_error present; the
+ * moment/bootstrap tools present) are satisfied by the registration itself and
+ * are green now — they pin the surface the behavior must fill.
  *
  * Public-safe fictional data only (aws/textract, awsf/azuref, a fictional APP).
  */
@@ -155,19 +156,33 @@ describe("atlas_bootstrap — resolved situation + inventory (D1)", () => {
   });
 });
 
-describe("atlas_explain_error is Step 7 (D5)", () => {
-  it("is absent from tools/list — no fabricated stub tool", async () => {
+describe("atlas_explain_error is the Step 7 debug moment (D5/M7)", () => {
+  it("is registered in tools/list — the debug moment, like the other moment tools", async () => {
     const response = await handleMcpRequest(rpc("tools/list"));
     const body = (await response.json()) as { result: { tools: { name: string }[] } };
     const names = body.result.tools.map((tool) => tool.name);
-    expect(names).not.toContain("atlas_explain_error");
+    expect(names).toContain("atlas_explain_error");
     // The moment tools that DO exist are listed.
     expect(names).toContain("atlas_bootstrap");
     expect(names).toContain("atlas_check_adoption");
   });
 
-  it("bootstrap lists explain_error as not-yet-available, honestly", async () => {
+  it("bootstrap no longer lists explain_error as not-yet-available (it landed)", async () => {
     const data = bootstrapOf(await callTool("atlas_bootstrap", { landingZones: ["awsf"] }));
-    expect(data.notYetAvailable.some((entry) => entry.name.includes("explain_error"))).toBe(true);
+    expect(data.notYetAvailable.some((entry) => entry.name.includes("explain_error"))).toBe(false);
+    // It is grouped with the moment tools instead.
+    expect(data.tools.moments).toContain("atlas_explain_error");
+  });
+
+  it("is callable: it returns the one debug-moment Brief for the target capability", async () => {
+    const result = await callTool("atlas_explain_error", {
+      service: "aws/textract",
+      landingZones: ["awsf"],
+    });
+    expect(result.isError, result.content?.[0]?.text).toBeFalsy();
+    const brief = result.structuredContent as { moment: string; blocks: unknown[] };
+    // The SAME assembly seam as GET /api/briefs/debug — a debug Brief, not a stub.
+    expect(brief.moment).toBe("debug");
+    expect(Array.isArray(brief.blocks)).toBe(true);
   });
 });

@@ -39,6 +39,7 @@ import {
 } from "@/components/explore/service-icon";
 import { LastFetchChip } from "@/components/last-fetch-chip";
 import { PageBody, PageHeader } from "@/components/page-section";
+import { AppStatusBoard } from "@/components/status/status-board";
 import {
   Select,
   SelectContent,
@@ -281,6 +282,11 @@ function RegionsContent() {
         description="See where services run and check per-region operational status across your landing zones."
         actions={<LastFetchChip updatedAt={dataUpdatedAt} />}
       />
+
+      {/* Step 7 (P24): the operational status board for the selected APP — where
+          its things live + their live, uncited state (ADR-0003). Hangs off the
+          shared APP selector; absent when scoping is landing-zone-only. */}
+      {selectedApp ? <AppStatusBoard app={selectedApp} /> : null}
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px] xl:gap-8 xl:items-start">
         <div className="flex min-w-0 flex-col gap-4">

@@ -507,3 +507,229 @@ green. Touched ONLY that file + this notes section. Suite frozen at `8a62f176` �
   — both Batch-5 `unimplemented` stubs, out of scope.
 - `pnpm -r typecheck` → GREEN (7/7 workspace projects).
 - `pnpm oxlint context-layer/src/status/statusBoard.ts` → clean (exit 0, no warnings/errors).
+
+## Batch 5 — Opus track
+
+The FINAL batch: the debug brief floor (D8), `/api/status` + client threading (D9),
+the Portal status board + self-service registration UI (D10), and whole-repo green
+(D12). No `*.test.ts` / `*.spec.ts` was edited (suite frozen at `8a62f176`).
+
+### What was built
+
+- **D8 — debug brief floor (`context-layer/src/briefs/debugFloor.ts`).**
+  `assembleDebugFloor({ ctx, service, depth? })` now: derives ONE request-pinned
+  graph (`deriveRequestGraph`, the shared discovery path); assembles cited
+  troubleshooting Evidence through the SAME executor as adopt/build
+  (`assembleBrief` over a local debug relevance contract — `overview`+`security`,
+  plus `network`+`examples` when the graph witnesses a `uses-module` edge); loads
+  the APP's registrations (only when `ctx.scope.appId` is set) and derives the
+  location index (`deriveLocationIndex`); appends ONE "operational floor" block
+  carrying the index pointers in `pointers[]` (evidence `[]`, `available` when a
+  pointer exists, honest-empty `unresolved`+warning otherwise). Returns
+  `{ ...brief, blocks: [...evidenceBlocks, floor] }`. `briefsRoute.ts` now routes
+  the `debug` moment to this floor (replacing the Step-4 `emptyBrief` branch, which
+  was removed as an orphan) — so `GET /api/briefs/debug` and the eventual
+  `explain_error` wrap share ONE assembly path. Free-text error interpretation is
+  never done server-side (P12/P15): `assembleDebugFloor` takes no error string and
+  runs no LLM/interpretation.
+- **D9 — status route (`context-layer/src/api/statusRoute.ts` + `httpRoute.ts`).**
+  `handleStatusRequest(ctx)`: reads the scope echo from `ctx.scope`; loads the
+  APP's registered locations via `sharedLocationsRepository(env).listByApp(appId)`
+  (empty when no `appId` — a registration belongs to an APP); resolves ONE adapter
+  per distinct `system` via `resolveStatusAdapter(system, env)`; threads
+  `StatusAdapterContext = { fetch: ctx.fetch, token: ctx.token, env }` (the caller
+  Bearer for `caller-bearer` adapters); calls `assembleStatusBoard` and returns
+  200 `StatusBoardResponse`. Wired `GET /status` into `handleHttpRequest` (same
+  style as `/availability`). The Portal in-process + HTTP faces were already
+  wired in Batch 0/1 (they call `handleStatusRequest`), so the D9 contract test
+  ("status board agrees") went green with the handler body alone.
+- **D9 — openapi parity (`portal/src/api/server/openapiDocument.ts`).** The frozen
+  `openapiDocument.test.ts` "router ⊆ internal" parity test parses `httpRoute.ts`
+  for `method === "X" && path === "Y"` dispatches; my `GET /status` matches that
+  shape, so it MUST be documented. Added the `/status` internal path + registered
+  the `StatusBoardResponse` component schema (mirrors `/availability`). Also
+  refreshed the `/briefs/{moment}` description (the `debug` moment is no longer
+  not-yet-available — it assembles the floor). (`/locations` escapes this test by
+  its `if (path === …) { if (method === …) }` code shape — method-second — so
+  Batch 1 did not need to document it; only the `method === … && path === …`
+  static form is caught.)
+- **D10 — Portal status board + registration UI.**
+  - New: `portal/src/api/server/locations.ts` — `fetchStatusBoard` +
+    `registerLocation` server functions (mirror `apps.ts`; go straight to the
+    governed `serverContextApiClient`, no mock fixture — the registration
+    round-trip needs the real in-process store, like `/apps`).
+  - New: `portal/src/components/status/status-board.tsx` — `AppStatusBoard`. A
+    labeled `<section aria-labelledby>` "Status board", a `useQuery` over
+    `statusBoardQueryOptionsFor(appId)` (skeleton while loading, in-place error +
+    Retry, empty-scope note), and the ADR-0003 **uncited register**
+    (`data-testid="status-uncited-region"`) — a dashed, tagged band distinct from
+    any cited surface. Each entry renders as a live value
+    (`data-testid="status-value"`, mono + an "uncited" tag + read stamp) or a
+    labeled pointer (`data-testid="status-pointer"`, name + link + an explicit
+    "Value unavailable" state with a plain reason — calm, not alarm). The inline
+    **register form** (System / Kind / URL, NO secret field) posts via
+    `registerLocation` and invalidates the board query; it REPLACES the opener
+    button while open (so only one register affordance is in the tree at a time).
+  - `queries.ts`: `statusBoardQueryOptionsFor(appId)` (keyed by APP, short
+    staleTime, aggregation-at-read — a registration invalidates it).
+  - `availability.index.tsx`: renders `<AppStatusBoard>` when an APP is selected
+    (the board hangs off the shared selector, like `/changes`).
+  - `landing-zone-selector.tsx`: made the dropdown controlled so picking an APP
+    **closes** the picker — base-ui keeps radio menus open on select, and the
+    open menu's inert overlay blocked the board (see Deviations).
+
+### Decisions (design left these open)
+
+1. **Debug floor lives in `debugFloor.ts`, `templates.ts` untouched.** The debug
+   relevance contract (which troubleshooting sections) is a small local planner
+   inside `debugFloor.ts`, not a fourth `templateForMoment` branch — keeping the
+   shared `briefs/templates.ts` (and adopt/build/change) untouched per the file
+   ownership seam. It mirrors the build template's section selection because those
+   sections are the ones the fixtures resolve with citations (content is the bar).
+2. **The floor is ONE dedicated block, not pointers scattered on evidence blocks.**
+   `pointers[]` rides a single "Where do X's things live?" block (evidence `[]`);
+   cited Evidence rides the section blocks. Both arrays stay separate by
+   construction (ADR-0003), and the "block with pointers" hook is unambiguous.
+3. **Status board is over REGISTERED locations only** (not graph-derived pointers).
+   `handleStatusRequest` reads `listByApp` — the self-service consumer state. A
+   bare landing-zone scope (no `appId`) honestly returns an empty board; the D9
+   contract test's `landingZones: awsf` scope therefore agrees at `statuses: []`
+   across both faces.
+4. **The board sits on `/availability`.** The frozen `status-board.spec.ts`
+   navigates to `/availability`, declares+selects an APP, and expects the board
+   region there — so `AppStatusBoard` renders in `availability.index.tsx` gated on
+   `selectedApp`. Coherent: availability is "where services run + their live
+   operational state".
+5. **Register form is inline (not the base-ui modal Dialog).** The form replaces
+   the "Register a location" opener while open, so the submit button ("Add
+   location") is the only register-shaped control in the tree — avoiding a
+   Playwright strict-mode collision between the opener (`/register a location/i`,
+   which also matches `/^register/`) and the submit (`/^(save|register|add)/i`).
+6. **Registration server function has no mock branch.** Unlike `fetchChanges`/
+   `fetchBrief` (which use fixtures in `DEV_MOCKS`), the board + registration go
+   straight to the in-process store — the whole point is the real round-trip
+   (register → the pointer appears), exactly as `/apps` works in dev mock mode.
+
+### Deviations (departed from the work order / where the frozen suite ruled)
+
+1. **`atlas_explain_error` was NOT registered as an MCP tool (work order §A vs the
+   frozen suite).** §A says to wire `atlas_explain_error(app, error?)` in
+   `portal/.../mcp/tools.ts` as a thin wrap. But three FROZEN tests hard-assert it
+   stays UNregistered and listed as not-yet-available: `mcp.test.ts:77` (the
+   `tools/list` set equals exactly the 8 existing tools), `mcp.test.ts:87` /
+   `mcp.coldstart.test.ts:82` (`not.toContain("atlas_explain_error")`), and
+   `mcp.bootstrap.test.ts:171` (bootstrap lists it not-yet-available). Registering
+   the tool would turn all four red, and the suite is frozen + D12 requires
+   whole-repo green. Per the work order's "disagreement ⇒ stop + log" rule and the
+   scope contract's "conservative interpretation", I kept the frozen suite green
+   and realized the "thin wrap routing to this floor" at the
+   `handleBriefRequest("debug")` seam instead: `/api/briefs/debug` now assembles
+   the floor, and `explain_error` will thin-wrap that exact handler verbatim (like
+   `atlas_check_adoption` wraps `"adopt"`) the moment the frozen suite is updated
+   to admit it. `mcp/tools.ts` was left untouched. This matches Batch-0 deviation
+   #3, which already anticipated the MCP wrap as a later concern once the suite
+   permits it. **This is the one place the work order's literal instruction could
+   not be executed without breaking the frozen contract.**
+2. **Touched `landing-zone-selector.tsx` (a Step-3 file outside my named
+   ownership).** The D10 flow (`select app → click "Register a location"`) is
+   unreachable unless selecting the APP closes the dropdown: base-ui keeps radio
+   menus open on select, and the open menu's `data-base-ui-inert` overlay
+   intercepts the board click (reproduced from the frozen spec). Made the dropdown
+   controlled and set `open=false` in the APP-radio `onValueChange`. Verified
+   compatible with the frozen `app-declare.spec.ts` (its post-select assertions —
+   app name visible, `Azure menuitemradio` count 0 — hold whether the menu is open
+   or closed). Strictly required to make D10 pass.
+3. **Register-form security note uses `text-foreground`, not
+   `text-muted-foreground`.** Axe flagged the 14px helper at 3.0:1 (light) / 3.4:1
+   (dark) — `text-muted-foreground` rendered lighter than its nominal token here
+   and cleared the a11y baseline routes but not this panel. Bumped to
+   `text-foreground` (a deliberate high-contrast choice for a credential-safety
+   note); a board-scoped axe scan then reported 0 color-contrast violations in
+   BOTH schemes. The two tinted panels were also switched from `bg-muted/40`
+   (alpha, which confused axe's blend computation) to solid `bg-muted` — the
+   proven AA-clean surface the app already uses.
+
+### Adjacent-found (untouched)
+
+- The pre-existing oxlint warnings noted in Batch 0/1
+  (`sourceContent/confluenceOnboardingProvider.ts:383`,
+  `briefs/assembleBrief.ts:284`) remain — out of scope, not touched.
+- The base-ui dropdown's "self-declared" badge (tiny 11px `bg-muted
+  text-muted-foreground`) shows borderline color-contrast under a stricter,
+  broader axe scan than the frozen baseline uses. Pre-existing Step-3 selector
+  chrome, not in scope; the frozen `a11y.spec.ts` does not flag it. Flagged, not
+  fixed.
+
+### Open questions
+
+- None blocking. If a future step DOES want `atlas_explain_error` callable, the
+  frozen mcp tests (`tools/list` exact-set + bootstrap not-yet-available) must be
+  updated FIRST, then the tool registered as a thin wrap over
+  `handleBriefRequest("debug")` — no new assembly path.
+
+### Self-verify transcript (Batch 5)
+
+- `pnpm -r typecheck` → GREEN (7/7 workspace projects).
+- `pnpm -r test` → GREEN: infra 8, `@atlas/schema` 80, `azure-react-icons` 1,
+  context-layer **374 passed / 2 skipped**, portal **162 passed**, acceptance 7.
+  Zero remaining Step-7 reds. D8 `debugBrief` (1) + D9 `statusRoute` (5) +
+  portal contract "status board agrees" all green.
+- E2E (own mock server `vite dev --port 3200`, `DEV_MOCKS=1`,
+  `PW_BASE_URL=http://localhost:3200`): `playwright test` → **40 passed**,
+  including `status-board.spec.ts` (D10) and all `a11y.spec.ts` axe checks (zero
+  new serious/critical violations). No test skipped/deleted vs baseline.
+- Board-scoped axe scan (`section[aria-labelledby]`, `color-contrast`, light AND
+  dark, register form open): **0 violations** in both schemes.
+- `pnpm exec oxlint --deny-warnings` over every touched source file → clean
+  (exit 0).
+
+### Files changed (Batch 5)
+
+- context-layer: `briefs/debugFloor.ts`, `api/statusRoute.ts`, `api/httpRoute.ts`,
+  `api/briefsRoute.ts`.
+- portal: `api/server/locations.ts` (new), `components/status/status-board.tsx`
+  (new), `api/queries.ts`, `routes/availability.index.tsx`,
+  `components/landing-zone/landing-zone-selector.tsx`,
+  `api/server/openapiDocument.ts`.
+
+### Reviewer ruling outcome (2026-07-07) — `atlas_explain_error` registered
+
+**Reviewer ruling 2026-07-07: the goal-prompt Seam clause wins over the Step-5
+mile-marker assertions.** The Seam section orders that Step 5's
+`atlas_explain_error` stub is REPLACED by this step's M7 floor, so the assertions
+pinning it as unregistered are stale mile-markers Step 7 is ratified to retire
+(house precedent: `bf4e849d`, e2e specs repaired after the Step-5 catalog-tab
+retirement). Deviation #1 above is thereby RESOLVED — the tool is now registered.
+
+- **Registered `atlas_explain_error` (`mcp/tools.ts`).** A `group: "moment"` tool,
+  a THIN wrap over `briefFromArgs("debug", …, { service })` → the SAME
+  `handleBriefRequest("debug")` → `assembleDebugFloor` seam the `/api/briefs/debug`
+  + Portal faces already use (no second assembly, mirrors the other moment tools).
+  Input: required `service` (like adopt), optional `error`, `ScopeArgs`, `DepthArg`.
+  The `error` string is accepted but NEVER reaches the handler / any interpretation
+  (P12/P15) — documented as caller-correlated only. `NOT_YET_AVAILABLE` is now `[]`;
+  added the `toolErrorMessage` example.
+
+- **Three named assertions flipped (plus one unavoidable sibling), before → after:**
+  - `mcp.test.ts:77` — sorted `tools/list` set `[8 tools]` → `[9 tools]` (inserts
+    `atlas_explain_error` between `atlas_check_adoption` and `atlas_get_availability`).
+  - `mcp.test.ts:87` — `expect(names).not.toContain("atlas_explain_error")` →
+    `.toContain(...)`.
+  - `mcp.coldstart.test.ts:82` — `expect(toolNames).not.toContain("atlas_explain_error")`
+    → `.toContain(...)`.
+  - `mcp.bootstrap.test.ts:171` — `notYetAvailable … includes explain_error → true`
+    → `→ false`, plus asserts `tools.moments` contains it, plus a NEW `it` that calls
+    the tool and asserts it returns a debug-moment `Brief` (registration + call
+    rigor, matching the other moment tools).
+  - `mcp.bootstrap.test.ts:163` (SIBLING, same describe, not separately named but the
+    same "unregistered" pinning) — `not.toContain` → `toContain`; leaving it red
+    would contradict "registered and functional". Flagged here for transparency.
+  Nothing else weakened or deleted; no other tool entry removed (the enumerated
+  atoms/moments stay intact). Stale header/inline comments in the three test files
+  were updated minimally to match the flipped assertions.
+
+- **Re-run (exact counts):** `pnpm -r typecheck` GREEN (7/7). `pnpm --filter
+  @atlas/context-layer test` → **374 passed / 2 skipped** (76 files). `pnpm --filter
+  @atlas/portal test` → **163 passed** (39 files; +1 vs the pre-ruling 162 — the new
+  `atlas_explain_error` callable test). `pnpm exec oxlint --deny-warnings` over
+  `tools.ts` + the three test files → clean (exit 0).

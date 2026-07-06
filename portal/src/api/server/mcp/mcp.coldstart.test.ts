@@ -73,13 +73,14 @@ describe("agent cold-start drill (D6)", () => {
     // The only input: a repo-manifest-shaped scope (by value, M11). No human.
     const manifestScope = { landingZones: ["awsf"], services: ["aws/textract"] };
 
-    // 1) Discover the surface. The moment tools + atoms are advertised; the not-
-    //    yet-available explain_error is not fabricated.
+    // 1) Discover the surface. The moment tools + atoms are advertised, including
+    //    the Step-7 debug moment `atlas_explain_error` (M7 floor; reviewer ruling
+    //    2026-07-07 registers it like the other moment tools).
     const toolNames = await listToolNames();
     expect(toolNames).toContain("atlas_bootstrap");
     expect(toolNames).toContain("atlas_check_adoption");
     expect(toolNames).toContain("atlas_get_resource_context");
-    expect(toolNames).not.toContain("atlas_explain_error");
+    expect(toolNames).toContain("atlas_explain_error");
 
     // 2) Bootstrap: who am I here, what can I ask.
     const bootstrap = await callTool("atlas_bootstrap", manifestScope);

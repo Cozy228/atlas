@@ -28,6 +28,7 @@ import {
 } from "./resourceRoutes";
 import { handleSourceDiscoveryRequest } from "./sourceDiscoveryRoute";
 import { handleSourceRequest } from "./sourceRoute";
+import { handleStatusRequest } from "./statusRoute";
 import { renderResourceMarkdown } from "../resources/renderResourceMarkdown";
 import {
   createResolutionContext,
@@ -73,6 +74,13 @@ export async function handleHttpRequest(request: HttpRequest): Promise<HttpRespo
 
   if (method === "GET" && path === "/availability") {
     return jsonResponse(await handleAvailabilityRequest(ctx));
+  }
+
+  // Status board (Step 7, P24; locked decision 8): governed + scoped via `ctx`, a
+  // scope reader like availability. Aggregation-at-read of the scope's registered
+  // locations' live values — read-only, uncited (ADR-0003), never stored.
+  if (method === "GET" && path === "/status") {
+    return jsonResponse(await handleStatusRequest(ctx));
   }
 
   // Change feed (Step 2, M8): governed + scoped via `ctx`; `?since=<cursor>` for

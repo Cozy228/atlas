@@ -36,6 +36,10 @@ export function LandingZoneSelector() {
   const { data: appsData } = useQuery(appsQueryOptions);
   const apps = appsData?.apps ?? [];
   const [formOpen, setFormOpen] = useState(false);
+  // Controlled so picking an APP closes the picker (base-ui keeps radio menus
+  // open on select): choosing your app should hand you back the page — the
+  // situation-scoped surfaces (e.g. the Step-7 status board) become interactable.
+  const [menuOpen, setMenuOpen] = useState(false);
 
   // When an APP is selected, the zone choice narrows to its declared set.
   const visibleZones = selectedApp
@@ -47,7 +51,7 @@ export function LandingZoneSelector() {
 
   return (
     <>
-      <DropdownMenu>
+      <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
         <DropdownMenuTrigger
           aria-label="App / landing zone"
           className={cn(
@@ -78,7 +82,12 @@ export function LandingZoneSelector() {
               </DropdownMenuGroup>
               <DropdownMenuRadioGroup
                 value={selectedApp?.id ?? ""}
-                onValueChange={(value) => selectApp(apps.find((app) => app.id === value) ?? null)}
+                onValueChange={(value) => {
+                  selectApp(apps.find((app) => app.id === value) ?? null);
+                  // Picking an APP dismisses the picker so the scoped surfaces
+                  // (status board, briefs) are immediately interactable.
+                  setMenuOpen(false);
+                }}
               >
                 {apps.map((app) => (
                   <DropdownMenuRadioItem key={app.id} value={app.id}>

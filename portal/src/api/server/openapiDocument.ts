@@ -32,6 +32,7 @@ import {
   ResourceWarningSchema,
   SourceDiscoveryResponseSchema,
   SourceResponseSchema,
+  StatusBoardResponseSchema,
   resourceKinds,
   sectionIds,
   sourceClasses,
@@ -414,6 +415,26 @@ function internalPaths() {
         },
       },
     },
+    "/status": {
+      get: {
+        tags: [READ_FACE.registry],
+        operationId: "getStatus",
+        summary: "Read the scope's operational status board",
+        description:
+          "Aggregation-at-read of the scope's registered locations' live values (Step 7, P24): for each location, the value is fetched through the owning system's adapter and returned READ-ONLY and UNCITED (ADR-0003) — a value is operational status, never Evidence, and is never stored (no history, no alerting). A missing adapter / `none` authMode / failed fetch degrades to a labeled pointer, never a fabricated value. Scoped through the request's `appId` (a registered location belongs to an APP).",
+        parameters: [
+          queryParam("appId", "Registered APP id (scope by reference)."),
+          queryParam("landingZones", "Comma-separated landing-zone scope (by value)."),
+        ],
+        responses: {
+          "200": {
+            description:
+              "The read-only, uncited status board. Relay every `warnings[]` entry verbatim.",
+            content: jsonContent("StatusBoardResponse"),
+          },
+        },
+      },
+    },
     "/resources": searchResourcesOperation(),
     "/resources/{kind}/{slug}": getResourceContextOperation(),
     "/resources/{kind}/{slug}/record": getResourceRecordOperation(),
@@ -443,7 +464,7 @@ function internalPaths() {
         operationId: "getBrief",
         summary: "Assemble one cited moment Brief for the situation",
         description:
-          "The one serialized `Brief` value (Step 4, I3): a pure template plans the blocks from the pinned graph version + scope, the bounded-concurrency executor resolves them through the same governed content path, and every face (`/api/briefs/{moment}`, `/briefs/{moment}.md`, the Portal page) renders THIS value. `moment` is one of `adopt` / `build` / `change` (`debug` is an honest not-yet-available response until Step 7). `?depth=citations` (default) returns structure + citations with no excerpt bodies; `?depth=excerpts` adds them. Per-zone blocks (availability, policy) carry `landingZoneId` and render once per member zone (P26); a missing/failed section is honest-empty (`unresolved`/`partial` + a warning), never an absent block. The `.md` representation of the same value is served at `/briefs/{moment}.md`.",
+          "The one serialized `Brief` value (Step 4, I3): a pure template plans the blocks from the pinned graph version + scope, the bounded-concurrency executor resolves them through the same governed content path, and every face (`/api/briefs/{moment}`, `/briefs/{moment}.md`, the Portal page) renders THIS value. `moment` is one of `adopt` / `build` / `change` / `debug` (the debug moment assembles the M7 floor: cited troubleshooting Evidence plus the location index's pointers). `?depth=citations` (default) returns structure + citations with no excerpt bodies; `?depth=excerpts` adds them. Per-zone blocks (availability, policy) carry `landingZoneId` and render once per member zone (P26); a missing/failed section is honest-empty (`unresolved`/`partial` + a warning), never an absent block. The `.md` representation of the same value is served at `/briefs/{moment}.md`.",
         parameters: [
           {
             name: "moment",
@@ -610,6 +631,7 @@ export function buildInternalOpenApiDocument(origin: string = DEFAULT_PORTAL_ORI
         SourceResponse: toJsonSchema(SourceResponseSchema),
         AvailabilityReadResponse: toJsonSchema(AvailabilityReadResponseSchema),
         ChangesResponse: toJsonSchema(ChangesResponseSchema),
+        StatusBoardResponse: toJsonSchema(StatusBoardResponseSchema),
         Brief: toJsonSchema(BriefSchema),
         FeedbackSubmission: toJsonSchema(FeedbackSubmissionSchema),
         FeedbackResponse: toJsonSchema(FeedbackResponseSchema),

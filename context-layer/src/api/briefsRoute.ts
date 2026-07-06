@@ -26,6 +26,7 @@ import {
 } from "@atlas/schema";
 import type { GovernedResolutionContext } from "../resolvers/createResolutionContext";
 import { assembleBrief } from "../briefs/assembleBrief";
+import { assembleDebugFloor } from "../briefs/debugFloor";
 import { changeTemplate, templateForMoment } from "../briefs/templates";
 import type { BriefScope } from "../briefs/briefTypes";
 import { deriveRequestGraph } from "../graph/requestGraph";
@@ -63,10 +64,15 @@ export async function handleBriefRequest(
   const situation = situationFromContext(ctx);
   const depth = options.depth ?? API_DEFAULT_DEPTH;
 
-  // `debug` is Step 7 (M7): an honest not-yet-available Brief — a valid value the
-  // caller can read, with NO fabricated block (D11), never an error.
+  // `debug` is Step 7's M7 floor: cited troubleshooting Evidence PLUS the location
+  // index's pointers (content is the bar, locations are the floor — P18). The SAME
+  // assembly path `explain_error` will thin-wrap; free-text error interpretation
+  // stays client-side (P12/P15). Replaces Step 4's not-yet-available template.
   if (moment === "debug") {
-    return { status: 200, body: emptyBrief("debug", situation) };
+    return {
+      status: 200,
+      body: await assembleDebugFloor({ ctx, service: options.service, depth }),
+    };
   }
 
   // `change` reads the Step-2 derived feed (M8/P31), NOT a graph traversal.
@@ -223,11 +229,6 @@ function changeSummary(event: ChangeEvent, phrase: string): string {
   const to = event.object ? ` ${event.object.id}` : "";
   const delta = event.from && event.to ? ` (${event.from} → ${event.to})` : "";
   return `${event.subject.id} ${phrase}${to}${delta}.`;
-}
-
-/** An honest empty Brief (no fabricated block) for the not-yet-available moment. */
-function emptyBrief(moment: Moment, situation: Situation): Brief {
-  return { moment, situation, blocks: [], resolvedAt: new Date().toISOString() };
 }
 
 /** Build the situation from the governed scope (I2/P30): the vetted LZ set + its

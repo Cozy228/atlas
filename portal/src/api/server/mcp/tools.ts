@@ -131,6 +131,29 @@ const GetMyContextInput = z.object({
   ...DepthArg,
 });
 
+/** `atlas_explain_error` input → the debug brief FLOOR (Step 7, M7). The target
+ *  `service` names the capability whose troubleshooting sections + operational
+ *  locations the floor assembles (like adopt's `service`). The optional `error`
+ *  is the operational error text you are investigating — it is NEVER interpreted
+ *  server-side (P12/P15): the floor returns the capability's cited troubleshooting
+ *  Evidence + the location index's pointers, and you correlate the error against
+ *  them yourself (it may only narrow which cited sections you choose to read). */
+const ExplainErrorInput = z.object({
+  service: z
+    .string()
+    .min(1)
+    .describe("Target service slug whose debug floor to assemble, e.g. 'aws/textract'."),
+  error: z
+    .string()
+    .min(1)
+    .optional()
+    .describe(
+      "Optional operational error text you are investigating. NOT interpreted server-side (P12/P15) — the floor never runs an LLM over it; it may only help you select which returned sections to read.",
+    ),
+  ...ScopeArgs,
+  ...DepthArg,
+});
+
 /** `atlas_whats_changed` input → the change brief over the Step-2 derived feed.
  *  `since` threads the incremental cursor (M8). */
 const WhatsChangedInput = z.object({
@@ -244,14 +267,10 @@ const DEPTH_STATEMENT =
   "have the resolved section bodies inlined (you pay the token cost explicitly).";
 
 /** Tools that exist behind the door but are not yet callable — listed honestly, never
- *  fabricated as a stub (locked decision 5). `atlas_explain_error` arrives with Step 7. */
-const NOT_YET_AVAILABLE: { name: string; reason: string }[] = [
-  {
-    name: "atlas_explain_error",
-    reason:
-      "Operational error explanation ships with Step 7's operational floor (M7); not yet available.",
-  },
-];
+ *  fabricated as a stub (locked decision 5). Empty since Step 7: `atlas_explain_error`
+ *  landed as the debug-moment M7 floor (reviewer ruling 2026-07-07 — the goal-prompt
+ *  Seam clause retires the Step-5 not-yet-available mile-marker). */
+const NOT_YET_AVAILABLE: { name: string; reason: string }[] = [];
 
 function conciseProjection(projection: ResourceContextResponse) {
   let truncated = false;
@@ -412,11 +431,11 @@ export const mcpTools: McpToolDefinition[] = [
     },
   },
   // --- Step 5 moment-first front door ---------------------------------------
-  // The three moment tools are thin wrappers over the Step-4 brief handlers —
-  // the SAME code path (P13/I3, via createResolutionContext + handleBriefRequest),
+  // The moment tools are thin wrappers over the Step-4/7 brief handlers — the
+  // SAME code path (P13/I3, via createResolutionContext + handleBriefRequest),
   // never a second assembly — and `atlas_bootstrap` is identity/scope discovery +
-  // tool inventory (I6). All read-only. `explain_error` is Step 7 — deliberately
-  // NOT registered (locked decision 5); `atlas_bootstrap` lists it not-yet-available.
+  // tool inventory (I6). All read-only. `atlas_explain_error` is the Step-7 debug
+  // moment (M7 floor), registered here as a thin wrap over `handleBriefRequest("debug")`.
   {
     name: "atlas_bootstrap",
     group: "bootstrap",
@@ -487,6 +506,20 @@ export const mcpTools: McpToolDefinition[] = [
       return briefFromArgs("change", input, bearer, { since: input.since });
     },
   },
+  {
+    name: "atlas_explain_error",
+    group: "moment",
+    description:
+      "The debug moment (M7): the operational floor for a capability — its cited troubleshooting Evidence PLUS where its things live (the location index's pointers). A thin wrapper over the debug brief handler (same code path as GET /api/briefs/debug); returns the one serialized Brief value (default depth=citations). Pass the `error` you are investigating as context — it is NOT interpreted server-side (P12/P15); you correlate it against the returned Evidence + locations yourself.",
+    inputSchema: toInputSchema(ExplainErrorInput),
+    async run(args, _client, bearer) {
+      const input = ExplainErrorInput.parse(args ?? {});
+      // Thin wrap over the SAME `handleBriefRequest("debug")` seam the /api and the
+      // Portal faces use — never a second assembly. `error` is accepted but never
+      // interpreted server-side (P12/P15): it does not reach the handler.
+      return briefFromArgs("debug", input, bearer, { service: input.service });
+    },
+  },
 ];
 
 /**
@@ -503,6 +536,7 @@ export function toolErrorMessage(toolName: string, error: unknown): string {
     atlas_check_adoption: `{"service": "aws/textract", "landingZones": ["awsf"]}`,
     atlas_get_my_context: `{"landingZones": ["awsf"]}`,
     atlas_whats_changed: `{"landingZones": ["awsf"]}`,
+    atlas_explain_error: `{"service": "aws/textract", "landingZones": ["awsf"]}`,
   };
   const reason =
     error instanceof ContextApiError
