@@ -12,16 +12,79 @@
  * The value fetch composes `allowlistedBase` + a path derived from the location
  * (its workspace id) via `composeValueUrl` — NEVER the registered `location.url`
  * (SSRF closed by construction).
- *
- * STEP 7 BATCH 0 STUB: body lands in Batch 3.
  */
-import type { StatusAdapter } from "./statusAdapter";
+import type { StatusAdapter, StatusAdapterContext } from "./statusAdapter";
+import { composeValueUrl } from "./statusAdapter";
+import type { OperationalLocation } from "@atlas/schema";
 
 /** The env var holding the narrow-scoped read-only TFE status token. */
 export const TFE_STATUS_TOKEN_ENV = "TFE_STATUS_TOKEN";
 /** The system id the TFE adapter answers for. */
 export const TFE_ADAPTER_SYSTEM = "tfe";
 
-export function createTfeStatusAdapter(_env: Record<string, string | undefined>): StatusAdapter {
-  throw new Error("unimplemented (Step 7 Batch 3)");
+/**
+ * Build the TFE `service-token` adapter. The allowlisted base is captured at
+ * construction from `TERRAFORM_BASE_URL` (deployment config, not a secret); the
+ * read-only token is NOT captured — it is read from `ctx.env` at fetch time and
+ * never stored on the adapter, never logged, never echoed in a thrown value.
+ */
+export function createTfeStatusAdapter(env: Record<string, string | undefined>): StatusAdapter {
+  const allowlistedBase = env.TERRAFORM_BASE_URL ?? "";
+
+  return {
+    system: TFE_ADAPTER_SYSTEM,
+    authMode: "service-token",
+    allowlistedBase,
+    async fetchValue(
+      location: OperationalLocation,
+      ctx: StatusAdapterContext,
+    ): Promise<string | null> {
+      // Read the narrow-scoped token at fetch time. Missing/empty ⇒ degrade to a
+      // labeled pointer (null) with NO fetch attempted — never a fabricated value.
+      const token = ctx.env[TFE_STATUS_TOKEN_ENV];
+      if (!token) {
+        return null;
+      }
+
+      // Compose ONLY against the allowlisted base (SSRF closed by construction);
+      // the registered `location.url` is never a GET target.
+      const url = composeValueUrl(allowlistedBase, location);
+
+      try {
+        const response = await ctx.fetch(url, {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/vnd.api+json",
+          },
+        });
+        if (!response.ok) {
+          return null;
+        }
+        return extractRunStatus(await response.json());
+      } catch {
+        // Unreachable host / unparsable body ⇒ labeled pointer, never a throw.
+        // Nothing is logged or echoed, so the token cannot leak through an error.
+        return null;
+      }
+    },
+  };
+}
+
+/** Pull `data.attributes["current-run-status"]` from a TFE workspace payload;
+ *  any shape mismatch ⇒ null (a labeled pointer), never a fabricated value. */
+function extractRunStatus(body: unknown): string | null {
+  if (typeof body !== "object" || body === null) {
+    return null;
+  }
+  const data = (body as { data?: unknown }).data;
+  if (typeof data !== "object" || data === null) {
+    return null;
+  }
+  const attributes = (data as { attributes?: unknown }).attributes;
+  if (typeof attributes !== "object" || attributes === null) {
+    return null;
+  }
+  const status = (attributes as Record<string, unknown>)["current-run-status"];
+  return typeof status === "string" ? status : null;
 }

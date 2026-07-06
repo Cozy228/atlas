@@ -364,3 +364,78 @@ untouched (Batches 3–5).
 - `pnpm -r typecheck` → GREEN (7/7 workspace projects).
 - `pnpm exec oxlint --deny-warnings context-layer/src/locations/locationIndex.ts`
   → clean (exit 0).
+
+## Batch 3 — Opus track
+
+Scope: implemented the M12 SSRF-closed value-fetch primitives — `composeValueUrl` +
+`resolveStatusAdapter` in `context-layer/src/locations/statusAdapter.ts`, and
+`createTfeStatusAdapter` in `context-layer/src/locations/tfeStatusAdapter.ts`. Made D4
+(`adapter.authMode.test.ts`, 6) + D5 (`tfeStatusAdapter.test.ts`, 3) green. No test files
+touched (suite frozen at 8a62f176); no schema/route/statusBoard/debugFloor stubs touched.
+
+### Decisions
+
+- **Path-derivation + sanitization rule.** `composeValueUrl` derives the fetch path from
+  the location's OWN `id` and NEVER reads `location.url`. The id is hardened down to a
+  conservative segment allowlist (`replace(/[^A-Za-z0-9_-]/g, "")`) before it is appended
+  under the base. This is SSRF-closed *by construction*, not by filter: `..`, `/`, `//`,
+  `@`, `:`, whitespace, and any percent-encoding all fall out of the whitelist, so the
+  composed URL cannot escape the allowlisted base origin regardless of what a malicious
+  registration supplies. The base is normalized with a trailing-slash trim, then the URL is
+  `${origin}/api/v2/workspaces/${segment}` (a TFE-shaped workspace path). Chose a character
+  whitelist over `encodeURIComponent` because a whitelist is affirmatively enumerable —
+  nothing outside `[A-Za-z0-9_-]` can survive — whereas encoding only escapes and would
+  leave `%`, `.` in place.
+- **Token-handling posture (service-token).** `createTfeStatusAdapter` captures only the
+  `allowlistedBase` (from `TERRAFORM_BASE_URL` — deployment config, not a secret) at
+  construction. The read-only token is read from `ctx.env[TFE_STATUS_TOKEN_ENV]` AT FETCH
+  TIME inside `fetchValue`; it is never assigned to the adapter object, never logged, and
+  never interpolated into any thrown/returned value. The mirrored fetch style (Bearer auth
+  header, `GET`, JSON Accept) follows `terraformModuleContentProvider.fetchRegistryModule`.
+- **Error-degradation semantics.** Every non-happy path returns `null` (degrade to a
+  labeled pointer), never throws out of `fetchValue`, never fabricates: missing/empty token
+  (guarded by `if (!token)`, no fetch issued — `seen` stays empty per D5), non-OK response,
+  a thrown fetch (unreachable host), and an unparsable/shape-mismatched body (guarded by
+  `extractRunStatus`, which walks `data.attributes["current-run-status"]` defensively and
+  returns `null` on any mismatch). The `catch` block returns `null` silently so the token
+  cannot leak through an error message.
+- **`resolveStatusAdapter` registry.** `system === "tfe"` → `createTfeStatusAdapter(env)`;
+  anything else → `undefined` (⇒ a labeled pointer, `no-adapter`). `caller-bearer` is a
+  declared authMode in the closed set but has no adapter yet (none exists in the tree), so
+  the registry supports the mode without wiring `ctx.token`.
+
+### Deviations
+
+- None from the locked contract. `adapterAuthModes` was already correct in the Batch-0
+  stub, so no edit was needed for the closed-set assertion.
+
+### Adjacent-found (untouched)
+
+- `statusAdapter.ts` and `tfeStatusAdapter.ts` now form a benign ESM import cycle:
+  `statusAdapter` imports `createTfeStatusAdapter`/`TFE_ADAPTER_SYSTEM` (runtime) from
+  `tfeStatusAdapter`, which imports `composeValueUrl` (runtime) + `StatusAdapter`/
+  `StatusAdapterContext` (type-only) back from `statusAdapter`. Both runtime references are
+  only invoked at call time (not module init), so live bindings resolve correctly — verified
+  by green tests + typecheck. Flagged only so a future reviewer does not "fix" it by
+  inlining the primitive; the shared `composeValueUrl` is the intended SSRF-closed seam.
+- `TERRAFORM_BASE_URL` unset ⇒ `allowlistedBase = ""` (mirrors the `?? ""` fallback in
+  `composition.ts`/`rootConfig.ts`). Not exercised by the frozen tests; left as-is rather
+  than inventing a default host.
+
+### Open questions
+
+- None blocking Batch 3. The `/api/v2/workspaces/{id}` path shape and
+  `current-run-status` attribute match the D5 fixture body; if the real TFE run-state
+  endpoint differs from the workspace resource, that is a downstream wiring concern for a
+  live-integration batch, not this exemplar.
+
+### Self-verify transcript
+
+- `pnpm vitest run src/locations/adapter.authMode.test.ts src/locations/tfeStatusAdapter.test.ts`
+  → Test Files 2 passed (2); Tests 9 passed (9) [D4 6/6 + D5 3/3].
+- `cd context-layer && pnpm vitest run` → Tests 7 failed | 367 passed | 2 skipped. The 7
+  reds are EXACTLY D6 `statusBoard` (4), D7 `statusBoard.noStore` (1), D8 `debugBrief` (1),
+  D9 `statusRoute` (1) — all Batch-4+ stubs, out of scope.
+- `pnpm -r typecheck` → GREEN (7/7 workspace projects).
+- `pnpm exec oxlint context-layer/src/locations/statusAdapter.ts context-layer/src/locations/tfeStatusAdapter.ts`
+  → clean (exit 0, no warnings/errors).

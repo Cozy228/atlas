@@ -17,11 +17,10 @@
  * `Atlas never stores a team's secret` (M12): a `service-token` reads a
  * narrow-scoped env token at fetch time; a system needing team-owned credentials
  * is a fetch-access negotiation (Track B), not a vault feature.
- *
- * STEP 7 BATCH 0 STUB: bodies land in Batch 3 (locked decisions 2, 4).
  */
 import type { OperationalLocation } from "@atlas/schema";
 import type { FetchLike } from "../resolvers/resolverTypes";
+import { createTfeStatusAdapter, TFE_ADAPTER_SYSTEM } from "./tfeStatusAdapter";
 
 export const adapterAuthModes = ["caller-bearer", "service-token", "none"] as const;
 export type AdapterAuthMode = (typeof adapterAuthModes)[number];
@@ -54,10 +53,19 @@ export type StatusAdapter = {
  * registered `location.url` is NEVER read here: a value fetch cannot be steered
  * at an arbitrary host by a registration.
  *
- * STEP 7 BATCH 0 STUB: body lands in Batch 3.
+ * The registered `location.url` is deliberately IGNORED. The fetch path is
+ * derived from the location's OWN `id`, hardened down to a conservative segment
+ * allowlist (`[A-Za-z0-9_-]`). That whitelist neutralizes every steer-off-base
+ * trick by construction — `..`, `/`, `//`, `@`, `:`, whitespace and percent-
+ * encodings all fall out, so the composed URL can never leave the allowlisted
+ * base origin regardless of what a malicious registration supplies.
  */
-export function composeValueUrl(_base: string, _location: OperationalLocation): string {
-  throw new Error("unimplemented (Step 7 Batch 3)");
+export function composeValueUrl(base: string, location: OperationalLocation): string {
+  // Trim trailing slashes so the base is a clean origin/prefix to append onto.
+  const origin = base.replace(/\/+$/, "");
+  // Derive the value-fetch segment from the location's id ONLY — never its url.
+  const segment = location.id.replace(/[^A-Za-z0-9_-]/g, "");
+  return `${origin}/api/v2/workspaces/${segment}`;
 }
 
 /**
@@ -66,11 +74,13 @@ export function composeValueUrl(_base: string, _location: OperationalLocation): 
  * adapter is the first entry (locked decision 4); further adapters plug in behind
  * this closed port as their fetch-access lands.
  *
- * STEP 7 BATCH 0 STUB: body lands in Batch 3.
  */
 export function resolveStatusAdapter(
-  _system: string,
-  _env: Record<string, string | undefined>,
+  system: string,
+  env: Record<string, string | undefined>,
 ): StatusAdapter | undefined {
-  throw new Error("unimplemented (Step 7 Batch 3)");
+  if (system === TFE_ADAPTER_SYSTEM) {
+    return createTfeStatusAdapter(env);
+  }
+  return undefined;
 }
