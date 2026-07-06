@@ -273,3 +273,94 @@ reds are untouched (Batches 2–5). `pnpm -r typecheck` GREEN.
   - `packages/atlas-acceptance`: **7 passed / 0 failed**.
   - `infra`: **8 passed / 0 failed**.
 - `pnpm exec oxlint <touched files>` (incl. `--deny-warnings`) → clean (exit 0).
+
+## Batch 2 — Opus track
+
+Turns **D2** green by implementing `deriveLocationIndex` in
+`context-layer/src/locations/locationIndex.ts` (the only source file touched). No
+test file was edited; no other stub changed. The remaining Step-7 reds are
+untouched (Batches 3–5).
+
+### What was built
+
+`deriveLocationIndex({ graph, registrations, scope })` returns value-free
+`OperationalLocation` pointers from TWO scoped sources, in a deterministic order
+(registrations first, then graph-derived over the already-sorted `graph.edges`):
+
+1. **Registered locations** — each matching `LocationRecord` is stripped to the
+   five pointer keys (`toPointer` drops the consumer-state `appId`/`registeredAt`),
+   so its `discoveredFrom` stays exactly `"registration"` and no extra key rides
+   the pointer.
+2. **Graph-derived workspace pointers** — for each `uses-module` edge whose `from`
+   is in `scope.serviceSlugs`, one TFE `workspace` pointer, reading the edges
+   `deriveGraph` already produced (the ONE discovery path — never a second parse).
+
+### Decisions (design left these open)
+
+1. **Provenance-string grammar (the Batch-0 open question, now fixed).** A
+   graph-derived pointer's `discoveredFrom` is `graph:<rootId>:<edgeType>` —
+   e.g. `graph:terraform:uses-module`. It carries the witnessing source root id
+   verbatim (so it `includes(TERRAFORM_ROOT_ID)`, the only pin the frozen test
+   asserts) plus the edge kind that yielded the pointer, mirroring the per-edge
+   provenance `deriveGraph`/`ChangeEvent` already stamp (`rootId`). Registered
+   pointers keep their exact `"registration"` string. The two grammars are
+   structurally distinct (`graph:` prefix vs the bare literal), so the two-source
+   split is greppable, not guessed.
+2. **Derived `url` rule — honest, never fabricated.** A workspace pointer's `url`
+   is `https://<module address>` where the address is the `uses-module` edge's
+   `to` (the real module address the terraform root witnessed, e.g.
+   `app.terraform.io/example/parser/aws`). Only a scheme is prefixed; no host,
+   path, or workspace slug is invented. The graph carries no separate workspace
+   URL, so the module address is the honest data available (locked decision 5 —
+   a pointer is a link, values are the status board's job).
+3. **Derived `system` = `"tfe"`.** A `uses-module` binding is a Terraform module,
+   whose value channel (workspace run state) is the TFE `service-token` adapter
+   (locked decision 4, the M12 exemplar). `system` is the open-ended adapter key
+   the status board later resolves; `"tfe"` is the honest owning system for a
+   module binding.
+4. **Derived pointer `id` = `workspace:<serviceSlug>:<moduleAddress>`.** A stable,
+   collision-free, non-empty id (schema `min(1)`) derived only from graph data, so
+   the same graph always yields the same id (no clock, no randomness).
+5. **Scoping semantics.** Registrations filter by `scope.appId` (a registration
+   without a matching owning APP is excluded — the third frozen test); when
+   `scope.appId` is `undefined` NO registrations are included, since a registration
+   always belongs to an APP and, with no target APP, none are "this APP's" — this
+   mirrors how the Batch-1 routes read the owning APP from `ctx.scope.appId` (a
+   missing app scope is a 400 there). Graph-derived pointers follow
+   `scope.serviceSlugs` via the `uses-module` edge's `from`, the same shape the
+   brief templates (`briefs/templates.ts`) use to scope graph reads — one graph
+   consumer pattern, not a new one.
+
+### Deviations
+
+- None. The implementation stays inside the frozen signature and the two pins the
+  test asserts (graph provenance `includes(TERRAFORM_ROOT_ID)`; registered ==
+  `"registration"`).
+
+### Adjacent-found (untouched)
+
+- The pre-existing oxlint warnings noted in Batch 0/1
+  (`sourceContent/confluenceOnboardingProvider.ts:383`, `briefs/assembleBrief.ts:284`)
+  remain — out of scope, not touched.
+- `docs/architecture/step7-codex-review-prompts.md` shows as modified in the
+  worktree at Batch-2 start (not mine — a pre-existing uncommitted environment
+  change); left as-is.
+
+### Open questions
+
+- None blocking. Graph-derived pointers currently derive ONLY from `uses-module`
+  edges (the D2-pinned "workspace" case). If a later batch wants pointers from
+  other edge kinds (e.g. a `pipeline`/`logs` system), the same
+  `graph:<rootId>:<edgeType>` grammar and per-edge scoping extend cleanly — no
+  design change, just more edge branches.
+
+### Self-verify transcript (Batch 2)
+
+- `pnpm vitest run` (context-layer) → **359 passed, 2 skipped / 15 failed**.
+  `locations/locationIndex.test.ts` is **3/3 green**. The 15 fails are EXACTLY the
+  documented later-batch reds: D4 `adapter.authMode` (5), D5 `tfeStatusAdapter` (3),
+  D6 `statusBoard` (4), D7 `statusBoard.noStore` (1), D8 `debugBrief` (1), D9
+  `statusRoute` status-board (1).
+- `pnpm -r typecheck` → GREEN (7/7 workspace projects).
+- `pnpm exec oxlint --deny-warnings context-layer/src/locations/locationIndex.ts`
+  → clean (exit 0).
