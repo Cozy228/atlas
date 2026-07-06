@@ -1,4 +1,5 @@
-import type { LocationsRepository } from "./locationsRepository";
+import { DynamoLocationsRepository } from "./dynamoLocationsRepository";
+import { InMemoryLocationsRepository, type LocationsRepository } from "./locationsRepository";
 
 /**
  * Select the locations repository by environment (Step 7, mid-level §2; mirrors
@@ -10,13 +11,22 @@ import type { LocationsRepository } from "./locationsRepository";
  *     `LOCATIONS_TABLE` so the misconfiguration is diagnosable from the log alone.
  *   - absent otherwise                          → `InMemoryLocationsRepository`
  *     (dev/test posture; the `DEV_MOCKS` seam is unchanged).
- *
- * STEP 7 BATCH 0 STUB: bodies land in Batch 1.
  */
 export function createLocationsRepository(
-  _env: Record<string, string | undefined>,
+  env: Record<string, string | undefined>,
 ): LocationsRepository {
-  throw new Error("unimplemented (Step 7 Batch 1) — repository selection lands here");
+  const tableName = env.LOCATIONS_TABLE;
+  if (tableName) {
+    return new DynamoLocationsRepository({ tableName });
+  }
+  if (env.NODE_ENV === "production") {
+    throw new Error(
+      "LOCATIONS_TABLE is not configured in production; durable consumer state (registered " +
+        "locations) must not silently land in memory. Set LOCATIONS_TABLE to the provisioned " +
+        "DynamoDB table.",
+    );
+  }
+  return new InMemoryLocationsRepository();
 }
 
 /**
@@ -25,11 +35,11 @@ export function createLocationsRepository(
  * (write path) and the status board / location index (read path) both resolve
  * THIS instance, so a registration is immediately visible to a status read — and
  * so the D7 acceptance spy can prove a status read never writes a value (M11).
- *
- * STEP 7 BATCH 0 STUB: body lands in Batch 1.
  */
+let sharedRepository: LocationsRepository | undefined;
+
 export function sharedLocationsRepository(
-  _env: Record<string, string | undefined>,
+  env: Record<string, string | undefined>,
 ): LocationsRepository {
-  throw new Error("unimplemented (Step 7 Batch 1)");
+  return (sharedRepository ??= createLocationsRepository(env));
 }

@@ -162,3 +162,114 @@ portal 39 files pass, schema 4 files pass, acceptance 2 files pass).
 
 Totals: context-layer 34 new fails (9 files), portal 2 new fails (1 file), schema
 15 new fails (1 file), infra 2 new fails. No pre-existing test regressed.
+
+## Batch 1 — Opus track
+
+Turns **D1, D3, D11** green + the **D9 registration slice** (routes + wiring),
+against the frozen Batch-0 suite. No test file was edited. The remaining Step-7
+reds are untouched (Batches 2–5). `pnpm -r typecheck` GREEN.
+
+### What was built
+
+- **D1 schema (`packages/atlas-schema/src/index.ts`).** Replaced the six
+  `z.custom` throw-stubs (and deleted the now-unused `unimplementedLocationSchema`
+  helper) with real `.strict()` zod shapes: `LocationRegistrationRequestSchema`
+  (exactly `{ system, kind, url }`; `system`/`url` nonempty; `kind` reuses the
+  landed `OperationalLocationKindSchema`), `LocationRecordSchema`,
+  `LocationStatusEntrySchema` (value side — `value`/`fetchedAt` nullable, optional
+  `reason`, NO citation field, strict), `LocationRegistrationResponseSchema`,
+  `LocationListResponseSchema`, `StatusBoardResponseSchema`. Reused the existing
+  hand-written types via explicit `z.ZodType<T>` annotations so the frozen public
+  type surface is unchanged. `LocationStatusReasonSchema` was already a real enum
+  and was kept. Per the reviewer ruling, the full value-side set (`LocationStatus`
+  entry + board response) landed here in Batch 1, superseding the Batch-0 comment
+  that deferred them to Batch 4. → `locations-schema.test.ts` **16/16**.
+- **D3 store (`repositories/`).** `InMemoryLocationsRepository` (Map keyed by id,
+  `put` validates via `LocationRecordSchema.parse`, `listByApp` filters on
+  `appId`, `delete` by id). `DynamoLocationsRepository` mirrors
+  `DynamoAppsRepository` with the Batch-0 key schema (`pk=LOC#<id>`, `sk=METADATA`,
+  `gsi1pk=APP#<appId>`, `gsi1sk=REGISTERED#<registeredAt>#<id>`); `listByApp` is a
+  single-partition `gsi1` Query on `:app = APP#<appId>`; adds `DeleteCommand` (not
+  used by apps). `createLocationsRepository` + memoized `sharedLocationsRepository`
+  mirror the apps factory with the `LOCATIONS_TABLE` prod fail-fast naming the
+  missing var. → `locationsRepository.test.ts` **10/10** + `…Factory.test.ts` **3/3**.
+- **D9 registration slice (`api/locationsRoutes.ts` + `api/httpRoute.ts`).** The
+  three handlers are the only writers: `handleLocationRegistrationRequest` reads
+  the owning APP from `ctx.scope.appId` (never the body — a missing app scope is a
+  400), `safeParse`s the body (token/unknown field ⇒ 400 `invalid_request`),
+  stamps a server `id`/`registeredAt` + `discoveredFrom: "registration"`, persists
+  through `sharedLocationsRepository`, and logs via `logger("locations")` (mirrors
+  `appsRoutes`). `handleLocationsListRequest` lists by `ctx.scope.appId`;
+  `handleLocationDeleteRequest` removes by id. Wired `GET/POST /api/locations` +
+  `DELETE /api/locations/{id}` into `handleHttpRequest`, same branch style as
+  `/apps`. `/status` stays UNWIRED (Batch 5). → `statusRoute.test.ts` **3/4** (the
+  status-board test stays the Batch-0 stub red); `contextApiContract.test.ts`
+  registration test green (status-board test stays red).
+- **D11 infra (`infra/main.tf` + `docs/architecture/dynamodb_locations_table.md`).**
+  Added `aws_dynamodb_table.locations` (mirrors `events`), the task-role IAM
+  `.arn` + `/index/*` lines, the `LOCATIONS_TABLE` ECS env, and the table doc
+  (mirrors the apps doc; documents the per-APP `gsi1` partition + `LOC#` keys +
+  the no-secret/no-value invariant). → `infra/test/terraform.test.ts` **8/8**.
+
+### Decisions (design left open)
+
+1. **DELETE 404 error code = `invalid_request`.** The frozen `apiErrorCodes` set
+   is pinned by `schema.test.ts` (no `location_not_found` member) and MUST NOT be
+   extended. A delete of an unknown id returns HTTP 404 with the generic
+   `invalid_request` code + an id-naming message. This path is untested by the
+   frozen suite (the DELETE test always removes an existing location); the choice
+   is the conservative one — don't touch the frozen enum. See Deviations.
+2. **Delete is not ownership-gated.** `handleLocationDeleteRequest` removes by id
+   without checking the record's `appId` against `ctx.scope.appId`. Locked
+   decision 6 is identity-free ("anyone in the org may register/mutate"), the
+   frozen DELETE test passes a scoped ctx but asserts only status 200, and no test
+   requires ownership. Kept minimal (`_ctx` unused, matching the stub signature).
+3. **Scope param names follow the tree, not the goal-prompt literal.** The routes
+   read the owning APP from the vetted `ctx.scope.appId` seeded by `?appId=`
+   (`scopeFromQuery`), consistent with the Batch-0 note's Decision 1 and the
+   availability/changes/briefs precedent — not the prompt's `?app=` literal.
+
+### Deviations (departed from the plan / where the suite disagrees with the prompt)
+
+1. **DELETE 404 uses `invalid_request`, not a dedicated `location_not_found`.**
+   The goal prompt's route contract shows a `404` shape but the frozen
+   `apiErrorCodes` enum (locked by `schema.test.ts:80`) has no location code and is
+   not mine to change. Documented so the reviewer reads the code choice as
+   deliberate, not an oversight.
+2. **Value-side schemas landed in Batch 1 (not Batch 4).** Per the work order's
+   reviewer ruling, `LocationStatusEntrySchema` + `StatusBoardResponseSchema` are
+   real `.strict()` shapes now. The Batch-0 in-code comment still says "Batch 4"
+   for the value side; left as-is (comment, not behavior) — the reviewer arbitrates
+   whether to prune it.
+
+### Adjacent-found (untouched)
+
+- `context-layer/src/sourceContent/confluenceOnboardingProvider.ts:383` and
+  `briefs/assembleBrief.ts:284` — the pre-existing oxlint warnings noted in Batch 0
+  remain; out of scope, not touched.
+- The Batch-0 in-code comments in `@atlas/schema` (lines ~1270-1277) still narrate
+  a "Batch 1 / Batch 4" split for the schemas; now that the whole set lands in
+  Batch 1 the split is stale prose only. Left for the reviewer (surgical-changes:
+  not my defect to rewrite).
+
+### Open questions
+
+- None blocking. If the external agent contract needs the goal-prompt's literal
+  `?app=`/`&lz=` param names (vs the tree's `?appId=`/`?landingZones=`), that is a
+  doc reconciliation, not a code change (inherited from Batch-0 Decision 1).
+
+### Self-verify transcript (Batch 1)
+
+- `pnpm -r typecheck` → GREEN (7/7 workspace projects).
+- `pnpm vitest run` per package:
+  - `packages/atlas-schema`: **80 passed / 0 failed** (locations-schema 16/16).
+  - `context-layer`: **356 passed, 2 skipped / 18 failed** — the 18 fails are the
+    documented later-batch reds: D2 `locationIndex` (3), D4 `adapter.authMode` (5),
+    D5 `tfeStatusAdapter` (3), D6 `statusBoard` (4), D7 `statusBoard.noStore` (1),
+    D8 `debugBrief` (1), D9 `statusRoute` status-board (1). D3 repo (10) + factory
+    (3) + the D9 registration lifecycle (3) are now GREEN.
+  - `portal`: **162 passed / 1 failed** — the 1 fail is the D9 contract "status
+    board agrees" test (Batch 5); the "registration agrees" test is GREEN.
+  - `packages/atlas-acceptance`: **7 passed / 0 failed**.
+  - `infra`: **8 passed / 0 failed**.
+- `pnpm exec oxlint <touched files>` (incl. `--deny-warnings`) → clean (exit 0).

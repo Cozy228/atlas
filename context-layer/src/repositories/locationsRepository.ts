@@ -1,4 +1,4 @@
-import type { LocationRecord } from "@atlas/schema";
+import { LocationRecordSchema, type LocationRecord } from "@atlas/schema";
 
 /**
  * Consumer-state store port for self-registered operational locations (Step 7,
@@ -7,9 +7,6 @@ import type { LocationRecord } from "@atlas/schema";
  * registrations are per-APP scoped and support DELETE (locked decision 8:
  * `DELETE /api/locations/{id}`), so the port adds `listByApp` + `delete`.
  * The routes are the only writers (M11: no upsert-on-read).
- *
- * STEP 7 BATCH 0 STUB: bodies land in Batch 1
- * (goal_prompt_step7_status_board.md, locked decision 3).
  */
 export type LocationsRepository = {
   put(location: unknown): LocationRecord | Promise<LocationRecord>;
@@ -19,19 +16,23 @@ export type LocationsRepository = {
 };
 
 export class InMemoryLocationsRepository implements LocationsRepository {
-  put(_location: unknown): LocationRecord {
-    throw new Error("unimplemented (Step 7 Batch 1)");
+  private readonly locations = new Map<string, LocationRecord>();
+
+  put(location: unknown): LocationRecord {
+    const parsed = LocationRecordSchema.parse(location);
+    this.locations.set(parsed.id, parsed);
+    return parsed;
   }
 
-  getById(_id: string): LocationRecord | undefined {
-    throw new Error("unimplemented (Step 7 Batch 1)");
+  getById(id: string): LocationRecord | undefined {
+    return this.locations.get(id);
   }
 
-  listByApp(_appId: string): LocationRecord[] {
-    throw new Error("unimplemented (Step 7 Batch 1)");
+  listByApp(appId: string): LocationRecord[] {
+    return Array.from(this.locations.values()).filter((location) => location.appId === appId);
   }
 
-  delete(_id: string): void {
-    throw new Error("unimplemented (Step 7 Batch 1)");
+  delete(id: string): void {
+    this.locations.delete(id);
   }
 }

@@ -16,6 +16,11 @@ import { handleBriefRequest, renderBriefMarkdown, type BriefRequestOptions } fro
 import { handleChangesRequest, renderChangesAtom } from "./changesRoute";
 import { handleFeedbackRequest } from "./feedbackRoute";
 import {
+  handleLocationDeleteRequest,
+  handleLocationRegistrationRequest,
+  handleLocationsListRequest,
+} from "./locationsRoutes";
+import {
   handleResourceCatalogRequest,
   handleResourceContextRequest,
   handleResourceRecordRequest,
@@ -158,6 +163,28 @@ export async function handleHttpRequest(request: HttpRequest): Promise<HttpRespo
     if (method === "POST") {
       return jsonResponse(await handleAppRegistrationRequest(parseJsonBody(request.body)));
     }
+  }
+
+  // Self-service registration (Step 7, mid-level §3): the locations store's only
+  // writers. Governed + scoped via `ctx` (the owning APP is `ctx.scope.appId`,
+  // never the body). Same branch style as `/apps`; the status board (`/status`)
+  // is wired in Batch 5.
+  if (path === "/locations") {
+    if (method === "GET") {
+      return jsonResponse(await handleLocationsListRequest(ctx));
+    }
+    if (method === "POST") {
+      return jsonResponse(
+        await handleLocationRegistrationRequest(ctx, parseJsonBody(request.body)),
+      );
+    }
+  }
+
+  const locationIdMatch = path.match(/^\/locations\/([^/]+)$/);
+  if (locationIdMatch && method === "DELETE") {
+    return jsonResponse(
+      await handleLocationDeleteRequest(ctx, decodeURIComponent(locationIdMatch[1])),
+    );
   }
 
   const appIdMatch = path.match(/^\/apps\/([^/]+)$/);

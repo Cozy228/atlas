@@ -400,6 +400,52 @@ resource "aws_dynamodb_table" "events" {
   })
 }
 
+# Self-service registration (Step 7, locked decision 3): durable, per-APP
+# operational-location pointers ({ system, kind, url } — never a secret, never a
+# value). Single-table pk/sk + a per-APP gsi1 partition so `listByApp` is a
+# single-partition Query. Same house style as apps/feedback/events.
+resource "aws_dynamodb_table" "locations" {
+  name         = "${local.name_prefix}-locations"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "pk"
+  range_key    = "sk"
+
+  attribute {
+    name = "pk"
+    type = "S"
+  }
+
+  attribute {
+    name = "sk"
+    type = "S"
+  }
+
+  attribute {
+    name = "gsi1pk"
+    type = "S"
+  }
+
+  attribute {
+    name = "gsi1sk"
+    type = "S"
+  }
+
+  global_secondary_index {
+    name            = "gsi1"
+    hash_key        = "gsi1pk"
+    range_key       = "gsi1sk"
+    projection_type = "ALL"
+  }
+
+  server_side_encryption {
+    enabled = true
+  }
+
+  tags = merge(local.common_tags, {
+    Name = "${local.name_prefix}-locations"
+  })
+}
+
 resource "aws_secretsmanager_secret" "runtime" {
   name = "${local.name_prefix}/runtime"
 
@@ -478,7 +524,9 @@ resource "aws_iam_role_policy" "task" {
           aws_dynamodb_table.apps.arn,
           "${aws_dynamodb_table.apps.arn}/index/*",
           aws_dynamodb_table.events.arn,
-          "${aws_dynamodb_table.events.arn}/index/*"
+          "${aws_dynamodb_table.events.arn}/index/*",
+          aws_dynamodb_table.locations.arn,
+          "${aws_dynamodb_table.locations.arn}/index/*"
         ]
       },
       {
@@ -552,6 +600,7 @@ resource "aws_ecs_task_definition" "portal" {
         { name = "FEEDBACK_TABLE", value = aws_dynamodb_table.feedback.name },
         { name = "APPS_TABLE", value = aws_dynamodb_table.apps.name },
         { name = "EVENTS_TABLE", value = aws_dynamodb_table.events.name },
+        { name = "LOCATIONS_TABLE", value = aws_dynamodb_table.locations.name },
         # Enables the lifecycle-plane graph snapshot refresh (15 min cadence; unset = off).
         { name = "GRAPH_REFRESH_INTERVAL_MS", value = "900000" },
         { name = "RUNTIME_SECRET", value = aws_secretsmanager_secret.runtime.name },

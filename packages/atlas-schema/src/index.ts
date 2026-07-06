@@ -1256,7 +1256,7 @@ export type Brief = z.infer<typeof BriefSchema>;
  * `OperationalLocation` (above) is the LANDED pointer shape — imported here,
  * NEVER re-declared. Step 7 adds two things on top of that single source:
  *   (a) the VALUE side — a value fetched THROUGH a pointer is uncited
- *       operational status (`LocationStatus.value`): never Evidence, never
+ *       operational status (`LocationStatusEntry.value`): never Evidence, never
  *       stored, visually separated (ADR-0003). There is deliberately NO
  *       citation field on a value.
  *   (b) self-service REGISTRATION — `{ system, kind, url }` consumer-state
@@ -1264,17 +1264,10 @@ export type Brief = z.infer<typeof BriefSchema>;
  *       would be a secret store + an SSRF proxy at once (the rejected shape),
  *       so it is structural invalidity → 400.
  *
- * STEP 7 BATCH 0 STUBS: the hand-written types below are the frozen contract
- * (goal_prompt_step7_status_board.md, locked decisions 1-3); every schema value
- * throws `unimplemented` until later batches land the real zod shapes. Later:
- *   - Batch 1: `LocationRegistrationRequestSchema` / `LocationRecordSchema` /
- *     the response schemas become `.strict()`. The registration request is
- *     EXACTLY `{ system, kind, url }` — a `token`/`secret`/any unknown field is
- *     rejected (never a secret store); `kind` reuses `OperationalLocationKind`;
- *     `url` is a human link only (value fetch goes through the adapter base).
- *   - Batch 4: `LocationStatusSchema` / `StatusBoardResponseSchema` — `value` is
- *     the uncited at-read status, nullable (null ⇒ a labeled pointer + a
- *     `reason`); no citation field by construction (ADR-0003).
+ * All six schemas are `.strict()`: the registration request is EXACTLY
+ * `{ system, kind, url }` — a `token`/`secret`/any unknown field is rejected
+ * (never a secret store); `kind` reuses `OperationalLocationKind`; `url` is a
+ * human link only (value fetch goes through the adapter's allowlisted base).
  * -------------------------------------------------------------------------- */
 
 /**
@@ -1345,29 +1338,80 @@ export type StatusBoardResponse = {
   warnings: Warning[];
 };
 
-/** Batch 0 stub: any parse throws until the real zod shape lands (later batches).
- *  `z.custom` preserves the inferred TYPE so the frozen stubs typecheck. */
-function unimplementedLocationSchema<T>(name: string): z.ZodType<T> {
-  return z.custom<T>(() => {
-    throw new Error(
-      `${name} is unimplemented (Step 7 Batch 1/4 — goal_prompt_step7_status_board.md)`,
-    );
-  });
-}
-
 export const LocationStatusReasonSchema = z.enum(locationStatusReasons);
-export const LocationRegistrationRequestSchema: z.ZodType<LocationRegistrationRequest> =
-  unimplementedLocationSchema("LocationRegistrationRequestSchema");
-export const LocationRecordSchema: z.ZodType<LocationRecord> =
-  unimplementedLocationSchema("LocationRecordSchema");
-export const LocationRegistrationResponseSchema: z.ZodType<LocationRegistrationResponse> =
-  unimplementedLocationSchema("LocationRegistrationResponseSchema");
-export const LocationListResponseSchema: z.ZodType<LocationListResponse> =
-  unimplementedLocationSchema("LocationListResponseSchema");
-export const LocationStatusEntrySchema: z.ZodType<LocationStatusEntry> =
-  unimplementedLocationSchema("LocationStatusEntrySchema");
-export const StatusBoardResponseSchema: z.ZodType<StatusBoardResponse> =
-  unimplementedLocationSchema("StatusBoardResponseSchema");
+
+/**
+ * POST /api/locations body (locked decision 1): EXACTLY `{ system, kind, url }`.
+ * `.strict()` makes any extra key — `token`/`secret`/`id`/`appId` — structural
+ * invalidity (a token in a registration would be a secret store + SSRF proxy at
+ * once). `kind` reuses the landed `OperationalLocationKind` closed set.
+ */
+export const LocationRegistrationRequestSchema: z.ZodType<LocationRegistrationRequest> = z
+  .object({
+    system: z.string().min(1),
+    kind: OperationalLocationKindSchema,
+    url: z.string().min(1),
+  })
+  .strict();
+
+/**
+ * The stored consumer-state pointer: an `OperationalLocation` scoped to an APP
+ * with a server clock. `.strict()` keeps a secret off the stored record too.
+ */
+export const LocationRecordSchema: z.ZodType<LocationRecord> = z
+  .object({
+    id: z.string().min(1),
+    appId: z.string().min(1),
+    system: z.string().min(1),
+    kind: OperationalLocationKindSchema,
+    url: z.string().min(1),
+    discoveredFrom: z.string().min(1),
+    registeredAt: z.string().min(1),
+  })
+  .strict();
+
+/**
+ * One status-board entry (P24 aggregation-at-read; ADR-0003). `value` is the
+ * uncited at-read status (`null` ⇒ a labeled pointer carrying a `reason`); there
+ * is deliberately NO citation field — `.strict()` rejects any (a value is
+ * operational status, never Evidence). `fetchedAt` is the read moment (null for
+ * a pointer).
+ */
+export const LocationStatusEntrySchema: z.ZodType<LocationStatusEntry> = z
+  .object({
+    location: OperationalLocationSchema,
+    value: z.string().nullable(),
+    reason: LocationStatusReasonSchema.optional(),
+    fetchedAt: z.string().nullable(),
+  })
+  .strict();
+
+/** POST/DELETE `/api/locations` body: the stored record + warnings. */
+export const LocationRegistrationResponseSchema: z.ZodType<LocationRegistrationResponse> = z
+  .object({
+    location: LocationRecordSchema,
+    warnings: z.array(WarningSchema),
+  })
+  .strict();
+
+/** GET `/api/locations?appId=` body. */
+export const LocationListResponseSchema: z.ZodType<LocationListResponse> = z
+  .object({
+    locations: z.array(LocationRecordSchema),
+  })
+  .strict();
+
+/**
+ * GET `/api/status` body: the scope echo + the read-only, uncited status list +
+ * governance warnings. Recomputed at read, every time (P24 — no store).
+ */
+export const StatusBoardResponseSchema: z.ZodType<StatusBoardResponse> = z
+  .object({
+    situation: SituationSchema,
+    statuses: z.array(LocationStatusEntrySchema),
+    warnings: z.array(WarningSchema),
+  })
+  .strict();
 
 export {
   validateGuidanceDocument,
