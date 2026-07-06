@@ -7,11 +7,17 @@
  * decision (reads first; any future mutation needs audit + human confirm).
  */
 import { z } from "zod";
-import { briefDepths, resourceKinds, type ResourceContextResponse } from "@atlas/schema";
+import {
+  ApiErrorResponseSchema,
+  briefDepths,
+  resourceKinds,
+  type Brief,
+  type ResourceContextResponse,
+} from "@atlas/schema";
+import { createResolutionContext, handleBriefRequest, type ScopeInput } from "@atlas/context-layer";
 
 import type { ContextApiClient } from "../../contextApiClient";
 import { ContextApiError } from "../../contextApiError";
-import { unimplemented } from "./unimplemented";
 
 const ResponseFormatSchema = z
   .enum(["CONCISE", "DETAILED"])
@@ -141,9 +147,17 @@ const WhatsChangedInput = z.object({
 
 export type McpToolDefinition = {
   name: string;
+  /** Inventory group (Step 5): `bootstrap` is the discovery door, `moment` tools are the
+   *  thin brief wrappers, `atom` tools are the resource reads beneath them. `atlas_bootstrap`
+   *  derives its grouped inventory from this discriminator, so it can never drift from the
+   *  registered surface. */
+  group: "bootstrap" | "moment" | "atom";
   description: string;
   inputSchema: Record<string, unknown>;
-  run(args: unknown, client: ContextApiClient): Promise<unknown>;
+  /** The caller Bearer (ADR-0001) is threaded unparsed as the optional 3rd arg — the moment
+   *  tools + bootstrap build the governed ctx with it; the resource atoms ignore it (they
+   *  read through the already-Bearer-bound `client`). */
+  run(args: unknown, client: ContextApiClient, bearer?: string): Promise<unknown>;
 };
 
 function toInputSchema(schema: z.ZodType): Record<string, unknown> {
@@ -152,6 +166,92 @@ function toInputSchema(schema: z.ZodType): Record<string, unknown> {
   }) as Record<string, unknown> & { $schema?: string };
   return jsonSchema;
 }
+
+/**
+ * Map the moment/bootstrap scope args onto Step 1's `ScopeInput` union (M11) — the SAME
+ * mapping the governed router's `scopeFromQuery` performs, so a tool-built ctx and an
+ * endpoint-built ctx are identical for the same scope (thin-wrapper equivalence, D2).
+ * By-value `landingZones[]` (a P26 set) and/or a by-reference `appId`; supplying both
+ * reconciles (value wins, `scope_drift` on disagreement). Absent ⇒ anonymous unscoped.
+ */
+function scopeInputFrom(args: {
+  landingZones?: string[];
+  appId?: string;
+  services?: string[];
+}): ScopeInput | undefined {
+  const landingZones = (args.landingZones ?? []).filter((zone) => zone.length > 0);
+  const appId = args.appId?.trim() || undefined;
+  const services = args.services?.filter((service) => service.length > 0);
+  const hasValue = landingZones.length > 0;
+  const withServices = services && services.length > 0 ? { services } : {};
+  if (hasValue && appId) {
+    return { kind: "both", landingZones, appId, ...withServices };
+  }
+  if (hasValue) {
+    return { kind: "by-value", landingZones, ...withServices };
+  }
+  if (appId) {
+    return { kind: "by-reference", appId };
+  }
+  return undefined;
+}
+
+/** Unwrap a brief handler result into the one `Brief` value, surfacing the handler's honest
+ *  error (locked decision 1: a tool error is the handler's error, passed through). */
+function unwrapBrief(result: { status: number; body: unknown }): Brief {
+  if (result.status >= 400) {
+    const parsed = ApiErrorResponseSchema.safeParse(result.body);
+    if (parsed.success) {
+      throw ContextApiError.fromResponse({ status: result.status, body: parsed.data });
+    }
+    throw new ContextApiError({
+      code: "invalid_request",
+      message: `Context API returned status ${result.status} with no structured error body.`,
+      status: result.status,
+    });
+  }
+  return result.body as Brief;
+}
+
+/**
+ * The thin-wrapper core (P13/I3): build the governed ctx from the tool's scope args + the
+ * caller Bearer, then call `handleBriefRequest` — the SAME code path as
+ * `GET /api/briefs/{moment}`, never a second assembly. `depth` defaults inside the handler
+ * (API face = citations, M9); `service`/`since` ride the handler options.
+ */
+async function briefFromArgs(
+  moment: string,
+  args: { landingZones?: string[]; appId?: string; depth?: (typeof briefDepths)[number] },
+  bearer: string | undefined,
+  options: { service?: string; since?: string } = {},
+): Promise<Brief> {
+  const ctx = await createResolutionContext({
+    identity: { bearer },
+    scope: scopeInputFrom(args),
+  });
+  const result = await handleBriefRequest(moment, ctx, {
+    service: options.service,
+    since: options.since,
+    depth: args.depth,
+  });
+  return unwrapBrief(result);
+}
+
+/** The depth contract statement `atlas_bootstrap` publishes (M9/P28). */
+const DEPTH_STATEMENT =
+  "Moment tools default to depth=citations: structure + citations, no excerpt bodies — " +
+  'follow a citation to atlas_get_resource_context for the body. Pass depth="excerpts" to ' +
+  "have the resolved section bodies inlined (you pay the token cost explicitly).";
+
+/** Tools that exist behind the door but are not yet callable — listed honestly, never
+ *  fabricated as a stub (locked decision 5). `atlas_explain_error` arrives with Step 7. */
+const NOT_YET_AVAILABLE: { name: string; reason: string }[] = [
+  {
+    name: "atlas_explain_error",
+    reason:
+      "Operational error explanation ships with Step 7's operational floor (M7); not yet available.",
+  },
+];
 
 function conciseProjection(projection: ResourceContextResponse) {
   let truncated = false;
@@ -182,6 +282,7 @@ function conciseProjection(projection: ResourceContextResponse) {
 export const mcpTools: McpToolDefinition[] = [
   {
     name: "atlas_search_service",
+    group: "atom",
     description:
       "Search Atlas's registered resources (services and security policies) by free text. Start here to resolve a question to a resource, then read its context via atlas_get_resource_context.",
     inputSchema: toInputSchema(SearchServiceInput),
@@ -233,6 +334,7 @@ export const mcpTools: McpToolDefinition[] = [
   },
   {
     name: "atlas_get_source",
+    group: "atom",
     description:
       "Get one registered Source's registry record (class, review cadence, freshness) by source_id. Read its cited content through the resource that binds it via atlas_get_resource_context.",
     inputSchema: toInputSchema(GetSourceInput),
@@ -255,6 +357,7 @@ export const mcpTools: McpToolDefinition[] = [
   },
   {
     name: "atlas_get_availability",
+    group: "atom",
     description:
       "Check which platform services are available, planned, or interim per region/outpost in the AWS and Azure landing zones.",
     inputSchema: toInputSchema(GetAvailabilityInput),
@@ -298,6 +401,7 @@ export const mcpTools: McpToolDefinition[] = [
   },
   {
     name: "atlas_get_resource_context",
+    group: "atom",
     description:
       "Fetch Atlas's live resource projection (governed Sections + reference-only discovery links) for a {kind, slug}. Every Section's content is paired with its Citations; relay warnings (restricted_source, stale_source) verbatim.",
     inputSchema: toInputSchema(GetResourceContextInput),
@@ -307,47 +411,80 @@ export const mcpTools: McpToolDefinition[] = [
       return input.response_format === "DETAILED" ? projection : conciseProjection(projection);
     },
   },
-  // --- Step 5 moment-first front door (Batch 0: signatures throwing) --------
+  // --- Step 5 moment-first front door ---------------------------------------
   // The three moment tools are thin wrappers over the Step-4 brief handlers —
-  // the SAME code path (P13/I3), never a second assembly — and `atlas_bootstrap`
-  // is identity/scope discovery + tool inventory (I6). All read-only. Registered
-  // now so they are visible in tools/list; their `run` throws `unimplemented`
-  // until Batch 1/2 lands the behavior. `explain_error` is Step 7 — deliberately
+  // the SAME code path (P13/I3, via createResolutionContext + handleBriefRequest),
+  // never a second assembly — and `atlas_bootstrap` is identity/scope discovery +
+  // tool inventory (I6). All read-only. `explain_error` is Step 7 — deliberately
   // NOT registered (locked decision 5); `atlas_bootstrap` lists it not-yet-available.
   {
     name: "atlas_bootstrap",
+    group: "bootstrap",
     description:
       "Start here. Resolve who you are in Atlas — your landing-zone set, its origin (by-value manifest vs by-reference appId), and any scope warnings (scope_drift / scope_unresolved) — and discover the available moment tools, the resource atoms beneath them, and the depth contract. Identity/scope discovery only: a by-value scope never writes, and no registration is triggered.",
     inputSchema: toInputSchema(BootstrapInput),
-    async run(_args, _client) {
-      unimplemented("atlas_bootstrap");
+    async run(args, _client, bearer) {
+      const input = BootstrapInput.parse(args ?? {});
+      // Build the governed ctx directly (mirroring inProcessContextApi): bootstrap needs
+      // the vetting warnings the ContextApiClient does not expose. A by-value scope NEVER
+      // writes (M11) — vetScope seats it verbatim and consults no store.
+      const ctx = await createResolutionContext({
+        identity: { bearer },
+        scope: scopeInputFrom(input),
+      });
+      const situation = {
+        landingZoneIds: ctx.scope?.landingZoneIds ?? [],
+        origin: ctx.scope?.origin ?? "by-value",
+        ...(ctx.scope?.appId ? { appId: ctx.scope.appId } : {}),
+        warnings: ctx.warnings.map((warning) => ({
+          code: warning.code,
+          message: warning.message,
+        })),
+      };
+      return {
+        situation,
+        // The inventory is derived from the registry (grouped moment-tools-then-atoms),
+        // never a hardcoded list that can drift from the registered surface.
+        tools: {
+          moments: mcpTools.filter((tool) => tool.group === "moment").map((tool) => tool.name),
+          atoms: mcpTools.filter((tool) => tool.group === "atom").map((tool) => tool.name),
+        },
+        depth: { default: "citations", statement: DEPTH_STATEMENT },
+        notYetAvailable: NOT_YET_AVAILABLE,
+      };
     },
   },
   {
     name: "atlas_check_adoption",
+    group: "moment",
     description:
       "The adopt moment: what a service needs before you take it on, for your landing zones. A thin wrapper over the adopt brief handler (same code path as GET /api/briefs/adopt); returns the one serialized Brief value (default depth=citations — follow citations to atlas_get_resource_context for bodies).",
     inputSchema: toInputSchema(CheckAdoptionInput),
-    async run(_args, _client) {
-      unimplemented("atlas_check_adoption");
+    async run(args, _client, bearer) {
+      const input = CheckAdoptionInput.parse(args ?? {});
+      return briefFromArgs("adopt", input, bearer, { service: input.service });
     },
   },
   {
     name: "atlas_get_my_context",
+    group: "moment",
     description:
       "The build moment: your resolved platform context for your app across your landing zones. A thin wrapper over the build brief handler (same code path as GET /api/briefs/build); returns the one serialized Brief value (default depth=citations).",
     inputSchema: toInputSchema(GetMyContextInput),
-    async run(_args, _client) {
-      unimplemented("atlas_get_my_context");
+    async run(args, _client, bearer) {
+      const input = GetMyContextInput.parse(args ?? {});
+      return briefFromArgs("build", input, bearer);
     },
   },
   {
     name: "atlas_whats_changed",
+    group: "moment",
     description:
       "The change moment: what changed in your scope, optionally since a cursor. A thin wrapper over the change brief handler over the Step-2 derived feed (same code path as GET /api/briefs/change); returns the one serialized Brief value (default depth=citations). This is the machine-derived feed, never the editorial What's New.",
     inputSchema: toInputSchema(WhatsChangedInput),
-    async run(_args, _client) {
-      unimplemented("atlas_whats_changed");
+    async run(args, _client, bearer) {
+      const input = WhatsChangedInput.parse(args ?? {});
+      return briefFromArgs("change", input, bearer, { since: input.since });
     },
   },
 ];

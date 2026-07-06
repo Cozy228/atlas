@@ -112,9 +112,10 @@ async function handleToolCall(message: JsonRpcMessage, request: Request): Promis
     );
   }
 
-  const client = createServerContextApiClient({ token: callerBearerToken(request) });
+  const bearer = callerBearerToken(request);
+  const client = createServerContextApiClient({ token: bearer });
   try {
-    const result = await tool.run(message.params?.arguments, client);
+    const result = await tool.run(message.params?.arguments, client, bearer);
     return rpcResult(id, {
       content: [{ type: "text", text: JSON.stringify(result) }],
       structuredContent: result,

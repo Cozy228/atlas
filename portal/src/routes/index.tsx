@@ -1,131 +1,155 @@
 /**
- * Home redesign · route `/`
+ * APP home · route `/` (Step 5, I6)
  * ======================================================================
- * Round 2: the "Welcome desk" direction (the round-1 baseline the review
- * liked) carried forward as the single home. The centered hero + "From idea to
- * production" JourneyGrid stay; the formerly-samey sections each keep their own
- * register (ledger band · featured intent doors · catalog book index · change
- * timeline). The "front page" broadsheet moved to its own `/whatsnew`.
+ * The Portal home is the APP home: the situation card (the shared APP / landing-
+ * zone selector state, in the app shell + summarized here), a scoped change-feed
+ * slice (the Step-2 derived feed, driven by that same selector), and the moment
+ * entries linking the brief pages (`/briefs/{adopt,build,change}`; debug is marked
+ * not-yet-available). The catalog-first home is gone — the catalog demotes to a
+ * nav-reachable tool page (`/catalog` kept) — and the home never fabricates.
  *
- * Renders inside the real PortalShell (top bar + grid canvas stay). Real
- * availability data feeds the domain index and stats; the rest is fictional
- * and public-safe. Links target the portal so the flow stays
- * coherent.
+ * P31 (load-bearing): the change-feed slice reuses the Step-2 changes machinery
+ * (`changesQueryOptionsFor` + the shared `ChangeFeedList`), never the editorial
+ * What's New (`/whatsnew`). The two surfaces never merge.
+ *
+ * Data: the live derived feed in production; in dev mock mode a deterministic
+ * fictional feed renders the surface (public-safe).
  */
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 
-import {
-  whatsNewQueryOptions,
-  availabilityQueryOptions,
-  resourceCatalogQueryOptions,
-} from "@/api/queries";
-import { deferUnlessCached } from "@/lib/deferred-cache";
-import { DOMAIN_BLURBS } from "@/components/catalog/data";
-import { KIND_TONE, toKind } from "@/components/whatsnew/data";
-import { HomeWelcome } from "@/components/home/welcome";
-import type {
-  DomainService,
-  HomeAnnouncement,
-  HomeLoaderData,
-  HomeStats,
-} from "@/components/home/data";
+import { changesQueryOptionsFor } from "@/api/queries";
+import { useSituation } from "@/components/landing-zone/context";
+import { ChangeFeedList } from "@/components/changes/change-feed";
+import { PageBody, PageHeader } from "@/components/page-section";
+import { cn } from "@/lib/utils";
 
-function slugifyDomain(domain: string): string {
-  return domain
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "");
-}
+/** The three live moments (Step 4) — each links its brief page. `debug` is Step 7
+ *  (the operational-location floor), listed honestly as not-yet-available. */
+const MOMENT_ENTRIES = [
+  {
+    moment: "adopt" as const,
+    label: "Adopt",
+    blurb:
+      "Can I adopt this service here? Availability per landing zone, plus its adoption context.",
+  },
+  {
+    moment: "build" as const,
+    label: "Build",
+    blurb: "What is my context? The join across the services your situation declares.",
+  },
+  {
+    moment: "change" as const,
+    label: "Change",
+    blurb: "What changed for me? The derived feed scoped to your situation.",
+  },
+];
 
 export const Route = createFileRoute("/")({
-  loader: ({ context }): HomeLoaderData => {
-    // Prewarm the discovery catalog in the background (fire-and-forget, never
-    // awaited) so /catalog paints from a warm cache after a hop from home.
-    // Availability is already prewarmed below via the hero stats read.
-    void context.queryClient.prefetchQuery(resourceCatalogQueryOptions);
-
-    // Deferred (a live newsletter feed in the real adapter): the What's-new ticker.
-    // Skeleton only on a cache MISS (first fetch pays the dev latency); a revisit
-    // reads the warm cache and resolves synchronously — no skeleton flash.
-    const announcements = deferUnlessCached(
-      context.queryClient,
-      whatsNewQueryOptions.queryKey,
-      () => context.queryClient.ensureQueryData(whatsNewQueryOptions),
-      (feed): HomeAnnouncement[] =>
-        feed.announcements.slice(0, 8).map((a) => {
-          const kind = toKind(a.kind);
-          return { kind, tone: KIND_TONE[kind], title: a.title };
-        }),
-    );
-
-    // Slow: availability is a live Confluence fetch + parse in the real adapter —
-    // defer it (no await) so the home shell (hero, intents, lifecycle, ticker)
-    // paints immediately; the hero stat numbers + domain index show a skeleton
-    // on a cache MISS, but a revisit resolves synchronously (no flash). Same
-    // projection as /catalog so the numbers agree.
-    const stats: Promise<HomeStats> = deferUnlessCached(
-      context.queryClient,
-      availabilityQueryOptions.queryKey,
-      () => context.queryClient.ensureQueryData(availabilityQueryOptions),
-      (availability) => {
-        const zone = availability.zones.find((z) => z.id === "aws") ?? availability.zones[0]!;
-        const services = zone.services.filter((service) => service.id !== "landing-zones");
-        const byDomain = new Map<string, DomainService[]>();
-        for (const service of services) {
-          let live = 0;
-          let planned = 0;
-          for (const loc of zone.locations) {
-            const status = service.availability[loc.id]?.status;
-            if (status === "available" || status === "interim") live += 1;
-            else if (status === "planned") planned += 1;
-          }
-          const entry: DomainService = {
-            id: service.id,
-            name: service.name,
-            status: live > 0 ? "ga" : planned > 0 ? "planned" : "none",
-            liveRegions: live,
-            plannedRegions: planned,
-          };
-          (
-            byDomain.get(service.domain) ?? byDomain.set(service.domain, []).get(service.domain)!
-          ).push(entry);
-        }
-        const domains = [...byDomain.entries()]
-          .sort((a, b) => a[0].localeCompare(b[0]))
-          .map(([domain, entries]) => {
-            const sorted = entries.toSorted((a, b) => a.name.localeCompare(b.name));
-            return {
-              domain,
-              anchor: `domain-${slugifyDomain(domain)}`,
-              count: sorted.length,
-              preview: sorted
-                .slice(0, 3)
-                .map((s) => s.name)
-                .join(" · "),
-              blurb: DOMAIN_BLURBS[domain] ?? "",
-              services: sorted,
-            };
-          });
-        return {
-          serviceCount: services.length,
-          domainCount: domains.length,
-          regionCount: availability.zones.reduce((sum, z) => sum + z.locations.length, 0),
-          domains,
-        };
-      },
-    );
-
-    return { announcements, stats };
+  loader: ({ context }) => {
+    // Warm the unscoped derived feed without blocking navigation; the body reads
+    // the scoped query (situation-dependent) and shows skeletons until it lands.
+    void context.queryClient.ensureQueryData(changesQueryOptionsFor());
   },
   component: HomeRoute,
 });
 
 function HomeRoute() {
-  const data = Route.useLoaderData();
+  const { selectedApp } = useSituation();
+  const scope = selectedApp?.landingZoneIds;
+  const { data, isLoading } = useQuery(changesQueryOptionsFor(scope));
+  const events = data?.events ?? [];
 
   return (
-    <div className="mx-auto flex w-full max-w-[1180px] flex-col gap-8 px-6 py-8 sm:px-8">
-      <HomeWelcome data={data} />
-    </div>
+    <>
+      <PageHeader
+        title="Home"
+        description="For your app, in your landing zones, now — pick an app or landing zone in the top bar to scope the moments and the change feed below."
+      />
+      <PageBody>
+        <div className="flex flex-col gap-8">
+          <SituationCard appName={selectedApp?.name} zones={scope} />
+
+          <section className="flex flex-col gap-3">
+            <h2 className="text-sm font-semibold text-foreground">Moments</h2>
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              {MOMENT_ENTRIES.map((entry) => (
+                <Link
+                  key={entry.moment}
+                  to="/briefs/$moment"
+                  params={{ moment: entry.moment }}
+                  className="flex flex-col gap-1 rounded-lg border border-border bg-card p-4 transition-colors hover:border-border-strong"
+                >
+                  <span className="text-sm font-semibold text-foreground">{entry.label}</span>
+                  <span className="text-xs leading-[1.5] text-muted-foreground">{entry.blurb}</span>
+                </Link>
+              ))}
+              {/* Debug is Step 7 (the operational-location floor) — listed honestly,
+                  never a fabricated door. */}
+              <div
+                aria-disabled="true"
+                className="flex cursor-not-allowed flex-col gap-1 rounded-lg border border-dashed border-border bg-card/50 p-4"
+              >
+                <span className="text-sm font-semibold text-muted-foreground">Debug</span>
+                <span className="text-xs leading-[1.5] text-muted-foreground">
+                  Not yet available — arrives with the operational-location floor.
+                </span>
+              </div>
+            </div>
+          </section>
+
+          <section className="flex flex-col gap-3">
+            <h2 className="text-sm font-semibold text-foreground">Recent changes</h2>
+            <ChangeFeedList
+              events={events}
+              isLoading={isLoading}
+              emptyText={
+                selectedApp
+                  ? `No changes in scope for ${selectedApp.name} yet. As sources change, derived events land here.`
+                  : "No changes in scope yet. Pick an app or landing zone to scope this feed — What's New stays the editorial newsletter."
+              }
+            />
+            <Link
+              to="/changes"
+              className="self-start text-xs font-medium text-sky-600 hover:underline dark:text-sky-400"
+            >
+              See all my changes →
+            </Link>
+          </section>
+        </div>
+      </PageBody>
+    </>
+  );
+}
+
+/** The situation card: a compact summary of the resolved APP / landing-zone scope
+ *  the shared top-bar selector seats. Honest-empty (a prompt) when nothing is
+ *  selected — never fabricated. */
+function SituationCard({ appName, zones }: { appName?: string; zones?: string[] }) {
+  const scoped = Boolean(appName);
+  return (
+    <section
+      className={cn(
+        "flex flex-col gap-1 rounded-xl border bg-card p-5",
+        scoped ? "border-border" : "border-dashed border-border",
+      )}
+    >
+      <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+        Situation
+      </span>
+      {scoped ? (
+        <>
+          <p className="text-base font-semibold text-foreground">{appName}</p>
+          <p className="text-xs text-muted-foreground">
+            {zones && zones.length > 0 ? zones.join(" · ") : "No landing zones declared."}
+          </p>
+        </>
+      ) : (
+        <p className="text-sm text-muted-foreground">
+          No app selected. Use the App / landing zone selector in the top bar to scope your moments
+          and change feed.
+        </p>
+      )}
+    </section>
   );
 }
