@@ -1,4 +1,15 @@
+---
+status: active
+review_after: 2026-07-27
+---
+
 # Goal Prompt: Step 7 — Status Board + Self-Service Registration (P24, M12, M7)
+
+> **Updated 2026-07-06** (original authored 2026-07-05, before Steps 4/5 and the Step-2
+> tails merged): current-tree facts refreshed at `ea15318`, the Step-4 parallel-seam
+> section resolved to its landed state, and a **UI craft ruling** added (owner
+> instruction: portal surfaces in this step are built with the frontend skills, e.g.
+> `impeccable`). Scope, locked decisions, and the DoD are unchanged.
 
 Implement implementation-plan.md **Step 7**: three ADR-0003-shaped pieces —
 (1) the **location index** ("where this APP's things live", derived from graph edges; the
@@ -19,10 +30,10 @@ operational status, uncited, never Evidence, never stored), and the Step-2 graph
 (`GraphEdge`, `deriveGraph`) + Step-3 consumer-state precedent (`apps` store) before
 starting. This prompt is the executable distillation; on conflict those documents win.
 
-> **This step can run IN PARALLEL with Step 4** — its module tree is disjoint
-> (`locations/` + `status/` + a registration store vs Step 4's `briefs/`), and the four
-> moments were split so **debug is here, not in Step 4** (Step 4 = adopt/build/change). The
-> shared foundation (graph edges, scope, consumer-state house style) is already landed.
+> **Steps 4 and 5 have MERGED** (07e83b9, a17199d) — the parallel-seam contingencies in
+> the original prompt are resolved; see §Seam with landed Steps 4/5. The four moments were
+> split so **debug is here, not in Step 4** (Step 4 shipped adopt/build/change; `debug` is
+> a documented honest not-yet-available response awaiting this step).
 
 > **Layout ruling (inherited from Steps 1–3):** everything lands in `context-layer`,
 > `@atlas/schema`, and existing portal files, plainly named — no new workspace package,
@@ -80,12 +91,23 @@ status board (aggregation-at-read, P24)
    NEVER the registered `url`; the registration schema has NO secret field.
 ```
 
-## Current-tree facts (verify at HEAD before starting)
+## Current-tree facts (refreshed 2026-07-06 at `ea15318` — re-verify at HEAD)
 
-- **The graph edges are the location substrate (Step 2).** `GraphEdge` / `deriveGraph` exist;
-  the location index reads them + the APP's registered locations. **No `locations`/`status`
-  surface exists yet** — grep-confirmed absent (`OperationalLocation` value-side,
-  `statusBoard`, `registerLocation`, adapter `authMode`).
+- **The graph substrate is snapshot-served (Step 2 + tails).** `GraphEdge` / `deriveGraph`
+  exist and the Step-2 tails closed the D3 inversion: **exactly one discovery path** — the
+  shared snapshot store read through `graph/serveSnapshots.ts` (`serveRootSnapshots`); a
+  request-pinned graph comes via `graph/requestGraph.ts` (`deriveRequestGraph(ctx)`, the
+  Step-4 precedent). The location index derives from the graph THE SAME WAY — never a
+  second parse path. **No `locations`/`status` surface exists yet** — grep-confirmed
+  absent (`statusBoard`, `registerLocation`, adapter `authMode`).
+- **`OperationalLocation` pointer shape LANDED with Step 4** (`packages/atlas-schema`
+  :1141-1177: `OperationalLocationSchema`, `operationalLocationKinds`,
+  `BriefBlock.pointers[]` separate from evidence). Step 7 adds the **value-side +
+  `LocationRegistration`** on top of that single source — the original prompt's
+  "whichever Batch 0 lands first" contingency is resolved.
+- **`debug` is a documented honest not-yet-available brief** (`briefs/templates.ts:113`,
+  Step 4) and **`atlas_explain_error` has a stub seat in MCP** (`mcp/tools.ts:247-250`,
+  Step 5 lists it as arriving with Step 7). This step replaces both with the M7 floor.
 - **Consumer-state house style is set (Step 3).** `apps` store =
   `repositories/{appsRepository, dynamoAppsRepository, appsRepositoryFactory}` + single-table
   `pk`/`sk`/`gsi1`, `APPS_TABLE` + prod fail-fast, table doc, infra + terraform test. The
@@ -93,10 +115,14 @@ status board (aggregation-at-read, P24)
 - **Scope + governance are live (Steps 1+3).** `createResolutionContext` seats scope;
   `ctx.token` carries the opaque caller Bearer (the `caller-bearer` authMode threads it).
   The status board is a scope reader like availability/changes.
-- **`OperationalLocation` schema is sketched (mid-level §1) but not landed** — Step 4's Batch
-  0 lands the *pointer* shape for `BriefBlock.pointers[]`; Step 7 lands the value-side +
-  registration + adapters. (If Step 4 hasn't merged, Step 7's Batch 0 lands the schema; the
-  reviewer reconciles the single source.)
+- **Portal IA is moment-first (Step 5).** APP home with situation card + moment entries +
+  change-feed slice; catalog demoted. The status board and registration surfaces hang off
+  the APP/LZ selector (`useSituation`) like `/changes` does. The Step-2-tails
+  `stale-subgraph-banner` + `/api/changes` `roots` field are the house precedent for
+  "honest degradation rendered loudly".
+- **The e2e a11y baseline is zero-new-violations** (`packages/atlas-e2e/tests/a11y.spec.ts`,
+  serious/critical axe rules; 4.5:1 contrast at 12px normal weight bit two prior steps —
+  new surfaces must clear it in light AND dark from the first commit).
 - **ADR-0003 is the hard line.** A value fetched through a pointer is uncited operational
   status: never in `evidence[]`, never in any durable store, visually separated in every
   render. A test asserts zero status values reach any store.
@@ -174,14 +200,40 @@ Opus agent, one Codex (gpt-5.5, medium) — in isolated git worktrees forked fro
 Batch-0 commit, against the same frozen suite. Fable reviews both per `atlas-review-standard`,
 scores, merges the winner grafting superior fragments from the runner-up.
 
-## Seam with Step 4 (running in parallel)
+## Seam with landed Steps 4/5 (resolved 2026-07-06)
 
-- **`OperationalLocation` schema** is shared: whichever step's Batch 0 lands first owns it;
-  the other imports it. Step 4 uses the *pointer* shape in `BriefBlock.pointers[]`; Step 7
-  adds the value-side + registration. Reviewer reconciles to one source.
-- **The debug moment** belongs to Step 7 (M7). Step 4 ships an honest not-yet-available
-  `debug` response; Step 7 replaces it with the floor. No file overlap — Step 4 owns
-  `briefs/{adopt,build,change}`, Step 7 owns `briefs/debug` + `locations/` + `status/`.
+- **`OperationalLocation`**: Step 4 landed the pointer shape (single source in
+  `@atlas/schema`); Step 7 IMPORTS it and adds the value-side + `LocationRegistration`.
+  Do not fork or re-declare the pointer shape.
+- **The debug moment**: Step 4's honest not-yet-available `debug` template and Step 5's
+  `atlas_explain_error` stub are BOTH replaced by this step's M7 floor — same code path
+  discipline as the other moment tools (thin wrap over the brief handler, never a second
+  assembly). File ownership: this step owns `briefs/debug` + `locations/` + `status/`;
+  `briefs/{adopt,build,change}` untouched.
+
+## UI craft ruling (owner instruction, 2026-07-06)
+
+The portal surfaces of this step — the **status board**, the **registration form**, and
+the **debug-floor render** — are user-facing product UI, not internal scaffolding. The
+builder MUST:
+
+1. **Load the frontend skills before writing portal components**: invoke the `impeccable`
+   skill (interface quality: hierarchy, states, cognitive load, a11y, responsiveness) for
+   the board/form/floor work, and follow the repo's design conventions it surfaces. If a
+   dedicated design pass is warranted (new board layout), `frontend-design`/`design`-class
+   skills apply too.
+2. **Design the honest states first** — the board's PRIMARY states are the degraded ones:
+   labeled pointer (no adapter / `none` / fetch failure), loading skeleton, empty scope.
+   Follow the house deferred-loading architecture (DeferredRegion + skeletons; never a
+   blocking full-page loader) and the `stale-subgraph-banner` precedent for loud honest
+   degradation. Uncited values must be VISUALLY separated from cited Evidence (ADR-0003) —
+   a distinct visual register, not just a caption.
+3. **Clear the a11y baseline from the first commit**: zero new serious/critical axe
+   violations (light AND dark; ≥4.5:1 contrast for normal-size text — `-600`-on-light
+   Tailwind text classes have failed this twice).
+4. **Convergence rule** (standing): if a visual/layout defect survives two review rounds,
+   stop incremental patching and produce 3–4 variants (HTML/screenshots) for the owner to
+   pick.
 
 ## Deferred with rationale (do not build now)
 
