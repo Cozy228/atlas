@@ -1,5 +1,5 @@
 /**
- * The per-root snapshot store (Step 2, M2/M10). Keyed `discovery:<envHash>:<rootId>`
+ * The per-root snapshot store (Step 2, M2/M10). Keyed `discovery:{<envHash>}:<rootId>`
  * in the EXISTING Valkey store (no new infra — snapshots share the content-cache
  * store); value = the root's `SnapshotPair` (K=2: confirmed baseline + pending
  * observation). This is derivation cache: loss ⇒ re-discover, no product data

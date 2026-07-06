@@ -7,6 +7,7 @@ import {
 } from "@valkey/valkey-glide";
 
 import type { CachedResponse, SourceContentCache } from "./sourceContentCache";
+import { parseValkeyUrl } from "./valkeyUrl";
 
 /**
  * ElastiCache (Valkey) adapter for {@link SourceContentCache}
@@ -142,12 +143,7 @@ export class ValkeyContentCache implements SourceContentCache {
   }
 }
 
-/** Parse `rediss://host:6379` into GLIDE address + TLS flag. */
-export function parseValkeyUrl(url: string): { host: string; port: number; useTLS: boolean } {
-  const parsed = new URL(url);
-  return {
-    host: parsed.hostname,
-    port: parsed.port ? Number(parsed.port) : 6379,
-    useTLS: parsed.protocol === "rediss:",
-  };
-}
+// `parseValkeyUrl` now lives in `./valkeyUrl` (so the snapshot client can reuse it
+// without pinning this GLIDE-importing module into the static graph). Re-exported
+// here for back-compat with existing importers.
+export { parseValkeyUrl } from "./valkeyUrl";
