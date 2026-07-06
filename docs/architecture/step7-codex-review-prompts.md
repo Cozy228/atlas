@@ -18,8 +18,8 @@ Reference commits (fill in as batches land):
 | Batch | Scope | Commit |
 |---|---|---|
 | 0 | frozen D1–D11 suite + stubs | `8a62f176` |
-| 1 | registration store + routes + infra (D1/D3/D11) | _pending_ |
-| 2 | location index (D2) | _pending_ |
+| 1 | registration store + routes + infra (D1/D3/D11) | `0b880bfe` |
+| 2 | location index (D2) | `df30ebc4` |
 | 3 | authMode + SSRF composition + TFE adapter (D4/D5) | _pending_ |
 | 4 | status board aggregation-at-read (D6/D7) | _pending_ |
 | 5 | debug floor + /api/status + portal UI (D8/D9/D10/D12) | _pending_ |
