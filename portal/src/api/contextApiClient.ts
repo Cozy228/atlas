@@ -125,7 +125,7 @@ export function createStaticContextApiClient({
     async getChanges(_scope?: AvailabilityScope, _since?: string): Promise<ChangesResponse> {
       // The change feed is derived server-side state; the read-only browser
       // snapshot has none. The in-process / HTTP faces carry it (Batch 4).
-      return ChangesResponseSchema.parse({ events: [], cursor: null });
+      return ChangesResponseSchema.parse({ events: [], cursor: null, roots: [] });
     },
     async getBrief(
       _moment: string,

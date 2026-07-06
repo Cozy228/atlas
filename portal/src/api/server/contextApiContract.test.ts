@@ -376,6 +376,9 @@ describe("Context API consumer contract — Step 2 change feed (D9)", () => {
     expect(httpBody.events.map((e) => e.id)).toEqual(["awsf-svc"]);
     expect(inProcess.events.map((e) => e.id)).toEqual(["awsf-svc"]);
     expect(inProcess.events).toEqual(httpBody.events);
+    // Per-root substrate freshness (D10) is global (not scope-filtered) and agrees
+    // across the two transports — in-process ≡ HTTP for `roots` too.
+    expect(inProcess.roots).toEqual(httpBody.roots);
   });
 });
 

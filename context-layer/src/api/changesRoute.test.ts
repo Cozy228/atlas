@@ -3,6 +3,8 @@ import { ChangesResponseSchema, type ChangeEvent } from "@atlas/schema";
 import { handleChangesRequest, renderChangesAtom } from "./changesRoute";
 import { createResolutionContext } from "../resolvers/createResolutionContext";
 import { sharedEventsRepository } from "../repositories/eventsRepositoryFactory";
+import { sharedSnapshotStore } from "../graph/snapshotStoreFactory";
+import type { RootSnapshot } from "../graph/graphTypes";
 
 /**
  * D9 — `GET /api/changes` is governed + scoped (M8): the ctx's scope filters
@@ -62,6 +64,45 @@ describe("handleChangesRequest (D9)", () => {
       (await handleChangesRequest(ctx, { since: firstCursor })).body,
     );
     expect(rest.events.map((e) => e.id)).toEqual(["beta-svc"]);
+  });
+
+  it("carries per-root freshness (D10): a stale root surfaces with an aging note, live roots do not", async () => {
+    const store = await sharedSnapshotStore(process.env);
+    const t0 = "2026-07-01T00:00:00.000Z";
+    const snap = (rootId: string): RootSnapshot => ({
+      rootId,
+      resolvedAt: t0,
+      contractVersion: "availability-v1",
+      parse: {
+        kind: "availability",
+        landingZoneId: rootId.replace("availability:", ""),
+        landingZoneName: rootId,
+        services: [{ slug: "cloudx/svc", name: "Svc", domain: "AI" }],
+      },
+    });
+    await store.compareAndSwap("availability:aging-zone", undefined, {
+      confirmed: snap("availability:aging-zone"),
+      pending: snap("availability:aging-zone"),
+    });
+
+    const ctx = await createResolutionContext({});
+    // Read two hours after the parse (past the 1h horizon) ⇒ the root is stale.
+    const body = ChangesResponseSchema.parse(
+      (await handleChangesRequest(ctx, { now: new Date(Date.parse(t0) + 2 * 60 * 60 * 1000) }))
+        .body,
+    );
+    const aging = body.roots.find((r) => r.rootId === "availability:aging-zone");
+    expect(aging?.stale).toBe(true);
+    expect(aging?.resolvedAt).toBe(t0); // clock never bumped to now
+    expect(aging?.agingNote).toBeTruthy();
+
+    // A read within the horizon ⇒ the SAME root reads fresh (recomputed, not stored).
+    const freshBody = ChangesResponseSchema.parse(
+      (await handleChangesRequest(ctx, { now: new Date(Date.parse(t0) + 60 * 1000) })).body,
+    );
+    const fresh = freshBody.roots.find((r) => r.rootId === "availability:aging-zone");
+    expect(fresh?.stale).toBe(false);
+    expect(fresh?.agingNote).toBeUndefined();
   });
 
   it("renders a scoped Atom feed", async () => {

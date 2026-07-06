@@ -20,6 +20,7 @@ import { useQuery } from "@tanstack/react-query";
 import { changesQueryOptionsFor } from "@/api/queries";
 import { useSituation } from "@/components/landing-zone/context";
 import { ChangeFeedList } from "@/components/changes/change-feed";
+import { StaleSubgraphBanner } from "@/components/changes/stale-subgraph-banner";
 import { PageBody, PageHeader } from "@/components/page-section";
 
 export const Route = createFileRoute("/changes")({
@@ -37,6 +38,7 @@ function MyChangesRoute() {
   const { data, isLoading } = useQuery(changesQueryOptionsFor(scope));
 
   const events = data?.events ?? [];
+  const roots = data?.roots ?? [];
 
   return (
     <>
@@ -49,6 +51,7 @@ function MyChangesRoute() {
         }
       />
       <PageBody>
+        <StaleSubgraphBanner roots={roots} />
         <ChangeFeedList
           events={events}
           isLoading={isLoading}

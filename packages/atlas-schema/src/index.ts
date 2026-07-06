@@ -1053,14 +1053,32 @@ export const ChangeEventSchema = z
   .strict();
 
 /**
+ * Per-root substrate freshness on the change feed (Step-2 tail, decision 8 /
+ * D10). One entry per source root — `stale` is recomputed at read time from
+ * `resolvedAt` vs now (never stored), and `agingNote` names a root being served
+ * last-good after a failed refresh so the portal can raise a loud banner. Events
+ * are scope-filtered, but substrate health is GLOBAL: `roots` carries every root.
+ */
+export const ChangeFeedRootSchema = z
+  .object({
+    rootId: z.string().min(1),
+    resolvedAt: z.string().datetime(),
+    stale: z.boolean(),
+    agingNote: z.string().min(1).optional(),
+  })
+  .strict();
+
+/**
  * The change-feed read (M8). `events` are ordered oldest→newest; `cursor` is
  * the opaque incremental read position (the last event's time index), `null`
  * when the feed is empty. `GET /api/changes?since=<cursor>` walks forward.
+ * `roots` carries per-root substrate freshness (all roots — decision 8/D10).
  */
 export const ChangesResponseSchema = z
   .object({
     events: z.array(ChangeEventSchema),
     cursor: z.string().min(1).nullable(),
+    roots: z.array(ChangeFeedRootSchema),
   })
   .strict();
 
@@ -1073,6 +1091,7 @@ export type PerRootFreshness = z.infer<typeof PerRootFreshnessSchema>;
 export type GraphVersion = z.infer<typeof GraphVersionSchema>;
 export type EventClass = z.infer<typeof EventClassSchema>;
 export type ChangeEvent = z.infer<typeof ChangeEventSchema>;
+export type ChangeFeedRoot = z.infer<typeof ChangeFeedRootSchema>;
 export type ChangesResponse = z.infer<typeof ChangesResponseSchema>;
 
 /* -------------------------------------------------------------------------- *

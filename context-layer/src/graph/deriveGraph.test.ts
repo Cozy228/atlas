@@ -136,4 +136,24 @@ describe("deriveGraph (D2)", () => {
       ].sort(),
     );
   });
+
+  it("recomputes staleness at read against `now` (T3.1: honest, never hardcoded)", () => {
+    // Fresh read: 10 minutes after the parse ⇒ no root is stale.
+    const fresh = deriveGraph(snapshots(), new Date(Date.parse(AT) + 10 * 60 * 1000));
+    expect(fresh.perRootFreshness.every((f) => f.stale === false)).toBe(true);
+
+    // Aged read: two hours after the parse (past the 1h horizon) ⇒ every root stale,
+    // with its ORIGINAL resolvedAt (the clock is never bumped to now).
+    const aged = deriveGraph(snapshots(), new Date(Date.parse(AT) + 2 * 60 * 60 * 1000));
+    expect(aged.perRootFreshness.every((f) => f.stale === true)).toBe(true);
+    expect(aged.perRootFreshness.every((f) => f.resolvedAt === AT)).toBe(true);
+  });
+
+  it("version is time-invariant: freshness never enters the content hash", () => {
+    const early = deriveGraph(snapshots(), new Date(Date.parse(AT) + 1000));
+    const late = deriveGraph(snapshots(), new Date(Date.parse(AT) + 10 * 60 * 60 * 1000));
+    // Same structure, different read clock (one stale, one fresh) ⇒ ONE version.
+    expect(early.version).toEqual(late.version);
+    expect(early.perRootFreshness[0].stale).not.toEqual(late.perRootFreshness[0].stale);
+  });
 });

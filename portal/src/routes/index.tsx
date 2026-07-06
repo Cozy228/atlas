@@ -21,6 +21,7 @@ import { useQuery } from "@tanstack/react-query";
 import { changesQueryOptionsFor } from "@/api/queries";
 import { useSituation } from "@/components/landing-zone/context";
 import { ChangeFeedList } from "@/components/changes/change-feed";
+import { StaleSubgraphBanner } from "@/components/changes/stale-subgraph-banner";
 import { PageBody, PageHeader } from "@/components/page-section";
 import { cn } from "@/lib/utils";
 
@@ -59,6 +60,7 @@ function HomeRoute() {
   const scope = selectedApp?.landingZoneIds;
   const { data, isLoading } = useQuery(changesQueryOptionsFor(scope));
   const events = data?.events ?? [];
+  const roots = data?.roots ?? [];
 
   return (
     <>
@@ -100,6 +102,7 @@ function HomeRoute() {
 
           <section className="flex flex-col gap-3">
             <h2 className="text-sm font-semibold text-foreground">Recent changes</h2>
+            <StaleSubgraphBanner roots={roots} />
             <ChangeFeedList
               events={events}
               isLoading={isLoading}

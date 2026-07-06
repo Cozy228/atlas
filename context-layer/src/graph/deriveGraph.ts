@@ -16,8 +16,15 @@
 import type { GraphEdge, GraphNode, GraphVersion } from "@atlas/schema";
 import type { RootSnapshot } from "./graphTypes";
 import { contentHash } from "./contentHash";
+import { perRootFreshness as computePerRootFreshness } from "./freshness";
 
-export function deriveGraph(snapshots: RootSnapshot[]): GraphVersion {
+/**
+ * @param now  the read clock staleness is recomputed against (decision 8 / T3.1):
+ *   a root's `stale` flag is derived from its `resolvedAt` vs `now`, NEVER stored,
+ *   and NEVER enters the content-hashed `version` (a version must not churn with
+ *   wall-clock time). Defaults to the current time.
+ */
+export function deriveGraph(snapshots: RootSnapshot[], now: Date = new Date()): GraphVersion {
   // Authoritative service names come from the availability spine; terraform /
   // security only ADD edges (and fall back to the slug as a name if a service is
   // referenced there but not in availability — honest, never fabricated).
@@ -100,11 +107,7 @@ export function deriveGraph(snapshots: RootSnapshot[]): GraphVersion {
   // Version is the structure's content hash; per-root freshness is read-time
   // (its `stale` flag is recomputed against `now`), so it never enters the hash.
   const version = contentHash({ nodes: sortedNodes, edges: sortedEdges });
-  const perRootFreshness = snapshots.map((snapshot) => ({
-    rootId: snapshot.rootId,
-    resolvedAt: snapshot.resolvedAt,
-    stale: false,
-  }));
+  const perRootFreshness = computePerRootFreshness(snapshots, now);
 
   return { version, nodes: sortedNodes, edges: sortedEdges, perRootFreshness };
 }

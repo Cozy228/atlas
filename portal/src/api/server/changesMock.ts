@@ -1,4 +1,4 @@
-import type { ChangesResponse, ChangeEvent } from "@atlas/schema";
+import type { ChangesResponse, ChangeEvent, ChangeFeedRoot } from "@atlas/schema";
 
 /**
  * Deterministic mock change feed for dev/e2e (`DEV_DATA_MODE === "mock"`).
@@ -47,6 +47,26 @@ const MOCK_EVENTS: ChangeEvent[] = [
   },
 ];
 
+/**
+ * Per-root substrate freshness for the mock feed (decision 8 / D10). Substrate
+ * health is GLOBAL (never scope-filtered). One root is deliberately served
+ * last-good so the dev/e2e "my changes" surface exercises the loud aging banner
+ * exactly as the live feed will when a source root stops refreshing; the others
+ * stay live. Public-safe fictional data.
+ */
+const MOCK_ROOTS: ChangeFeedRoot[] = [
+  { rootId: "availability:awsf", resolvedAt: "2026-07-06T08:00:00.000Z", stale: false },
+  {
+    rootId: "availability:azuref",
+    resolvedAt: "2026-07-04T09:15:00.000Z",
+    stale: true,
+    agingNote:
+      "Source root 'availability:azuref' is aging: serving last-good from 2026-07-04T09:15:00.000Z.",
+  },
+  { rootId: "terraform", resolvedAt: "2026-07-06T08:00:00.000Z", stale: false },
+  { rootId: "security", resolvedAt: "2026-07-06T08:00:00.000Z", stale: false },
+];
+
 export type MockChangesScope = {
   landingZones?: string[];
   since?: string;
@@ -67,5 +87,6 @@ export function mockChangesFeed(scope?: MockChangesScope): ChangesResponse {
     events.length > 0
       ? `${events[events.length - 1].derivedAt}#${events[events.length - 1].id}`
       : null;
-  return { events, cursor };
+  // Substrate health is global — the roots are never scope/since filtered.
+  return { events, cursor, roots: MOCK_ROOTS };
 }

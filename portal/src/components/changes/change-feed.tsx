@@ -20,12 +20,12 @@ const CLASS_LABEL: Record<EventClass, string> = {
 };
 
 const CLASS_TONE: Record<EventClass, string> = {
-  "service-added": "text-emerald-600 dark:text-emerald-400",
+  "service-added": "text-emerald-700 dark:text-emerald-400",
   "service-removed": "text-rose-600 dark:text-rose-400",
-  "available-in-added": "text-emerald-600 dark:text-emerald-400",
+  "available-in-added": "text-emerald-700 dark:text-emerald-400",
   "available-in-removed": "text-rose-600 dark:text-rose-400",
-  "module-version-changed": "text-amber-600 dark:text-amber-400",
-  "governed-by-added": "text-sky-600 dark:text-sky-400",
+  "module-version-changed": "text-amber-800 dark:text-amber-400",
+  "governed-by-added": "text-sky-700 dark:text-sky-400",
   "governed-by-removed": "text-rose-600 dark:text-rose-400",
 };
 
@@ -77,7 +77,7 @@ export function ChangeRow({ event }: { event: ChangeEvent }) {
     ) : null;
 
   return (
-    <li className="rounded-lg border border-border bg-card p-4">
+    <li data-testid="change-feed-row" className="rounded-lg border border-border bg-card p-4">
       <div className="flex items-baseline justify-between gap-4">
         <span
           className={cn("text-xs font-semibold uppercase tracking-wide", CLASS_TONE[event.class])}
