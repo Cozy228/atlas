@@ -24,6 +24,7 @@ import {
   type SourceDiscoveryRequest,
 } from "@atlas/schema";
 
+import type { ResolutionChannel } from "@atlas/context-layer";
 import type { AvailabilityScope, BriefRequestScope, ContextApiClient } from "../contextApiClient";
 import { ContextApiError } from "../contextApiError";
 import { createInProcessContextApiClient } from "./inProcessContextApi";
@@ -39,6 +40,10 @@ export function createServerContextApiClient(
     env?: Record<string, string | undefined>;
     fetch?: FetchLike;
     token?: string;
+    /** The producing face for instruments attribution (Step 6, locked decision
+     *  2). Only meaningful on the in-process fallback: an HTTP base URL means the
+     *  request re-enters the router, which stamps its own `"http"` channel. */
+    channel?: ResolutionChannel;
   } = {},
 ): ServerContextApiClient {
   const baseUrl = input.env?.CONTEXT_API_BASE_URL ?? process.env.CONTEXT_API_BASE_URL;
@@ -51,8 +56,9 @@ export function createServerContextApiClient(
 
   return {
     // The in-process fallback threads the caller Bearer into the governance-gate
-    // factory (Step 1 D4) instead of silently dropping it.
-    ...createInProcessContextApiClient({ token: input.token }),
+    // factory (Step 1 D4) instead of silently dropping it, plus the producing
+    // face (Step 6) so MCP-in-process reads attribute to the agent channel.
+    ...createInProcessContextApiClient({ token: input.token, channel: input.channel }),
     kind: "in-process",
   };
 }

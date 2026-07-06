@@ -13,6 +13,7 @@ export {
   type RefreshGraphSnapshotsResult,
 } from "./graph/refreshGraphSnapshots";
 export {
+  API_DEFAULT_DEPTH,
   handleBriefRequest,
   renderBriefMarkdown,
   type BriefRequestOptions,
@@ -48,6 +49,27 @@ export {
   type GovernedResolutionContext,
   type ScopeInput,
 } from "./resolvers/createResolutionContext";
+export type { ResolutionChannel } from "./resolvers/resolverTypes";
+export { handleInstrumentsRequest, handleVerifyBeacon } from "./api/instrumentsRoute";
+// A curated instruments surface — the record*/estimate/snapshot set only. The
+// raw registry ops (`incrementCounter`/`observeHistogram`) and the test-only
+// `resetMetrics` stay module-private (context-layer tests import them directly).
+import {
+  estimateTokens as estimateTokensImpl,
+  recordBriefAssembled as recordBriefAssembledImpl,
+  recordBriefCall as recordBriefCallImpl,
+  recordBriefPayload as recordBriefPayloadImpl,
+  recordCitationFollow as recordCitationFollowImpl,
+  snapshot as snapshotImpl,
+} from "./observability/metrics";
+export const instrumentsMetrics = {
+  recordBriefAssembled: recordBriefAssembledImpl,
+  recordBriefCall: recordBriefCallImpl,
+  recordBriefPayload: recordBriefPayloadImpl,
+  recordCitationFollow: recordCitationFollowImpl,
+  estimateTokens: estimateTokensImpl,
+  snapshot: snapshotImpl,
+};
 export { type AppsRepository } from "./repositories/appsRepository";
 export { createAppsRepository, sharedAppsRepository } from "./repositories/appsRepositoryFactory";
 export { createSelfDeclaredAppsAdapter } from "./repositories/selfDeclaredAppsAdapter";

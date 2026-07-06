@@ -14,7 +14,13 @@ import {
   type Brief,
   type ResourceContextResponse,
 } from "@atlas/schema";
-import { createResolutionContext, handleBriefRequest, type ScopeInput } from "@atlas/context-layer";
+import {
+  API_DEFAULT_DEPTH,
+  createResolutionContext,
+  handleBriefRequest,
+  instrumentsMetrics,
+  type ScopeInput,
+} from "@atlas/context-layer";
 
 import type { ContextApiClient } from "../../contextApiClient";
 import { ContextApiError } from "../../contextApiError";
@@ -228,13 +234,26 @@ async function briefFromArgs(
   const ctx = await createResolutionContext({
     identity: { bearer },
     scope: scopeInputFrom(args),
+    // The agent MCP face (Step 6, locked decision 2).
+    channel: "mcp",
   });
   const result = await handleBriefRequest(moment, ctx, {
     service: options.service,
     since: options.since,
     depth: args.depth,
   });
-  return unwrapBrief(result);
+  const brief = unwrapBrief(result);
+  // P28 token economy (Step 6, locked decision 5): the MCP tool serializes the
+  // Brief as the JSON body the agent pays for (handler.ts `JSON.stringify`), so it
+  // records the `face:"json"` payload cost on the `"mcp"` channel.
+  instrumentsMetrics.recordBriefPayload({
+    moment: brief.moment,
+    depth: args.depth ?? API_DEFAULT_DEPTH,
+    channel: "mcp",
+    face: "json",
+    serialize: () => JSON.stringify(brief),
+  });
+  return brief;
 }
 
 /** The depth contract statement `atlas_bootstrap` publishes (M9/P28). */
@@ -431,6 +450,8 @@ export const mcpTools: McpToolDefinition[] = [
       const ctx = await createResolutionContext({
         identity: { bearer },
         scope: scopeInputFrom(input),
+        // The agent MCP face (Step 6, locked decision 2).
+        channel: "mcp",
       });
       const situation = {
         landingZoneIds: ctx.scope?.landingZoneIds ?? [],

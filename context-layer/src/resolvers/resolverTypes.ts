@@ -75,7 +75,19 @@ export type ResolutionContext = {
    * `{kind}/{slug}` address. No resolver reads it yet; it rides along the context.
    */
   scope?: { landingZoneIds?: string[]; appId?: string; origin?: "by-value" | "by-reference" };
+  /**
+   * Which of Atlas's OWN faces produced this context (Step 6, locked decision 2):
+   * the agent MCP face, the public HTTP API, or the in-process Portal loaders.
+   * This is attribution of our own faces for the honesty instruments (P20 call
+   * share) — NEVER caller identity (the Bearer stays opaque, ADR-0001 untouched).
+   * Optional here so an un-threaded read path is unchanged; the governance gate
+   * always seats it (default `"http"`).
+   */
+  channel?: ResolutionChannel;
 };
+
+/** The three faces Step 6 attributes brief metrics to (locked decision 2). */
+export type ResolutionChannel = "mcp" | "http" | "portal";
 
 export type ResolveRequest = {
   source: Source;

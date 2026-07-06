@@ -16,6 +16,7 @@
  * Data: the live assembled Brief (`fetchBrief`); in dev mock mode a deterministic
  * fictional Brief renders the surface.
  */
+import { useEffect, useRef } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { moments, type BriefBlock, type BriefEvidence, type Moment } from "@atlas/schema";
@@ -24,6 +25,7 @@ import { briefQueryOptionsFor } from "@/api/queries";
 import { useSituation } from "@/components/landing-zone/context";
 import { PageBody, PageHeader } from "@/components/page-section";
 import { Skeleton } from "@/components/ui/skeleton";
+import { fireVerifyBeacon } from "@/lib/verifyBeacon";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/briefs/$moment")({
@@ -80,6 +82,15 @@ function BriefRoute() {
   const { data, isLoading } = useQuery(briefQueryOptionsFor(moment, scope));
   const blocks = data?.blocks ?? [];
 
+  // Client-side render clock for the citation-follow beacon (P28 verification tax,
+  // locked decision 6): the ms between the brief render and following a citation.
+  // Re-stamped per moment — adopt→build re-renders without remount, so keying on
+  // `moment` stops the prior moment's dwell leaking into `msSinceRender`.
+  const renderedAtRef = useRef<number | null>(null);
+  useEffect(() => {
+    renderedAtRef.current = performance.now();
+  }, [moment]);
+
   return (
     <>
       <PageHeader
@@ -108,7 +119,12 @@ function BriefRoute() {
         ) : (
           <ul className="flex flex-col gap-4">
             {blocks.map((block) => (
-              <BriefBlockRow key={block.id} block={block} />
+              <BriefBlockRow
+                key={block.id}
+                block={block}
+                moment={moment}
+                renderedAtRef={renderedAtRef}
+              />
             ))}
           </ul>
         )}
@@ -117,7 +133,15 @@ function BriefRoute() {
   );
 }
 
-function BriefBlockRow({ block }: { block: BriefBlock }) {
+function BriefBlockRow({
+  block,
+  moment,
+  renderedAtRef,
+}: {
+  block: BriefBlock;
+  moment: Moment;
+  renderedAtRef: React.RefObject<number | null>;
+}) {
   return (
     <li className="rounded-lg border border-border bg-card p-4">
       <div className="flex items-baseline justify-between gap-4">
@@ -139,6 +163,8 @@ function BriefBlockRow({ block }: { block: BriefBlock }) {
             <EvidenceRow
               key={`${evidence.resourceId}:${evidence.sectionId}:${index}`}
               evidence={evidence}
+              moment={moment}
+              renderedAtRef={renderedAtRef}
             />
           ))}
         </ul>
@@ -157,7 +183,15 @@ function BriefBlockRow({ block }: { block: BriefBlock }) {
   );
 }
 
-function EvidenceRow({ evidence }: { evidence: BriefEvidence }) {
+function EvidenceRow({
+  evidence,
+  moment,
+  renderedAtRef,
+}: {
+  evidence: BriefEvidence;
+  moment: Moment;
+  renderedAtRef: React.RefObject<number | null>;
+}) {
   return (
     <li className="border-l-2 border-border pl-3">
       {evidence.excerpt ? (
@@ -167,7 +201,8 @@ function EvidenceRow({ evidence }: { evidence: BriefEvidence }) {
           {evidence.resourceId} · {evidence.sectionId}
         </p>
       )}
-      {/* Provenance: every piece of evidence carries its citation (the join it delivers). */}
+      {/* Provenance: every piece of evidence carries its citation (the join it delivers).
+          Following one fires the citation-follow beacon (P28 verification tax). */}
       <ul className="mt-1 flex flex-col gap-0.5">
         {evidence.citations.map((citation, index) => (
           <li key={`${citation.sourceId}:${index}`} className="text-xs">
@@ -176,6 +211,14 @@ function EvidenceRow({ evidence }: { evidence: BriefEvidence }) {
               className="text-sky-600 hover:underline dark:text-sky-400"
               target="_blank"
               rel="noreferrer"
+              onClick={() => {
+                const started = renderedAtRef.current ?? performance.now();
+                fireVerifyBeacon({
+                  moment,
+                  sourceId: citation.sourceId,
+                  msSinceRender: Math.max(0, Math.round(performance.now() - started)),
+                });
+              }}
             >
               {citation.title}
             </a>

@@ -26,6 +26,7 @@ import {
 } from "@atlas/schema";
 import type { GovernedResolutionContext } from "../resolvers/createResolutionContext";
 import { assembleBrief } from "../briefs/assembleBrief";
+import { recordBriefAssembled, recordBriefCall } from "../observability/metrics";
 import { changeTemplate, templateForMoment } from "../briefs/templates";
 import type { BriefScope } from "../briefs/briefTypes";
 import { deriveRequestGraph } from "../graph/requestGraph";
@@ -44,8 +45,10 @@ export type BriefRequestOptions = {
 };
 
 /** The API face default (mid-level §3): citations — structure + citations with no
- *  excerpt bodies, so the agent face is consumable without paying excerpt cost. */
-const API_DEFAULT_DEPTH: BriefDepth = "citations";
+ *  excerpt bodies, so the agent face is consumable without paying excerpt cost.
+ *  Exported so the markdown-serving routes resolve the tier identically when they
+ *  record the markdown-face est-tokens (Step 6, locked decision 5). */
+export const API_DEFAULT_DEPTH: BriefDepth = "citations";
 
 export async function handleBriefRequest(
   moment: string,
@@ -63,27 +66,37 @@ export async function handleBriefRequest(
   const situation = situationFromContext(ctx);
   const depth = options.depth ?? API_DEFAULT_DEPTH;
 
-  // `debug` is Step 7 (M7): an honest not-yet-available Brief — a valid value the
-  // caller can read, with NO fabricated block (D11), never an error.
+  // P20 agent-call-share (Step 6): every brief request is one call, attributed to
+  // the producing face — all moments, incl. the honest-empty `debug`.
+  recordBriefCall({ moment, depth, channel: ctx.channel });
+
+  let brief: Brief;
   if (moment === "debug") {
-    return { status: 200, body: emptyBrief("debug", situation) };
+    // `debug` is Step 7 (M7): an honest not-yet-available Brief — a valid value the
+    // caller can read, with NO fabricated block (D11), never an error.
+    brief = emptyBrief("debug", situation);
+  } else if (moment === "change") {
+    // `change` reads the Step-2 derived feed (M8/P31), NOT a graph traversal.
+    brief = await assembleChangeBrief(situation, ctx, options.since, depth);
+  } else {
+    // adopt | build: the plan/execute split (I4). A pure template plans the blocks
+    // from the pinned graph version + scope; the executor is the only I/O.
+    const scope: BriefScope = {
+      landingZoneIds: situation.landingZoneIds,
+      serviceSlugs: options.service ? [options.service] : [],
+      ...(situation.appId ? { appId: situation.appId } : {}),
+    };
+    const graph = await deriveRequestGraph(ctx);
+    const requests = templateForMoment(moment)(graph, scope);
+    brief = await assembleBrief({ moment, situation, requests, depth }, ctx);
   }
 
-  // `change` reads the Step-2 derived feed (M8/P31), NOT a graph traversal.
-  if (moment === "change") {
-    return { status: 200, body: await assembleChangeBrief(situation, ctx, options.since, depth) };
-  }
-
-  // adopt | build: the plan/execute split (I4). A pure template plans the blocks
-  // from the pinned graph version + scope; the executor is the only I/O.
-  const scope: BriefScope = {
-    landingZoneIds: situation.landingZoneIds,
-    serviceSlugs: options.service ? [options.service] : [],
-    ...(situation.appId ? { appId: situation.appId } : {}),
-  };
-  const graph = await deriveRequestGraph(ctx);
-  const requests = templateForMoment(moment)(graph, scope);
-  const brief = await assembleBrief({ moment, situation, requests, depth }, ctx);
+  // P28 token economy (Step 6, locked decision 5) is observed at the
+  // response-SERIALIZATION point of each face — the JSON API branch, the markdown
+  // routes, the MCP tool, and the in-process portal loader each record exactly one
+  // `brief_payload_est_tokens` for the payload they actually emit. This shared
+  // handler assembles the value; it never serializes, so it records no payload
+  // metric (that would double-count a `.md` request and mislabel every render).
   return { status: 200, body: brief };
 }
 
@@ -148,6 +161,7 @@ async function assembleChangeBrief(
   since: string | undefined,
   depth: BriefDepth,
 ): Promise<Brief> {
+  const startedAt = Date.now();
   const feed = await handleChangesRequest(ctx, { since });
   const events = (feed.body as ChangesResponse).events;
   const scope: BriefScope = {
@@ -159,6 +173,23 @@ async function assembleChangeBrief(
   const blocks = events.map((event, index) =>
     changeBlock(event, requests[index]?.landingZoneId, depth),
   );
+
+  // Step 6 instruments (locked decisions 3 + 4): the change moment does NOT flow
+  // through `assembleBrief`, so it records its own time-to-brief + block counters
+  // here. Change blocks are structural `available` facts with no warnings, so the
+  // subject kind comes off each event.
+  recordBriefAssembled({
+    moment: "change",
+    depth,
+    channel: ctx.channel,
+    durationMs: Date.now() - startedAt,
+    blocks: events.map((event) => ({
+      status: "available" as const,
+      subjectKind: event.subject.kind,
+      warningCodes: [] as string[],
+    })),
+  });
+
   return {
     moment: "change",
     situation,

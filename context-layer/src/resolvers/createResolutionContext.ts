@@ -18,7 +18,12 @@
  * yields a context with no app scope and a `scope_unresolved` warning.
  * Absent scope = anonymous unscoped context (open discovery posture).
  */
-import type { FetchLike, ResolutionContext, ResolverWarning } from "./resolverTypes";
+import type {
+  FetchLike,
+  ResolutionChannel,
+  ResolutionContext,
+  ResolverWarning,
+} from "./resolverTypes";
 import { withFetchLogging } from "../observability/logging";
 import { cacheTtlSeconds, sharedCache, withCache } from "../sourceContent/sourceContentCache";
 import { sharedAppsRepository } from "../repositories/appsRepositoryFactory";
@@ -43,6 +48,9 @@ const governedContextBrand: unique symbol = Symbol("atlas.governedResolutionCont
 export type GovernedResolutionContext = ResolutionContext & {
   readonly [governedContextBrand]: true;
   readonly warnings: ReadonlyArray<ResolverWarning>;
+  /** The face that produced this context (Step 6, locked decision 2); always
+   *  seated by the gate (default `"http"`), so it is non-optional once governed. */
+  readonly channel: ResolutionChannel;
 };
 
 /**
@@ -108,6 +116,8 @@ export type CreateResolutionContextInput = {
   env?: Record<string, string | undefined>;
   /** By-reference resolution port; defaults to {@link nullAppDirectoryAdapter}. */
   appDirectory?: AppDirectoryPort;
+  /** The producing face (Step 6, locked decision 2); defaults to `"http"`. */
+  channel?: ResolutionChannel;
 };
 
 /**
@@ -134,6 +144,8 @@ export async function createResolutionContext(
     fetch,
     scope: vetted.scope,
     warnings: vetted.warnings,
+    // Face attribution for the honesty instruments (Step 6, locked decision 2).
+    channel: input.channel ?? "http",
     [governedContextBrand]: true,
   };
   return governed;

@@ -113,7 +113,9 @@ async function handleToolCall(message: JsonRpcMessage, request: Request): Promis
   }
 
   const bearer = callerBearerToken(request);
-  const client = createServerContextApiClient({ token: bearer });
+  // The agent MCP face (Step 6, locked decision 2): reads through this client
+  // (in-process fallback) attribute to the `"mcp"` channel.
+  const client = createServerContextApiClient({ token: bearer, channel: "mcp" });
   try {
     const result = await tool.run(message.params?.arguments, client, bearer);
     return rpcResult(id, {

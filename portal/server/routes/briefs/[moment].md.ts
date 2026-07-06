@@ -8,8 +8,10 @@
  */
 import type { Brief, BriefDepth } from "@atlas/schema";
 import {
+  API_DEFAULT_DEPTH,
   createResolutionContext,
   handleBriefRequest,
+  instrumentsMetrics,
   renderBriefMarkdown,
   type ScopeInput,
 } from "@atlas/context-layer";
@@ -45,7 +47,19 @@ export default async (event: unknown): Promise<Response> => {
     return Response.json(result.body, { status: result.status });
   }
 
-  return new Response(renderBriefMarkdown(result.body as Brief), {
+  const brief = result.body as Brief;
+  const markdown = renderBriefMarkdown(brief);
+  // Markdown-face token cost (Step 6, locked decision 5): the public `.md` alias
+  // renders on the `"http"` face, same as the context-layer twin — one observation
+  // for the markdown payload it actually serves.
+  instrumentsMetrics.recordBriefPayload({
+    moment: brief.moment,
+    depth: depthOption(query?.get("depth")).depth ?? API_DEFAULT_DEPTH,
+    channel: "http",
+    face: "markdown",
+    serialize: () => markdown,
+  });
+  return new Response(markdown, {
     status: 200,
     headers: { "content-type": "text/markdown; charset=utf-8" },
   });
