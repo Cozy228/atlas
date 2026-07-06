@@ -245,3 +245,79 @@ Applied from the design-authority review of the prior draft (commit f289807):
 - **F5** — dropped the browser access-token store (decision 7 / WS1); **reuse `AppRecord`**
   (decision 9); route guard **only app-scoped surfaces** (WS1); **principal seat** named for
   consumer-state writes (WS2).
+
+## Local mock-boundary exploration (2026-07-06, read-only — no implementation)
+
+Read-only feasibility pass over the tree at `c79018f`, answering: how far can WS1–7 be
+developed and tested locally against a mocked Entra, and where does the plan need
+re-cutting before its goal prompt is authored. **Findings only — nothing was built.**
+
+### Two distinct local mock seams (do not conflate)
+
+- **Seam A — MSW at the network level, server-side** (`msw/node` boots in
+  `portal/server/devMocks/start.ts` for `vite serve` only; handlers in
+  `context-layer/src/devMocks/handlers.ts`; works because `createResolutionContext`
+  late-binds `globalThis.fetch` at :238-248). Fits faking the IdP's **HTTP endpoints**
+  (OIDC discovery, token endpoint, JWKS) — outbound server-side fetches are interceptable
+  with no new machinery.
+- **Seam B — `*Mock.ts` server-fn branch** (`resolveDataMode()==="mock"` inside TanStack
+  server functions, e.g. `briefsMock.ts`/`changesMock.ts`). Fits faking the **resolved
+  outcome** of identity (mock session / mock claims) with no HTTP at all — the WS7
+  "no creds → mock identity" seat. Both seams key off the same three-state `DEV_MOCKS`;
+  `DEV_DATA_MODE` is resolved ONCE at boot (`dataMode.ts:15-20`) — any mock identity must
+  read that cached marker, never call `shouldMockData()` again.
+
+### Per-workstream classification (a = fully mock-developable with meaningful tests, b = buildable but weakly testable, c = needs real tenant)
+
+| WS | (a) local + meaningful | (b) weak locally | (c) real-tenant material |
+|---|---|---|---|
+| WS1 BFF | cookie/session state machine, Valkey-or-memory session store (clone `sourceContentCache` factory shape), route guard | auth-code+PKCE round-trip vs fake IdP (proves wiring, not Entra semantics) | tenant id, client id, registered redirect URI, confidential-client cert, `form_post` registration |
+| WS2 factory input | **best-seated WS**: `identity` door already at `createResolutionContext.ts:98-111`; claims→APP set→scope fully in-process; self-signed mock JWKS exercises full validate path | validator vs fake JWKS ≠ acceptance of real v2 tokens (nonce/azp/roles shape, key rollover) | real app-role manifest, real `aud`/issuer |
+| WS3 MCP OAuth | 401 + `WWW-Authenticate` emission, protected-resource metadata shape | — | **most blocked**: no-DCR policy decision + registered public client; precondition already folded into A1 |
+| WS4 gate | filter→gate flip, fail-closed `visibility:app`, selector union, mock `registryAppsAdapter` behind the existing port seat | fixture group→AppRecord mapping proves nothing about real correspondence | real group/role→APP mapping; revocation staleness bound only measurable live |
+| WS5 portal UX | fully local (renders off Seam B fixtures); labels honest-fictional | — | — |
+| WS6 infra | **premise stale — largely landed**: Valkey serverless + IAM auth (`infra/main.tf:195-217,126-187`), session secret (:219-226, comment names Entra cert), apps table + IAM, ALB plain-forward (no `authenticate-oidc`, per decision 1) | — | only the Entra app registration itself (redirect URIs, app roles, API scope exposure) |
+| WS7 tests | fully local by design (three-state DEV_MOCKS + both seams + self-signed JWKS) | — | — |
+
+### Sequencing re-cut for the future goal prompt
+
+1. §Sequencing step 1 "WS6 + WS1" re-cuts to **WS1 only** — WS6 infra is landed; what
+   remains of WS6 is owner-side app registration + session-keyspace confirmation.
+2. **WS2's browser in-process path should lead the code work** (or run parallel to WS1):
+   the I2 seat exists, needs no HTTP, and building claims→scope first de-risks what the
+   WS1 cookie/session must carry.
+3. WS4's mock `registryAppsAdapter` + schema additions (`Source.app_id`,
+   `visibility:app`, `membershipSource`) can land early against fixtures; keep the plan's
+   boundary that `visibility:app` **ingestion** waits for the live gate (F3-1).
+4. WS3 stays last; everything through WS5 is demoable with zero WS3 progress.
+
+### Plan/tree drift to reconcile at goal-prompt time
+
+- Plan text says the `AppDirectoryPort` default "stays `nullAppDirectoryAdapter` until
+  Entra"; the tree default is `selfDeclaredAppsAdapter`
+  (`createResolutionContext.ts:77-96`, Step-3/P30 landing: honest, labeled fallback).
+  **The tree is authoritative** (P30 landing ruling: code untouched, positioning only);
+  update the plan's WS4/P30-quote wording when the goal prompt is cut.
+- `ENTRA_*`/`SESSION_*` env vars are documented in `portal/.env.example:83-95` but
+  consumed nowhere — inert today; the goal prompt must include loud fail-on-half-set
+  wiring.
+
+### Local-dev risks the plan must absorb
+
+1. **`__Host-` cookie prefix requires HTTPS + no Domain** — rejected by browsers on plain
+   HTTP `localhost`; WS1 mandates it unconditionally. Dev must relax prefix/Secure behind
+   the dev seam (prod keeps `__Host-`).
+2. **MSAL-node transport unverified**: if it does not use `globalThis.fetch`, Seam A will
+   NOT intercept the token exchange — fallback is an injected authority URL pointing at a
+   local fake server. Verify MSAL's HTTP client before locking the WS1 mock approach.
+3. **Browser=cookie-only vs Bearer-only disjointness** (confused-deputy rule) is currently
+   satisfied by absence; once WS1 adds cookies, no seam enforces it — the goal prompt
+   needs an explicit test ("no endpoint accepts both").
+4. Single-resolution `DEV_DATA_MODE` (above) — a second `shouldMockData()` call misreports
+   after creds injection.
+
+### Real-tenant checklist (owner-side, blocking only class-c items)
+
+Tenant id · client id · registered redirect URI(s) (`form_post`) · confidential-client
+certificate (→ existing session secret seat) · app-role manifest (names/values) · API
+scope exposure (`api://…` audience) · MCP public-client/no-DCR policy ruling (WS3/A1).
