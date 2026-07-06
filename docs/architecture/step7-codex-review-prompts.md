@@ -21,8 +21,8 @@ Reference commits (fill in as batches land):
 | 1 | registration store + routes + infra (D1/D3/D11) | `0b880bfe` |
 | 2 | location index (D2) | `df30ebc4` |
 | 3 | authMode + SSRF composition + TFE adapter (D4/D5) | `aba2bd00` |
-| 4 | status board aggregation-at-read (D6/D7) | _pending_ |
-| 5 | debug floor + /api/status + portal UI (D8/D9/D10/D12) | _pending_ |
+| 4 | status board aggregation-at-read (D6/D7) | `4e356d73` |
+| 5 | debug floor + /api/status + portal UI (D8/D9/D10/D12) | `be57915c` |
 
 ## Shared preamble (prepend to every prompt below)
 

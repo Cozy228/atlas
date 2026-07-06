@@ -5,3 +5,5 @@
 - graph: snapshot-store degraded-fallback recovery (60s retry) is tested with injected clock/deps only; no chaos test against a real Valkey outage.
 - lint: two pre-existing oxlint warnings in `briefs/assembleBrief.ts` + `sourceContent/confluenceOnboardingProvider.ts` (untouched, Step-4 vintage).
 - step-2 deferred (by design, parent goal prompt): subscriptions + push delivery (Atom is the pull channel); A2 cadence measurement once the differ can replay source version history.
+- step-7: deferred Codex review pass not yet run — ready-to-run prompts + per-batch commit table in `docs/architecture/step7-codex-review-prompts.md` (owner ruling 2026-07-07: single-track Opus build, Codex reviews later).
+- e2e: `app-declare.spec.ts` + `status-board.spec.ts` are not idempotent against a REUSED dev server (in-memory app store accumulates duplicate declared APPs → strict-mode menu violations); fresh server per run (CI posture) is green — fix = unique-per-run APP names or a state reset hook.
