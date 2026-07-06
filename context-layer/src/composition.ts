@@ -15,8 +15,12 @@ import type { Guidance, ResourceContextRecord } from "@atlas/schema";
 import { deriveGuardrailResources } from "./discovery/deriveGuardrails";
 import { deriveRegistry } from "./discovery/deriveRegistry";
 import { deriveServiceResources } from "./discovery/deriveResources";
-import { discoverGuardrails, type DiscoveredGuardrail } from "./discovery/discoverGuardrails";
-import { discoverServiceSources, type DiscoveredService } from "./discovery/discoverSources";
+import type { DiscoveredGuardrail } from "./discovery/discoverGuardrails";
+import type { DiscoveredService } from "./discovery/discoverSources";
+import { reconstructDiscovery } from "./discovery/projectDiscovery";
+import { InMemorySnapshotStore } from "./graph/snapshotStore";
+import { InMemoryEventsRepository } from "./repositories/eventsRepository";
+import { serveRootSnapshots } from "./graph/serveSnapshots";
 import { createFeedbackRepository } from "./repositories/feedbackRepositoryFactory";
 import type { Registry } from "./registry/registry";
 import { availabilityMatrixResolver } from "./resolvers/availabilityMatrixResolver";
@@ -51,15 +55,6 @@ import type { ContextService, ContextServiceOptions } from "./services/contextSe
 const liveFetch: FetchLike = withFetchLogging(
   (input, init) => globalThis.fetch(input, init as RequestInit) as ReturnType<FetchLike>,
 );
-
-/** Discovery output — the descriptive facts the registry/resources derive from. */
-type Discovered = { services: DiscoveredService[]; guardrails: DiscoveredGuardrail[] };
-
-// Memoize discovery so repeated `createDefaultContextService()` in one process is
-// cheap (each route builds a fresh service per request, but they share one live
-// discovery pass). Keyed by the discovery-relevant env so a test that re-points
-// the channels re-discovers rather than serving a stale catalog.
-let discoveryCache: { key: string; promise: Promise<Discovered> } | undefined;
 
 /**
  * Parse the explicit service→module map (`TERRAFORM_MODULE_MAP`, a JSON object of
@@ -110,78 +105,33 @@ function parseModuleMap(raw: string | undefined): Record<string, string[]> {
   }
 }
 
-function discoveryKey(env: Record<string, string | undefined>): string {
-  return [
-    env.TERRAFORM_BASE_URL,
-    env.TERRAFORM_TOKEN,
-    env.TERRAFORM_ORG,
-    env.TERRAFORM_MODULE_MAP,
-    env.CONFLUENCE_BASE_URL,
-    env.CONFLUENCE_TOKEN,
-    env.CONFLUENCE_EMAIL,
-    env.CONFLUENCE_SECURITY_SPACE_KEY,
-    env.CONFLUENCE_SECURITY_ROOT_PAGE_ID,
-    env.CONFLUENCE_SECURITY_BASE_URL,
-    env.CONFLUENCE_SECURITY_TOKEN,
-    env.CONFLUENCE_AVAILABILITY_PAGE_AWSF,
-    env.CONFLUENCE_AVAILABILITY_PAGE_AZURE,
-  ].join("|");
-}
-
-/** Run the two list-only discovery passes (service modules + guardrail space). */
-async function runDiscovery(
+/**
+ * Serve the descriptive discovery facts (services + guardrails) from the ONE
+ * snapshot substrate (D3 projection inversion): read every source root through
+ * the shared snapshot store (warm ⇒ 0 crawls; cold/stale ⇒ crawl + CAS
+ * transition inline; failed ⇒ last-good + aging), then reconstruct the
+ * `DiscoveredService[]` / `DiscoveredGuardrail[]` the registry/resource
+ * projections consume. When the caller injected a custom `availabilityProvider`
+ * (the test/adapter seam), serve through a FRESH per-call in-memory store so the
+ * injected spine is never masked by a warm shared snapshot from another env.
+ */
+async function serveDiscovery(
   env: Record<string, string | undefined>,
-  moduleMap: Record<string, string[]>,
   availabilityProvider: AvailabilityProvider,
-): Promise<Discovered> {
+  injected: boolean,
+): Promise<{ services: DiscoveredService[]; guardrails: DiscoveredGuardrail[] }> {
   // Discovery runs as the system's own governed context (no caller identity):
   // the factory wires the process-shared cache + late-bound fetch (MSW/prod).
   const ctx = await createResolutionContext({ env });
-  const services = await discoverServiceSources({
+  const { snapshots } = await serveRootSnapshots({
+    ctx,
     availabilityProvider,
-    ctx,
-    terraform: {
-      baseUrl: env.TERRAFORM_BASE_URL ?? "",
-      token: env.TERRAFORM_TOKEN ?? "",
-      org: env.TERRAFORM_ORG ?? "",
-      moduleMap,
-    },
+    env,
+    ...(injected
+      ? { store: new InMemorySnapshotStore(), events: new InMemoryEventsRepository() }
+      : {}),
   });
-  const guardrails = await discoverGuardrails({
-    ctx,
-    confluence: {
-      // Security policies may live in a separate Confluence instance — allow a
-      // dedicated base URL / token / email, each falling back to the main channel.
-      baseUrl: env.CONFLUENCE_SECURITY_BASE_URL ?? env.CONFLUENCE_BASE_URL ?? "",
-      token: env.CONFLUENCE_SECURITY_TOKEN ?? env.CONFLUENCE_TOKEN ?? "",
-      email: env.CONFLUENCE_SECURITY_EMAIL ?? env.CONFLUENCE_EMAIL,
-      spaceKey: env.CONFLUENCE_SECURITY_SPACE_KEY ?? "",
-      // Preferred scope: enumerate only this page's descendants (e.g. the "AWS
-      // Public Cloud" page) instead of the whole security space.
-      rootPageId: env.CONFLUENCE_SECURITY_ROOT_PAGE_ID,
-    },
-  });
-  return { services, guardrails };
-}
-
-/**
- * Discover (memoized) unless the caller injected a custom `availabilityProvider`
- * — an injected spine isn't captured by the env key, so it always re-discovers.
- */
-function discoverAll(
-  env: Record<string, string | undefined>,
-  moduleMap: Record<string, string[]>,
-  availabilityProvider: AvailabilityProvider,
-  useCache: boolean,
-): Promise<Discovered> {
-  if (!useCache) {
-    return runDiscovery(env, moduleMap, availabilityProvider);
-  }
-  const key = discoveryKey(env);
-  if (discoveryCache?.key !== key) {
-    discoveryCache = { key, promise: runDiscovery(env, moduleMap, availabilityProvider) };
-  }
-  return discoveryCache.promise;
+  return reconstructDiscovery(snapshots);
 }
 
 /**
@@ -276,15 +226,14 @@ export async function createDefaultContextService(
     options.availabilityProvider ??
     createConfluenceAvailabilityProvider({ fetch: liveFetch, env: options.env });
 
-  // Parse the module map ONCE — list discovery uses it to bind module addresses,
-  // and the lazy content enricher reuses it to fetch a service's README on detail.
+  // Parse the module map ONCE — the lazy content enricher reuses it to fetch a
+  // service's README on detail (list discovery binds addresses off the snapshot).
   const moduleMap = parseModuleMap(env.TERRAFORM_MODULE_MAP);
 
-  const { services, guardrails } = await discoverAll(
+  const { services, guardrails } = await serveDiscovery(
     env,
-    moduleMap,
     availabilityProvider,
-    !options.availabilityProvider,
+    Boolean(options.availabilityProvider),
   );
 
   const registry: Registry =

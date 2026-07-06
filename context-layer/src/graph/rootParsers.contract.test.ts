@@ -119,6 +119,8 @@ describe("root parse contracts (D11)", () => {
     for (const guardrail of parse.guardrails) {
       expect(guardrail.slug).toBeTruthy();
       expect(guardrail.name).toBeTruthy();
+      // v2 descriptive fact: the policy-document Source location (D3).
+      expect(guardrail.pageId).toBeTruthy();
     }
   });
 });

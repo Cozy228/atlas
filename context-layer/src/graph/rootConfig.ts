@@ -84,7 +84,9 @@ export function buildRootDescriptors(params: {
     },
     {
       rootId: SECURITY_ROOT_ID,
-      contractVersion: "security-v1",
+      // v2: the security parse now carries each guardrail's `pageId` (the Source
+      // location the projection needs — D3 projection inversion, P16 bump).
+      contractVersion: "security-v2",
       parse: () =>
         parseSecurityRoot({
           ctx,

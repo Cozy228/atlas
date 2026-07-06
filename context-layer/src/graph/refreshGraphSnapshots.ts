@@ -19,20 +19,13 @@
  * in `portal/server/lifecycle/graphRefreshSchedule.ts`). Derivation stays inline
  * at each snapshot transition (M10); the plugin only schedules the pass.
  *
- * ⚠️ SCOPED GAP (still open, flagged for the reviewer): `composition.ts` continues
- * to serve request-time discovery from its in-process memo (the "composition memo
- * → snapshot" rewire was assessed NOT surgically feasible — the memo caches the
- * RICH `DiscoveredService[]`/`DiscoveredGuardrail[]` that `deriveRegistry`/
- * `deriveResources` consume, whereas the per-root snapshots hold the LOSSY
- * graph-facing parse; reconstructing the former from the latter IS the deferred
- * D3 projection inversion). So this pass now warms snapshots and feeds
- * `/api/changes` on a live server, but the registry/resource read path is still
- * the memo, not these snapshots.
- *
- * ⚠️ Snapshots are still PER-TASK in-memory (`sharedSnapshotStore`) — the
- * `ValkeySnapshotStore` adapter remains the deferred prod-hardening follow-up.
- * Each ECS task warms + transitions its own snapshots; the durable, content-hash
- * idempotent `events` store (M1) collapses cross-task duplicate derivation.
+ * The store is now the durable {@link sharedSnapshotStore}: when `CACHE_VALKEY_URL`
+ * is set it is the {@link ValkeySnapshotStore} (per-root keys + scripted CAS on
+ * the existing Valkey), so cold start serves from a warm snapshot across restarts
+ * and concurrent ECS tasks share one CAS baseline; unset ⇒ per-task in-memory,
+ * where the durable, content-hash idempotent `events` store (M1) collapses
+ * cross-task duplicate derivation. The composition read path reads the SAME shared
+ * store (D3 projection inversion), so exactly one discovery path exists.
  */
 import { createResolutionContext } from "../resolvers/createResolutionContext";
 import { createConfluenceAvailabilityProvider } from "../sourceContent/confluenceAvailabilityProvider";
@@ -69,7 +62,7 @@ export async function refreshGraphSnapshots(
     options.availabilityProvider ?? createConfluenceAvailabilityProvider({ fetch: ctx.fetch, env });
 
   const deps: ServeRootSnapshotDeps = {
-    store: sharedSnapshotStore(env),
+    store: await sharedSnapshotStore(env),
     events: sharedEventsRepository(env),
     now: options.now ?? (() => new Date()),
   };

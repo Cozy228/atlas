@@ -125,6 +125,12 @@ export async function parseSecurityRoot(deps: SecurityRootDeps): Promise<Securit
   // linkage (the closed `governed-by` edge is ready for when an adapter lands it).
   return {
     kind: "security",
-    guardrails: guardrails.map((guardrail) => ({ slug: guardrail.slug, name: guardrail.name })),
+    // Carry `pageId` (the policy-document Source `location`) so the composition
+    // guardrail projection reconstructs byte-stably off the snapshot (D3).
+    guardrails: guardrails.map((guardrail) => ({
+      slug: guardrail.slug,
+      name: guardrail.name,
+      pageId: guardrail.pageId,
+    })),
   };
 }

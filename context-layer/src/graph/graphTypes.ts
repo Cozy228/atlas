@@ -41,7 +41,11 @@ export type TerraformRootParse = {
  */
 export type SecurityRootParse = {
   kind: "security";
-  guardrails: { slug: string; name: string }[];
+  // `pageId` is the policy-document Source `location` the guardrail projection
+  // needs (D3 projection inversion). It is a descriptive graph-facing fact, not a
+  // source body (P18); optional so brief-template fixtures that only exercise the
+  // graph can omit it — the live `parseSecurityRoot` always populates it.
+  guardrails: { slug: string; name: string; pageId?: string }[];
   governedBy?: { serviceSlug: string; guardrailSlug: string }[];
 };
 
