@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -44,6 +44,28 @@ describe("Atlas Terraform deployment", () => {
     expect(mainTerraform).toContain(
       '{ name = "EVENTS_TABLE", value = aws_dynamodb_table.events.name }',
     );
+  });
+
+  // D11 — the self-service-registration `locations` table is provisioned like
+  // apps/feedback/events (Step 7, locked decision 3): the table, the task-role IAM
+  // to read/write it + its gsi1 index, and the `LOCATIONS_TABLE` ECS env wiring the
+  // prod fail-fast guard reads. Red in Batch 0 (main.tf has no such table); green
+  // when Batch 1 provisions it + writes the table doc.
+  it("provisions the DynamoDB locations table, its IAM access, and the LOCATIONS_TABLE env", () => {
+    expect(mainTerraform).toContain('resource "aws_dynamodb_table" "locations"');
+    expect(mainTerraform).toContain("aws_dynamodb_table.locations.arn");
+    expect(mainTerraform).toContain('"${aws_dynamodb_table.locations.arn}/index/*"');
+    expect(mainTerraform).toContain(
+      '{ name = "LOCATIONS_TABLE", value = aws_dynamodb_table.locations.name }',
+    );
+  });
+
+  it("documents the locations table (dynamodb_locations_table.md)", () => {
+    const docPath = join(infraRoot, "../docs/architecture/dynamodb_locations_table.md");
+    expect(existsSync(docPath)).toBe(true);
+    const doc = existsSync(docPath) ? readFileSync(docPath, "utf8") : "";
+    expect(doc).toContain("LOCATIONS_TABLE");
+    expect(doc).toContain("LOC#");
   });
 
   // The lifecycle-plane graph snapshot refresh is opt-in via GRAPH_REFRESH_INTERVAL_MS;

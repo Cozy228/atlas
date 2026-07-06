@@ -7,12 +7,15 @@ import {
   BriefSchema,
   ChangesResponseSchema,
   FeedbackResponseSchema,
+  LocationListResponseSchema,
+  LocationRegistrationResponseSchema,
   ResourceCatalogResponseSchema,
   ResourceContextResponseSchema,
   ResourceRecordResponseSchema,
   ResourceSearchResponseSchema,
   SourceDiscoveryResponseSchema,
   SourceResponseSchema,
+  StatusBoardResponseSchema,
   type AppListResponse,
   type AppMutationResponse,
   type AppRegistrationRequest,
@@ -21,7 +24,11 @@ import {
   type Brief,
   type BriefDepth,
   type FeedbackSubmission,
+  type LocationListResponse,
+  type LocationRegistrationRequest,
+  type LocationRegistrationResponse,
   type SourceDiscoveryRequest,
+  type StatusBoardResponse,
 } from "@atlas/schema";
 
 import type { AvailabilityScope, BriefRequestScope, ContextApiClient } from "../contextApiClient";
@@ -158,6 +165,51 @@ export function createFetchContextApiClient(input: {
         schema: AppMutationResponseSchema,
         url: `${baseUrl}/apps/${encodeURIComponent(id)}`,
         init: jsonPatch(request),
+      });
+    },
+    async getStatus(scope?: AvailabilityScope): Promise<StatusBoardResponse> {
+      const query: Record<string, string | undefined> = {
+        landingZones: scope?.landingZones?.length ? scope.landingZones.join(",") : undefined,
+        appId: scope?.appId,
+      };
+      return requestJson({
+        fetch: fetchImpl,
+        schema: StatusBoardResponseSchema,
+        url: withQuery(`${baseUrl}/status`, query),
+      });
+    },
+    async listLocations(scope?: AvailabilityScope): Promise<LocationListResponse> {
+      const query: Record<string, string | undefined> = {
+        landingZones: scope?.landingZones?.length ? scope.landingZones.join(",") : undefined,
+        appId: scope?.appId,
+      };
+      return requestJson({
+        fetch: fetchImpl,
+        schema: LocationListResponseSchema,
+        url: withQuery(`${baseUrl}/locations`, query),
+      });
+    },
+    async registerLocation(
+      request: LocationRegistrationRequest,
+      scope?: AvailabilityScope,
+    ): Promise<LocationRegistrationResponse> {
+      const query: Record<string, string | undefined> = {
+        landingZones: scope?.landingZones?.length ? scope.landingZones.join(",") : undefined,
+        appId: scope?.appId,
+      };
+      return requestJson({
+        fetch: fetchImpl,
+        schema: LocationRegistrationResponseSchema,
+        url: withQuery(`${baseUrl}/locations`, query),
+        init: jsonPost(request),
+      });
+    },
+    async deleteLocation(id: string): Promise<LocationRegistrationResponse> {
+      return requestJson({
+        fetch: fetchImpl,
+        schema: LocationRegistrationResponseSchema,
+        url: `${baseUrl}/locations/${encodeURIComponent(id)}`,
+        init: { method: "DELETE" },
       });
     },
     async getResourceContext(kind: string, slug: string) {

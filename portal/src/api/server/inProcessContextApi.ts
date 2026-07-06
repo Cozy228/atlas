@@ -16,6 +16,10 @@ import {
   handleBriefRequest,
   handleChangesRequest,
   handleFeedbackRequest,
+  handleLocationDeleteRequest,
+  handleLocationRegistrationRequest,
+  handleLocationsListRequest,
+  handleStatusRequest,
   handleResourceCatalogRequest,
   handleResourceContextRequest,
   handleResourceRecordRequest,
@@ -33,17 +37,24 @@ import {
   BriefSchema,
   ChangesResponseSchema,
   FeedbackResponseSchema,
+  LocationListResponseSchema,
+  LocationRegistrationResponseSchema,
   ResourceCatalogResponseSchema,
   ResourceContextResponseSchema,
   ResourceRecordResponseSchema,
   ResourceSearchResponseSchema,
   SourceDiscoveryResponseSchema,
   SourceResponseSchema,
+  StatusBoardResponseSchema,
   type AppListResponse,
   type AppMutationResponse,
   type AppRegistrationRequest,
   type AppResponse,
   type AppUpdateRequest,
+  type LocationListResponse,
+  type LocationRegistrationRequest,
+  type LocationRegistrationResponse,
+  type StatusBoardResponse,
   type AvailabilityReadResponse,
   type Brief,
   type BriefDepth,
@@ -157,6 +168,41 @@ export function createInProcessContextApiClient(
     },
     async updateApp(id: string, request: AppUpdateRequest): Promise<AppMutationResponse> {
       return unwrap(await handleAppUpdateRequest(id, request), AppMutationResponseSchema);
+    },
+    async getStatus(scope?: AvailabilityScope): Promise<StatusBoardResponse> {
+      // The governed status board (Step 7, P24): thread the caller scope + Bearer
+      // through the one governance-gate factory into the ctx-taking handler.
+      const ctx = await createResolutionContext({
+        identity: { bearer: options.token },
+        scope: toScopeInput(scope),
+      });
+      return unwrap(await handleStatusRequest(ctx), StatusBoardResponseSchema);
+    },
+    async listLocations(scope?: AvailabilityScope): Promise<LocationListResponse> {
+      const ctx = await createResolutionContext({
+        identity: { bearer: options.token },
+        scope: toScopeInput(scope),
+      });
+      return unwrap(await handleLocationsListRequest(ctx), LocationListResponseSchema);
+    },
+    async registerLocation(
+      request: LocationRegistrationRequest,
+      scope?: AvailabilityScope,
+    ): Promise<LocationRegistrationResponse> {
+      // The scoped APP the location belongs to arrives via the request scope
+      // (`?appId=`), threaded into the governed ctx — never the request body.
+      const ctx = await createResolutionContext({
+        identity: { bearer: options.token },
+        scope: toScopeInput(scope),
+      });
+      return unwrap(
+        await handleLocationRegistrationRequest(ctx, request),
+        LocationRegistrationResponseSchema,
+      );
+    },
+    async deleteLocation(id: string): Promise<LocationRegistrationResponse> {
+      const ctx = await createResolutionContext({ identity: { bearer: options.token } });
+      return unwrap(await handleLocationDeleteRequest(ctx, id), LocationRegistrationResponseSchema);
     },
     async getResourceContext(kind: string, slug: string): Promise<ResourceContextResponse> {
       const ctx = await createResolutionContext({ identity: { bearer: options.token } });

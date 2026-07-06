@@ -19,6 +19,9 @@ import {
   type ChangesResponse,
   type FeedbackResponse,
   type FeedbackSubmission,
+  type LocationListResponse,
+  type LocationRegistrationRequest,
+  type LocationRegistrationResponse,
   type ResourceCatalogResponse,
   type ResourceContextResponse,
   type ResourceRecordResponse,
@@ -26,6 +29,7 @@ import {
   type SourceDiscoveryRequest,
   type SourceDiscoveryResponse,
   type SourceResponse,
+  type StatusBoardResponse,
 } from "@atlas/schema";
 
 /**
@@ -64,6 +68,21 @@ export type ContextApiClient = {
   getApp(id: string): Promise<AppResponse>;
   registerApp(request: AppRegistrationRequest): Promise<AppMutationResponse>;
   updateApp(id: string, request: AppUpdateRequest): Promise<AppMutationResponse>;
+  /** The scope's live status board (Step 7, P24): aggregation-at-read of
+   *  operational values, uncited + read-only, degrading to labeled pointers.
+   *  No history, no store. */
+  getStatus(scope?: AvailabilityScope): Promise<StatusBoardResponse>;
+  /** Self-service registration (Step 7, M3) — the scope's registered location
+   *  pointers. */
+  listLocations(scope?: AvailabilityScope): Promise<LocationListResponse>;
+  /** Register a `{ system, kind, url }` location for the scoped APP (M11 — an
+   *  explicit write; NO secret field exists in the request). */
+  registerLocation(
+    request: LocationRegistrationRequest,
+    scope?: AvailabilityScope,
+  ): Promise<LocationRegistrationResponse>;
+  /** Remove a registered location by id (returns the removed record). */
+  deleteLocation(id: string): Promise<LocationRegistrationResponse>;
   /** Live resource projection (plan 017): governed sections + reference-only
    *  discovery links for a canonical `{kind}/{slug}`. */
   getResourceContext(kind: string, slug: string): Promise<ResourceContextResponse>;
@@ -153,6 +172,29 @@ export function createStaticContextApiClient({
     },
     async updateApp(id: string, _request: AppUpdateRequest): Promise<AppMutationResponse> {
       throw new Error(`Static context client cannot update app '${id}'.`);
+    },
+    // Operational status + self-service registration are server-side, live-read /
+    // durable state; the read-only browser snapshot has neither. The Portal's
+    // status board + registration form drive the server-side client (in-process /
+    // HTTP), never this one.
+    async getStatus(_scope?: AvailabilityScope): Promise<StatusBoardResponse> {
+      throw new Error(
+        "Static context client cannot assemble a status board (server-side at-read).",
+      );
+    },
+    async listLocations(_scope?: AvailabilityScope): Promise<LocationListResponse> {
+      return { locations: [] };
+    },
+    async registerLocation(
+      _request: LocationRegistrationRequest,
+      _scope?: AvailabilityScope,
+    ): Promise<LocationRegistrationResponse> {
+      throw new Error(
+        "Static context client cannot register a location (server-side consumer state).",
+      );
+    },
+    async deleteLocation(id: string): Promise<LocationRegistrationResponse> {
+      throw new Error(`Static context client cannot delete location '${id}'.`);
     },
     async getResourceContext(kind: string, slug: string): Promise<ResourceContextResponse> {
       const projection = resourceContexts?.[`${kind}/${slug}`];

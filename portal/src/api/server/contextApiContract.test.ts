@@ -4,7 +4,9 @@ import {
   AvailabilityReadResponseSchema,
   BriefSchema,
   ChangesResponseSchema,
+  LocationListResponseSchema,
   ResourceContextResponseSchema,
+  StatusBoardResponseSchema,
   type ChangeEvent,
 } from "@atlas/schema";
 import { handleHttpRequest, sharedEventsRepository } from "@atlas/context-layer";
@@ -379,6 +381,70 @@ describe("Context API consumer contract — Step 2 change feed (D9)", () => {
     // Per-root substrate freshness (D10) is global (not scope-filtered) and agrees
     // across the two transports — in-process ≡ HTTP for `roots` too.
     expect(inProcess.roots).toEqual(httpBody.roots);
+  });
+});
+
+/**
+ * D9 — the Step 7 status board + self-service registration obey the same
+ * transport-wiring guard: `POST/GET /api/locations` and `GET /api/status` agree
+ * between the Portal's in-process client and the raw `handleHttpRequest` router.
+ * One governed contract, two transports; the value board is uncited + read-only.
+ *
+ * Red in Batch 0: the location/status routes are unwired + their handlers throw
+ * `unimplemented`, so the client calls reject / the router 404s. Green at Batch 1
+ * (locations) / Batch 5 (status + wiring). Public-safe fictional data.
+ */
+describe("Context API consumer contract — Step 7 status + registration (D9)", () => {
+  it("registration agrees: POST location via the client, then GET list via both faces", async () => {
+    const client = createFetchContextApiClient({
+      baseUrl: BASE_URL,
+      fetch: contextLayerBridge([]),
+    });
+    // Register an APP first, then a location scoped to it (a location belongs to an APP).
+    const app = await client.registerApp({
+      name: "Orion Checkout",
+      landingZoneIds: ["awsf"],
+      serviceSlugs: ["aws/textract"],
+    });
+    const appId = app.app.id;
+
+    const registered = await client.registerLocation(
+      {
+        system: "tfe",
+        kind: "workspace",
+        url: "https://flightdeck.example.com/app/orion/workspaces/prod",
+      },
+      { appId },
+    );
+    expect(registered.location.discoveredFrom).toBe("registration");
+
+    // GET list via the raw HTTP router...
+    const httpList = await handleHttpRequest({
+      method: "GET",
+      path: "/api/locations",
+      query: { appId },
+    });
+    const httpLocations = LocationListResponseSchema.parse(JSON.parse(httpList.body)).locations;
+    // ...and via the in-process client (same process, same shared store).
+    const inProcessLocations = (await serverContextApiClient.listLocations({ appId })).locations;
+
+    expect(httpLocations.some((loc) => loc.id === registered.location.id)).toBe(true);
+    expect(inProcessLocations.find((loc) => loc.id === registered.location.id)).toEqual(
+      httpLocations.find((loc) => loc.id === registered.location.id),
+    );
+  });
+
+  it("the status board agrees across the in-process and HTTP faces for a scope", async () => {
+    const httpStatus = await handleHttpRequest({
+      method: "GET",
+      path: "/api/status",
+      query: { landingZones: "awsf" },
+    });
+    const httpBoard = StatusBoardResponseSchema.parse(JSON.parse(httpStatus.body));
+    const inProcessBoard = await serverContextApiClient.getStatus({ landingZones: ["awsf"] });
+
+    // One governed board value, two transports (values uncited + read-only, ADR-0003).
+    expect(inProcessBoard.statuses).toEqual(httpBoard.statuses);
   });
 });
 

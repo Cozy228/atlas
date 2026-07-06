@@ -1248,6 +1248,127 @@ export type BriefBlock = z.infer<typeof BriefBlockSchema>;
 export type Situation = z.infer<typeof SituationSchema>;
 export type Brief = z.infer<typeof BriefSchema>;
 
+/* -------------------------------------------------------------------------- *
+ * Step 7 — operational-location VALUE side + self-service REGISTRATION
+ * (P24 aggregation-at-read, M12 auth modes/allowlist, M7 debug floor, M3
+ * consumer state, ADR-0003 the pointer/value line).
+ *
+ * `OperationalLocation` (above) is the LANDED pointer shape — imported here,
+ * NEVER re-declared. Step 7 adds two things on top of that single source:
+ *   (a) the VALUE side — a value fetched THROUGH a pointer is uncited
+ *       operational status (`LocationStatus.value`): never Evidence, never
+ *       stored, visually separated (ADR-0003). There is deliberately NO
+ *       citation field on a value.
+ *   (b) self-service REGISTRATION — `{ system, kind, url }` consumer-state
+ *       pointers (M3) with NO secret/token field: a token in a registration
+ *       would be a secret store + an SSRF proxy at once (the rejected shape),
+ *       so it is structural invalidity → 400.
+ *
+ * STEP 7 BATCH 0 STUBS: the hand-written types below are the frozen contract
+ * (goal_prompt_step7_status_board.md, locked decisions 1-3); every schema value
+ * throws `unimplemented` until later batches land the real zod shapes. Later:
+ *   - Batch 1: `LocationRegistrationRequestSchema` / `LocationRecordSchema` /
+ *     the response schemas become `.strict()`. The registration request is
+ *     EXACTLY `{ system, kind, url }` — a `token`/`secret`/any unknown field is
+ *     rejected (never a secret store); `kind` reuses `OperationalLocationKind`;
+ *     `url` is a human link only (value fetch goes through the adapter base).
+ *   - Batch 4: `LocationStatusSchema` / `StatusBoardResponseSchema` — `value` is
+ *     the uncited at-read status, nullable (null ⇒ a labeled pointer + a
+ *     `reason`); no citation field by construction (ADR-0003).
+ * -------------------------------------------------------------------------- */
+
+/**
+ * POST /api/locations body. EXACTLY `{ system, kind, url }` — NO secret/token
+ * field exists in this shape (locked decision 1). `id`/`appId`/`registeredAt`
+ * are server-owned; the owning APP arrives from the request scope, not the body.
+ */
+export type LocationRegistrationRequest = {
+  system: string;
+  kind: OperationalLocationKind;
+  url: string;
+};
+
+/**
+ * A stored, self-registered operational-location pointer (M3 consumer state):
+ * an `OperationalLocation` scoped to an APP, with server-set `id`/`registeredAt`.
+ * `discoveredFrom` is the provenance label (`"registration"` for self-service).
+ * Durable, labeled, never Evidence — mirrors `AppRecord`'s consumer-state posture.
+ */
+export type LocationRecord = {
+  id: string;
+  appId: string;
+  system: string;
+  kind: OperationalLocationKind;
+  url: string;
+  discoveredFrom: string;
+  registeredAt: string;
+};
+
+/** POST/DELETE `/api/locations` body: the stored record + any dangling-declaration
+ *  warnings (kept verbatim, warned, never dropped — the apps precedent). */
+export type LocationRegistrationResponse = { location: LocationRecord; warnings: Warning[] };
+/** GET `/api/locations?appId=` body. */
+export type LocationListResponse = { locations: LocationRecord[] };
+
+/**
+ * Why a location renders as a labeled pointer instead of a live value
+ * (locked decision 5): no adapter exists for the system, the adapter's authMode
+ * is `none` (no value channel), or the value fetch failed. Closed set — a
+ * degradation is always one of these honest reasons, never a fabricated value.
+ */
+export const locationStatusReasons = ["no-adapter", "no-value-channel", "fetch-failed"] as const;
+export type LocationStatusReason = (typeof locationStatusReasons)[number];
+
+/**
+ * One status-board entry (P24 aggregation-at-read). `location` is the pointer
+ * (its uncited existence). `value` is the LIVE operational status fetched through
+ * the owning adapter's allowlisted base — uncited, never Evidence, never stored
+ * (ADR-0003); `null` ⇒ a labeled pointer (the honest floor) carrying a `reason`.
+ * `fetchedAt` is the read moment (null for a pointer). There is NO citation field:
+ * a value is operational status, not Evidence.
+ */
+export type LocationStatusEntry = {
+  location: OperationalLocation;
+  value: string | null;
+  reason?: LocationStatusReason;
+  fetchedAt: string | null;
+};
+
+/**
+ * GET `/api/status?appId=` body (fallback `landingZones`): the scope echo + the
+ * read-only, uncited status list + governance warnings. No history, no alerting,
+ * no durable store (P24) — the board is recomputed at read, every time.
+ */
+export type StatusBoardResponse = {
+  situation: Situation;
+  statuses: LocationStatusEntry[];
+  warnings: Warning[];
+};
+
+/** Batch 0 stub: any parse throws until the real zod shape lands (later batches).
+ *  `z.custom` preserves the inferred TYPE so the frozen stubs typecheck. */
+function unimplementedLocationSchema<T>(name: string): z.ZodType<T> {
+  return z.custom<T>(() => {
+    throw new Error(
+      `${name} is unimplemented (Step 7 Batch 1/4 — goal_prompt_step7_status_board.md)`,
+    );
+  });
+}
+
+export const LocationStatusReasonSchema = z.enum(locationStatusReasons);
+export const LocationRegistrationRequestSchema: z.ZodType<LocationRegistrationRequest> =
+  unimplementedLocationSchema("LocationRegistrationRequestSchema");
+export const LocationRecordSchema: z.ZodType<LocationRecord> =
+  unimplementedLocationSchema("LocationRecordSchema");
+export const LocationRegistrationResponseSchema: z.ZodType<LocationRegistrationResponse> =
+  unimplementedLocationSchema("LocationRegistrationResponseSchema");
+export const LocationListResponseSchema: z.ZodType<LocationListResponse> =
+  unimplementedLocationSchema("LocationListResponseSchema");
+export const LocationStatusEntrySchema: z.ZodType<LocationStatusEntry> =
+  unimplementedLocationSchema("LocationStatusEntrySchema");
+export const StatusBoardResponseSchema: z.ZodType<StatusBoardResponse> =
+  unimplementedLocationSchema("StatusBoardResponseSchema");
+
 export {
   validateGuidanceDocument,
   validateGuidanceManifest,
