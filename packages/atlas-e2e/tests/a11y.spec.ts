@@ -1,7 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 
-import { firstHref, SAMPLE_SERVICE_PATH } from "./helpers";
+import { SAMPLE_POLICY_PATH, SAMPLE_SERVICE_PATH } from "./helpers";
 
 /**
  * Baseline accessibility (plan 026 WU10). The UI was not built a11y-first, so a
@@ -80,10 +80,11 @@ test.describe("baseline accessibility (mock-forced)", () => {
   });
 
   test("policy detail", async ({ page }) => {
-    await page.goto("/catalog");
-    await page.waitForLoadState("networkidle");
-    await page.getByRole("tab", { name: "Security policies" }).click();
-    await page.goto(await firstHref(page, "/policies/"));
+    // The catalog's "Security policies" tab was retired (policies fold onto each
+    // service; see components/catalog/adopted.tsx), so no surface renders a
+    // /policies/ link to discover black-box. Direct-nav to a known fixture policy
+    // path — the same pattern the "service detail" scan above uses for services.
+    await page.goto(SAMPLE_POLICY_PATH);
     await page.waitForLoadState("networkidle");
     await expectNoNewViolations(page, "policy");
   });

@@ -9,6 +9,17 @@ import { expect, type Page } from "@playwright/test";
 export const SAMPLE_SERVICE_PATH = "/service/aws/textract";
 
 /**
+ * A known fixture security-policy detail path. The catalog's "Security policies"
+ * tab was retired when policies began folding onto each service (Step 5 front
+ * doors; see `components/catalog/adopted.tsx`), so NO navigable surface renders a
+ * `/policies/` link anymore — black-box slug discovery via {@link firstHref} is no
+ * longer possible for policies. Specs that need to reach a policy detail direct-nav
+ * to this ONE constant, mirroring {@link SAMPLE_SERVICE_PATH}; a fixture rename is a
+ * single edit here.
+ */
+export const SAMPLE_POLICY_PATH = "/policies/data-encryption-standard";
+
+/**
  * Record uncaught exceptions (`pageerror`) and `console.error`s for the life of a
  * page. A route smoke fails if either fires — a healthy render emits neither.
  */

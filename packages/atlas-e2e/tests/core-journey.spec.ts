@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import { expectShellWithMockBadge } from "./helpers";
+import { expectShellWithMockBadge, SAMPLE_POLICY_PATH } from "./helpers";
 
 /**
  * The core journey (plan 026 WU5): the product spine end-to-end on deterministic
@@ -33,14 +33,13 @@ test("core journey: home → catalog → service → availability → policy →
   await expect(page.getByRole("table").first()).toBeVisible();
   expect(await page.getByRole("cell").count()).toBeGreaterThan(0);
 
-  // 5. A security policy detail, reached via the catalog's policy tab.
-  await page.goto("/catalog");
+  // 5. A security policy detail. The catalog's "Security policies" tab was retired
+  // (policies are being folded onto each service — see catalog/adopted.tsx) and no
+  // surface renders a /policies/ link anymore, so the journey reaches the policy
+  // detail by direct nav — the same style the availability leg above uses. The
+  // per-page assertions (on-policy URL + shell + mock badge) are unchanged.
+  await page.goto(SAMPLE_POLICY_PATH);
   await page.waitForLoadState("networkidle");
-  const policiesTab = page.getByRole("tab", { name: "Security policies" });
-  await policiesTab.click();
-  await expect(policiesTab).toHaveAttribute("aria-selected", "true");
-  const policyCard = page.locator('a[href^="/policies/"]').first();
-  await policyCard.click();
   await expect(page).toHaveURL(/\/policies\//);
   await expectShellWithMockBadge(page);
 

@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import { expectShellWithMockBadge, firstHref, trackJsErrors } from "./helpers";
+import { expectShellWithMockBadge, firstHref, SAMPLE_POLICY_PATH, trackJsErrors } from "./helpers";
 
 /**
  * Full-route smoke baseline (plan 026 WU4). Every navigable route: HTTP < 400,
@@ -50,11 +50,10 @@ test.describe("full-route smoke (mock-forced)", () => {
     await page.waitForLoadState("networkidle"); // let the client hydrate before the tab click
     const serviceHref = await firstHref(page, "/service/");
 
-    // policy ← the "Security policies" catalog tab (services is the default tab).
-    const policiesTab = page.getByRole("tab", { name: "Security policies" });
-    await policiesTab.click();
-    await expect(policiesTab).toHaveAttribute("aria-selected", "true");
-    const policyHref = await firstHref(page, "/policies/");
+    // policy ← the catalog's "Security policies" tab was retired (policies fold
+    // onto each service; see components/catalog/adopted.tsx), and no surface renders
+    // a /policies/ link to discover black-box, so use a known fixture policy path.
+    const policyHref = SAMPLE_POLICY_PATH;
 
     // guidance ← /guidance.
     await page.goto("/guidance");
