@@ -439,3 +439,71 @@ touched (suite frozen at 8a62f176); no schema/route/statusBoard/debugFloor stubs
 - `pnpm -r typecheck` → GREEN (7/7 workspace projects).
 - `pnpm exec oxlint context-layer/src/locations/statusAdapter.ts context-layer/src/locations/tfeStatusAdapter.ts`
   → clean (exit 0, no warnings/errors).
+
+## Batch 4 — Opus track
+
+Scope: implement `assembleStatusBoard` in `context-layer/src/status/statusBoard.ts` (Batch-0
+`unimplemented` stub) → D6 (`statusBoard.test.ts`, 4) + D7 (`statusBoard.noStore.test.ts`, 1)
+green. Touched ONLY that file + this notes section. Suite frozen at `8a62f176` — no test edits.
+
+### Decisions
+
+- **Pure aggregation, ZERO store access.** `assembleStatusBoard` reads only its injected
+  inputs (`registrations` + `adapters` + `adapterContext`); it never imports or calls a
+  repository, never caches, never persists (P24 recomputed-at-read). D7 spies
+  `InMemoryLocationsRepository.put/delete`, `InMemoryAppsRepository.put`,
+  `InMemoryEventsRepository.append` and asserts none fire — satisfied by construction, not by
+  a guard.
+- **Concurrency = `Promise.all` over registrations.** One entry per registered location, in
+  registration order (input order preserved). No retry, no timeout, no batching — kept to
+  exactly what the contract needs.
+- **Per-location fault isolation.** Each location resolves in its own `resolveEntry`; the
+  value fetch is wrapped in `try/catch`. A throwing adapter degrades ONLY that entry to
+  `fetch-failed` and cannot poison sibling entries — even though the landed `StatusAdapter`
+  contract says `fetchValue` already degrades to `null`, the catch guards a contract breach.
+- **Reason mapping (closed set, honest floor — never a fabricated value):**
+  - no adapter matches `record.system` → `value:null, reason:"no-adapter", fetchedAt:null`
+  - adapter `authMode === "none"` → `value:null, reason:"no-value-channel", fetchedAt:null`
+    (never calls `fetchValue` — `none` has no value channel by construction)
+  - `fetchValue` returns `null` OR throws → `value:null, reason:"fetch-failed", fetchedAt:null`
+  - `fetchValue` returns a string → `value, fetchedAt: new Date().toISOString()`, NO `reason`
+- **`fetchedAt` = the read moment** (`new Date().toISOString()`) for a live value; `null` for
+  every labeled-pointer entry. **`warnings` = `[]`** — the frozen tests assert scope echo +
+  statuses only and never reference warnings; empty array is the honest pass-through.
+- **`LocationRecord` → `OperationalLocation` projection.** `LocationStatusEntry.location` is
+  typed `OperationalLocation` (strict: `{id,system,kind,url,discoveredFrom}`), but the injected
+  registrations are `LocationRecord` (adds `appId`/`registeredAt`). `toPointer` drops the
+  storage/scope fields so the entry carries only the pointer's public identity and parses the
+  `.strict()` shape. The adapter's `fetchValue(location, ctx)` receives this same pointer
+  (never the raw record).
+- **ADR-0003 by construction.** `LocationStatusEntry` has no `citations`/`evidence` field in
+  the schema, so a status value structurally cannot ride a citation — D6's
+  `"citations" in status === false` / `"evidence" in status === false` pass because the built
+  object never adds those keys.
+
+### Deviations
+
+- None from the locked contract. The stub's `StatusBoardDeps` type and signature were already
+  correct; only the body was filled.
+
+### Adjacent-found (untouched)
+
+- The D6 `fakeAdapter` uses `authMode: "service-token"` for BOTH the value-success and the
+  null-fetch case, so the `no-value-channel` branch (`authMode: "none"`) is exercised by no
+  frozen test in Batch 4 — it is implemented per the schema `locationStatusReasons` closed set
+  and locked decision 2/5. If Batch 5's route/e2e coverage does not hit a `none` adapter
+  either, that reason path is spec-covered but not test-covered; flagged, not fixed.
+
+### Open questions
+
+- None blocking Batch 4.
+
+### Self-verify transcript
+
+- `cd context-layer && pnpm vitest run src/status/` → Test Files 2 passed (2); Tests 5 passed
+  (5) [D6 4/4 + D7 1/1].
+- `cd context-layer && pnpm vitest run` → Test Files 2 failed | 74 passed (76); Tests 2 failed
+  | 372 passed | 2 skipped. The 2 reds are EXACTLY D8 `debugBrief` (1) + D9 `statusRoute` (1)
+  — both Batch-5 `unimplemented` stubs, out of scope.
+- `pnpm -r typecheck` → GREEN (7/7 workspace projects).
+- `pnpm oxlint context-layer/src/status/statusBoard.ts` → clean (exit 0, no warnings/errors).
