@@ -92,3 +92,17 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 4. **Fake data only**
    - Tests, fixtures, docs, and examples must use fictional names and generic sample data.
+
+## Agent skills
+
+### Issue tracker
+
+GitHub Issues (`Cozy228/atlas`), external PRs are not a triage surface. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default five-role vocabulary (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.
