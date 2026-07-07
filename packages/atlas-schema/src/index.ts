@@ -15,7 +15,11 @@ export const authorityLevels = [
   "deprecated",
 ] as const;
 
-export const visibilityLevels = ["internal", "restricted"] as const;
+// `internal` | `restricted` are openly served (open-discovery, ADR-0012); `app`
+// is the ONLY access-gated level (Entra app-scope). No `"public"` literal exists —
+// every "public" in the plan prose reads as "any non-app value" (2026-07-07 review,
+// R1). `restricted` keeps its warning-only semantic; it is never access-gated.
+export const visibilityLevels = ["internal", "restricted", "app"] as const;
 
 export const resourceStatuses = ["active", "deprecated", "planned"] as const;
 export const feedbackTargetTypes = ["resource", "source"] as const;
@@ -88,6 +92,12 @@ export const SourceSchema = z
     // category groups under "Other".
     category: z.string().min(1).optional(),
     visibility: VisibilitySchema,
+    // App-scope ownership (ADR-0012, Entra slice). Present IFF `visibility === "app"`
+    // (cross-field invariant enforced by the `.refine()` below). The fail-closed gate
+    // (`context-layer/src/resolvers/appScopeGate.ts`) serves an `app`-visibility Source
+    // ONLY to a caller whose verified APP set contains this `app_id`. Discovery never
+    // writes it — app Sources enter only via the ADR-0007 ingestion feed.
+    app_id: z.string().min(1).optional(),
     // Authority deferred end-to-end (plan 019): discovery's entry scope already
     // crawls only authoritative sources, so authority is not a required per-source
     // attribute. The vocabulary (AuthorityLevel / authority_conflict) is kept
@@ -102,7 +112,14 @@ export const SourceSchema = z
     // (drift). Optional: with no recorded version, drift never fires.
     observed_version: z.number().int().nonnegative().optional(),
   })
-  .strict();
+  .strict()
+  // Cross-field invariant (R1): `app_id` present IFF `visibility === "app"`. A
+  // non-app Source with an `app_id`, or an `app`-visibility Source without one, is
+  // structural invalidity (mirrors the `.refine()` pattern on `AppUpdateRequestSchema`).
+  .refine((source) => (source.visibility === "app") === (source.app_id !== undefined), {
+    message: 'app_id must be present if and only if visibility is "app"',
+    path: ["app_id"],
+  });
 
 export const FeedbackSchema = z
   .object({
@@ -841,6 +858,15 @@ export type AvailabilityReadResponse = z.infer<typeof AvailabilityReadResponseSc
 export const appOrigins = ["self-declared", "registry"] as const;
 export const AppOriginSchema = z.enum(appOrigins);
 
+// Axis 2 — membership provenance (Entra slice, decision 9). `entra` marks a record
+// whose membership is verified by an Entra claim; `none` is the self-declared,
+// unverified default. This is the field the verified-vs-self-asserted UI badge reads
+// (WS5, R4) — NEVER `origin` (which is axis 3, content provenance). `none` and
+// `self-declared origin` are independent axes: an Entra-verified record still keeps
+// `origin: "self-declared"` until a real registry supplies its content (decision 9).
+export const membershipSources = ["none", "entra"] as const;
+export const MembershipSourceSchema = z.enum(membershipSources);
+
 /** Durable consumer-state record (mid-level §1). Never Evidence, always labeled. */
 export const AppRecordSchema = z
   .object({
@@ -851,8 +877,13 @@ export const AppRecordSchema = z
     // Declared services-in-use (service-kind slugs, e.g. "aws/textract"); empty
     // is legal (a freshly declared APP may not name any service yet).
     serviceSlugs: z.array(z.string().min(1)),
-    // Server-set provenance label; drives the unconditional `self-declared` badge.
+    // Server-set provenance label (axis 3); drives the content-provenance badge.
     origin: AppOriginSchema,
+    // Server-set membership provenance (axis 2); drives the verified badge (WS5).
+    // Defaults to `"none"` so every existing self-declared record — persisted before
+    // this field existed — reads `"none"` on parse (R14). Only the Entra membership
+    // path sets `"entra"`.
+    membershipSource: MembershipSourceSchema.default("none"),
     declaredAt: z.string().datetime(),
     updatedAt: z.string().datetime(),
   })
@@ -909,6 +940,7 @@ export const AppMutationResponseSchema = z
 export const AppListResponseSchema = z.object({ apps: z.array(AppRecordSchema) }).strict();
 
 export type AppOrigin = z.infer<typeof AppOriginSchema>;
+export type MembershipSource = z.infer<typeof MembershipSourceSchema>;
 export type AppRecord = z.infer<typeof AppRecordSchema>;
 export type AppManifest = z.infer<typeof AppManifestSchema>;
 export type AppRegistrationRequest = z.infer<typeof AppRegistrationRequestSchema>;

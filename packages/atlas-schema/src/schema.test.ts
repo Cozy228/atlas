@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  AppRecordSchema,
   DiscoveredReferenceSchema,
   FeedbackResponseSchema,
   FeedbackSchema,
@@ -15,6 +16,7 @@ import {
   docTypes,
   resourceKinds,
   sourceClasses,
+  visibilityLevels,
 } from "./index";
 
 const source = {
@@ -321,5 +323,70 @@ describe("resource context response — discovery merge container", () => {
         governance: "configured",
       }),
     ).toThrow();
+  });
+});
+
+describe("Entra app-scope schema additions (E4)", () => {
+  const appSource = {
+    id: "orion-topology",
+    title: "Orion Topology",
+    source_class: "confluence-page",
+    location: "999999",
+    last_observed_at: "2026-05-05T00:00:00.000Z",
+    last_reviewed_at: "2026-05-01T00:00:00.000Z",
+    review_frequency: "P90D",
+  };
+
+  it("visibilityLevels adds `app` and NO `public` literal", () => {
+    expect(visibilityLevels).toEqual(["internal", "restricted", "app"]);
+    expect(visibilityLevels).not.toContain("public");
+  });
+
+  it("accepts an app-visibility Source WITH an app_id", () => {
+    expect(() =>
+      SourceSchema.parse({ ...appSource, visibility: "app", app_id: "registry-app-orion" }),
+    ).not.toThrow();
+  });
+
+  it("rejects an app-visibility Source WITHOUT an app_id (refine)", () => {
+    expect(() => SourceSchema.parse({ ...appSource, visibility: "app" })).toThrow();
+  });
+
+  it("rejects a non-app Source that carries an app_id (refine)", () => {
+    expect(() =>
+      SourceSchema.parse({ ...appSource, visibility: "internal", app_id: "registry-app-orion" }),
+    ).toThrow();
+  });
+
+  it("accepts a non-app Source with no app_id", () => {
+    expect(() => SourceSchema.parse({ ...appSource, visibility: "internal" })).not.toThrow();
+  });
+
+  it("AppRecord.membershipSource defaults to `none` when omitted (R14)", () => {
+    const parsed = AppRecordSchema.parse({
+      id: "app-legacy",
+      name: "Legacy",
+      landingZoneIds: ["awsf"],
+      serviceSlugs: [],
+      origin: "self-declared",
+      declaredAt: "2026-07-01T00:00:00.000Z",
+      updatedAt: "2026-07-01T00:00:00.000Z",
+    });
+    expect(parsed.membershipSource).toBe("none");
+  });
+
+  it("AppRecord accepts membershipSource `entra` (axis 2), independent of origin", () => {
+    const parsed = AppRecordSchema.parse({
+      id: "registry-app-orion",
+      name: "Orion",
+      landingZoneIds: ["awsf"],
+      serviceSlugs: [],
+      origin: "self-declared",
+      membershipSource: "entra",
+      declaredAt: "2026-07-01T00:00:00.000Z",
+      updatedAt: "2026-07-01T00:00:00.000Z",
+    });
+    expect(parsed.membershipSource).toBe("entra");
+    expect(parsed.origin).toBe("self-declared");
   });
 });
