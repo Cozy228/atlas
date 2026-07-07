@@ -92,4 +92,43 @@ describe("DynamoEventsRepository (D7)", () => {
     expect(queryInput.KeyConditionExpression).toContain("gsi1pk");
     expect(queryInput.KeyConditionExpression).toContain("gsi1sk");
   });
+
+  it("listSince follows LastEvaluatedKey to completion (no silent truncation past 1MB)", async () => {
+    // Two pages: the first returns a page + a continuation key, the second drains
+    // it. A single-Query walk would drop page two and undercount (D4 forbids that).
+    const send = vi
+      .fn()
+      .mockResolvedValueOnce({
+        Items: [toItem(event("a", "2026-07-01T00:00:00.000Z"))],
+        LastEvaluatedKey: { gsi1pk: "EVENT", gsi1sk: "2026-07-01T00:00:00.000Z#a" },
+      })
+      .mockResolvedValueOnce({
+        Items: [toItem(event("b", "2026-07-02T00:00:00.000Z"))],
+      });
+    const repo = new DynamoEventsRepository({
+      tableName: "atlas-events",
+      client: { send } as never,
+    });
+
+    const feed = await repo.listSince();
+
+    expect(feed.map((e) => e.id)).toEqual(["a", "b"]);
+    expect(send).toHaveBeenCalledTimes(2);
+    // The second Query resumes from the first page's continuation key.
+    expect(send.mock.calls[1]?.[0]?.input.ExclusiveStartKey).toEqual({
+      gsi1pk: "EVENT",
+      gsi1sk: "2026-07-01T00:00:00.000Z#a",
+    });
+  });
 });
+
+/** The stored row shape (`toDynamoItem`) the adapter reads back on a query page. */
+function toItem(e: ChangeEvent): Record<string, unknown> {
+  return {
+    pk: `EVENT#${e.id}`,
+    sk: "METADATA",
+    gsi1pk: "EVENT",
+    gsi1sk: eventCursor(e),
+    ...e,
+  };
+}

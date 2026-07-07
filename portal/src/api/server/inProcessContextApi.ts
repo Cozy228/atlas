@@ -26,6 +26,9 @@ import {
   handleResourceSearchRequest,
   handleSourceDiscoveryRequest,
   handleSourceRequest,
+  instrumentsMetrics,
+  API_DEFAULT_DEPTH,
+  type ResolutionChannel,
   type ScopeInput,
 } from "@atlas/context-layer";
 import {
@@ -118,8 +121,11 @@ function unwrap<TBody>(result: HandlerResult, schema: { parse(input: unknown): T
  * in-process fallback supplies it; the Portal is honest-anonymous today).
  */
 export function createInProcessContextApiClient(
-  options: { token?: string } = {},
+  options: { token?: string; channel?: ResolutionChannel } = {},
 ): ContextApiClient {
+  // The in-process client is the Portal loader face by default (Step 6, locked
+  // decision 2); the MCP in-process fallback threads `"mcp"` through instead.
+  const channel: ResolutionChannel = options.channel ?? "portal";
   return {
     async getSource(id: string): Promise<SourceResponse> {
       return unwrap(await handleSourceRequest(id), SourceResponseSchema);
@@ -130,6 +136,7 @@ export function createInProcessContextApiClient(
       const ctx = await createResolutionContext({
         identity: { bearer: options.token },
         scope: toScopeInput(scope),
+        channel,
       });
       return unwrap(await handleAvailabilityRequest(ctx), AvailabilityReadResponseSchema);
     },
@@ -139,6 +146,7 @@ export function createInProcessContextApiClient(
       const ctx = await createResolutionContext({
         identity: { bearer: options.token },
         scope: toScopeInput(scope),
+        channel,
       });
       return unwrap(await handleChangesRequest(ctx, { since }), ChangesResponseSchema);
     },
@@ -151,11 +159,23 @@ export function createInProcessContextApiClient(
       const ctx = await createResolutionContext({
         identity: { bearer: options.token },
         scope: toScopeInput(scope),
+        channel,
       });
-      return unwrap(
+      const brief = unwrap(
         await handleBriefRequest(moment, ctx, { service: scope?.service, depth }),
         BriefSchema,
       );
+      // P28 token economy (Step 6, locked decision 5): the Portal loader serializes
+      // the Brief as the JSON RPC body sent to the browser, so it records the
+      // `face:"json"` payload cost on its own channel (default `"portal"`).
+      instrumentsMetrics.recordBriefPayload({
+        moment: brief.moment,
+        depth: depth ?? API_DEFAULT_DEPTH,
+        channel,
+        face: "json",
+        serialize: () => JSON.stringify(brief),
+      });
+      return brief;
     },
     async listApps(): Promise<AppListResponse> {
       return unwrap(await handleAppsListRequest(), AppListResponseSchema);
@@ -205,7 +225,7 @@ export function createInProcessContextApiClient(
       return unwrap(await handleLocationDeleteRequest(ctx, id), LocationRegistrationResponseSchema);
     },
     async getResourceContext(kind: string, slug: string): Promise<ResourceContextResponse> {
-      const ctx = await createResolutionContext({ identity: { bearer: options.token } });
+      const ctx = await createResolutionContext({ identity: { bearer: options.token }, channel });
       return unwrap(
         await handleResourceContextRequest({ kind, slug }, ctx),
         ResourceContextResponseSchema,

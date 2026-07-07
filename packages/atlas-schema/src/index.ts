@@ -1354,6 +1354,28 @@ export const LocationRegistrationRequestSchema: z.ZodType<LocationRegistrationRe
   })
   .strict();
 
+/* -------------------------------------------------------------------------- *
+ * Honesty instruments (Step 6, P16/P20/P22/P28, mid-level §7)
+ *
+ * The internal, since-boot honesty dashboard reads three things: (1) the
+ * in-process metrics registry snapshot — counters + duration/size histograms fed
+ * at the SAME call-sites that already log (locked decision 1); (2) change-feed
+ * volume by class, derived at read from the durable events store (locked
+ * decision 7); (3) the negotiation queue — unresolved/warned block counts grouped
+ * by warning code × subject kind, sorted desc, the "which source do we negotiate
+ * next" answer (P16/P22). No durable metric store: a restart resets the window and
+ * the `since` label says so. No identity/PII ever rides a label (locked decision 10).
+ * -------------------------------------------------------------------------- */
+
+/** One labelled counter sample. `labels` is a flat string→string map. */
+export const MetricCounterSampleSchema = z
+  .object({
+    name: z.string().min(1),
+    labels: z.record(z.string(), z.string()),
+    value: z.number(),
+  })
+  .strict();
+
 /**
  * The stored consumer-state pointer: an `OperationalLocation` scoped to an APP
  * with a server clock. `.strict()` keeps a secret off the stored record too.
@@ -1412,6 +1434,72 @@ export const StatusBoardResponseSchema: z.ZodType<StatusBoardResponse> = z
     warnings: z.array(WarningSchema),
   })
   .strict();
+
+/**
+ * One labelled histogram sample: Prometheus-style cumulative `buckets` (each `le`
+ * is an upper bound; a value counts into every bucket whose bound it does not
+ * exceed), the overflow bucket labelled `"+Inf"` so it survives JSON (`Infinity`
+ * does not), plus `count` and `sum` for a mean.
+ */
+export const MetricHistogramSampleSchema = z
+  .object({
+    name: z.string().min(1),
+    labels: z.record(z.string(), z.string()),
+    count: z.number(),
+    sum: z.number(),
+    buckets: z.array(z.object({ le: z.string().min(1), count: z.number() }).strict()),
+  })
+  .strict();
+
+/** The since-boot metrics registry snapshot (locked decision 1). */
+export const MetricsSnapshotSchema = z
+  .object({
+    since: z.string().datetime(),
+    counters: z.array(MetricCounterSampleSchema),
+    histograms: z.array(MetricHistogramSampleSchema),
+  })
+  .strict();
+
+/** Change-feed volume for one event class (D4), derived at dashboard read. */
+export const EventVolumeEntrySchema = z
+  .object({ class: EventClassSchema, count: z.number() })
+  .strict();
+
+/** One negotiation-queue row (P16/P22): unresolved/warned blocks grouped by their
+ *  warning code × subject kind; the dashboard sorts these desc by `count`. */
+export const NegotiationQueueEntrySchema = z
+  .object({ code: WarningCodeSchema, subjectKind: z.string().min(1), count: z.number() })
+  .strict();
+
+/** `GET /api/internal/instruments` (D6): the registry snapshot + event-class
+ *  volume + the negotiation queue. `since` is the boot instant of the window. */
+export const InstrumentsResponseSchema = z
+  .object({
+    since: z.string().datetime(),
+    counters: z.array(MetricCounterSampleSchema),
+    histograms: z.array(MetricHistogramSampleSchema),
+    eventVolumeByClass: z.array(EventVolumeEntrySchema),
+    negotiationQueue: z.array(NegotiationQueueEntrySchema),
+  })
+  .strict();
+
+/** The citation-follow beacon body (D5 / locked decision 6): client-computed, no
+ *  identity, no cookie. `msSinceRender` is the verification latency in ms. */
+export const VerifyBeaconRequestSchema = z
+  .object({
+    moment: MomentSchema,
+    sourceId: z.string().min(1),
+    msSinceRender: z.number().int().nonnegative(),
+  })
+  .strict();
+
+export type MetricCounterSample = z.infer<typeof MetricCounterSampleSchema>;
+export type MetricHistogramSample = z.infer<typeof MetricHistogramSampleSchema>;
+export type MetricsSnapshot = z.infer<typeof MetricsSnapshotSchema>;
+export type EventVolumeEntry = z.infer<typeof EventVolumeEntrySchema>;
+export type NegotiationQueueEntry = z.infer<typeof NegotiationQueueEntrySchema>;
+export type InstrumentsResponse = z.infer<typeof InstrumentsResponseSchema>;
+export type VerifyBeaconRequest = z.infer<typeof VerifyBeaconRequestSchema>;
 
 export {
   validateGuidanceDocument,

@@ -29,6 +29,7 @@ import type { GovernedResolutionContext } from "../resolvers/createResolutionCon
 import { createDefaultContextService } from "../composition";
 import { getResourceContext } from "../resources/resourceContextService";
 import { logger, serializeError } from "../observability/logging";
+import { recordBriefAssembled } from "../observability/metrics";
 import type { BlockRequest, BriefPlan } from "./briefTypes";
 
 /** Bounded fan-out (ADR-0014 §2): the executor resolves at most this many blocks
@@ -68,11 +69,17 @@ export async function assembleBrief(
     resolvedAt: new Date().toISOString(),
   };
 
+  const durationMs = Date.now() - startedAt;
+
   // Per-brief pino signal (mid-level §7): moment, scope, per-block status, and
-  // duration — the Step 6 honesty dashboard reads these.
+  // duration — the Step 6 honesty dashboard reads these. `depth` + `channel` were
+  // added in Step 6 (locked decisions 2 + 3): the log line now names the tier and
+  // the producing face alongside the histogram.
   log.info(
     {
       moment: brief.moment,
+      depth: plan.depth,
+      channel: ctx.channel,
       landingZoneIds: brief.situation.landingZoneIds,
       ...(brief.situation.appId ? { appId: brief.situation.appId } : {}),
       blocks: blocks.map((block) => ({
@@ -80,10 +87,26 @@ export async function assembleBrief(
         status: block.status,
         ...(block.landingZoneId ? { landingZoneId: block.landingZoneId } : {}),
       })),
-      durationMs: Date.now() - startedAt,
+      durationMs,
     },
     `brief assembled: ${brief.moment} (${blocks.length} block(s))`,
   );
+
+  // Step 6 instruments (locked decisions 3 + 4): time-to-brief histogram + block
+  // status + warning-code counters. `plan.requests` pairs 1:1 with `blocks`
+  // (bounded map preserves order), so each block's subject kind is in hand for the
+  // negotiation queue grouping. Observation only — never fails the brief.
+  recordBriefAssembled({
+    moment: plan.moment,
+    depth: plan.depth,
+    channel: ctx.channel,
+    durationMs,
+    blocks: blocks.map((block, index) => ({
+      status: block.status,
+      subjectKind: plan.requests[index]?.subject.kind ?? "unknown",
+      warningCodes: block.warnings.map((warning) => warning.code),
+    })),
+  });
 
   return brief;
 }

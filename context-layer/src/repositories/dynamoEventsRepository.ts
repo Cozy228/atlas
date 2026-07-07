@@ -68,18 +68,32 @@ export class DynamoEventsRepository implements EventsRepository {
   }
 
   async listSince(cursor?: string): Promise<ChangeEvent[]> {
-    const response = await this.client.send(
-      new QueryCommand({
-        TableName: this.tableName,
-        IndexName: EVENTS_INDEX_NAME,
-        // Walk the single time-ordered partition forward from the cursor (M1).
-        KeyConditionExpression: cursor ? "gsi1pk = :p AND gsi1sk > :since" : "gsi1pk = :p",
-        ExpressionAttributeValues: cursor
-          ? { ":p": LIST_PARTITION, ":since": cursor }
-          : { ":p": LIST_PARTITION },
-      }),
-    );
-    return (response.Items ?? [])
+    // Walk the single time-ordered partition forward from the cursor (M1),
+    // following `LastEvaluatedKey` to completion: a DynamoDB Query caps each page
+    // at ~1MB, so a single QueryCommand would SILENTLY truncate past that boundary
+    // — the change feed and the Step-6 event-volume-by-class read must both see the
+    // WHOLE feed, never an unlabelled undercount (D4: no silent truncation).
+    const items: Record<string, unknown>[] = [];
+    let exclusiveStartKey: Record<string, unknown> | undefined;
+    do {
+      const response = await this.client.send(
+        new QueryCommand({
+          TableName: this.tableName,
+          IndexName: EVENTS_INDEX_NAME,
+          KeyConditionExpression: cursor ? "gsi1pk = :p AND gsi1sk > :since" : "gsi1pk = :p",
+          ExpressionAttributeValues: cursor
+            ? { ":p": LIST_PARTITION, ":since": cursor }
+            : { ":p": LIST_PARTITION },
+          ...(exclusiveStartKey ? { ExclusiveStartKey: exclusiveStartKey } : {}),
+        }),
+      );
+      for (const item of response.Items ?? []) {
+        items.push(item);
+      }
+      exclusiveStartKey = response.LastEvaluatedKey;
+    } while (exclusiveStartKey);
+
+    return items
       .map((item) => parseEventItem(item))
       .filter((event): event is ChangeEvent => Boolean(event));
   }

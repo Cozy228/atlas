@@ -12,7 +12,13 @@ import {
   handleAppUpdateRequest,
 } from "./appsRoutes";
 import { handleAvailabilityRequest } from "./availabilityRoute";
-import { handleBriefRequest, renderBriefMarkdown, type BriefRequestOptions } from "./briefsRoute";
+import {
+  API_DEFAULT_DEPTH,
+  handleBriefRequest,
+  renderBriefMarkdown,
+  type BriefRequestOptions,
+} from "./briefsRoute";
+import { recordBriefPayload } from "../observability/metrics";
 import { handleChangesRequest, renderChangesAtom } from "./changesRoute";
 import { handleFeedbackRequest } from "./feedbackRoute";
 import {
@@ -113,9 +119,31 @@ export async function handleHttpRequest(request: HttpRequest): Promise<HttpRespo
     const moment = decodeURIComponent(
       wantsMarkdown ? path.slice("/briefs/".length, -".md".length) : path.slice("/briefs/".length),
     );
-    const result = await handleBriefRequest(moment, ctx, briefOptions(request.query));
-    if (wantsMarkdown && result.status === 200) {
-      return markdownResponse(renderBriefMarkdown(result.body as Brief));
+    const options = briefOptions(request.query);
+    const result = await handleBriefRequest(moment, ctx, options);
+    if (result.status === 200) {
+      const brief = result.body as Brief;
+      const depth = options.depth ?? API_DEFAULT_DEPTH;
+      // P28 token economy (Step 6, locked decision 5): observe EXACTLY the payload
+      // this HTTP request serializes — markdown on the `.md` alias, JSON otherwise.
+      if (wantsMarkdown) {
+        const markdown = renderBriefMarkdown(brief);
+        recordBriefPayload({
+          moment: brief.moment,
+          depth,
+          channel: ctx.channel,
+          face: "markdown",
+          serialize: () => markdown,
+        });
+        return markdownResponse(markdown);
+      }
+      recordBriefPayload({
+        moment: brief.moment,
+        depth,
+        channel: ctx.channel,
+        face: "json",
+        serialize: () => JSON.stringify(brief),
+      });
     }
     return jsonResponse(result);
   }
@@ -229,6 +257,8 @@ async function resolutionContextFromRequest(
   return createResolutionContext({
     identity: { bearer: bearerToken(request.headers) },
     scope: scopeFromQuery(request.query),
+    // The public HTTP contract is the `"http"` face (Step 6, locked decision 2).
+    channel: "http",
   });
 }
 

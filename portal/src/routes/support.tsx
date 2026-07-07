@@ -285,6 +285,15 @@ function GroundingLine({
         Browse the registry
         <IconArrowRight aria-hidden className="size-3.5" />
       </Link>
+      {/* The internal honesty dashboard (Step 6, locked decision 8): reachable by
+          this single support-page link — no nav promotion, not in the sitemap. */}
+      <Link
+        to="/instruments"
+        className="ml-1 inline-flex items-center gap-1 font-semibold text-brand-ink hover:underline"
+      >
+        Honesty instruments
+        <IconArrowRight aria-hidden className="size-3.5" />
+      </Link>
     </p>
   );
 }

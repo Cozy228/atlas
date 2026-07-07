@@ -3,6 +3,7 @@ import type {
   AppListResponse,
   Brief,
   ChangesResponse,
+  InstrumentsResponse,
   LandingZone,
   Moment,
   ResourceCatalogResponse,
@@ -20,6 +21,7 @@ import { fetchStatusBoard } from "@/api/server/locations";
 import {
   fetchBrief,
   fetchChanges,
+  fetchInstruments,
   fetchLandingZones,
   fetchResourceCatalog,
   fetchResourceContext,
@@ -115,6 +117,16 @@ export function briefQueryOptionsFor(
     staleTime: 30_000,
   });
 }
+
+/**
+ * The honesty-instruments dashboard (Step 6, D6). Since-boot data, so a short
+ * staleTime keeps the view live without hammering the read. Aggregate counts only.
+ */
+export const instrumentsQueryOptions = queryOptions<InstrumentsResponse>({
+  queryKey: ["instruments"] as const,
+  queryFn: () => fetchInstruments(),
+  staleTime: 10_000,
+});
 
 export const landingZonesQueryOptions = queryOptions<LandingZone[]>({
   queryKey: ["landing-zones"] as const,

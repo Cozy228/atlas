@@ -15,11 +15,12 @@ import {
   type Brief,
   type BriefDepth,
   type ChangesResponse,
+  type InstrumentsResponse,
   type LandingZone,
   type Moment,
   type SourceDiscoveryRequest,
 } from "@atlas/schema";
-import { LANDING_ZONES } from "@atlas/context-layer";
+import { LANDING_ZONES, handleInstrumentsRequest } from "@atlas/context-layer";
 import { z } from "zod";
 
 import { createServerContextApiClient } from "./httpContextApiClient";
@@ -197,3 +198,16 @@ export const fetchSourceDiscovery = createServerFn(SERVER_FN_OPTIONS)
     (input: unknown): SourceDiscoveryRequest => SourceDiscoveryRequestSchema.parse(input ?? {}),
   )
   .handler(async ({ data }) => contextApiForRequest().discoverSources(data));
+
+/**
+ * The honesty-instruments dashboard read (Step 6, D6): the since-boot metrics
+ * registry snapshot + change-feed volume by class + the negotiation queue. Read
+ * directly from the in-process context layer (aggregate counts only, no identity)
+ * — the same value the internal `GET /api/internal/instruments` endpoint serves.
+ */
+export const fetchInstruments = createServerFn(SERVER_FN_OPTIONS).handler(
+  async (): Promise<InstrumentsResponse> => {
+    const result = await handleInstrumentsRequest(process.env);
+    return result.body;
+  },
+);

@@ -13,6 +13,7 @@ import { Route as WhatsnewRouteImport } from './routes/whatsnew'
 import { Route as SupportRouteImport } from './routes/support'
 import { Route as SourcesRouteImport } from './routes/sources'
 import { Route as OverviewRouteImport } from './routes/overview'
+import { Route as InstrumentsRouteImport } from './routes/instruments'
 import { Route as GuidanceRouteImport } from './routes/guidance'
 import { Route as ChangesRouteImport } from './routes/changes'
 import { Route as CatalogRouteImport } from './routes/catalog'
@@ -48,6 +49,11 @@ const SourcesRoute = SourcesRouteImport.update({
 const OverviewRoute = OverviewRouteImport.update({
   id: '/overview',
   path: '/overview',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InstrumentsRoute = InstrumentsRouteImport.update({
+  id: '/instruments',
+  path: '/instruments',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GuidanceRoute = GuidanceRouteImport.update({
@@ -137,6 +143,7 @@ export interface FileRoutesByFullPath {
   '/catalog': typeof CatalogRouteWithChildren
   '/changes': typeof ChangesRoute
   '/guidance': typeof GuidanceRouteWithChildren
+  '/instruments': typeof InstrumentsRoute
   '/overview': typeof OverviewRoute
   '/sources': typeof SourcesRouteWithChildren
   '/support': typeof SupportRoute
@@ -156,6 +163,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/changes': typeof ChangesRoute
+  '/instruments': typeof InstrumentsRoute
   '/overview': typeof OverviewRoute
   '/support': typeof SupportRoute
   '/whatsnew': typeof WhatsnewRoute
@@ -178,6 +186,7 @@ export interface FileRoutesById {
   '/catalog': typeof CatalogRouteWithChildren
   '/changes': typeof ChangesRoute
   '/guidance': typeof GuidanceRouteWithChildren
+  '/instruments': typeof InstrumentsRoute
   '/overview': typeof OverviewRoute
   '/sources': typeof SourcesRouteWithChildren
   '/support': typeof SupportRoute
@@ -202,6 +211,7 @@ export interface FileRouteTypes {
     | '/catalog'
     | '/changes'
     | '/guidance'
+    | '/instruments'
     | '/overview'
     | '/sources'
     | '/support'
@@ -221,6 +231,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/changes'
+    | '/instruments'
     | '/overview'
     | '/support'
     | '/whatsnew'
@@ -242,6 +253,7 @@ export interface FileRouteTypes {
     | '/catalog'
     | '/changes'
     | '/guidance'
+    | '/instruments'
     | '/overview'
     | '/sources'
     | '/support'
@@ -265,6 +277,7 @@ export interface RootRouteChildren {
   CatalogRoute: typeof CatalogRouteWithChildren
   ChangesRoute: typeof ChangesRoute
   GuidanceRoute: typeof GuidanceRouteWithChildren
+  InstrumentsRoute: typeof InstrumentsRoute
   OverviewRoute: typeof OverviewRoute
   SourcesRoute: typeof SourcesRouteWithChildren
   SupportRoute: typeof SupportRoute
@@ -304,6 +317,13 @@ declare module '@tanstack/react-router' {
       path: '/overview'
       fullPath: '/overview'
       preLoaderRoute: typeof OverviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/instruments': {
+      id: '/instruments'
+      path: '/instruments'
+      fullPath: '/instruments'
+      preLoaderRoute: typeof InstrumentsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/guidance': {
@@ -477,6 +497,7 @@ const rootRouteChildren: RootRouteChildren = {
   CatalogRoute: CatalogRouteWithChildren,
   ChangesRoute: ChangesRoute,
   GuidanceRoute: GuidanceRouteWithChildren,
+  InstrumentsRoute: InstrumentsRoute,
   OverviewRoute: OverviewRoute,
   SourcesRoute: SourcesRouteWithChildren,
   SupportRoute: SupportRoute,

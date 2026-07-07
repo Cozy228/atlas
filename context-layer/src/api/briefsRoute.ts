@@ -27,6 +27,7 @@ import {
 import type { GovernedResolutionContext } from "../resolvers/createResolutionContext";
 import { assembleBrief } from "../briefs/assembleBrief";
 import { assembleDebugFloor } from "../briefs/debugFloor";
+import { recordBriefAssembled, recordBriefCall } from "../observability/metrics";
 import { changeTemplate, templateForMoment } from "../briefs/templates";
 import type { BriefScope } from "../briefs/briefTypes";
 import { deriveRequestGraph } from "../graph/requestGraph";
@@ -45,8 +46,10 @@ export type BriefRequestOptions = {
 };
 
 /** The API face default (mid-level §3): citations — structure + citations with no
- *  excerpt bodies, so the agent face is consumable without paying excerpt cost. */
-const API_DEFAULT_DEPTH: BriefDepth = "citations";
+ *  excerpt bodies, so the agent face is consumable without paying excerpt cost.
+ *  Exported so the markdown-serving routes resolve the tier identically when they
+ *  record the markdown-face est-tokens (Step 6, locked decision 5). */
+export const API_DEFAULT_DEPTH: BriefDepth = "citations";
 
 export async function handleBriefRequest(
   moment: string,
@@ -63,6 +66,10 @@ export async function handleBriefRequest(
 
   const situation = situationFromContext(ctx);
   const depth = options.depth ?? API_DEFAULT_DEPTH;
+
+  // P20 agent-call-share (Step 6): every brief request is one call, attributed to
+  // the producing face — all moments, incl. the honest-empty `debug`.
+  recordBriefCall({ moment, depth, channel: ctx.channel });
 
   // `debug` is Step 7's M7 floor: cited troubleshooting Evidence PLUS the location
   // index's pointers (content is the bar, locations are the floor — P18). The SAME
@@ -90,6 +97,13 @@ export async function handleBriefRequest(
   const graph = await deriveRequestGraph(ctx);
   const requests = templateForMoment(moment)(graph, scope);
   const brief = await assembleBrief({ moment, situation, requests, depth }, ctx);
+
+  // P28 token economy (Step 6, locked decision 5) is observed at the
+  // response-SERIALIZATION point of each face — the JSON API branch, the markdown
+  // routes, the MCP tool, and the in-process portal loader each record exactly one
+  // `brief_payload_est_tokens` for the payload they actually emit. This shared
+  // handler assembles the value; it never serializes, so it records no payload
+  // metric (that would double-count a `.md` request and mislabel every render).
   return { status: 200, body: brief };
 }
 
@@ -154,6 +168,7 @@ async function assembleChangeBrief(
   since: string | undefined,
   depth: BriefDepth,
 ): Promise<Brief> {
+  const startedAt = Date.now();
   const feed = await handleChangesRequest(ctx, { since });
   const events = (feed.body as ChangesResponse).events;
   const scope: BriefScope = {
@@ -165,6 +180,23 @@ async function assembleChangeBrief(
   const blocks = events.map((event, index) =>
     changeBlock(event, requests[index]?.landingZoneId, depth),
   );
+
+  // Step 6 instruments (locked decisions 3 + 4): the change moment does NOT flow
+  // through `assembleBrief`, so it records its own time-to-brief + block counters
+  // here. Change blocks are structural `available` facts with no warnings, so the
+  // subject kind comes off each event.
+  recordBriefAssembled({
+    moment: "change",
+    depth,
+    channel: ctx.channel,
+    durationMs: Date.now() - startedAt,
+    blocks: events.map((event) => ({
+      status: "available" as const,
+      subjectKind: event.subject.kind,
+      warningCodes: [] as string[],
+    })),
+  });
+
   return {
     moment: "change",
     situation,
