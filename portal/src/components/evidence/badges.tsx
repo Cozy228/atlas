@@ -13,10 +13,17 @@ import type { Source, Visibility } from "@atlas/schema";
 const VISIBILITY_VARIANT: Record<Visibility, React.ComponentProps<typeof Badge>["variant"]> = {
   internal: "neutral",
   restricted: "warning",
+  // App-scoped visibility (ADR-0012): access-gated to the caller's verified APP set.
+  app: "info",
 };
 
 export function VisibilityBadge({ value }: { value: Visibility }) {
-  const Icon = value === "restricted" ? IconShieldHalf : IconShieldCheckFilled;
+  const Icon =
+    value === "restricted"
+      ? IconShieldHalf
+      : value === "app"
+        ? IconLockSquareRoundedFilled
+        : IconShieldCheckFilled;
   return (
     <Badge variant={VISIBILITY_VARIANT[value]}>
       <Icon className="size-3" aria-hidden />

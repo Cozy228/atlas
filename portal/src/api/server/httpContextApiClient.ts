@@ -31,7 +31,12 @@ import {
   type StatusBoardResponse,
 } from "@atlas/schema";
 
-import type { ResolutionChannel } from "@atlas/context-layer";
+import {
+  logger,
+  type AppDirectoryPort,
+  type IdentityClaims,
+  type ResolutionChannel,
+} from "@atlas/context-layer";
 import type { AvailabilityScope, BriefRequestScope, ContextApiClient } from "../contextApiClient";
 import { ContextApiError } from "../contextApiError";
 import { createInProcessContextApiClient } from "./inProcessContextApi";
@@ -51,10 +56,25 @@ export function createServerContextApiClient(
      *  2). Only meaningful on the in-process fallback: an HTTP base URL means the
      *  request re-enters the router, which stamps its own `"http"` channel. */
     channel?: ResolutionChannel;
+    /** Browser identity (WS1/WS2): the BFF session's id_token claims (cookie-derived).
+     *  Threaded into the in-process factory so `ctx.verifiedApps` is seated. NOTE: over the
+     *  HTTP composition (`CONTEXT_API_BASE_URL` set) this does NOT propagate — cross-process
+     *  identity forwarding (OBO / two-registration split) is out of the Entra app-scope slice
+     *  (goal prompt open question 4), and a claims-forwarding header would be an
+     *  unauthenticated trust channel — so app-visibility Sources stay fail-closed on the
+     *  remote Context API until the OBO follow-on. A structured WARN is emitted once when
+     *  identity is supplied on this branch. */
+    claims?: IdentityClaims;
+    /** Membership/scope directory (Entra `registryAppsAdapter` / local mock). Same HTTP-branch
+     *  caveat as {@link claims}: not propagated over the remote Context API (fail-closed). */
+    appDirectory?: AppDirectoryPort;
   } = {},
 ): ServerContextApiClient {
   const baseUrl = input.env?.CONTEXT_API_BASE_URL ?? process.env.CONTEXT_API_BASE_URL;
   if (baseUrl) {
+    if (input.claims || input.appDirectory) {
+      warnBrowserIdentityNotPropagated();
+    }
     return {
       ...createFetchContextApiClient({ baseUrl, fetch: input.fetch, token: input.token }),
       kind: "http",
@@ -64,10 +84,31 @@ export function createServerContextApiClient(
   return {
     // The in-process fallback threads the caller Bearer into the governance-gate
     // factory (Step 1 D4) instead of silently dropping it, plus the producing
-    // face (Step 6) so MCP-in-process reads attribute to the agent channel.
-    ...createInProcessContextApiClient({ token: input.token, channel: input.channel }),
+    // face (Step 6) so MCP-in-process reads attribute to the agent channel, plus
+    // (WS2) the browser session's verified identity claims + membership directory.
+    ...createInProcessContextApiClient({
+      token: input.token,
+      channel: input.channel,
+      ...(input.claims ? { claims: input.claims } : {}),
+      ...(input.appDirectory ? { appDirectory: input.appDirectory } : {}),
+    }),
     kind: "in-process",
   };
+}
+
+/** Emitted at most once per process: browser identity does not cross the HTTP Context-API
+ *  seam, so app-visibility Sources stay fail-closed until the OBO follow-on (open question 4). */
+let identityDropWarned = false;
+function warnBrowserIdentityNotPropagated(): void {
+  if (identityDropWarned) {
+    return;
+  }
+  identityDropWarned = true;
+  logger("context-api").warn(
+    { composition: "http", reason: "cross-process identity not propagated (OBO out of slice)" },
+    "Browser identity (claims/appDirectory) does not propagate over the HTTP Context-API " +
+      "composition; app-visibility Sources stay fail-closed until the OBO follow-on.",
+  );
 }
 
 export function createFetchContextApiClient(input: {

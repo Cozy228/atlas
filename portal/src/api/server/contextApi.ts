@@ -25,18 +25,29 @@ import { z } from "zod";
 
 import { createServerContextApiClient } from "./httpContextApiClient";
 import { resolveDataMode } from "./dataMode";
+import { membershipDirectory, requestBrowserClaims } from "./auth/requestIdentity";
 import { mockChangesFeed } from "./changesMock";
 import { mockBrief } from "./briefsMock";
 
 /**
- * Build a Context API client for the current request, forwarding whatever
- * Bearer token the caller supplied. The token is read from the incoming
- * `Authorization` header and threaded down; on the HTTP path it is re-attached
- * as `Authorization: Bearer <token>`, and on the in-process path it is ignored
- * (offline). The token never crosses into any browser-facing payload.
+ * Build a Context API client for the current request. Two identity inputs, kept disjoint
+ * by surface (confused-deputy R7):
+ *  - opaque ADR-0001 content Bearer from `Authorization` (machine-style callers);
+ *  - the browser BFF session's verified claims, derived from the session COOKIE ONLY
+ *    (never a Bearer) — threaded so `ctx.verifiedApps` (axis 2) is seated for the gate.
+ * When Entra is unset both paths are inert: the client is honest-anonymous, exactly as
+ * before this slice (non-app Sources reachable, app Sources fail-closed).
  */
-function contextApiForRequest() {
-  return createServerContextApiClient({ token: callerBearerToken() });
+async function contextApiForRequest() {
+  const claims = await requestBrowserClaims();
+  // The membership directory is seated only under the dev-mock seam (R8); with mocks off it
+  // is undefined ⇒ the factory default self-declared adapter ⇒ empty verified set (fail-closed).
+  const appDirectory = claims ? membershipDirectory() : undefined;
+  return createServerContextApiClient({
+    token: callerBearerToken(),
+    ...(claims ? { claims } : {}),
+    ...(appDirectory ? { appDirectory } : {}),
+  });
 }
 
 function callerBearerToken(): string | undefined {
@@ -63,7 +74,7 @@ const idSchema = z.string().min(1);
 
 export const fetchSource = createServerFn(SERVER_FN_OPTIONS)
   .validator((input: unknown): string => idSchema.parse(input))
-  .handler(async ({ data }) => contextApiForRequest().getSource(data));
+  .handler(async ({ data }) => (await contextApiForRequest()).getSource(data));
 
 /**
  * The Explore availability grid, read through the one cited Context Layer
@@ -97,7 +108,9 @@ export const fetchAvailability = createServerFn(SERVER_FN_OPTIONS)
     if (cached && now - cached.at < AVAILABILITY_MEMO_MS) {
       return cached.data;
     }
-    const { zones } = await contextApiForRequest().getAvailability(
+    const { zones } = await (
+      await contextApiForRequest()
+    ).getAvailability(
       scope?.landingZones?.length ? { landingZones: scope.landingZones } : undefined,
     );
     const data: AvailabilityResponse = { zones };
@@ -127,7 +140,7 @@ export const fetchChanges = createServerFn(SERVER_FN_OPTIONS)
       data?.landingZones?.length || data?.appId
         ? { landingZones: data?.landingZones, appId: data?.appId }
         : undefined;
-    return contextApiForRequest().getChanges(scope, data?.since);
+    return (await contextApiForRequest()).getChanges(scope, data?.since);
   });
 
 // The one serialized moment Brief (Step 4, I3/M9). Scope is the situation's
@@ -158,7 +171,7 @@ export const fetchBrief = createServerFn(SERVER_FN_OPTIONS)
       data.landingZones?.length || data.appId || data.service
         ? { landingZones: data.landingZones, appId: data.appId, service: data.service }
         : undefined;
-    return contextApiForRequest().getBrief(data.moment, scope, depth);
+    return (await contextApiForRequest()).getBrief(data.moment, scope, depth);
   });
 
 /**
@@ -180,24 +193,26 @@ export const fetchResourceContext = createServerFn(SERVER_FN_OPTIONS)
     // Live resource projection (plan 017): governed sections + reference-only
     // discovery links. Dev latency comes from the MSW seam (cache-respecting), not
     // a flat per-call delay — so the first read is slow and a revisit is instant.
-    return contextApiForRequest().getResourceContext(data.kind, data.slug);
+    return (await contextApiForRequest()).getResourceContext(data.kind, data.slug);
   });
 
 export const fetchResourceRecord = createServerFn(SERVER_FN_OPTIONS)
   .validator((input: unknown) => resourceRefSchema.parse(input))
   // Presentation metadata (plan 020 15d): identity/owner/entry fields. Durable
   // (no live fetch), so it is awaited for the page shell — no dev delay.
-  .handler(async ({ data }) => contextApiForRequest().getResourceRecord(data.kind, data.slug));
+  .handler(async ({ data }) =>
+    (await contextApiForRequest()).getResourceRecord(data.kind, data.slug),
+  );
 
 export const fetchResourceCatalog = createServerFn(SERVER_FN_OPTIONS).handler(async () =>
-  contextApiForRequest().discoverResources(),
+  (await contextApiForRequest()).discoverResources(),
 );
 
 export const fetchSourceDiscovery = createServerFn(SERVER_FN_OPTIONS)
   .validator(
     (input: unknown): SourceDiscoveryRequest => SourceDiscoveryRequestSchema.parse(input ?? {}),
   )
-  .handler(async ({ data }) => contextApiForRequest().discoverSources(data));
+  .handler(async ({ data }) => (await contextApiForRequest()).discoverSources(data));
 
 /**
  * The honesty-instruments dashboard read (Step 6, D6): the since-boot metrics

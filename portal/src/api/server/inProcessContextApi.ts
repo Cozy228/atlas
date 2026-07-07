@@ -28,6 +28,8 @@ import {
   handleSourceRequest,
   instrumentsMetrics,
   API_DEFAULT_DEPTH,
+  type AppDirectoryPort,
+  type IdentityClaims,
   type ResolutionChannel,
   type ScopeInput,
 } from "@atlas/context-layer";
@@ -121,33 +123,57 @@ function unwrap<TBody>(result: HandlerResult, schema: { parse(input: unknown): T
  * in-process fallback supplies it; the Portal is honest-anonymous today).
  */
 export function createInProcessContextApiClient(
-  options: { token?: string; channel?: ResolutionChannel } = {},
+  options: {
+    token?: string;
+    channel?: ResolutionChannel;
+    /**
+     * Browser identity (WS1/WS2): the BFF session's id_token claims. Threaded into the L2
+     * factory so `ctx.verifiedApps` (axis 2) is seated from the COOKIE-derived session —
+     * never a Bearer (confused-deputy R7: browser routes derive identity from the cookie
+     * only). Absent ⇒ anonymous ⇒ app Sources invisible (fail-closed).
+     */
+    claims?: IdentityClaims;
+    /** Membership/scope directory (the Entra-era `registryAppsAdapter`, or the local mock
+     *  under `DEV_MOCKS`). Absent ⇒ the factory default self-declared adapter (no verified
+     *  membership). */
+    appDirectory?: AppDirectoryPort;
+  } = {},
 ): ContextApiClient {
   // The in-process client is the Portal loader face by default (Step 6, locked
   // decision 2); the MCP in-process fallback threads `"mcp"` through instead.
   const channel: ResolutionChannel = options.channel ?? "portal";
+  // Identity is the FIRST factory input (I2): the opaque content Bearer (ADR-0001) plus,
+  // on the browser path, the vetted session claims (axis 2 → verified APP set).
+  const identity: { bearer?: string; claims?: IdentityClaims } = options.claims
+    ? { bearer: options.token, claims: options.claims }
+    : { bearer: options.token };
+  const directoryInput = options.appDirectory ? { appDirectory: options.appDirectory } : {};
+
+  /** Build one governed context, threading identity + directory into every read (so the
+   *  app-scope gate sees the browser session's verified membership everywhere). */
+  function ctxFor(scope?: ScopeInput) {
+    return createResolutionContext({
+      identity,
+      ...(scope ? { scope } : {}),
+      channel,
+      ...directoryInput,
+    });
+  }
+
   return {
     async getSource(id: string): Promise<SourceResponse> {
-      return unwrap(await handleSourceRequest(id), SourceResponseSchema);
+      return unwrap(await handleSourceRequest(id, await ctxFor()), SourceResponseSchema);
     },
     async getAvailability(scope?: AvailabilityScope): Promise<AvailabilityReadResponse> {
       // The governed availability read (Step 3 decision 7): thread the caller
       // scope through the one governance-gate factory into the ctx-taking handler.
-      const ctx = await createResolutionContext({
-        identity: { bearer: options.token },
-        scope: toScopeInput(scope),
-        channel,
-      });
+      const ctx = await ctxFor(toScopeInput(scope));
       return unwrap(await handleAvailabilityRequest(ctx), AvailabilityReadResponseSchema);
     },
     async getChanges(scope?: AvailabilityScope, since?: string): Promise<ChangesResponse> {
       // The governed change feed (Step 2 decision 6): thread the caller scope
       // through the one governance-gate factory into the ctx-taking handler.
-      const ctx = await createResolutionContext({
-        identity: { bearer: options.token },
-        scope: toScopeInput(scope),
-        channel,
-      });
+      const ctx = await ctxFor(toScopeInput(scope));
       return unwrap(await handleChangesRequest(ctx, { since }), ChangesResponseSchema);
     },
     async getBrief(moment: string, scope?: BriefRequestScope, depth?: BriefDepth): Promise<Brief> {
@@ -156,11 +182,7 @@ export function createInProcessContextApiClient(
       // adopt/build target `service` rides the scope into the handler options
       // (mid-level §3 `?service=`). The one Brief value is validated against the
       // shared schema like every face.
-      const ctx = await createResolutionContext({
-        identity: { bearer: options.token },
-        scope: toScopeInput(scope),
-        channel,
-      });
+      const ctx = await ctxFor(toScopeInput(scope));
       const brief = unwrap(
         await handleBriefRequest(moment, ctx, { service: scope?.service, depth }),
         BriefSchema,
@@ -192,17 +214,11 @@ export function createInProcessContextApiClient(
     async getStatus(scope?: AvailabilityScope): Promise<StatusBoardResponse> {
       // The governed status board (Step 7, P24): thread the caller scope + Bearer
       // through the one governance-gate factory into the ctx-taking handler.
-      const ctx = await createResolutionContext({
-        identity: { bearer: options.token },
-        scope: toScopeInput(scope),
-      });
+      const ctx = await ctxFor(toScopeInput(scope));
       return unwrap(await handleStatusRequest(ctx), StatusBoardResponseSchema);
     },
     async listLocations(scope?: AvailabilityScope): Promise<LocationListResponse> {
-      const ctx = await createResolutionContext({
-        identity: { bearer: options.token },
-        scope: toScopeInput(scope),
-      });
+      const ctx = await ctxFor(toScopeInput(scope));
       return unwrap(await handleLocationsListRequest(ctx), LocationListResponseSchema);
     },
     async registerLocation(
@@ -211,21 +227,18 @@ export function createInProcessContextApiClient(
     ): Promise<LocationRegistrationResponse> {
       // The scoped APP the location belongs to arrives via the request scope
       // (`?appId=`), threaded into the governed ctx — never the request body.
-      const ctx = await createResolutionContext({
-        identity: { bearer: options.token },
-        scope: toScopeInput(scope),
-      });
+      const ctx = await ctxFor(toScopeInput(scope));
       return unwrap(
         await handleLocationRegistrationRequest(ctx, request),
         LocationRegistrationResponseSchema,
       );
     },
     async deleteLocation(id: string): Promise<LocationRegistrationResponse> {
-      const ctx = await createResolutionContext({ identity: { bearer: options.token } });
+      const ctx = await ctxFor();
       return unwrap(await handleLocationDeleteRequest(ctx, id), LocationRegistrationResponseSchema);
     },
     async getResourceContext(kind: string, slug: string): Promise<ResourceContextResponse> {
-      const ctx = await createResolutionContext({ identity: { bearer: options.token }, channel });
+      const ctx = await ctxFor();
       return unwrap(
         await handleResourceContextRequest({ kind, slug }, ctx),
         ResourceContextResponseSchema,
@@ -241,13 +254,16 @@ export function createInProcessContextApiClient(
       return unwrap(await handleResourceSearchRequest(query, {}), ResourceSearchResponseSchema);
     },
     async discoverSources(request: SourceDiscoveryRequest = {}): Promise<SourceDiscoveryResponse> {
-      return unwrap(await handleSourceDiscoveryRequest(request), SourceDiscoveryResponseSchema);
+      return unwrap(
+        await handleSourceDiscoveryRequest(request, await ctxFor()),
+        SourceDiscoveryResponseSchema,
+      );
     },
     async discoverResources(): Promise<ResourceCatalogResponse> {
       return unwrap(await handleResourceCatalogRequest(), ResourceCatalogResponseSchema);
     },
     async submitFeedback(request: FeedbackSubmission): Promise<FeedbackResponse> {
-      return unwrap(await handleFeedbackRequest(request), FeedbackResponseSchema);
+      return unwrap(await handleFeedbackRequest(request, await ctxFor()), FeedbackResponseSchema);
     },
   };
 }

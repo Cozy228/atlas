@@ -3,7 +3,6 @@ import { useQuery } from "@tanstack/react-query";
 import { IconChevronDown } from "@tabler/icons-react";
 
 import { appsQueryOptions, landingZonesQueryOptions } from "@/api/queries";
-import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,6 +17,7 @@ import {
 import { cn } from "@/lib/utils";
 
 import { AppDeclareDialog } from "./app-declare-dialog";
+import { AppMembershipBadge, AppProvenanceBadge } from "./app-badges";
 import { useSituation } from "./context";
 
 /**
@@ -25,7 +25,8 @@ import { useSituation } from "./context";
  * selector SUBSUMES the LZ selector: registered self-declared APPs are offered
  * above the raw landing-zone list. Choosing an APP (a) narrows the zone choice
  * to the APP's declared set (default: first member) and (b) shows the APP name
- * with the unconditional `self-declared` badge. A self-declare form drives
+ * with its VERIFIED badge (from `membershipSource`, axis 2) and content-provenance
+ * badge (from `origin`, axis 3) — the two are never conflated (R4). A self-declare form drives
  * registration — the P21 fallback for non-repo situations. No APP selected ⇒
  * LZ-only behavior, unchanged (the revert posture). Unwired LZs are listed, not
  * hidden — selecting one is an honest dead-end (ADR-0006).
@@ -63,9 +64,10 @@ export function LandingZoneSelector() {
           <span className="type-eyebrow text-muted-foreground">{selectedApp ? "APP" : "LZ"}</span>
           <span className="max-w-[20ch] truncate">{triggerLabel}</span>
           {selectedApp ? (
-            <Badge variant="neutral" className="shrink-0">
-              self-declared
-            </Badge>
+            <AppMembershipBadge
+              membershipSource={selectedApp.membershipSource}
+              className="shrink-0"
+            />
           ) : null}
           <IconChevronDown
             size={14}
@@ -92,9 +94,10 @@ export function LandingZoneSelector() {
                 {apps.map((app) => (
                   <DropdownMenuRadioItem key={app.id} value={app.id}>
                     <span className="min-w-0 flex-1 truncate">{app.name}</span>
-                    <Badge variant="neutral" className="ml-auto shrink-0">
-                      self-declared
-                    </Badge>
+                    <span className="ml-auto flex shrink-0 items-center gap-1">
+                      <AppMembershipBadge membershipSource={app.membershipSource} />
+                      <AppProvenanceBadge origin={app.origin} />
+                    </span>
                   </DropdownMenuRadioItem>
                 ))}
               </DropdownMenuRadioGroup>
