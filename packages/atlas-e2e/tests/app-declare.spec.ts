@@ -24,7 +24,12 @@ import { expectShellWithMockBadge } from "./helpers";
  */
 
 // No regex-special characters: the name is fed straight into `new RegExp(...)`.
-const APP_NAME = "Orion Checkout E2E";
+// A per-run numeric suffix (digits only, still regex-safe) keeps the name unique
+// across runs against a REUSED dev server: the in-memory app store accumulates
+// declared APPs, so a fixed name would match multiple stale menu entries from
+// earlier runs and trip Playwright strict mode. A unique name can only ever match
+// this run's APP.
+const APP_NAME = `Orion Checkout E2E ${Date.now()}`;
 
 test("declare an app → it appears in the selector, self-declared, and narrows the zones", async ({
   page,

@@ -733,3 +733,17 @@ retirement). Deviation #1 above is thereby RESOLVED — the tool is now register
   @atlas/portal test` → **163 passed** (39 files; +1 vs the pre-ruling 162 — the new
   `atlas_explain_error` callable test). `pnpm exec oxlint --deny-warnings` over
   `tools.ts` + the three test files → clean (exit 0).
+
+## Post-merge fix (2026-07-07): e2e idempotency against a reused dev server
+
+`app-declare.spec.ts` + `status-board.spec.ts` accumulated duplicate declared APPs
+in the in-memory store across runs against a REUSED dev server → Playwright
+strict-mode menu violations (OPEN.md item, now closed). Fix = approach (a),
+test-side only: `APP_NAME` gains a per-run `Date.now()` suffix (digits-only, so
+still regex-safe for the specs' `new RegExp(APP_NAME, "i")`; same-length digit
+strings are never substrings of one another, so a stale menu entry cannot match a
+later run's regex). `LOCATION_SYSTEM`/`LOCATION_URL` stay fixed — the board is
+scoped to the run's fresh APP, so registered locations cannot accumulate across
+runs. No assertion weakened. Independently re-verified (reviewer, not builder
+self-report): both specs run TWICE consecutively against one mock-forced server
+(`pnpm dev --port 3200` + `PW_BASE_URL`) — 2 passed / 2 passed.

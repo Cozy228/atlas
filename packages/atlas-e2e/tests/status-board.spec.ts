@@ -30,7 +30,12 @@ import { expectShellWithMockBadge } from "./helpers";
  * All data is fictional (public-safe).
  */
 
-const APP_NAME = "Orion Status E2E";
+// A per-run numeric suffix (digits only, regex-safe) keeps the name unique across
+// runs against a REUSED dev server: the in-memory app store accumulates declared
+// APPs, so a fixed name would match multiple stale menu entries and trip strict
+// mode. The board is scoped to THIS run's fresh APP, so the registered location
+// cannot accumulate across runs either.
+const APP_NAME = `Orion Status E2E ${Date.now()}`;
 const LOCATION_SYSTEM = "observatory";
 const LOCATION_URL = "https://observatory.example.com/d/orion-status-e2e";
 
