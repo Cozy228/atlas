@@ -18,9 +18,10 @@ review_after: 2026-07-28
 > green: context-layer 392/2skip, portal 168, acceptance 10, schema 80, infra 8 — e2e
 > primary not re-run on the integrated tree, green on each parent, merge touched no route
 > wiring). **Build precondition (R10):** start only on a pinned `feat/1.0.0` commit where
-> this merge is complete and the same green bar holds; `129e36e7` is the last-verified
-> candidate as of this reading — re-verify once more and record the actual pinned hash
-> here at kickoff, in case the tree has moved since. Step 6 added a `channel` field to
+> this merge is complete and the same green bar holds. **PINNED at kickoff (2026-07-07):
+> `06b64e0a`** — `pnpm -r typecheck` + `pnpm -r test` re-run green at this commit
+> (portal 168, acceptance 10, context-layer green); delta vs the anchor-verified
+> `129e36e7` is docs + two e2e specs only, so all line anchors below remain valid. Step 6 added a `channel` field to
 > `createResolutionContext` (`GovernedResolutionContext.channel`,
 > `createResolutionContext.ts:53`) and an `/instruments` read surface; Step 7 adds
 > self-service location registration + a graph-derived location index (Batches 1-2), m12
