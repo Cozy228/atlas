@@ -301,6 +301,23 @@ re-cutting before its goal prompt is authored. **Findings only — nothing was b
 - `ENTRA_*`/`SESSION_*` env vars are documented in `portal/.env.example:83-95` but
   consumed nowhere — inert today; the goal prompt must include loud fail-on-half-set
   wiring.
+- **(2026-07-07)** Visibility vocabulary drift: this plan's "`visibility: app` (default
+  `public`)" prose conflicts with the tree — `@atlas/schema` has no `"public"` literal
+  (`visibilityLevels = ["internal", "restricted"] as const`,
+  `packages/atlas-schema/src/index.ts:18`). Goal-prompt ruling (R1): extend the enum to
+  `["internal", "restricted", "app"] as const`; every "public" in this plan's prose reads
+  as "any non-app value" (`internal` | `restricted`), both openly served unchanged;
+  `restricted` keeps its current warning-only semantic (never a gate); only
+  `visibility: "app"` is access-gated; discovery keeps writing `"internal"` and never
+  emits `app_id`. This means decision 8 above ("always `visibility: public`, never
+  carries an `app_id`") reads as "always non-app" under this ruling — decision 8 itself
+  is unchanged, only its prose mapping onto the schema is clarified.
+- **(2026-07-07)** WS5/F3-2 "labeled by `origin`" is imprecise: an Entra claim never
+  flips `origin` (decision 9), so a claims-verified APP still has
+  `origin: "self-declared"`. Goal-prompt ruling (R4): the selector's verified-vs-
+  self-asserted badge reads `AppRecord.membershipSource` (the axis-2 property this plan
+  adds in WS4) — `origin` drives only the content-provenance badge. WS4/WS5 sections
+  above should be read with `membershipSource` as the verified-badge field, not `origin`.
 
 ### Local-dev risks the plan must absorb
 
