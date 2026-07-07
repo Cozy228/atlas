@@ -9,10 +9,13 @@
  *       none          → no value channel (the location stays a labeled pointer).
  *   - an `allowlistedBase`: the ONLY origin a value fetch is composed against.
  *
- * A value fetch composes `allowlistedBase` + a path DERIVED from the location
- * (its id/kind), NEVER the registered `location.url`. The registered `url` is a
- * human link only — it never becomes a GET target, so a malicious registration
- * cannot steer Atlas at an arbitrary host.
+ * A value fetch composes `allowlistedBase` + path segments the adapter DERIVES
+ * from the location. The fetch ORIGIN is always the allowlisted base and every
+ * segment is hardened to `[A-Za-z0-9_-]`, so a malicious registration can never
+ * steer Atlas at an arbitrary host — SSRF is closed by construction, not by
+ * blocklist. Which part of the registration a segment is derived from (a workspace
+ * name parsed out of the human `url`, a `kind`, …) is the owning adapter's call;
+ * `composeValueUrl` only guarantees the join can never leave the base origin.
  *
  * `Atlas never stores a team's secret` (M12): a `service-token` reads a
  * narrow-scoped env token at fetch time; a system needing team-owned credentials
@@ -48,24 +51,38 @@ export type StatusAdapter = {
 };
 
 /**
- * Compose the value-fetch URL from the adapter's allowlisted base + a path
- * DERIVED from the location — the SSRF-closed-by-construction primitive. The
- * registered `location.url` is NEVER read here: a value fetch cannot be steered
- * at an arbitrary host by a registration.
- *
- * The registered `location.url` is deliberately IGNORED. The fetch path is
- * derived from the location's OWN `id`, hardened down to a conservative segment
- * allowlist (`[A-Za-z0-9_-]`). That whitelist neutralizes every steer-off-base
- * trick by construction — `..`, `/`, `//`, `@`, `:`, whitespace and percent-
- * encodings all fall out, so the composed URL can never leave the allowlisted
- * base origin regardless of what a malicious registration supplies.
+ * The SSRF-closed-by-construction primitive: join the adapter's allowlisted base
+ * with caller-supplied path `segments`. Each segment is hardened down to a
+ * conservative allowlist (`[A-Za-z0-9_-]`) and empty segments are dropped, so
+ * `..`, `/`, `//`, `@`, `:`, `?`, whitespace and percent-encodings all fall out —
+ * the composed URL can never leave the allowlisted base origin regardless of what
+ * a malicious registration feeds into a segment. The adapter owns WHAT the segments
+ * are (e.g. a workspace name parsed from the registered `url`); this function only
+ * guarantees WHERE the result can point.
  */
-export function composeValueUrl(base: string, location: OperationalLocation): string {
+export function composeValueUrl(base: string, ...segments: string[]): string {
   // Trim trailing slashes so the base is a clean origin/prefix to append onto.
   const origin = base.replace(/\/+$/, "");
-  // Derive the value-fetch segment from the location's id ONLY — never its url.
-  const segment = location.id.replace(/[^A-Za-z0-9_-]/g, "");
-  return `${origin}/api/v2/workspaces/${segment}`;
+  const path = segments
+    .map((segment) => segment.replace(/[^A-Za-z0-9_-]/g, ""))
+    .filter((segment) => segment.length > 0)
+    .join("/");
+  return `${origin}/${path}`;
+}
+
+/**
+ * Resolve the value-capable adapters for a scope's distinct systems (M12), one per
+ * system, dropping systems with no adapter (they degrade to a labeled pointer
+ * inside the board, `reason: no-adapter`). Shared by the status route and the
+ * debug floor so both walk the SAME adapter resolution.
+ */
+export function resolveScopeAdapters(
+  systems: readonly string[],
+  env: Record<string, string | undefined>,
+): StatusAdapter[] {
+  return [...new Set(systems)]
+    .map((system) => resolveStatusAdapter(system, env))
+    .filter((adapter): adapter is StatusAdapter => adapter !== undefined);
 }
 
 /**

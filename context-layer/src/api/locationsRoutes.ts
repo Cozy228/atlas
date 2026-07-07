@@ -101,15 +101,26 @@ export async function handleLocationRegistrationRequest(
 }
 
 export async function handleLocationDeleteRequest(
-  _ctx: GovernedResolutionContext,
+  ctx: GovernedResolutionContext,
   id: string,
 ): Promise<ApiResponse<ApiErrorResponse | LocationRegistrationResponse>> {
+  const appId = ctx.scope?.appId;
+  if (!appId) {
+    return errorResponse(
+      400,
+      "invalid_request",
+      "Deleting a registered location requires an APP scope (?appId=).",
+    );
+  }
+
   const repository = sharedLocationsRepository(readProcessEnv());
   const existing = await repository.getById(id);
-  if (!existing) {
-    // No `location_not_found` code exists in the frozen `apiErrorCodes` set
-    // (schema.test.ts pins it); a delete of an unknown id is reported as an
-    // invalid request at 404. See implementation-notes Batch 1 (Deviations).
+  // A record owned by another APP is treated EXACTLY like an unknown id (same 404,
+  // no leak of cross-APP existence): the delete is scoped to the owning APP, so a
+  // request scoped to APP B can never remove APP A's pointer. No `location_not_found`
+  // code exists in the frozen `apiErrorCodes` set (schema.test.ts pins it); an
+  // out-of-scope / unknown delete is reported as an invalid request at 404.
+  if (!existing || existing.appId !== appId) {
     return errorResponse(404, "invalid_request", `Location '${id}' was not found.`);
   }
   await repository.delete(id);

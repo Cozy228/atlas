@@ -747,3 +747,94 @@ scoped to the run's fresh APP, so registered locations cannot accumulate across
 runs. No assertion weakened. Independently re-verified (reviewer, not builder
 self-report): both specs run TWICE consecutively against one mock-forced server
 (`pnpm dev --port 3200` + `PW_BASE_URL`) — 2 passed / 2 passed.
+
+## Deferred Codex review outcome (2026-07-07)
+
+Executed the combined deferred Codex review prompt from
+`docs/architecture/step7-codex-review-prompts.md` with:
+
+- model/settings: `codex exec`, `gpt-5.5`, `medium`, read-only sandbox.
+- review range: `8a62f176..fa511947` (`fa511947` is the Step-7 sweep commit).
+- output capture: `/tmp/atlas-step7-codex-combined-review.md`.
+- preflight note: `npx @tanstack/intent@latest list` failed inside the child
+  review due DNS (`ENOTFOUND registry.npmjs.org`); the review continued from
+  repo instructions + loaded review skill + the Step-7 authority documents.
+
+### Findings to resolve
+
+1. **major — debug floor omits at-read values.**
+   `context-layer/src/briefs/debugFloor.ts:83` derives and appends the
+   location index's value-free `pointers[]`, but never calls `assembleStatusBoard`
+   or an adapter fetch path. D8 / locked decision 7 says the debug floor is cited
+   Evidence plus the location index's pointers/values. Failure case: an APP with a
+   registered TFE workspace and `TFE_STATUS_TOKEN` can show a live value through
+   `GET /api/status`, while `GET /api/briefs/debug` / `atlas_explain_error` only
+   returns the pointer.
+
+2. **major — DELETE is not scoped to the owning APP.**
+   `context-layer/src/api/locationsRoutes.ts:103` ignores `ctx` in
+   `handleLocationDeleteRequest`, loads by raw id, and deletes without checking
+   `existing.appId === ctx.scope.appId`. Failure case: a request scoped to APP B
+   can delete APP A's registered pointer if it knows or guesses the location id.
+
+3. **major — TFE fetch target uses Atlas location id, not a workspace id.**
+   `context-layer/src/locations/statusAdapter.ts:63` derives the TFE workspace
+   path from `LocationRecord.id`, while self-service registrations generate ids as
+   `loc-...` and the strict request schema accepts only `{ system, kind, url }`.
+   Failure case: registering
+   `{ system: "tfe", kind: "workspace", url: "https://app.terraform.io/app/acme/workspaces/prod" }`
+   fetches `${TERRAFORM_BASE_URL}/api/v2/workspaces/loc-...`, not workspace
+   `prod`; the first `service-token` adapter therefore does not walk a real
+   registered workspace end-to-end.
+
+4. **minor — missing `TERRAFORM_BASE_URL` can still attempt a tokened relative
+   fetch.** `context-layer/src/locations/tfeStatusAdapter.ts:31` creates an
+   adapter with `allowlistedBase = ""`; if `TFE_STATUS_TOKEN` is set, it composes
+   `/api/v2/workspaces/<id>` and calls `ctx.fetch` with the bearer header. This is
+   not registration-steered SSRF, but violates the "fetch only through the
+   adapter's allowlisted base" invariant when no base is configured.
+
+### No findings from deferred review
+
+- No path found where registered `url` becomes the direct fetch target.
+- No status value write path found in status-board assembly.
+- Registration schema is strict and contains no token/secret field.
+- Route logs do not include the registered URL or credentials.
+- Frozen test diff is non-empty only for the `atlas_explain_error` MCP assertion
+  flips, and those are explicitly justified above as the Step-7 seam replacing the
+  stale not-yet-available marker.
+
+### Resolution (2026-07-07, on `feat/1.0.0`)
+
+All four findings fixed on the integrated tree; whole repo green (typecheck all;
+context-layer 396/2skip, schema 82, portal 168, acceptance 10, infra 8).
+
+1. **DELETE now scoped to the owning APP.** `handleLocationDeleteRequest` requires
+   `ctx.scope.appId` (400 without) and treats a record owned by another APP exactly
+   like an unknown id — same 404, no cross-APP existence leak. Regression:
+   `statusRoute.test.ts` "APP B cannot remove APP A's location (404)".
+2. **TFE fetch targets the workspace the registration NAMES.** `composeValueUrl`
+   became a generic SSRF-safe segment joiner `(base, ...segments)` (each segment
+   hardened to `[A-Za-z0-9_-]`, origin pinned to the allowlisted base). The TFE
+   adapter parses `{org, workspace}` out of the human `location.url`
+   (`…/{org}/workspaces/{name}`) and composes the by-name endpoint
+   `/api/v2/organizations/{org}/workspaces/{name}`; an unparseable url degrades to a
+   labeled pointer (null, no fetch). **Semantics ruling:** the SSRF invariant is
+   "fetch origin is always the allowlisted base + every segment hardened", NOT
+   "never read the url" — reading a *hardened, base-pinned* workspace slug off the
+   url keeps SSRF closed by construction. Regressions in `tfeStatusAdapter.test.ts`
+   + `adapter.authMode.test.ts`.
+3. **Debug floor now carries at-read values (locked decision 7).** `BriefBlock`
+   gains an optional `statuses[]` — ADR-0003's third lane (uncited operational
+   VALUES, separate from cited `evidence[]` and value-free `pointers[]`).
+   `assembleDebugFloor` runs the SAME `assembleStatusBoard` aggregation over the
+   APP's registered locations (shared `resolveScopeAdapters`), so
+   `GET /api/briefs/debug` / `atlas_explain_error` reaches parity with
+   `GET /api/status`. No store, no write. Regression: `debugBrief.test.ts` +
+   schema pins in `briefs-schema.test.ts`.
+4. **No base ⇒ no tokened fetch.** The TFE adapter returns null (labeled pointer,
+   no fetch) when `allowlistedBase` is empty, before reading the token — a token can
+   never ride a base-less/relative request. Regression: `tfeStatusAdapter.test.ts`.
+
+Deferred-review file `docs/architecture/step7-codex-review-prompts.md` is now spent
+(verdicts absorbed) — a /gc archive candidate.

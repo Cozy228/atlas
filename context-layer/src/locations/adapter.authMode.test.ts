@@ -10,21 +10,10 @@
  * Public-safe fictional hosts.
  */
 import { describe, expect, it } from "vitest";
-import type { OperationalLocation } from "@atlas/schema";
 import { adapterAuthModes, composeValueUrl, resolveStatusAdapter } from "./statusAdapter";
 import { DEV_TERRAFORM_BASE_URL } from "../devMocks";
 
 const ALLOWLISTED_BASE = DEV_TERRAFORM_BASE_URL;
-
-/** A registration whose `url` points at an attacker-controlled host — the SSRF
- *  bait. A value fetch must compose the allowlisted base and IGNORE this url. */
-const MALICIOUS_LOCATION: OperationalLocation = {
-  id: "loc-orion-workspace",
-  system: "tfe",
-  kind: "workspace",
-  url: "https://attacker.example.net/steal?next=169.254.169.254",
-  discoveredFrom: "registration",
-};
 
 describe("D4: adapter authMode is a closed set", () => {
   it("is exactly caller-bearer | service-token | none", () => {
@@ -32,21 +21,32 @@ describe("D4: adapter authMode is a closed set", () => {
   });
 });
 
-describe("D4: value fetch composes the allowlisted base, never the registered url (SSRF closed)", () => {
-  it("the composed URL is under the allowlisted base", () => {
-    const url = composeValueUrl(ALLOWLISTED_BASE, MALICIOUS_LOCATION);
+describe("D4: composeValueUrl pins the fetch to the allowlisted base (SSRF closed)", () => {
+  it("composes the supplied path segments under the allowlisted base", () => {
+    const url = composeValueUrl(ALLOWLISTED_BASE, "api", "v2", "workspaces", "prod");
     expect(url.startsWith(ALLOWLISTED_BASE)).toBe(true);
+    expect(url).toContain("workspaces/prod");
   });
 
-  it("the composed URL never contains the attacker host from the registered url", () => {
-    const url = composeValueUrl(ALLOWLISTED_BASE, MALICIOUS_LOCATION);
-    expect(url).not.toContain("attacker.example.net");
-    expect(url).not.toContain("169.254.169.254");
-  });
-
-  it("the derived path carries the location's own id (a real value target)", () => {
-    const url = composeValueUrl(ALLOWLISTED_BASE, MALICIOUS_LOCATION);
-    expect(url).toContain("loc-orion-workspace");
+  it("a malicious segment can never steer off the allowlisted base origin", () => {
+    // The segments a hostile registration might smuggle in: an attacker host, a
+    // link-local IP, path-traversal, an @-userinfo trick. All are hardened to
+    // `[A-Za-z0-9_-]`, so the composed URL stays under the allowlisted base.
+    const url = composeValueUrl(
+      ALLOWLISTED_BASE,
+      "..",
+      "@attacker.example.net",
+      "169.254.169.254",
+      "steal",
+    );
+    expect(url.startsWith(ALLOWLISTED_BASE)).toBe(true);
+    // Everything after the allowlisted base is inert alphanumerics — no host, no
+    // userinfo, no traversal survived the segment hardening.
+    const afterBase = url.slice(ALLOWLISTED_BASE.length);
+    expect(afterBase).not.toContain("attacker.example.net");
+    expect(afterBase).not.toContain("@");
+    expect(afterBase).not.toContain("..");
+    expect(afterBase).not.toContain("//");
   });
 });
 

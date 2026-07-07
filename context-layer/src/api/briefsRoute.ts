@@ -28,12 +28,15 @@ import type { GovernedResolutionContext } from "../resolvers/createResolutionCon
 import { assembleBrief } from "../briefs/assembleBrief";
 import { assembleDebugFloor } from "../briefs/debugFloor";
 import { recordBriefAssembled, recordBriefCall } from "../observability/metrics";
+import { logger } from "../observability/logging";
 import { changeTemplate, templateForMoment } from "../briefs/templates";
 import type { BriefScope } from "../briefs/briefTypes";
 import { deriveRequestGraph } from "../graph/requestGraph";
 import { deriveGraph } from "../graph/deriveGraph";
 import { handleChangesRequest } from "./changesRoute";
 import { errorResponse, type ApiResponse } from "./routeTypes";
+
+const log = logger("briefs");
 
 export type BriefRequestOptions = {
   /** The target service slug for adopt/build (`?service=`). */
@@ -180,6 +183,7 @@ async function assembleChangeBrief(
   const blocks = events.map((event, index) =>
     changeBlock(event, requests[index]?.landingZoneId, depth),
   );
+  const durationMs = Date.now() - startedAt;
 
   // Step 6 instruments (locked decisions 3 + 4): the change moment does NOT flow
   // through `assembleBrief`, so it records its own time-to-brief + block counters
@@ -189,13 +193,34 @@ async function assembleChangeBrief(
     moment: "change",
     depth,
     channel: ctx.channel,
-    durationMs: Date.now() - startedAt,
+    durationMs,
     blocks: events.map((event) => ({
       status: "available" as const,
       subjectKind: event.subject.kind,
       warningCodes: [] as string[],
     })),
   });
+
+  // Per-brief pino signal (D2, mid-level §7): the change moment bypasses
+  // `assembleBrief`, so it emits the SAME log line itself — moment, tier (`depth`),
+  // producing face (`channel`), scope, per-block status, duration. Without this the
+  // change path would carry metrics but no brief log line (channel + depth).
+  log.info(
+    {
+      moment: "change",
+      depth,
+      channel: ctx.channel,
+      landingZoneIds: situation.landingZoneIds,
+      ...(situation.appId ? { appId: situation.appId } : {}),
+      blocks: blocks.map((block) => ({
+        id: block.id,
+        status: block.status,
+        ...(block.landingZoneId ? { landingZoneId: block.landingZoneId } : {}),
+      })),
+      durationMs,
+    },
+    `brief assembled: change (${blocks.length} block(s))`,
+  );
 
   return {
     moment: "change",

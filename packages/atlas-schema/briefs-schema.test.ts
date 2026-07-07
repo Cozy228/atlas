@@ -131,6 +131,39 @@ describe("D1: BriefBlockSchema", () => {
       false,
     );
   });
+
+  it("accepts an at-read statuses lane (the M7 debug floor; ADR-0003's third array)", () => {
+    // A value carried on the block is uncited operational status (no citation
+    // field) — separate from evidence AND pointers.
+    const withStatuses = {
+      ...VALID_BLOCK,
+      statuses: [
+        { location: VALID_POINTER, value: "applied", fetchedAt: "2026-07-05T10:00:00.000Z" },
+      ],
+    };
+    expect(BriefBlockSchema.safeParse(withStatuses).success).toBe(true);
+    // A labeled-pointer entry (no live value) carries a closed reason, value null.
+    const labeledPointer = {
+      ...VALID_BLOCK,
+      statuses: [{ location: VALID_POINTER, value: null, reason: "fetch-failed", fetchedAt: null }],
+    };
+    expect(BriefBlockSchema.safeParse(labeledPointer).success).toBe(true);
+  });
+
+  it("rejects a citation riding a status value (a value is never Evidence, ADR-0003)", () => {
+    const citedValue = {
+      ...VALID_BLOCK,
+      statuses: [
+        {
+          location: VALID_POINTER,
+          value: "applied",
+          fetchedAt: "2026-07-05T10:00:00.000Z",
+          citations: [VALID_EVIDENCE.citations[0]],
+        },
+      ],
+    };
+    expect(BriefBlockSchema.safeParse(citedValue).success).toBe(false);
+  });
 });
 
 describe("D1: SituationSchema", () => {

@@ -9,9 +9,13 @@
  * and NEVER stored; a MISSING token degrades to a labeled pointer
  * (`reason: no-value-channel`), never an error and never a fabricated value.
  *
- * The value fetch composes `allowlistedBase` + a path derived from the location
- * (its workspace id) via `composeValueUrl` — NEVER the registered `location.url`
- * (SSRF closed by construction).
+ * The value fetch targets the workspace the registration NAMES: the org + workspace
+ * slug are parsed out of the human `location.url` (a TFE workspace link,
+ * `…/{org}/workspaces/{name}`) and composed onto `allowlistedBase` via
+ * `composeValueUrl` — the base origin is fixed and every parsed segment is hardened
+ * to `[A-Za-z0-9_-]`, so the fetch can never leave the TFE allowlisted base (SSRF
+ * closed by construction). A `url` that is not a recognizable TFE workspace link
+ * degrades to a labeled pointer (`null`), never a fetch at a guessed target.
  */
 import type { StatusAdapter, StatusAdapterContext } from "./statusAdapter";
 import { composeValueUrl } from "./statusAdapter";
@@ -39,6 +43,13 @@ export function createTfeStatusAdapter(env: Record<string, string | undefined>):
       location: OperationalLocation,
       ctx: StatusAdapterContext,
     ): Promise<string | null> {
+      // No allowlisted base configured ⇒ there is no origin to fetch against;
+      // degrade to a labeled pointer with NO fetch, even if a token is present (a
+      // token must never ride a base-less/relative request).
+      if (!allowlistedBase) {
+        return null;
+      }
+
       // Read the narrow-scoped token at fetch time. Missing/empty ⇒ degrade to a
       // labeled pointer (null) with NO fetch attempted — never a fabricated value.
       const token = ctx.env[TFE_STATUS_TOKEN_ENV];
@@ -46,9 +57,24 @@ export function createTfeStatusAdapter(env: Record<string, string | undefined>):
         return null;
       }
 
-      // Compose ONLY against the allowlisted base (SSRF closed by construction);
-      // the registered `location.url` is never a GET target.
-      const url = composeValueUrl(allowlistedBase, location);
+      // Identify the workspace the registration NAMES. An unrecognizable url ⇒ a
+      // labeled pointer (null), never a fetch at a guessed target.
+      const ref = parseTfeWorkspaceRef(location.url);
+      if (!ref) {
+        return null;
+      }
+
+      // Compose the by-name TFE endpoint against the allowlisted base (SSRF closed
+      // by construction); every segment is hardened, the origin is fixed.
+      const url = composeValueUrl(
+        allowlistedBase,
+        "api",
+        "v2",
+        "organizations",
+        ref.org,
+        "workspaces",
+        ref.workspace,
+      );
 
       try {
         const response = await ctx.fetch(url, {
@@ -69,6 +95,22 @@ export function createTfeStatusAdapter(env: Record<string, string | undefined>):
       }
     },
   };
+}
+
+/**
+ * Parse the org + workspace slug from a TFE workspace link. Both the app URL
+ * (`…/app/{org}/workspaces/{name}`) and the API-style path
+ * (`…/organizations/{org}/workspaces/{name}`) are accepted; anything else ⇒ null
+ * (the caller degrades to a labeled pointer). The parsed segments are still
+ * hardened by `composeValueUrl` before they reach a URL, so this parse never
+ * widens the SSRF surface — it only names the fetch target.
+ */
+function parseTfeWorkspaceRef(url: string): { org: string; workspace: string } | null {
+  const match = url.match(/\/(?:app|organizations)\/([^/]+)\/workspaces\/([^/?#]+)/);
+  if (!match) {
+    return null;
+  }
+  return { org: match[1], workspace: match[2] };
 }
 
 /** Pull `data.attributes["current-run-status"]` from a TFE workspace payload;

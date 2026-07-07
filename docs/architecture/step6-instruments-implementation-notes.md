@@ -113,3 +113,26 @@ these line shifts / clarifications:
 
 Baseline vs now (all additive, nothing gutted): context-layer 339→355 pass (2 skip unchanged),
 portal 160→163, acceptance 7→10, schema 64 unchanged.
+
+## Deferred Codex review outcome (2026-07-07, resolved on feat/1.0.0)
+
+Two findings from the deferred Step 6 Codex pass (`step6-codex-review-prompt.md`):
+
+1. **CONFIRMED (medium) — change path had no per-brief pino log (D2 gap).** The
+   `change` moment self-assembles in `assembleChangeBrief` (bypasses `assembleBrief`,
+   the one log site), so it recorded metrics but never emitted the brief log line
+   carrying `channel` + `depth`. (The `debug` moment does NOT share this gap — it
+   routes through `assembleBrief` and logs.) **Fixed:** `assembleChangeBrief` now
+   emits the same `logger("briefs").info` line (moment/depth/channel/scope/blocks/
+   durationMs). Regression: `briefInstruments.test.ts` "the change path — which
+   bypasses assembleBrief — still logs channel + depth".
+
+2. **CONFIRMED (med/low) — Entra doc rode the Step 6 diff (scope drift).** The Step 6
+   diff added `goal_prompt_entra_app_scope.md` though the goal prompt constrains
+   Entra as untouched. Doc-only, no runtime surface. **Ruling (owner-approved
+   exception):** kept — the Entra app-scope goal prompt was authored + ratified as the
+   next slice's work order (ratified `0880d7a`, 2026-07-07) and is intentionally
+   parked in the repo ahead of that build. Recorded here as the surgical-scope
+   exception the constraint would otherwise flag; no code moved.
+
+`step6-codex-review-prompt.md` is now spent — a /gc archive candidate.

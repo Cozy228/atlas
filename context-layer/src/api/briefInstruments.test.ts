@@ -165,4 +165,36 @@ describe("channel attribution (D2)", () => {
     expect(logged?.[0]).toMatchObject({ moment: "adopt", channel: "portal", depth: "excerpts" });
     spy.mockRestore();
   });
+
+  it("the change path — which bypasses assembleBrief — still logs channel + depth", async () => {
+    // The change moment self-assembles (no assembleBrief), so its brief log line
+    // must be emitted by the change path itself; without it the change path carries
+    // metrics but no per-brief log line (the D2 gap).
+    await sharedEventsRepository(process.env).append([
+      {
+        id: "chg-log-1",
+        class: "service-added",
+        subject: { kind: "service", id: "cloudx/parser" },
+        landingZoneIds: ["awsf"],
+        rootId: "availability:awsf",
+        graphVersionFrom: "v0",
+        graphVersionTo: "v1",
+        derivedAt: "2026-07-01T00:00:00.000Z",
+      },
+    ]);
+
+    const spy = vi.spyOn(logger("briefs"), "info");
+    const ctx = await createResolutionContext({
+      scope: { kind: "by-value", landingZones: ["awsf"] },
+      channel: "mcp",
+    });
+    await handleBriefRequest("change", ctx, { depth: "excerpts" });
+
+    const logged = spy.mock.calls.find(
+      ([obj]) =>
+        obj && typeof obj === "object" && (obj as Record<string, unknown>).moment === "change",
+    );
+    expect(logged?.[0]).toMatchObject({ moment: "change", channel: "mcp", depth: "excerpts" });
+    spy.mockRestore();
+  });
 });

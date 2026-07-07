@@ -2,11 +2,7 @@ import type { ApiErrorResponse, Situation, StatusBoardResponse } from "@atlas/sc
 import type { GovernedResolutionContext } from "../resolvers/createResolutionContext";
 import { sharedLocationsRepository } from "../repositories/locationsRepositoryFactory";
 import { assembleStatusBoard } from "../status/statusBoard";
-import {
-  resolveStatusAdapter,
-  type StatusAdapter,
-  type StatusAdapterContext,
-} from "../locations/statusAdapter";
+import { resolveScopeAdapters, type StatusAdapterContext } from "../locations/statusAdapter";
 import type { ApiResponse } from "./routeTypes";
 
 /**
@@ -40,9 +36,10 @@ export async function handleStatusRequest(
   // One adapter per DISTINCT system (M12): resolve each owning system once from
   // the process env, dropping systems with no value-capable adapter (they degrade
   // to a labeled pointer inside the board, `reason: no-adapter`).
-  const adapters: StatusAdapter[] = [...new Set(registrations.map((record) => record.system))]
-    .map((system) => resolveStatusAdapter(system, env))
-    .filter((adapter): adapter is StatusAdapter => adapter !== undefined);
+  const adapters = resolveScopeAdapters(
+    registrations.map((record) => record.system),
+    env,
+  );
 
   // The read context each value fetch runs in: the house fetch (content cache
   // underneath), the caller Bearer threaded for `caller-bearer` adapters, and the

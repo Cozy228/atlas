@@ -55,7 +55,7 @@ describe("D5: TFE service-token adapter", () => {
     expect(adapter.allowlistedBase).toBe(DEV_TERRAFORM_BASE_URL);
   });
 
-  it("fetches the workspace's current run state through the allowlisted base", async () => {
+  it("fetches the run state of the workspace the registration NAMES, through the allowlisted base", async () => {
     const seen: string[] = [];
     const env = {
       TERRAFORM_BASE_URL: DEV_TERRAFORM_BASE_URL,
@@ -65,9 +65,13 @@ describe("D5: TFE service-token adapter", () => {
     const value = await adapter.fetchValue(WORKSPACE, contextWith(env, seen));
 
     expect(value).toBe("applied");
-    // The fetch went to the allowlisted base, NOT the registered url.
+    // The fetch went to the allowlisted base, NOT the registered url's host.
     expect(seen.every((url) => url.startsWith(DEV_TERRAFORM_BASE_URL))).toBe(true);
     expect(seen.some((url) => url.includes("flightdeck.example.com"))).toBe(false);
+    // …and it targets the REAL workspace parsed from the url (org `orion`,
+    // workspace `prod`), never the opaque Atlas location id `loc-…`.
+    expect(seen.some((url) => url.includes("/organizations/orion/workspaces/prod"))).toBe(true);
+    expect(seen.some((url) => url.includes(WORKSPACE.id))).toBe(false);
   });
 
   it("degrades to a labeled pointer (null) when the read-only token is missing", async () => {
@@ -78,6 +82,35 @@ describe("D5: TFE service-token adapter", () => {
 
     expect(value).toBeNull();
     // No token ⇒ no fetch attempted (never a fabricated value).
+    expect(seen).toEqual([]);
+  });
+
+  it("degrades to a labeled pointer (null) with NO fetch when the allowlisted base is unset, even with a token", async () => {
+    const seen: string[] = [];
+    // No TERRAFORM_BASE_URL ⇒ empty allowlisted base: a token must never ride a
+    // base-less/relative request.
+    const env = { [TFE_STATUS_TOKEN_ENV]: "fictional-read-only-token" };
+    const adapter = createTfeStatusAdapter(env);
+    const value = await adapter.fetchValue(WORKSPACE, contextWith(env, seen));
+
+    expect(value).toBeNull();
+    expect(seen).toEqual([]);
+  });
+
+  it("degrades to a labeled pointer (null) with NO fetch when the url is not a TFE workspace link", async () => {
+    const seen: string[] = [];
+    const env = {
+      TERRAFORM_BASE_URL: DEV_TERRAFORM_BASE_URL,
+      [TFE_STATUS_TOKEN_ENV]: "fictional-read-only-token",
+    };
+    const adapter = createTfeStatusAdapter(env);
+    const unparseable: OperationalLocation = {
+      ...WORKSPACE,
+      url: "https://attacker.example.net/steal?next=169.254.169.254",
+    };
+    const value = await adapter.fetchValue(unparseable, contextWith(env, seen));
+
+    expect(value).toBeNull();
     expect(seen).toEqual([]);
   });
 });

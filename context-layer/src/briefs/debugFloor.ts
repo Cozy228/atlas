@@ -8,14 +8,25 @@
  * moment tools — a thin wrap over the brief handler, never a second assembly).
  *
  * A block's `evidence[]` carries the cited troubleshooting sections; a dedicated
- * floor block's `pointers[]` carries the location index (uncited existence,
- * ADR-0003) — value-free: any live value is the status board's job, never a
- * pointer's. This REPLACES Step 4's honest not-yet-available `debug` template.
+ * floor block carries the location index in `pointers[]` (uncited existence,
+ * ADR-0003) AND the at-read operational VALUES for the APP's registered locations
+ * in `statuses[]` (locked decision 7: the floor is pointers + at-read values, the
+ * SAME aggregation `GET /api/status` serves — a value is uncited operational
+ * status, never Evidence, never stored). This REPLACES Step 4's honest
+ * not-yet-available `debug` template.
  */
-import type { Brief, BriefBlock, BriefDepth, LocationRecord } from "@atlas/schema";
+import type {
+  Brief,
+  BriefBlock,
+  BriefDepth,
+  LocationRecord,
+  LocationStatusEntry,
+} from "@atlas/schema";
 import type { GovernedResolutionContext } from "../resolvers/createResolutionContext";
 import { sharedLocationsRepository } from "../repositories/locationsRepositoryFactory";
 import { deriveLocationIndex } from "../locations/locationIndex";
+import { resolveScopeAdapters, type StatusAdapterContext } from "../locations/statusAdapter";
+import { assembleStatusBoard } from "../status/statusBoard";
 import { deriveRequestGraph } from "../graph/requestGraph";
 import { assembleBrief } from "./assembleBrief";
 import type { BlockRequest, BriefScope } from "./briefTypes";
@@ -80,12 +91,26 @@ export async function assembleDebugFloor(input: DebugFloorInput): Promise<Brief>
     ctx,
   );
 
-  // 2) Locations are the floor — the location index's value-free pointers
-  //    (graph-derived bindings + the APP's registered locations, scoped).
+  // 2) Locations are the floor — the location index's pointers (graph-derived
+  //    bindings + the APP's registered locations, scoped) as uncited existence…
+  const env = readProcessEnv();
   const registrations: LocationRecord[] = situation.appId
-    ? await sharedLocationsRepository(readProcessEnv()).listByApp(situation.appId)
+    ? await sharedLocationsRepository(env).listByApp(situation.appId)
     : [];
   const pointers = deriveLocationIndex({ graph, registrations, scope });
+
+  // …PLUS the at-read operational values for the APP's registered locations
+  //    (locked decision 7). This is the SAME aggregation `GET /api/status` runs:
+  //    resolve each system's adapter once, live-fetch through its allowlisted base,
+  //    degrade to a labeled pointer on failure. NO store, NO write — recomputed at
+  //    read, every time. `explain_error`/`debug` now reaches parity with the board.
+  const adapterContext: StatusAdapterContext = { fetch: ctx.fetch, token: ctx.token, env };
+  const adapters = resolveScopeAdapters(
+    registrations.map((record) => record.system),
+    env,
+  );
+  const board = await assembleStatusBoard({ situation, registrations, adapters, adapterContext });
+  const statuses: LocationStatusEntry[] = board.statuses;
 
   const floor: BriefBlock = {
     id: service ? `debug-floor:${service}` : "debug-floor",
@@ -97,6 +122,7 @@ export async function assembleDebugFloor(input: DebugFloorInput): Promise<Brief>
     status: pointers.length > 0 ? "available" : "unresolved",
     evidence: [],
     pointers,
+    statuses,
     warnings:
       pointers.length > 0
         ? []

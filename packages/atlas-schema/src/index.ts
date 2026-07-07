@@ -1202,6 +1202,13 @@ export const BriefBlockSchema = z
     // Evidence vs pointers: separate arrays by construction (ADR-0003).
     evidence: z.array(BriefEvidenceSchema),
     pointers: z.array(OperationalLocationSchema),
+    // ADR-0003's THIRD lane: at-read operational VALUES for this block's pointers
+    // (P24 aggregation-at-read; the M7 debug floor, locked decision 7). Separate
+    // from evidence (cited) AND pointers (uncited existence) — a value is uncited
+    // operational status, NEVER Evidence, NEVER stored. Absent on every block
+    // except the debug floor. `z.lazy` because `LocationStatusEntrySchema` is
+    // declared with the rest of the Step 7 value side, below this block schema.
+    statuses: z.array(z.lazy(() => LocationStatusEntrySchema)).optional(),
     // axis 2 — reasons via warningCodes (ResourceWarning), never a status word.
     warnings: z.array(ResourceWarningSchema),
   })

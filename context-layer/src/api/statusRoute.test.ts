@@ -99,6 +99,26 @@ describe("D9: registration lifecycle (POST/GET/DELETE /api/locations)", () => {
       ),
     ).toBe(false);
   });
+
+  it("DELETE is scoped to the owning APP: APP B cannot remove APP A's location (404)", async () => {
+    const { ctx: ctxA } = await ctxForNewApp();
+    const created = await handleLocationRegistrationRequest(ctxA, REGISTRATION);
+    const { location } = bodyAs<{ location: { id: string } }>(created);
+
+    // A different APP scope attempts to delete APP A's location by id.
+    const { ctx: ctxB } = await ctxForNewApp();
+    const denied = await handleLocationDeleteRequest(ctxB, location.id);
+    expect(denied.status).toBe(404);
+    expect(ApiErrorResponseSchema.parse(denied.body).error.code).toBe("invalid_request");
+
+    // APP A's location is untouched — still listed for its owner.
+    const stillThere = await handleLocationsListRequest(ctxA);
+    expect(
+      bodyAs<{ locations: Array<{ id: string }> }>(stillThere).locations.some(
+        (loc) => loc.id === location.id,
+      ),
+    ).toBe(true);
+  });
 });
 
 describe("D9: the status board is governed + scoped (GET /api/status)", () => {
