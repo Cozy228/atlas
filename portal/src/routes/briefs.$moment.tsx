@@ -25,6 +25,7 @@ import { briefQueryOptionsFor } from "@/api/queries";
 import { useSituation } from "@/components/landing-zone/context";
 import { PageBody, PageHeader } from "@/components/page-section";
 import { Skeleton } from "@/components/ui/skeleton";
+import { StatusRow } from "@/components/status/status-row";
 import { fireVerifyBeacon } from "@/lib/verifyBeacon";
 import { cn } from "@/lib/utils";
 
@@ -50,7 +51,7 @@ const MOMENT_LABEL: Record<Moment, string> = {
 const MOMENT_DESCRIPTION: Record<Moment, string> = {
   adopt: "Can I adopt this service here? Availability per landing zone, plus its adoption context.",
   build: "What is my context? The join across the services this situation declares.",
-  debug: "Diagnose an error — not yet available (arrives with the operational-location floor).",
+  debug: "Diagnose an error: cited troubleshooting evidence plus where this scope's operational things live, with their live state.",
   change: "What changed for me? The derived feed scoped to your situation (not What's New).",
 };
 
@@ -113,7 +114,7 @@ function BriefRoute() {
         ) : blocks.length === 0 ? (
           <p className="text-sm text-muted-foreground">
             {moment === "debug"
-              ? "Debug briefs are not yet available — they arrive with the operational-location floor."
+              ? "No debug floor in scope yet. Pick an app with a target service to see its troubleshooting evidence and operational locations."
               : "No blocks in scope yet. Pick an app or landing zone, or set a target service."}
           </p>
         ) : (
@@ -168,6 +169,33 @@ function BriefBlockRow({
             />
           ))}
         </ul>
+      ) : null}
+
+      {/* The M7 debug floor's at-read operational VALUES (locked decision 7): the
+          SAME aggregation GET /api/status serves, rendered in a DISTINCT uncited
+          register so a live value is never mistaken for cited Evidence (ADR-0003).
+          Only the debug floor populates `statuses`; other blocks omit it. */}
+      {block.statuses && block.statuses.length > 0 ? (
+        <div
+          data-testid="brief-status-uncited-region"
+          className="mt-3 flex flex-col gap-2 rounded-sm border border-dashed border-border-strong bg-muted p-3"
+        >
+          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+            <span className="type-eyebrow font-semibold text-muted-foreground">
+              Uncited · operational
+            </span>
+            <span className="type-detail text-muted-foreground">
+              Live values, read at request time — not Evidence.
+            </span>
+          </div>
+          <ol className="flex flex-col gap-2">
+            {block.statuses.map((entry) => (
+              <li key={entry.location.id}>
+                <StatusRow entry={entry} />
+              </li>
+            ))}
+          </ol>
+        </div>
       ) : null}
 
       {block.warnings.length > 0 ? (

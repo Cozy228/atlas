@@ -76,13 +76,63 @@ function contextBlock(service: string): BriefBlock {
   };
 }
 
+/**
+ * The M7 debug FLOOR (locked decision 7): cited troubleshooting evidence PLUS the
+ * operational-location floor — pointers (uncited existence) and their at-read
+ * values (`statuses`, the SAME uncited register the status board serves). The mock
+ * shows both a live value (a value-capable adapter) and a labeled pointer (a system
+ * with no value channel), so the ADR-0003 separation renders end-to-end in dev/e2e.
+ */
+function debugFloorBlock(service: string): BriefBlock {
+  const workspace = {
+    id: "loc-mock-parser-workspace",
+    system: "tfe",
+    kind: "workspace" as const,
+    url: "https://app.terraform.io/app/orion/workspaces/parser-prod",
+    discoveredFrom: "registration",
+  };
+  const dashboard = {
+    id: "loc-mock-parser-dashboard",
+    system: "grafana",
+    kind: "dashboard" as const,
+    url: "https://grafana.example.com/d/parser-prod",
+    discoveredFrom: "registration",
+  };
+  return {
+    id: `debug-floor:${service}`,
+    question: `Where does ${service} run, and where do its operational things live?`,
+    status: "available",
+    evidence: [
+      {
+        resourceId: `service/${service}`,
+        sectionId: "security",
+        citations: [
+          {
+            sourceId: `${service}-runbook`,
+            title: `${service} troubleshooting runbook`,
+            url: "https://confluence.example.com/display/CLOUD/Parser+Troubleshooting",
+            resolvedAt: RESOLVED_AT,
+          },
+        ],
+        excerpt: "Check the workspace's current run state before re-applying; 429s are throttling.",
+      },
+    ],
+    pointers: [workspace, dashboard],
+    statuses: [
+      { location: workspace, value: "applied", fetchedAt: RESOLVED_AT },
+      { location: dashboard, value: null, reason: "no-adapter", fetchedAt: null },
+    ],
+    warnings: [],
+  };
+}
+
 /** The deterministic mock Brief for a moment + scope. */
 export function mockBrief(moment: Moment, scope?: MockBriefScope): Brief {
   const situated = situation(scope);
   const service = scope?.service ?? "aws/parser";
 
   if (moment === "debug") {
-    return { moment, situation: situated, blocks: [], resolvedAt: RESOLVED_AT };
+    return { moment, situation: situated, blocks: [debugFloorBlock(service)], resolvedAt: RESOLVED_AT };
   }
 
   if (moment === "change") {
