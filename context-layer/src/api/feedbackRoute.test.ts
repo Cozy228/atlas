@@ -14,12 +14,15 @@ afterAll(() => {
 
 describe("feedback route", () => {
   it("captures user feedback as a shared contract response", async () => {
-    const response = await handleFeedbackRequest({
-      target_type: "resource",
-      target_id: "service/aws/textract",
-      feedback_type: "stale",
-      message: "The getting started guidance needs a new review.",
-    });
+    const response = await handleFeedbackRequest(
+      {
+        target_type: "resource",
+        target_id: "service/aws/textract",
+        feedback_type: "stale",
+        message: "The getting started guidance needs a new review.",
+      },
+      { verifiedApps: [] },
+    );
 
     expect(response.status).toBe(201);
     const parsed = FeedbackResponseSchema.parse(response.body);
@@ -33,24 +36,30 @@ describe("feedback route", () => {
   });
 
   it("returns structured invalid_request errors", async () => {
-    const response = await handleFeedbackRequest({
-      target_type: "resource",
-      target_id: "",
-      feedback_type: "stale",
-      message: "",
-    });
+    const response = await handleFeedbackRequest(
+      {
+        target_type: "resource",
+        target_id: "",
+        feedback_type: "stale",
+        message: "",
+      },
+      { verifiedApps: [] },
+    );
 
     expect(response.status).toBe(400);
     expect(ApiErrorResponseSchema.parse(response.body).error.code).toBe("invalid_request");
   });
 
   it("returns structured not-found errors for unknown targets", async () => {
-    const response = await handleFeedbackRequest({
-      target_type: "resource",
-      target_id: "service/aws/missing",
-      feedback_type: "missing",
-      message: "I expected this resource to exist.",
-    });
+    const response = await handleFeedbackRequest(
+      {
+        target_type: "resource",
+        target_id: "service/aws/missing",
+        feedback_type: "missing",
+        message: "I expected this resource to exist.",
+      },
+      { verifiedApps: [] },
+    );
 
     expect(response.status).toBe(404);
     expect(ApiErrorResponseSchema.parse(response.body).error.code).toBe("resource_not_found");

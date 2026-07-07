@@ -15,9 +15,12 @@ afterAll(() => {
 
 describe("discovery routes", () => {
   it("discovers sources by class through the shared response schema", async () => {
-    const response = await handleSourceDiscoveryRequest({
-      source_class: "terraform-module",
-    });
+    const response = await handleSourceDiscoveryRequest(
+      {
+        source_class: "terraform-module",
+      },
+      { verifiedApps: [] },
+    );
 
     expect(response.status).toBe(200);
     const sources = SourceDiscoveryResponseSchema.parse(response.body).sources;

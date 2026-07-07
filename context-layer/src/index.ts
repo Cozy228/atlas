@@ -56,6 +56,39 @@ export {
   type ScopeInput,
 } from "./resolvers/createResolutionContext";
 export type { ResolutionChannel } from "./resolvers/resolverTypes";
+// App-scope authorization gate + identity seam (Entra slice, WS2/WS4).
+export { gateSource, gateSources, isSourceVisible, verifiedAppsOf } from "./resolvers/appScopeGate";
+export type { IdentityClaims, Principal } from "./identity/claims";
+export { principalOf } from "./identity/claims";
+export {
+  ENTRA_CORE_VARS,
+  IdentityConfigError,
+  assertIdentityEnvConsistent,
+  readEntraConfig,
+  readSessionConfig,
+  type EntraConfig,
+  type SessionConfig,
+} from "./identity/entraConfig";
+export {
+  EntraTokenError,
+  createRemoteEntraKeySet,
+  jwksUriFromAuthority,
+  validateEntraToken,
+  type EntraTokenValidatorConfig,
+} from "./identity/entraTokenValidator";
+export { resolveMachineClaims } from "./identity/machineIdentity";
+export {
+  MOCK_REGISTRY_APPS,
+  createMockRegistryAppsAdapter,
+  mockRegistryAppsAdapter,
+} from "./repositories/registryAppsAdapter";
+export {
+  InMemorySessionStore,
+  createSessionStore,
+  sharedSessionStore,
+  type SessionRecord,
+  type SessionStore,
+} from "./session/sessionStore";
 export { handleInstrumentsRequest, handleVerifyBeacon } from "./api/instrumentsRoute";
 // A curated instruments surface — the record*/estimate/snapshot set only. The
 // raw registry ops (`incrementCounter`/`observeHistogram`) and the test-only

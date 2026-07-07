@@ -7,6 +7,8 @@ import type {
 import type { FeedbackRepository } from "../repositories/feedbackRepository";
 import type { Registry } from "../registry/registry";
 import type { ResolverRegistry } from "../resolvers/resolverRegistry";
+import type { ResolutionContext } from "../resolvers/resolverTypes";
+import { gateSources } from "../resolvers/appScopeGate";
 import type { AvailabilityProvider } from "./availabilityProvider";
 import type { ResourceReferenceDiscovery } from "./resourceReferenceDiscovery";
 import type { ResourceContentDiscovery } from "../resources/resourceContentDiscovery";
@@ -50,8 +52,11 @@ export type ContextServiceOptions = {
 export function discoverSources(
   service: ContextService,
   request: SourceDiscoveryRequest,
+  ctx: Pick<ResolutionContext, "verifiedApps">,
 ): SourceDiscoveryResponse {
-  const sources = service.registry.sources.list().filter((source) => {
+  // App-scope gate (WS4): drop `visibility:"app"` Sources the caller is not a verified
+  // member of BEFORE listing — an unverified caller never sees them in the source registry.
+  const sources = gateSources(service.registry.sources.list(), ctx).filter((source) => {
     if (request.source_class && source.source_class !== request.source_class) {
       return false;
     }

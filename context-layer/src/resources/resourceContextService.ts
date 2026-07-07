@@ -25,6 +25,7 @@ import {
 import type { ResolverRegistry } from "../resolvers/resolverRegistry";
 import type { ResolutionContext } from "../resolvers/resolverTypes";
 import type { GovernedResolutionContext } from "../resolvers/createResolutionContext";
+import { isSourceVisible, verifiedAppsOf } from "../resolvers/appScopeGate";
 import { isStale } from "../services/freshness";
 import { getResourceKindDef } from "./resourceKindRegistry";
 
@@ -379,7 +380,17 @@ async function resolveSection(
   bindings: ResourceSectionBinding[],
   ctx: ResolutionContext,
 ): Promise<ContextSection> {
-  const ordered = [...bindings].sort((a, b) => a.order - b.order);
+  // App-scope gate (WS4, F3-2): drop bindings whose Source is `visibility:"app"` and not in
+  // the caller's verified APP set BEFORE any resolution, counting, or warning — so a gated
+  // Source is fully invisible (no content, no status skew, no warning leak). An unknown
+  // Source (undefined) is KEPT so the loop still reports it honestly as no_registered_source.
+  const verified = verifiedAppsOf(ctx);
+  const ordered = [...bindings]
+    .sort((a, b) => a.order - b.order)
+    .filter((binding) => {
+      const source = deps.registry.sources.getById(binding.source_id);
+      return source === undefined || isSourceVisible(source, verified);
+    });
   const contentParts: string[] = [];
   const citations: ResourceCitation[] = [];
   const warnings: ResourceWarning[] = [];

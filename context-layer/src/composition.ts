@@ -49,6 +49,7 @@ import { createConfluenceAvailabilityProvider } from "./sourceContent/confluence
 import type { AvailabilityProvider } from "./services/availabilityProvider";
 import type { ResourceReferenceDiscovery } from "./services/resourceReferenceDiscovery";
 import type { ContextService, ContextServiceOptions } from "./services/contextService";
+import { assertIdentityEnvConsistent } from "./identity/entraConfig";
 
 /** Late-bound fetch (re-reads `globalThis.fetch` per call) so the dev/integration
  *  MSW interceptor is always picked up, and prod uses the real fetch (plan 018). */
@@ -222,6 +223,10 @@ export async function createDefaultContextService(
   options: ContextServiceOptions = {},
 ): Promise<ContextService> {
   const env = options.env ?? readProcessEnv();
+  // Fail loud on a half-configured identity (E6, local-dev risk 4): a partial ENTRA_*/
+  // SESSION_* set crashes here rather than silently running anonymous (a fail-OPEN latent
+  // bug). Fully-unset is a no-op — anonymous is a legal posture.
+  assertIdentityEnvConsistent(env);
   const availabilityProvider =
     options.availabilityProvider ??
     createConfluenceAvailabilityProvider({ fetch: liveFetch, env: options.env });

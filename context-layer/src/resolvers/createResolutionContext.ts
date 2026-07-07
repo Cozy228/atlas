@@ -28,6 +28,8 @@ import { withFetchLogging } from "../observability/logging";
 import { cacheTtlSeconds, sharedCache, withCache } from "../sourceContent/sourceContentCache";
 import { sharedAppsRepository } from "../repositories/appsRepositoryFactory";
 import { createSelfDeclaredAppsAdapter } from "../repositories/selfDeclaredAppsAdapter";
+import type { AppRecord } from "@atlas/schema";
+import { principalOf, type IdentityClaims, type Principal } from "../identity/claims";
 
 /**
  * Module-private brand: NEVER exported (not from this module's public face
@@ -51,6 +53,9 @@ export type GovernedResolutionContext = ResolutionContext & {
   /** The face that produced this context (Step 6, locked decision 2); always
    *  seated by the gate (default `"http"`), so it is non-optional once governed. */
   readonly channel: ResolutionChannel;
+  /** The vetted verified-APP set (axis 2, WS4); always seated by the factory (default
+   *  `[]` = fail-closed), so it is non-optional once governed. */
+  readonly verifiedApps: readonly string[];
 };
 
 /**
@@ -75,8 +80,19 @@ export type ScopeInput =
  * `selfDeclaredAppsAdapter` + DynamoDB arrive in Step 3.
  */
 export interface AppDirectoryPort {
-  /** Resolve an appId to its declared landing-zone set (P26), or null when unknown. */
+  /** Resolve an appId to its declared landing-zone set (P26), or null when unknown
+   *  (axis 1, scope selection). */
   lookup(appId: string): Promise<{ landingZoneIds: string[] } | null>;
+  /**
+   * Resolve the caller's VERIFIED app membership from validated identity claims
+   * (axis 2 — the Entra membership gate, WS4). Optional: the default
+   * `selfDeclaredAppsAdapter` does NOT implement it, so a self-declared-only tree resolves
+   * NO verified membership ⇒ the app-scope gate is fail-closed. The Entra-era
+   * `registryAppsAdapter` implements it; returned records carry `membershipSource:"entra"`.
+   * Returns the full AppRecords (the portal builds the selector union + badges from them);
+   * the factory seats ONLY the id set on the context (I2, identity-light).
+   */
+  resolveMembership?(claims: IdentityClaims): Promise<AppRecord[]>;
 }
 
 /**
@@ -105,11 +121,13 @@ function defaultAppDirectory(env: Record<string, string | undefined>): AppDirect
 
 export type CreateResolutionContextInput = {
   /**
-   * Opaque caller identity (ADR-0001): `bearer` is threaded unparsed and
-   * unpersisted into `ctx.token`. Entra later arrives as a richer identity
-   * input here — not a redesign. No raw principal field ever rides the ctx.
+   * Caller identity, the FIRST factory input (I2). `bearer` is the opaque ADR-0001
+   * content bearer, threaded unparsed into `ctx.token` (never interpreted). `claims` is
+   * the VETTED identity (BFF session claims, or a machine-surface token already validated
+   * by the JWKS module) — the factory maps it to the verified APP set (axis 2) and emits
+   * the principal SEPARATELY via {@link onPrincipal}. No raw principal ever rides the ctx.
    */
-  identity?: { bearer?: string };
+  identity?: { bearer?: string; claims?: IdentityClaims };
   /** Scope declaration; absent = anonymous unscoped context. */
   scope?: ScopeInput;
   /** Environment for cache configuration; defaults to the process env. */
@@ -118,6 +136,12 @@ export type CreateResolutionContextInput = {
   appDirectory?: AppDirectoryPort;
   /** The producing face (Step 6, locked decision 2); defaults to `"http"`. */
   channel?: ResolutionChannel;
+  /**
+   * Consumer-state principal sink (I2 / M3): when identity claims are present, the factory
+   * emits the principal HERE — the ONLY place the raw principal flows (feedback /
+   * subscriptions / apps-mutation logging attribution). It never touches the resolver path.
+   */
+  onPrincipal?: (principal: Principal) => void;
 };
 
 /**
@@ -136,7 +160,17 @@ export async function createResolutionContext(
   const cache = await sharedCache(env);
   const fetch = withCache(lateBoundFetch(), cache, cacheTtlSeconds(env));
 
-  const vetted = await vetScope(input.scope, input.appDirectory ?? defaultAppDirectory(env));
+  const appDirectory = input.appDirectory ?? defaultAppDirectory(env);
+  const vetted = await vetScope(input.scope, appDirectory);
+
+  // Identity → verified APP set (axis 2). Claims present ⇒ resolve membership through the
+  // directory port (self-declared adapter has none ⇒ empty ⇒ fail-closed) and emit the
+  // principal SEPARATELY to the consumer-state sink — the principal never rides the ctx.
+  const claims = input.identity?.claims;
+  const verifiedApps = claims ? await resolveVerifiedApps(claims, appDirectory) : [];
+  if (claims && input.onPrincipal) {
+    input.onPrincipal(principalOf(claims));
+  }
 
   const governed: GovernedResolutionContext = {
     // Opaque caller Bearer (ADR-0001): threaded unparsed, never interpreted.
@@ -144,11 +178,29 @@ export async function createResolutionContext(
     fetch,
     scope: vetted.scope,
     warnings: vetted.warnings,
+    // Vetted verified-APP set (axis 2, WS4); empty by default = fail-closed.
+    verifiedApps,
     // Face attribution for the honesty instruments (Step 6, locked decision 2).
     channel: input.channel ?? "http",
     [governedContextBrand]: true,
   };
   return governed;
+}
+
+/**
+ * Resolve the caller's verified APP-id set from vetted claims (axis 2). Fail-closed by
+ * construction: a directory port with no `resolveMembership` (the self-declared default)
+ * yields the empty set, so `visibility:"app"` Sources stay invisible.
+ */
+async function resolveVerifiedApps(
+  claims: IdentityClaims,
+  appDirectory: AppDirectoryPort,
+): Promise<string[]> {
+  if (!appDirectory.resolveMembership) {
+    return [];
+  }
+  const records = await appDirectory.resolveMembership(claims);
+  return [...new Set(records.map((record) => record.id))];
 }
 
 /** The vetted scope + the governance warnings accrued while vetting it. */

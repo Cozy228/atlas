@@ -1,6 +1,7 @@
 import { type ApiErrorResponse, type AvailabilityReadResponse } from "@atlas/schema";
 import { createDefaultContextService } from "../composition";
 import { isStale } from "../services/freshness";
+import { gateSource } from "../resolvers/appScopeGate";
 import type { GovernedResolutionContext } from "../resolvers/createResolutionContext";
 import type { ApiResponse } from "./routeTypes";
 import { errorResponse } from "./routeTypes";
@@ -32,7 +33,10 @@ export async function handleAvailabilityRequest(
   ctx: GovernedResolutionContext,
 ): Promise<ApiResponse<ApiErrorResponse | AvailabilityReadResponse>> {
   const service = await createDefaultContextService();
-  const source = service.registry.sources.getById(AVAILABILITY_SOURCE_ID);
+  // App-scope gate (WS4): an `app`-visibility availability Source not in the caller's
+  // verified set reads as absent (404) — never an ungated grid. Availability is
+  // discovery-derived (`visibility:"internal"`) today, so this is defence-in-depth.
+  const source = gateSource(service.registry.sources.getById(AVAILABILITY_SOURCE_ID), ctx);
   if (!source) {
     return errorResponse(
       404,

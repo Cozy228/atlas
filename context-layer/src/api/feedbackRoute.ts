@@ -6,12 +6,15 @@ import {
   type FeedbackSubmission,
 } from "@atlas/schema";
 import { createDefaultContextService } from "../composition";
+import { gateSource } from "../resolvers/appScopeGate";
+import type { ResolutionContext } from "../resolvers/resolverTypes";
 import type { ContextService } from "../services/contextService";
 import type { ApiResponse } from "./routeTypes";
 import { errorResponse } from "./routeTypes";
 
 export async function handleFeedbackRequest(
   input: unknown,
+  ctx: Pick<ResolutionContext, "verifiedApps">,
 ): Promise<ApiResponse<ApiErrorResponse | FeedbackResponse>> {
   const parsed = FeedbackSubmissionSchema.safeParse(input);
   if (!parsed.success) {
@@ -19,7 +22,7 @@ export async function handleFeedbackRequest(
   }
 
   const service = await createDefaultContextService();
-  const targetError = validateFeedbackTarget(service, parsed.data);
+  const targetError = validateFeedbackTarget(service, parsed.data, ctx);
   if (targetError) {
     return targetError;
   }
@@ -34,11 +37,17 @@ export async function handleFeedbackRequest(
 function validateFeedbackTarget(
   service: ContextService,
   feedback: FeedbackSubmission,
+  ctx: Pick<ResolutionContext, "verifiedApps">,
 ): ApiResponse<ApiErrorResponse> | undefined {
   if (feedback.target_type === "resource" && !resourceExists(service, feedback.target_id)) {
     return errorResponse(404, "resource_not_found", "Feedback target resource was not found.");
   }
-  if (feedback.target_type === "source" && !service.registry.sources.getById(feedback.target_id)) {
+  // App-scope gate (WS4): an `app`-visibility Source the caller cannot see reads as absent,
+  // closing the feedback existence-oracle (an unverified caller cannot confirm it exists).
+  if (
+    feedback.target_type === "source" &&
+    !gateSource(service.registry.sources.getById(feedback.target_id), ctx)
+  ) {
     return errorResponse(404, "source_not_found", "Feedback target source was not found.");
   }
 

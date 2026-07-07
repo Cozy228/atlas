@@ -5,11 +5,13 @@ import {
 } from "@atlas/schema";
 import { discoverSources } from "../services/contextService";
 import { createDefaultContextService } from "../composition";
+import type { ResolutionContext } from "../resolvers/resolverTypes";
 import type { ApiResponse } from "./routeTypes";
 import { errorResponse } from "./routeTypes";
 
 export async function handleSourceDiscoveryRequest(
   input: unknown,
+  ctx: Pick<ResolutionContext, "verifiedApps">,
 ): Promise<ApiResponse<ApiErrorResponse | SourceDiscoveryResponse>> {
   const parsed = SourceDiscoveryRequestSchema.safeParse(input);
   if (!parsed.success) {
@@ -18,6 +20,6 @@ export async function handleSourceDiscoveryRequest(
 
   return {
     status: 200,
-    body: discoverSources(await createDefaultContextService(), parsed.data),
+    body: discoverSources(await createDefaultContextService(), parsed.data, ctx),
   };
 }

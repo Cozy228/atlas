@@ -76,6 +76,16 @@ export type ResolutionContext = {
    */
   scope?: { landingZoneIds?: string[]; appId?: string; origin?: "by-value" | "by-reference" };
   /**
+   * The caller's VERIFIED app membership (axis 2 — the membership gate, WS4). App-id
+   * strings ONLY: identity-light (no raw principal ever rides the context, I2). Seated by
+   * the L2 factory from validated identity claims via
+   * {@link AppDirectoryPort.resolveMembership}; absent ⇒ empty ⇒ the app-scope gate is
+   * fail-closed (a `visibility:"app"` Source is invisible). Read ONLY by the app-scope gate
+   * (`appScopeGate.ts`) — never by a resolver, and never conflated with `scope` (axis 1,
+   * which APP is being LOOKED AT, vs. this, which APPs may be SEEN).
+   */
+  verifiedApps?: readonly string[];
+  /**
    * Which of Atlas's OWN faces produced this context (Step 6, locked decision 2):
    * the agent MCP face, the public HTTP API, or the in-process Portal loaders.
    * This is attribution of our own faces for the honesty instruments (P20 call

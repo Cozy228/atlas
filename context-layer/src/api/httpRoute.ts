@@ -41,6 +41,7 @@ import {
   type GovernedResolutionContext,
   type ScopeInput,
 } from "../resolvers/createResolutionContext";
+import { resolveMachineClaims } from "../identity/machineIdentity";
 
 export type HttpRequest = {
   method: string;
@@ -70,12 +71,12 @@ export async function handleHttpRequest(request: HttpRequest): Promise<HttpRespo
   const ctx = await resolutionContextFromRequest(request);
 
   if (method === "GET" && path === "/sources") {
-    return jsonResponse(await handleSourceDiscoveryRequest(compactQuery(request.query)));
+    return jsonResponse(await handleSourceDiscoveryRequest(compactQuery(request.query), ctx));
   }
 
   const sourceIdMatch = path.match(/^\/sources\/([^/]+)$/);
   if (method === "GET" && sourceIdMatch) {
-    return jsonResponse(await handleSourceRequest(decodeURIComponent(sourceIdMatch[1])));
+    return jsonResponse(await handleSourceRequest(decodeURIComponent(sourceIdMatch[1]), ctx));
   }
 
   if (method === "GET" && path === "/availability") {
@@ -188,7 +189,7 @@ export async function handleHttpRequest(request: HttpRequest): Promise<HttpRespo
   }
 
   if (method === "POST" && path === "/feedback") {
-    return jsonResponse(await handleFeedbackRequest(parseJsonBody(request.body)));
+    return jsonResponse(await handleFeedbackRequest(parseJsonBody(request.body), ctx));
   }
 
   // Consumer state (Step 3, mid-level §3): the apps store's only writers.
@@ -250,16 +251,32 @@ export async function handleHttpRequest(request: HttpRequest): Promise<HttpRespo
  * from `Authorization` (threaded unparsed — Confluence enforces ACL against
  * whatever identity it represents) plus any scope declared on the query (locked
  * decision 7). The factory wires the shared cached fetch and vets the scope.
+ *
+ * Machine surface (confused-deputy R7): identity is derived from the Authorization Bearer
+ * ONLY — a cookie is never consulted here. When Entra is configured the Bearer is validated
+ * to claims (⇒ verified APP set, axis 2); when it is unset the surface stays anonymous and
+ * the Bearer remains the opaque ADR-0001 content bearer. A foreign/invalid token is ignored.
  */
 async function resolutionContextFromRequest(
   request: HttpRequest,
 ): Promise<GovernedResolutionContext> {
+  const bearer = bearerToken(request.headers);
+  const env = readProcessEnv();
+  const claims = await resolveMachineClaims(bearer, env);
   return createResolutionContext({
-    identity: { bearer: bearerToken(request.headers) },
+    identity: { bearer, ...(claims ? { claims } : {}) },
     scope: scopeFromQuery(request.query),
+    env,
     // The public HTTP contract is the `"http"` face (Step 6, locked decision 2).
     channel: "http",
   });
+}
+
+function readProcessEnv(): Record<string, string | undefined> {
+  const processLike = globalThis as typeof globalThis & {
+    process?: { env?: Record<string, string | undefined> };
+  };
+  return processLike.process?.env ?? {};
 }
 
 /**

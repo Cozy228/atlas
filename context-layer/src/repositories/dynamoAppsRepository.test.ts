@@ -23,6 +23,7 @@ const ORION: AppRecord = {
   landingZoneIds: ["awsf", "azure"],
   serviceSlugs: ["aws/textract"],
   origin: "self-declared",
+  membershipSource: "none",
   declaredAt: "2026-07-04T00:00:00.000Z",
   updatedAt: "2026-07-04T00:00:00.000Z",
 };
