@@ -75,7 +75,7 @@ spans the two paradigms the codebase already separates
    - **No Atlas-issued PAT.** Entra's flows cover every consumer; a self-issued token system
      is YAGNI.
    - ⇒ **Agents inherit auth + APP through the same bearer the Bearer pipe already threads**
-     (`portal/src/api/server/mcp/handler.ts`) — zero new mechanism in the MCP handler.
+     (`context-layer/src/mcp/tools.ts`) — zero new mechanism in the MCP adapter.
 
 5. **Portal shape: APP-selector-first.** Login → "the APPs you belong to" → pick one →
    existing surfaces (catalog / guidance / availability / …) filtered by that `app_id`.

@@ -28,9 +28,9 @@ Lambda HTTP contract (`context-layer/src/api/*`, `contracts.ts`). Today that API
 is real and tested but has no machine-readable description, no discovery entry,
 and no published consumer skill. Closing that is worth more than any robots.txt.
 
-A read-only **MCP facade over the same `handleHttpRequest`** is the natural
-agent-native delivery (consumer-neutral is already a stated product principle —
-Portal, skills, and agents are all just consumers of one bundle contract). Markdown
+A read-only **MCP adapter over the same Context Layer retrieval interfaces** is the
+natural agent-native delivery (consumer-neutral is already a stated product
+principle — Portal, skills, and agents are all consumers of one governed projection). Markdown
 content negotiation matters mainly for the human-facing pages and is secondary if
 the primary agent path is API/MCP rather than page-scraping.
 
@@ -81,27 +81,27 @@ These are the concrete rules the implementation must follow. Sources at the end.
   the single highest-value content for agent code-gen.
 - Include request/response **examples** and mark the auth model (Bearer pipe,
   ADR 0001) and the one mutation endpoint (feedback) explicitly.
-- Treat the spec as the source of truth from which MCP tools / function defs are
-  derived — do not hand-maintain two contracts.
+- Reuse `@atlas/schema` and the Context Layer's retrieval interfaces as the source
+  of truth for MCP input/output schemas. Do not mechanically turn each OpenAPI
+  endpoint into a tool; tools represent agent tasks, not transport routes.
 
 ### MCP / tool design (Phase 2)
 
 - **Few, curated tools**, not one-per-endpoint. More tools ≠ better; tool defs are
   loaded upfront and cost tokens (58 tools ≈ 55K tokens before the first turn).
-- **Search, not list:** `atlas_search_service`, not `list_services`.
+- **Search, not list:** `atlas_search_context`, not `list_services`.
 - **Namespace every tool** with the `atlas_` prefix; **unambiguous params**
   (`source_id`, not `source`).
 - **Return high-signal fields only**; prefer Atlas's **semantic ids** over opaque
   UUIDs (it already uses `source_class`-style ids — keep them, drop UUIDs from
   responses). Always include the Citation (Atlas's evidence principle).
-- Offer a `response_format` (`CONCISE` | `DETAILED`) and **paginate/truncate** with
-  a sane default (keep responses well under ~25K tokens); on truncation, tell the
-  agent to narrow its search.
+- Bound candidate count and excerpt size server-side; return `truncated` explicitly
+  rather than asking the agent to choose an implementation-shaped response format.
 - **Concise tool descriptions**; **actionable error messages** with an example of a
   correctly-formed input.
 - Forward-looking: Anthropic's "code execution with MCP" pattern (expose tools as a
   code API the agent imports) cut a 150K-token workflow to ~2K. Not V1, but design
-  the MCP facade so it could be presented that way later.
+  the MCP adapter so it could be presented that way later.
 
 ### Agent Skill authoring (`atlas-context-consumer`, Phase 2)
 
@@ -115,7 +115,7 @@ These are the concrete rules the implementation must follow. Sources at the end.
   the minimum instructions that pass them.
 - Reuse Atlas's **consistent terminology** verbatim from `CONTEXT.md`; no
   time-sensitive statements; concrete examples over abstract description.
-- If the skill references MCP tools, use fully-qualified names (`Atlas:atlas_search_service`).
+- If the skill references MCP tools, use fully-qualified names (`Atlas:atlas_search_context`).
 
 ### Agent Skills Discovery — exact wire spec (Cloudflare RFC v0.2.0)
 
@@ -192,7 +192,8 @@ Excerpt without its Citation. See `CONTEXT.md` vocabulary (Source, Anchor,
 Excerpt, Citation, restricted_source, stale_source).
 
 ## Steps
-1. Discover the service: `GET /api/resources?query=...`  (or MCP `atlas_search_service`)
+1. Discover the service: `GET /api/resources?query=...` (or MCP `atlas_search_context`,
+   which also returns bounded cited excerpts)
 2. Fetch the resource context projection for the chosen resource/source.
 3. Surface each claim with its Citation; honor `restricted_source` / `stale_source`
    warnings verbatim — do not hide or soften them.
@@ -275,7 +276,7 @@ already exists** before the web-crawler checklist.
 | `/.well-known/api-catalog` | **Build (P1)** | Points agents at OpenAPI + docs + health |
 | `llms.txt` (points at API + docs) | **Build (P1)** | Index that leads agents to the API, not just pages |
 | Resume `.well-known/agent-skills` + `atlas-context-consumer` | **Build (P2, resume)** | Already built+reverted; teaches agents to consume the bundle |
-| MCP facade over `handleHttpRequest` + Server Card | **Build (P2)** | Consumer-neutral; agent-native delivery of the same contract |
+| Context Layer-owned MCP adapter + Server Card | **Build (P2)** | Consumer-neutral; agent-native delivery of the same retrieval interfaces |
 | `robots.txt` + Content-Signal | **Build (P3)** | Cheap discoverability + AI usage policy |
 | `sitemap.xml` | **Build (P3)** | Canonical catalog/source/guidance pages |
 | Homepage `Link` headers | **Build (P3)** | Advertise llms.txt/api-catalog/agent-skills/mcp once they exist |
@@ -294,7 +295,7 @@ already exists** before the web-crawler checklist.
 | `llms.txt` links, `sitemap.xml` | Resource/Source discovery responses | Enumerate canonical detail URLs |
 | Markdown of a service/source/guidance page | Resource context projection for that record | Render the same data the route loader uses, as clean Markdown |
 | `openapi.json` | `contextApiClient` interface + contract test | Describe discovery + resource-context + feedback endpoints |
-| MCP `atlas_search_service` / `atlas_get_source` / `atlas_get_availability` | Resource discovery / Source response / availability projection | Read-only, namespaced, search-first; semantic ids + Citation in responses |
+| MCP `atlas_search_context` / `atlas_read_context` / `atlas_check_availability` | Bounded Context search / exact resource projection / availability projection | Read-only, task-shaped; semantic ids + Citation in responses |
 
 ## Phased implementation
 
@@ -327,12 +328,14 @@ curl -fsS  "$BASE/llms.txt" | head
    from the reverted work, decoupled from any route change. One demo scenario; one
    publication source of truth; a Context-API bundle parity test before claiming
    done (see the handoff constraints above). discovery v0.2 shape, `sha256:` digest.
-2. Read-only **MCP facade** over `handleHttpRequest` + `/.well-known/mcp/server-card.json`.
-   A small, curated, namespaced, search-first tool set: `atlas_search_service`,
-   `atlas_get_source`, `atlas_get_availability`, `atlas_get_resource_context` — not
-   one-tool-per-endpoint. Responses carry semantic ids + the Citation; support
-   `response_format` and pagination per the best-practices section. No write tools
-   in V1. Same contract as Portal and the skill — three consumers, one projection.
+2. Read-only **MCP adapter** owned by the Context Layer and hosted at `/mcp`, plus
+   `/.well-known/mcp/server-card.json`. It uses the official TypeScript SDK and
+   exposes three task-shaped tools: `atlas_search_context`, `atlas_read_context`,
+   and `atlas_check_availability`. Keyword search ranks registered Resource,
+   Source, and Anchor metadata first, live-resolves only a bounded candidate set,
+   and returns cited excerpts; it does not mirror Source content or become a
+   general-purpose search engine. No write tools in V1. Portal retains only the
+   Nitro hosting route.
 
 ### Phase 3 — Web-crawler checklist (cheap, lower differentiation)
 
@@ -367,8 +370,9 @@ curl -fsS  "$BASE/llms.txt" | head
 - **Hosting for well-known/static:** `public/` static vs Nitro server route per
   artifact. Default: static for `robots.txt`, server routes for anything
   data-derived or digest-bearing.
-- **MCP transport:** streamable-HTTP endpoint inside the Nitro server vs a separate
-  process. Decide when Phase 3 starts.
+- **MCP transport:** resolved — the Context Layer owns the official SDK adapter;
+  the current deployment hosts its Web-standard handler through the Portal Nitro
+  route. A future separate Context API process can host the same handler unchanged.
 
 ## References
 

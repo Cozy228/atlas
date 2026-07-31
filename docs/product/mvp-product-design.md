@@ -277,8 +277,9 @@ covers the test-time equivalence criterion, not the live consumption protocol. O
     maintain `.md` files alongside (lean bundle-render to avoid drift).
 22. **well-known / static hosting** — `public/` static vs Nitro server route per artifact
     (default: static for `robots.txt`, server routes for data-derived/digest-bearing).
-23. **MCP transport** — streamable-HTTP endpoint inside the Nitro server vs a separate
-    process (decide when Phase 3 starts).
+23. **MCP transport — resolved 2026-07-31.** The Context Layer owns the official
+    TypeScript SDK adapter; the current deployment hosts its Web-standard handler
+    through the Portal Nitro `/mcp` route. Portal does not own MCP tool logic.
 
 ## 14 · Definition of Done
 

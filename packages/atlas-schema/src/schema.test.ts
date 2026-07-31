@@ -7,6 +7,7 @@ import {
   ResourceCatalogResponseSchema,
   ResourceContextResponseSchema,
   ResourceRecordResponseSchema,
+  SearchContextResponseSchema,
   ServiceIdentitySchema,
   SourceDiscoveryRequestSchema,
   SourceSchema,
@@ -153,6 +154,38 @@ describe("entity schemas", () => {
 });
 
 describe("request and response schemas", () => {
+  it("rejects a search excerpt without a Citation", () => {
+    expect(() =>
+      SearchContextResponseSchema.parse({
+        query: "private subnet",
+        matches: [
+          {
+            resource: {
+              kind: "service",
+              id: "service/aws/textract",
+              slug: "aws/textract",
+              name: "AWS Textract",
+              aliases: ["textract"],
+              resourceUrl: "/api/resources/service/aws/textract",
+              markdownUrl: "/resources/service/aws/textract.md",
+            },
+            match_reason: "Matched governed Section content",
+            matched_terms: ["private", "subnet"],
+            excerpts: [
+              {
+                section: "network",
+                text: "Use private subnet endpoints.",
+                citations: [],
+                warnings: [],
+                truncated: false,
+              },
+            ],
+          },
+        ],
+      }),
+    ).toThrow();
+  });
+
   it("accepts source discovery requests", () => {
     expect(SourceDiscoveryRequestSchema.parse({ query: "textract" })).toEqual({
       query: "textract",

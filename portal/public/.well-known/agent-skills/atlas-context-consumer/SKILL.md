@@ -27,12 +27,12 @@ Vocabulary (use these terms exactly):
 1. **Discover the resource.** `GET /api/resources?query=<terms>` returns
    matching resources; pick the one whose canonical `id` (`{kind}/{slug}`) fits
    the question. Browse the full inventory with `GET /api/resources/catalog`.
-   (MCP alternative: `Atlas:atlas_search_service`.)
+   (MCP alternative: `Atlas:atlas_search_context`, which also returns bounded cited excerpts.)
 2. **Read its context.** `GET /api/resources/{kind}/{slug}` returns a
    `ResourceContextResponse`: `sections` (each with live `content`,
    `citations[]`, and `warnings[]`), `references[]` (reference-only discovery
    links), and `missingSections[]` (honest gaps). Append `Accept: text/markdown`
-   for a rendered datasheet. (MCP alternative: `Atlas:atlas_get_resource_context`.)
+   for a rendered datasheet. (MCP alternative: `Atlas:atlas_read_context`.)
 3. **Answer from cited content only.** Surface each claim with its Citation
    (title + location). Do not add claims the sections do not support; an empty
    `sections` map means no governed context, not a negative answer.

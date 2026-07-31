@@ -7,9 +7,14 @@ everything from the wire. First run: 2026-06-10, against the production build,
 driven by a subagent (Claude Sonnet) with no repo knowledge. All 13 checks
 passed.
 
+The results below are historical except for the MCP examples and checks, which
+were updated to the current contract on 2026-07-31. The official-client tests
+and a production transport smoke test were rerun; the full blind-agent replay
+was not repeated.
+
 This complements — does not replace — the committed unit tests
 (`portal/src/api/server/{agentSkills,openapiDocument,agentDiscovery,crawlerBaseline}.test.ts`,
-`portal/src/api/server/mcp/mcp.test.ts`). Those prove each artifact is
+`context-layer/src/mcp/server.test.ts`). Those prove each artifact is
 internally correct; this proves the artifacts **chain together** for a blind,
 spec-compliant consumer. A route existing is not proof — an agent finding and
 using it is.
@@ -74,9 +79,9 @@ GET / (response headers)
    │   └─ full contract: paths, Bearer pipe, warning glossary
    └─ /mcp                                   rel="mcp-server"
        ├─ initialize → serverInfo "atlas"
-       ├─ tools/list → 4 atlas_* read tools with inputSchemas
-       └─ tools/call atlas_get_availability
-            {"zone":"aws","service_query":"textract"}  → regions
+       ├─ tools/list → 3 atlas_* read tools with input/output schemas
+       └─ tools/call atlas_search_context
+            {"query":"textract private subnet regions"}  → cited excerpts
 ```
 
 ## Checks and observed results
@@ -93,14 +98,14 @@ GET / (response headers)
 | 8 | Skill | `npx skills add` resolves, validates, installs | PASS |
 | 9 | API | OpenAPI 3.1 parses; documents the bundle endpoint used | PASS |
 | 10 | API | skill-instructed flow returns the bundle, Excerpts paired with Citations | PASS |
-| 11 | MCP | initialize + tools/list expose exactly 4 read-only atlas_* tools | PASS |
-| 12 | MCP | tools/call returns structured availability with semantic ids | PASS |
+| 11 | MCP | official client discovery + tools/list expose exactly 3 read-only atlas_* tools | PASS (2026-07-31) |
+| 12 | MCP | keyword search returns bounded structured excerpts with citations | PASS (2026-07-31) |
 | 13 | Conduct | warnings (`stale_source`, `source_unavailable`, `broken_anchor`) relayed verbatim in the final answer | PASS |
 
 The agent's final answer cited *"Private subnet usage"*
 (`github.com/example/terraform-aws-textract#private-subnet-usage`) for the
 private-subnet claim, reported Textract available in `us-east-1` and
-`ca-central-1` from `atlas_get_availability`, and relayed all three pilot-data
+`ca-central-1` from the then-current MCP availability tool, and relayed all three pilot-data
 warnings unchanged — the exact behavior the skill teaches.
 
 ## Known friction (expected; re-evaluate before production)
@@ -113,10 +118,10 @@ warnings unchanged — the exact behavior the skill teaches.
   robots governs crawlers, not API clients (robots is not an access boundary),
   and llms.txt resolves the ambiguity — but a strict crawler-first agent will
   pause here.
-- **MCP version negotiation.** The server answers `initialize` with its own
-  `protocolVersion` (`2025-06-18`) instead of echoing a supported client
-  version. Stateless single-POST JSON-RPC (no session) is a spec-allowed
-  variant; the version echo is the one item a strict client could reject.
+- **MCP compatibility path.** The official v2 SDK serves the current protocol
+  and retains stateless 2025-era compatibility. Raw legacy `curl` calls must
+  advertise both `application/json` and `text/event-stream` and parse the SSE
+  data frame; normal clients should use protocol discovery instead.
 - **Pilot data scope.** Only two regions and some intentionally degraded
   sources (`stale_source` / `source_unavailable` / `broken_anchor`) — that is
   seed-data scope, and surfacing it verbatim is the desired behavior, not a

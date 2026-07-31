@@ -74,20 +74,28 @@ export class InvalidResourceRequestError extends Error {
 export type SearchResourcesOptions = { baseUrl?: string };
 
 /**
- * Resolve a free-text name to canonical resource ids. Search answers no
- * questions (proposal §5.7) — it only maps names/aliases to `{kind}/{slug}` and
- * the URLs to read them.
+ * Resolve free-text registered metadata to canonical resource ids. Search
+ * answers no questions (proposal §5.7) — it only maps Resource, Source, and
+ * Anchor metadata to `{kind}/{slug}` and the URLs to read them.
  */
 export function searchResources(
   deps: ResourceContextDeps,
   query: string,
   options: SearchResourcesOptions = {},
 ): ResourceSearchResponse {
-  const tokens = normalizeTokens(query);
+  const tokens = normalizeSearchTokens(query);
   const trimmed = query.trim().toLowerCase();
 
   const scored = deps.resources
-    .map((record) => ({ record, match: scoreMatch(record, trimmed, tokens) }))
+    .map((record) => ({
+      record,
+      match: scoreMatch(
+        record,
+        trimmed,
+        tokens,
+        resourceSearchMetadataText(record, (sourceId) => deps.registry.sources.getById(sourceId)),
+      ),
+    }))
     .filter(
       (entry): entry is { record: ResourceContextRecord; match: MatchScore } =>
         entry.match !== null,
@@ -560,34 +568,67 @@ function scoreMatch(
   record: ResourceContextRecord,
   trimmedQuery: string,
   tokens: string[],
+  haystack: string,
 ): MatchScore | null {
   const names = [record.name, ...record.aliases].map((value) => value.toLowerCase());
   if (trimmedQuery.length > 0 && names.includes(trimmedQuery)) {
     return { score: 100, reason: "Exact name or alias match" };
   }
 
-  const haystack = [record.name, ...record.aliases, record.slug, record.provider ?? "", record.kind]
-    .join(" ")
-    .toLowerCase();
-
   if (tokens.length === 0) {
     return null;
   }
   const matched = tokens.filter((token) => haystack.includes(token));
   if (matched.length === tokens.length) {
-    return { score: 50, reason: "Matched on name and aliases" };
+    return { score: 50, reason: "Matched on registered Context metadata" };
   }
   if (matched.length > 0) {
-    return { score: 10, reason: "Partial name match" };
+    return {
+      score: Math.min(matched.length * 10, 40),
+      reason: "Partial registered Context metadata match",
+    };
   }
   return null;
 }
 
-function normalizeTokens(query: string): string[] {
+export function normalizeSearchTokens(query: string): string[] {
   return query
     .toLowerCase()
     .split(/[^a-z0-9-]+/)
     .filter((token) => token.length >= 2);
+}
+
+export function resourceSearchMetadataText(
+  record: ResourceContextRecord,
+  getSourceById?: (sourceId: string) => { title: string; source_class: string } | undefined,
+): string {
+  const sectionMetadata = Object.entries(record.sections).flatMap(([sectionId, bindings]) => [
+    sectionId,
+    ...bindings.flatMap((binding) => {
+      const source = getSourceById?.(binding.source_id);
+      return [
+        binding.source_id,
+        binding.heading ?? "",
+        binding.citation_label ?? "",
+        ...Object.values(binding.selector ?? {}),
+        source?.title ?? "",
+        source?.source_class ?? "",
+      ];
+    }),
+  ]);
+
+  return [
+    record.name,
+    ...record.aliases,
+    record.slug,
+    record.provider ?? "",
+    record.kind,
+    record.category ?? "",
+    record.description ?? "",
+    ...sectionMetadata,
+  ]
+    .join(" ")
+    .toLowerCase();
 }
 
 function dedupeWarnings(warnings: ResourceWarning[]): ResourceWarning[] {

@@ -402,6 +402,41 @@ export const ResourceSearchResponseSchema = z
   .object({ items: z.array(ResourceSearchItemSchema) })
   .strict();
 
+export const SearchContextInputSchema = z
+  .object({
+    query: z.string().trim().min(1),
+    kind: ResourceKindSchema.optional(),
+    sections: z.array(SectionIdSchema).min(1).optional(),
+    limit: z.number().int().min(1).max(5).default(3),
+  })
+  .strict();
+
+export const SearchContextExcerptSchema = z
+  .object({
+    section: SectionIdSchema,
+    text: z.string().min(1),
+    citations: z.array(ResourceCitationSchema).min(1),
+    warnings: z.array(ResourceWarningSchema),
+    truncated: z.boolean(),
+  })
+  .strict();
+
+export const SearchContextMatchSchema = z
+  .object({
+    resource: ResourceSummarySchema,
+    match_reason: z.string().min(1),
+    matched_terms: z.array(z.string().min(1)),
+    excerpts: z.array(SearchContextExcerptSchema),
+  })
+  .strict();
+
+export const SearchContextResponseSchema = z
+  .object({
+    query: z.string().min(1),
+    matches: z.array(SearchContextMatchSchema),
+  })
+  .strict();
+
 /* -------------------------------------------------------------------------- *
  * Convention-driven Confluence reference discovery (plan 017, ADR-0016)
  *
@@ -571,6 +606,10 @@ export type MissingSection = z.infer<typeof MissingSectionSchema>;
 export type ResourceSummary = z.infer<typeof ResourceSummarySchema>;
 export type ResourceSearchItem = z.infer<typeof ResourceSearchItemSchema>;
 export type ResourceSearchResponse = z.infer<typeof ResourceSearchResponseSchema>;
+export type SearchContextInput = z.input<typeof SearchContextInputSchema>;
+export type SearchContextExcerpt = z.infer<typeof SearchContextExcerptSchema>;
+export type SearchContextMatch = z.infer<typeof SearchContextMatchSchema>;
+export type SearchContextResponse = z.infer<typeof SearchContextResponseSchema>;
 export type DocType = z.infer<typeof DocTypeSchema>;
 export type ServiceIdentity = z.infer<typeof ServiceIdentitySchema>;
 export type DiscoveredReference = z.infer<typeof DiscoveredReferenceSchema>;
@@ -586,7 +625,7 @@ export type ResourceCatalogResponse = z.infer<typeof ResourceCatalogResponseSche
  * Regional availability (plan 014)
  *
  * The single availability read's wire shape. `AvailabilityResponse` is the grid
- * the Portal Explore surface and the MCP `atlas_get_availability` tool render
+ * the Portal Explore surface and the MCP `atlas_check_availability` tool render
  * (zones -> services -> {location -> status}); `AvailabilityReadResponse` wraps
  * it with the governing Citation + warnings so every consumer reads ONE cited
  * source of record (ADR-0014). Coordinates/labels/iconKey are presentation that

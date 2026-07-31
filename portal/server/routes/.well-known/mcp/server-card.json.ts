@@ -1,4 +1,4 @@
-import { buildMcpServerCard } from "@/api/server/mcp/handler";
+import { buildMcpServerCard } from "@atlas/context-layer/mcp";
 import { handlerRequest, resolvePortalOrigin } from "@/api/server/portalOrigin";
 
 export default (event: unknown): Response =>

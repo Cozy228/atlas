@@ -17,22 +17,23 @@ Examples below use `api-gateway`; substitute `aws-s3` or `aws-textract` for the 
 
 | Adopter question | Surface | What comes back |
 | --- | --- | --- |
-| Is there this service? | `GET /api/topics?query=api%20gateway`, MCP `atlas_search_service` | the `api-gateway` topic |
-| How is it designed / how does it fit my app? | `GET /api/topics/api-gateway/context`, MCP `atlas_get_context_bundle` | cited excerpts from the module + integration/policy sources |
+| Is there this service? | `GET /api/resources?query=api%20gateway`, MCP `atlas_search_context` | the canonical API Gateway resource plus cited relevant excerpts |
+| How is it designed / how does it fit my app? | `GET /api/resources/service/aws/api-gateway`, MCP `atlas_read_context` | cited excerpts from the module + integration/policy sources |
 | Give me the Terraform | the same bundle (via the terraform module integration) | authoritative `apigateway-module-readme` with a cited `#terraform-starter` HCL snippet |
 | Where's the user guide? | the service datasheet `/catalog/api-gateway` → **User guide** link (a topic `entry_tool`) | a link to the service's user guide (distinct from the adoption route) |
 | What's the adoption guide? | Portal `/guidance/api-gateway-adoption`; `/catalog/api-gateway` → Application notes | governed `route`: understand fit → get terraform → wire/validate |
-| Where is it available? | MCP `atlas_get_availability`, Portal `/availability` | per-region availability |
+| Where is it available? | MCP `atlas_check_availability`, Portal `/availability` | per-region availability |
 
 ## Run it locally
 
 ```bash
 pnpm --filter @atlas/portal dev      # http://localhost:3000
 
-curl "http://localhost:3000/api/topics?query=api%20gateway"
-curl "http://localhost:3000/api/topics/api-gateway/context?disclosure_level=2"
+curl "http://localhost:3000/api/resources?query=api%20gateway"
+curl "http://localhost:3000/api/resources/service/aws/api-gateway"
 curl -X POST http://localhost:3000/mcp -H 'content-type: application/json' \
-  -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"atlas_get_context_bundle","arguments":{"query":"api gateway terraform"}}}'
+  -H 'accept: application/json, text/event-stream' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"atlas_search_context","arguments":{"query":"api gateway terraform"}}}'
 ```
 
 In the Portal, open each service datasheet (`/catalog/api-gateway`, `/catalog/aws-s3`,

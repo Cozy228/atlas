@@ -6,7 +6,7 @@
       "type": "skill-md",
       "description": "Resolve governed, citation-backed platform context from Atlas (services, security policies, sources, regional availability) through the resource Context API. Use when an agent needs an authoritative, sourced answer about a cloud platform service instead of guessing.",
       "url": "/.well-known/agent-skills/atlas-context-consumer/SKILL.md",
-      "digest": "sha256:0a0a58e0346171a25c7adb9f5e562b6a5ba258785fb4076b117023e1dd0ca2ef"
+      "digest": "sha256:ba736103dc59852b51e4855807b139fd44b2c2d74bf74138801b1943935c7f1b"
     }
   ]
 }

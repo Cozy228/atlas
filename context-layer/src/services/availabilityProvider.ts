@@ -3,7 +3,7 @@ import type { LandingZoneAvailability, ServiceIdentity } from "@atlas/schema";
 /**
  * Port for the LZ-aware availability read (plan 014, plan 021 G3). The core
  * exposes the cited grid every consumer renders (Portal Explore, the MCP
- * `atlas_get_availability` tool, the agent `availability` section) without binding
+ * `atlas_check_availability` tool, the agent `availability` section) without binding
  * to any one source of bytes: the live provider iterates the landing-zone root and
  * fetch+parses each wired LZ's Confluence availability page through MSW/prod
  * (single live path). A landing zone with no wired source returns an empty grid —
