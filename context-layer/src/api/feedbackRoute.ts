@@ -5,26 +5,42 @@ import {
   type FeedbackResponse,
   type FeedbackSubmission,
 } from "@atlas/schema";
+import { logger } from "@atlas/logging";
 import { createDefaultContextService } from "../composition";
 import type { ContextService } from "../services/contextService";
 import type { ApiResponse } from "./routeTypes";
 import { errorResponse } from "./routeTypes";
+
+const log = logger("context-layer.feedback");
 
 export async function handleFeedbackRequest(
   input: unknown,
 ): Promise<ApiResponse<ApiErrorResponse | FeedbackResponse>> {
   const parsed = FeedbackSubmissionSchema.safeParse(input);
   if (!parsed.success) {
+    log.debug({ event: "feedback.rejected", reason: "invalid_request" }, "Feedback rejected");
     return errorResponse(400, "invalid_request", "Feedback request is invalid.");
   }
 
   const service = await createDefaultContextService();
   const targetError = validateFeedbackTarget(service, parsed.data);
   if (targetError) {
+    log.warn(
+      {
+        event: "feedback.rejected",
+        reason: "target_not_found",
+        targetType: parsed.data.target_type,
+      },
+      "Feedback target was not found",
+    );
     return targetError;
   }
 
   const feedback = await service.registry.feedback.put(toFeedback(parsed.data));
+  log.info(
+    { event: "feedback.accepted", targetType: parsed.data.target_type },
+    "Feedback accepted",
+  );
   return {
     status: 201,
     body: { feedback },

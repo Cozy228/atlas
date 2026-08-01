@@ -17,11 +17,15 @@ describe("context API Lambda handler", () => {
       rawPath: "/resources/catalog",
       rawQueryString: "",
       headers: {},
-      requestContext: { http: { method: "GET", path: "/resources/catalog" } },
+      requestContext: {
+        requestId: "gateway-request-123",
+        http: { method: "GET", path: "/resources/catalog" },
+      },
       isBase64Encoded: false,
     });
 
     expect(response.statusCode).toBe(200);
+    expect(response.headers["x-request-id"]).toBe("gateway-request-123");
     const body = ResourceCatalogResponseSchema.parse(JSON.parse(response.body));
     expect(body.resources.some((resource) => resource.kind === "guardrail")).toBe(true);
   });

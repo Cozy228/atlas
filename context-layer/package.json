@@ -27,6 +27,7 @@
     "validate:guidance": "vitest run guidanceFixture"
   },
   "dependencies": {
+    "@atlas/logging": "workspace:*",
     "@atlas/schema": "workspace:*",
     "@aws-sdk/client-dynamodb": "3.1098.0",
     "@aws-sdk/lib-dynamodb": "3.1098.0",

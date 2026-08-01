@@ -1,12 +1,15 @@
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import type { LanguageModel } from "ai";
 import { z } from "zod";
+import { logger, safeError } from "@atlas/logging";
 import {
   createGeneratedClaimsAdapter,
   type ClaimsAdapterFetch,
   type GenerateClaimsObject,
 } from "./claimsLlmShared";
 import type { LlmAdapter } from "@/ask/askAtlas";
+
+const log = logger("portal.llm-auth");
 
 export type RaiTokenProviderInput = {
   tokenUrl: string;
@@ -20,9 +23,7 @@ export type RaiTokenProvider = {
   getToken(): Promise<string>;
 };
 
-export function createRaiTokenProvider(
-  input: RaiTokenProviderInput,
-): RaiTokenProvider {
+export function createRaiTokenProvider(input: RaiTokenProviderInput): RaiTokenProvider {
   const fetchImpl = input.fetch ?? globalThis.fetch;
   const now = input.now ?? Date.now;
   let cachedToken: { token: string; expiresAt: number } | undefined;
@@ -30,30 +31,67 @@ export function createRaiTokenProvider(
   return {
     async getToken(): Promise<string> {
       if (cachedToken && cachedToken.expiresAt > now()) {
+        log.debug({ event: "llm.token.cache_hit", provider: "rai" }, "LLM token cache hit");
         return cachedToken.token;
       }
 
-      const response = await fetchImpl(input.tokenUrl, {
-        method: "POST",
-        headers: { "content-type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({
-          grant_type: "client_credentials",
-          client_id: input.clientId,
-          client_secret: input.clientSecret,
-        }),
-      });
+      const startedAt = Date.now();
+      try {
+        const response = await fetchImpl(input.tokenUrl, {
+          method: "POST",
+          headers: { "content-type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({
+            grant_type: "client_credentials",
+            client_id: input.clientId,
+            client_secret: input.clientSecret,
+          }),
+        });
 
-      if (!response.ok) {
-        throw new Error(`RAI token request failed with ${response.status}.`);
+        if (!response.ok) {
+          log.warn(
+            {
+              event: "llm.token.request.completed",
+              provider: "rai",
+              statusCode: response.status,
+              outcome: "error",
+              durationMs: Date.now() - startedAt,
+            },
+            "LLM token request returned a non-success status",
+          );
+          throw new Error(`RAI token request failed with ${response.status}.`);
+        }
+
+        const parsed = raiTokenResponseSchema.parse(await response.json());
+        const expiresInMs = (parsed.expires_in ?? 300) * 1_000;
+        cachedToken = {
+          token: parsed.access_token,
+          expiresAt: now() + Math.max(0, expiresInMs - 30_000),
+        };
+        log.info(
+          {
+            event: "llm.token.request.completed",
+            provider: "rai",
+            statusCode: response.status,
+            outcome: "success",
+            durationMs: Date.now() - startedAt,
+          },
+          "LLM token request completed",
+        );
+        return cachedToken.token;
+      } catch (err) {
+        if (!(err instanceof Error && err.message.startsWith("RAI token request failed with"))) {
+          log.error(
+            {
+              event: "llm.token.request.failed",
+              provider: "rai",
+              durationMs: Date.now() - startedAt,
+              err: safeError(err, "LLM token request failed"),
+            },
+            "LLM token request failed",
+          );
+        }
+        throw err;
       }
-
-      const parsed = raiTokenResponseSchema.parse(await response.json());
-      const expiresInMs = (parsed.expires_in ?? 300) * 1_000;
-      cachedToken = {
-        token: parsed.access_token,
-        expiresAt: now() + Math.max(0, expiresInMs - 30_000),
-      };
-      return cachedToken.token;
     },
   };
 }
@@ -80,6 +118,7 @@ export function createRaiClaimsAdapter(input: RaiClaimsAdapterInput): LlmAdapter
   const tokenProvider = createRaiTokenProvider(input);
 
   return createGeneratedClaimsAdapter({
+    provider: "rai",
     resolveModel: async () => {
       const accessToken = await tokenProvider.getToken();
       const createModel = input.createModel ?? createRaiModel;

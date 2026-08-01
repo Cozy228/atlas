@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { AskAtlasClaim } from "@/ask/askAtlas";
 import { serviceProjection } from "@/fixtures/resourceContexts";
-import { createAskAtlasResponse, type AskAtlasClaimsAdapter } from "./ask";
+import { createAskAtlasResponse, type AskAtlasClaimsAdapter } from "./askHandler";
 
 describe("Ask Atlas server contract", () => {
   it("returns only claims backed by accepted projection citations", async () => {

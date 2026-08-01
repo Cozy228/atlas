@@ -15,8 +15,11 @@
  * source systems. A fresh clone with no creds still gets fixtures (zero-config).
  */
 import { server, setDevDiscoveryEnv } from "@atlas/context-layer/devMocks";
+import { logger } from "@atlas/logging";
 
 import { shouldMockData } from "./shouldMock";
+
+const log = logger("portal.runtime");
 
 const mock = shouldMockData();
 // Record the resolved mode for the data-mode badge (dataMode.ts reads it). Set
@@ -24,6 +27,10 @@ const mock = shouldMockData();
 // reflects the original creds, not the injected fixtures. The prod build never
 // registers this plugin → the marker is absent → the badge reports 'live'.
 process.env.DEV_DATA_MODE = mock ? "mock" : "live";
+log.info(
+  { event: "runtime.data_mode.configured", dataMode: mock ? "mock" : "live" },
+  "Runtime data mode configured",
+);
 if (mock) {
   // Dev-runtime injected latency at the MSW network seam so a real source fetch
   // is visibly slow. The CORRECT behaviour: the FIRST fetch pays this; every
@@ -34,6 +41,13 @@ if (mock) {
   }
   setDevDiscoveryEnv();
   server.listen({ onUnhandledRequest: "bypass" });
+  log.info(
+    {
+      event: "runtime.dev_mocks.started",
+      latencyMs: Number(process.env.DEV_MOCK_LATENCY_MS),
+    },
+    "Development source mocks started",
+  );
 }
 
 // A plain Nitro plugin function (NOT `defineNitroPlugin` — that auto-import is

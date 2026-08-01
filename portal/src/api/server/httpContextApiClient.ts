@@ -11,10 +11,13 @@ import {
   type FeedbackSubmission,
   type SourceDiscoveryRequest,
 } from "@atlas/schema";
+import { logger, safeError } from "@atlas/logging";
 
 import type { ContextApiClient } from "../contextApiClient";
 import { ContextApiError } from "../contextApiError";
 import { serverContextApiClient as inProcessContextApiClient } from "./inProcessContextApi";
+
+const log = logger("portal.context-api");
 
 type FetchLike = (input: string, init?: RequestInit) => Promise<Response>;
 
@@ -31,12 +34,20 @@ export function createServerContextApiClient(
 ): ServerContextApiClient {
   const baseUrl = input.env?.CONTEXT_API_BASE_URL ?? process.env.CONTEXT_API_BASE_URL;
   if (baseUrl) {
+    log.debug(
+      { event: "context_api.transport.configured", transport: "http" },
+      "Context API transport configured",
+    );
     return {
       ...createFetchContextApiClient({ baseUrl, fetch: input.fetch, token: input.token }),
       kind: "http",
     };
   }
 
+  log.debug(
+    { event: "context_api.transport.configured", transport: "in-process" },
+    "Context API transport configured",
+  );
   return {
     ...inProcessContextApiClient,
     kind: "in-process",
@@ -64,6 +75,7 @@ export function createFetchContextApiClient(input: {
   return {
     async getSource(id: string) {
       return requestJson({
+        operation: "get_source",
         fetch: fetchImpl,
         schema: SourceResponseSchema,
         url: `${baseUrl}/sources/${encodeURIComponent(id)}`,
@@ -71,6 +83,7 @@ export function createFetchContextApiClient(input: {
     },
     async getAvailability() {
       return requestJson({
+        operation: "get_availability",
         fetch: fetchImpl,
         schema: AvailabilityReadResponseSchema,
         url: `${baseUrl}/availability`,
@@ -84,6 +97,7 @@ export function createFetchContextApiClient(input: {
         .map((segment) => encodeURIComponent(segment))
         .join("/");
       return requestJson({
+        operation: "get_resource_context",
         fetch: fetchImpl,
         schema: ResourceContextResponseSchema,
         url: `${baseUrl}/resources/${encodeURIComponent(kind)}/${slugPath}`,
@@ -95,6 +109,7 @@ export function createFetchContextApiClient(input: {
         .map((segment) => encodeURIComponent(segment))
         .join("/");
       return requestJson({
+        operation: "get_resource_record",
         fetch: fetchImpl,
         schema: ResourceRecordResponseSchema,
         url: `${baseUrl}/resources/${encodeURIComponent(kind)}/${slugPath}/record`,
@@ -102,6 +117,7 @@ export function createFetchContextApiClient(input: {
     },
     async searchResources(query: string) {
       return requestJson({
+        operation: "search_resources",
         fetch: fetchImpl,
         schema: ResourceSearchResponseSchema,
         url: withQuery(`${baseUrl}/resources`, { query }),
@@ -109,6 +125,7 @@ export function createFetchContextApiClient(input: {
     },
     async discoverSources(request: SourceDiscoveryRequest = {}) {
       return requestJson({
+        operation: "discover_sources",
         fetch: fetchImpl,
         schema: SourceDiscoveryResponseSchema,
         url: withQuery(`${baseUrl}/sources`, request),
@@ -116,6 +133,7 @@ export function createFetchContextApiClient(input: {
     },
     async discoverResources() {
       return requestJson({
+        operation: "discover_resources",
         fetch: fetchImpl,
         schema: ResourceCatalogResponseSchema,
         url: `${baseUrl}/resources/catalog`,
@@ -123,6 +141,7 @@ export function createFetchContextApiClient(input: {
     },
     async submitFeedback(request: FeedbackSubmission) {
       return requestJson({
+        operation: "submit_feedback",
         fetch: fetchImpl,
         schema: FeedbackResponseSchema,
         url: `${baseUrl}/feedback`,
@@ -133,15 +152,41 @@ export function createFetchContextApiClient(input: {
 }
 
 async function requestJson<TBody>(input: {
+  operation: string;
   fetch: FetchLike;
   schema: { parse(input: unknown): TBody };
   url: string;
   init?: RequestInit;
 }): Promise<TBody> {
-  const response = await input.fetch(input.url, input.init ?? { method: "GET" });
+  const startedAt = Date.now();
+  let response: Response;
+  try {
+    response = await input.fetch(input.url, input.init ?? { method: "GET" });
+  } catch (err) {
+    log.error(
+      {
+        event: "context_api.request.failed",
+        operation: input.operation,
+        durationMs: Date.now() - startedAt,
+        err: safeError(err, "Context API request failed"),
+      },
+      "Context API request failed",
+    );
+    throw err;
+  }
   const body: unknown = await response.json().catch(() => ({}));
 
   if (!response.ok) {
+    log.warn(
+      {
+        event: "context_api.request.completed",
+        operation: input.operation,
+        statusCode: response.status,
+        outcome: "error",
+        durationMs: Date.now() - startedAt,
+      },
+      "Context API request returned a non-success status",
+    );
     const parsedError = ApiErrorResponseSchema.safeParse(body);
     if (parsedError.success) {
       throw ContextApiError.fromResponse({
@@ -156,7 +201,32 @@ async function requestJson<TBody>(input: {
     });
   }
 
-  return input.schema.parse(body);
+  try {
+    const parsed = input.schema.parse(body);
+    log.info(
+      {
+        event: "context_api.request.completed",
+        operation: input.operation,
+        statusCode: response.status,
+        outcome: "success",
+        durationMs: Date.now() - startedAt,
+      },
+      "Context API request completed",
+    );
+    return parsed;
+  } catch (err) {
+    log.error(
+      {
+        event: "context_api.response.invalid",
+        operation: input.operation,
+        statusCode: response.status,
+        durationMs: Date.now() - startedAt,
+        err: safeError(err, "Context API response validation failed"),
+      },
+      "Context API response validation failed",
+    );
+    throw err;
+  }
 }
 
 function jsonPost(body: unknown): RequestInit {

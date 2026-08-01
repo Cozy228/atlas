@@ -1,7 +1,10 @@
 import type { AvailabilityReadResponse } from "@atlas/schema";
+import { logger } from "@atlas/logging";
 
 import type { ContextService } from "./contextService";
 import { isStale } from "./freshness";
+
+const log = logger("context-layer.availability");
 
 const AVAILABILITY_SOURCE_ID = "availability-matrix";
 
@@ -35,8 +38,17 @@ export async function readAvailability(service: ContextService): Promise<Availab
     });
   }
 
+  const zones = await service.availabilityProvider.getZones();
+  log.info(
+    {
+      event: "availability.read.completed",
+      zoneCount: zones.length,
+      warningCount: warnings.length,
+    },
+    "Availability read completed",
+  );
   return {
-    zones: await service.availabilityProvider.getZones(),
+    zones,
     citation: {
       source_id: source.id,
       label: source.title,

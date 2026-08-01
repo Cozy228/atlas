@@ -1,4 +1,5 @@
 import type { McpServer, ServerContext } from "@modelcontextprotocol/server";
+import { logger } from "@atlas/logging";
 import {
   AvailabilityReadResponseSchema,
   LocationAvailabilitySchema,
@@ -15,6 +16,8 @@ import { getResourceContext } from "../resources/resourceContextService";
 import { searchContext } from "../search/searchContext";
 import { readAvailability } from "../services/availabilityReadService";
 import { resolutionContextFromHeaders } from "../api/requestResolutionContext";
+
+const log = logger("context-layer.mcp");
 
 const ReadContextInputSchema = z
   .object({
@@ -90,7 +93,7 @@ export function registerAtlasMcpTools(server: McpServer): void {
       annotations: TOOL_ANNOTATIONS,
     },
     async (input, ctx) =>
-      toolCall(async () => {
+      toolCall(ATLAS_MCP_TOOL_SUMMARIES[0].name, async () => {
         const service = await createDefaultContextService();
         return searchContext(service, input, await requestResolutionContext(ctx));
       }),
@@ -105,7 +108,7 @@ export function registerAtlasMcpTools(server: McpServer): void {
       annotations: TOOL_ANNOTATIONS,
     },
     async ({ resource_id: resourceId, sections }, ctx) =>
-      toolCall(async () => {
+      toolCall(ATLAS_MCP_TOOL_SUMMARIES[1].name, async () => {
         const [kind, ...slugParts] = resourceId.split("/");
         const slug = slugParts.join("/");
         if (!resourceKinds.includes(kind as (typeof resourceKinds)[number]) || !slug) {
@@ -137,7 +140,7 @@ export function registerAtlasMcpTools(server: McpServer): void {
       annotations: TOOL_ANNOTATIONS,
     },
     async (input) =>
-      toolCall(async () => {
+      toolCall(ATLAS_MCP_TOOL_SUMMARIES[2].name, async () => {
         const service = await createDefaultContextService();
         const read = await readAvailability(service);
         const query = input.service_query.toLowerCase();
@@ -180,19 +183,40 @@ async function requestResolutionContext(ctx: ServerContext) {
 }
 
 async function toolCall<T extends Record<string, unknown>>(
+  toolName: string,
   run: () => Promise<T>,
 ): Promise<
   | { content: [{ type: "text"; text: string }]; structuredContent: T }
   | { content: [{ type: "text"; text: string }]; isError: true }
 > {
+  const startedAt = Date.now();
   try {
     const result = await run();
+    log.info(
+      {
+        event: "mcp.tool.completed",
+        toolName,
+        outcome: "success",
+        durationMs: Date.now() - startedAt,
+      },
+      "MCP tool completed",
+    );
     return {
       content: [{ type: "text", text: JSON.stringify(result) }],
       structuredContent: result,
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
+    log.warn(
+      {
+        event: "mcp.tool.completed",
+        toolName,
+        outcome: "error",
+        durationMs: Date.now() - startedAt,
+        errorType: error instanceof Error ? error.name : "UnknownError",
+      },
+      "MCP tool failed",
+    );
     return { content: [{ type: "text", text: message }], isError: true };
   }
 }

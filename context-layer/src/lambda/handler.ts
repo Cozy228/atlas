@@ -1,4 +1,7 @@
 import { handleHttpRequest } from "../api/httpRoute";
+import { logger, resolveRequestId, withHttpRequestLogging } from "@atlas/logging";
+
+const log = logger("context-layer.http");
 
 type ApiGatewayHttpEvent = {
   version?: string;
@@ -9,6 +12,7 @@ type ApiGatewayHttpEvent = {
   body?: string | null;
   isBase64Encoded?: boolean;
   requestContext?: {
+    requestId?: string;
     http?: {
       method?: string;
       path?: string;
@@ -23,19 +27,44 @@ type ApiGatewayHttpResponse = {
 };
 
 export async function handler(event: ApiGatewayHttpEvent): Promise<ApiGatewayHttpResponse> {
-  const response = await handleHttpRequest({
-    method: event.requestContext?.http?.method ?? "GET",
-    path: event.rawPath ?? event.requestContext?.http?.path ?? "/",
-    query: parseQueryString(event.rawQueryString ?? ""),
-    headers: event.headers,
-    body: decodeBody(event.body, event.isBase64Encoded),
-  });
+  const requestId = resolveRequestId(event.headers, event.requestContext?.requestId);
+  const method = event.requestContext?.http?.method ?? "GET";
+  const path = event.rawPath ?? event.requestContext?.http?.path ?? "/";
+  const route = routePattern(path);
 
-  return {
-    statusCode: response.status,
-    headers: response.headers,
-    body: response.body,
-  };
+  return withHttpRequestLogging(
+    {
+      log,
+      requestId,
+      method,
+      route,
+      statusCode: (response) => response.statusCode,
+    },
+    async () => {
+      const response = await handleHttpRequest({
+        method,
+        path,
+        query: parseQueryString(event.rawQueryString ?? ""),
+        headers: event.headers,
+        body: decodeBody(event.body, event.isBase64Encoded),
+      });
+
+      return {
+        statusCode: response.status,
+        headers: { ...response.headers, "x-request-id": requestId },
+        body: response.body,
+      };
+    },
+  );
+}
+
+function routePattern(path: string): string {
+  if (/^\/(?:api\/)?sources\/[^/]+$/.test(path)) return "/sources/:sourceId";
+  if (/^\/(?:api\/)?resources\/[^/]+\/.+\/record$/.test(path)) {
+    return "/resources/:kind/:slug/record";
+  }
+  if (/^\/(?:api\/)?resources\/[^/]+\/.+$/.test(path)) return "/resources/:kind/:slug";
+  return path.startsWith("/api/") ? path.slice(4) : path;
 }
 
 function parseQueryString(rawQueryString: string): Record<string, string> {
