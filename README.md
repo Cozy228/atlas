@@ -64,6 +64,23 @@ pnpm --filter @atlas/portal build   # gen agent-skills index, then vite producti
 pnpm --filter @atlas/portal start   # run the built prod server (.output)
 ```
 
+### Container image
+
+Install, build, and image packaging are separate steps. The Docker build consumes only the
+pre-built `portal/.output` artifact; it does not install dependencies or build the Portal.
+
+```bash
+pnpm install --frozen-lockfile
+pnpm --filter @atlas/portal build
+docker build --file portal/Dockerfile --tag atlas-portal:local portal
+```
+
+Run the image locally:
+
+```bash
+docker run --rm --publish 8080:8080 atlas-portal:local
+```
+
 ## Testing
 
 - **Unit / integration** — Vitest, per package (`pnpm -r test`). Context-layer tests drive
