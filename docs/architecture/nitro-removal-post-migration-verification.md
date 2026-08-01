@@ -2,7 +2,8 @@
 
 - Status: complete on the migration branch
 - Verified: 2026-08-01, Asia/Taipei (UTC+08:00)
-- Implementation commit: `ca3725d4bca5642e6f572a1c91a7c217b4a950ab`
+- Migration commit: `ca3725d4bca5642e6f572a1c91a7c217b4a950ab`
+- Performance-remediation code commit: `1584b418`
 - Branch: `feat/nitro-removal-migration`
 - Comparison baseline: `docs/architecture/nitro-removal-pre-migration-baseline.md`
 
@@ -21,19 +22,19 @@ The migration is complete and accepted on this branch:
 
 ## 2. Frozen-ledger rerun
 
-Commands were executed from a clean dependency install against the implementation commit.
+Commands were executed from a clean dependency install against the final remediation code commit.
 
 | Check | Result |
 | --- | --- |
 | `pnpm install --frozen-lockfile` | pass; 0.88 s; no lockfile mutation |
-| `pnpm -r typecheck` | pass; 3.77 s |
-| `pnpm -r lint` | pass; 1.14 s |
-| `pnpm -r test` | pass; 9.36 s |
+| `pnpm -r typecheck` | pass |
+| `pnpm -r lint` | pass |
+| `pnpm -r test` | pass; 438 tests |
 | `pnpm --filter @atlas/context-layer build:lambda` | pass; Node 22 target |
-| `pnpm --filter @atlas/portal build` | pass; output verifier accepted 201 entries |
+| `pnpm --filter @atlas/portal build` | pass; output verifier accepted 199 entries |
 | `pnpm --filter @atlas/e2e doctor` | pass; system Chrome 150.0.7871.187 |
-| Primary Playwright suite | pass; 31/31; 20.1 s |
-| Production smoke suite | pass; 9/9 |
+| Primary Playwright suite | pass; 31/31; 21.3 s |
+| Production smoke suite | pass; 10/10; 5.6 s |
 | `terraform fmt -check`, `init -backend=false`, `validate` | pass; AWS provider 5.100.0 |
 
 Default unit and integration counts were:
@@ -43,8 +44,8 @@ Default unit and integration counts were:
 | `@atlas/infra` | 4 passed |
 | `@atlas/schema` | 25 passed |
 | `azure-react-icons` | 1 passed |
-| `@atlas/context-layer` | 179 passed, 2 skipped |
-| `@atlas/portal` | 220 passed across 45 files |
+| `@atlas/context-layer` | 173 passed across 34 files |
+| `@atlas/portal` | 230 passed across 47 files |
 | `@atlas/acceptance` | 5 passed |
 
 ## 3. Production HTTP and artifact checks
@@ -65,25 +66,25 @@ Final artifact inventory:
 
 | Artifact | Value |
 | --- | ---: |
-| `.output` entries | 201 |
-| `.output` files | 201 |
-| `.output/public` files | 162 |
-| `.output/server` files | 38 |
+| `.output` entries | 199 |
+| `.output` files | 199 |
+| `.output/public` files | 155 |
+| `.output/server` files | 43 |
 | gzip sidecars | 44 |
 | Brotli sidecars | 44 |
-| JavaScript files | 58 |
-| `.output` size | 5,188 KiB |
-| `.output/public` size | 3,092 KiB |
-| `.output/server` size | 2,092 KiB |
-| Context Lambda size | 1,640 KiB |
+| Client JavaScript files | 55 |
+| `.output` size | 5,444 KiB |
+| `.output/public` size | 3,076 KiB |
+| `.output/server` size | 2,364 KiB |
+| Context Lambda size | 1,896 KiB |
 
 No symlink, special filesystem entry, absolute source path, Start/Nitro import, MSW/dev-mock import, or development environment reachability was found in the deployable output.
 
 Retained SHA-256 values:
 
-- `.output/server/index.mjs`: `8fcf15e906393d49c28aecb789640a767de1e8130809fdfed6c73234903d43ee`
-- `.output/BUILD_METADATA.json`: `52ba603c45d42190ec06dca7f8c3dd4bb23b8d496d2f367485677a2783081d18`
-- Context Lambda `handler.mjs`: `c405481602c1ebaa8a2141602a0b8c5b2bd5784508a934edc2254b5064f0b273`
+- `.output/server/index.mjs`: `9c38989206c43fb9a5dbc4be68dab677afa5747c151b870356f8c49b77680fbf`
+- `.output/BUILD_METADATA.json`: `7811c6a58c5ee20e479802f0eb52cc3843b46da22b63ce04ecac89c83d40886b`
+- Context Lambda `handler.mjs`: `6e872cff2c1f10e37e0ddf99914cccae7eb1e4e193a83b4845d582d37ef370fa`
 
 ## 4. Runtime and deployment checks
 
@@ -151,14 +152,15 @@ These differences are the approved Router-only boundary. They are not accidental
 ## 9. Performance remediation follow-up
 
 - Verified: 2026-08-01, Asia/Taipei (UTC+08:00)
-- Remediation commits: `060062ba` through `a19b4466`
+- Remediation commits: `060062ba` through `1584b418`
 - Runner: the same Profile C network and CPU constraints as Section 6
 
 The post-migration cold-load findings were fixed and remeasured. Production home no longer
-requests data mode or landing zones, the service-detail loader starts independent reads before
-checking the primary record, and Motion, Sonner, and Zod are absent from the successful passive
-home dependency closure. Native readiness marks distinguish React interaction readiness from the
-later point at which both live home-data regions have settled and committed.
+requests data mode or landing zones. The service-detail loader validates the primary record before
+starting the remaining expensive reads, then runs those valid-record reads in parallel. Motion,
+Sonner, and Zod are absent from the successful passive home dependency closure. Native readiness
+marks distinguish React interaction readiness from the later point at which both live home-data
+regions have settled and committed.
 
 ### 9.1 Cold home and controlled source delay
 
@@ -206,8 +208,8 @@ Raw HTML reports, HARs, traces, screenshots, and videos are retained outside the
 
 The production build now fails if the home static closure exceeds 14 JavaScript files or 205,000
 effective transfer bytes, if the whole client exceeds 56 JavaScript files or 500,000 bytes, or if
-CSS exceeds 22,000 bytes. The final metadata records 14 home files / 202,264 bytes, 55 total
-JavaScript files / 483,679 bytes, and 21,132 CSS bytes. Total `.output` size increased from 5,188
+CSS exceeds 22,000 bytes. The final metadata records 14 home files / 202,476 bytes, 55 total
+JavaScript files / 483,917 bytes, and 21,132 CSS bytes. Total `.output` size increased from 5,188
 KiB to 5,444 KiB because the deployable server now includes iovalkey and AWS SigV4 credential
 support; this server-only increase does not enter the browser bundle.
 
