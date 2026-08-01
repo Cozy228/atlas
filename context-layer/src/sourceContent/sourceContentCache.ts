@@ -197,27 +197,29 @@ function cacheKey(
   const authScope = authorization
     ? createHash("sha256").update(authorization).digest("hex")
     : "anon";
-  return `${method} ${url} ${authScope}`;
+  return `atlas:source-content:${createHash("sha256")
+    .update(`${method}\n${url}\n${authScope}`)
+    .digest("hex")}`;
 }
 
 /**
  * Select the cache implementation from the environment, mirroring
  * `createFeedbackRepository`: a Valkey adapter when `CACHE_VALKEY_URL` is
- * set, otherwise the in-memory default. The Valkey client defaults to GLIDE;
- * set `CACHE_VALKEY_CLIENT=iovalkey` to use the pure-JS fallback instead.
- * Both client modules are imported lazily so the default install pulls none.
+ * set, otherwise the in-memory default. GLIDE is a hard production dependency
+ * so the configured path is present in the self-contained deployment artifact.
  */
 export async function createSourceContentCache(
   env: Record<string, string | undefined>,
 ): Promise<SourceContentCache> {
   const valkeyUrl = env.CACHE_VALKEY_URL;
   if (valkeyUrl) {
-    if (env.CACHE_VALKEY_CLIENT === "iovalkey") {
-      const { IoValkeyContentCache } = await import("./iovalkeyContentCache");
-      return new IoValkeyContentCache({ url: valkeyUrl });
-    }
     const { ValkeyContentCache } = await import("./valkeyContentCache");
-    return new ValkeyContentCache({ url: valkeyUrl });
+    return new ValkeyContentCache({
+      cacheName: requiredEnv(env, "CACHE_VALKEY_CACHE_NAME"),
+      region: requiredEnv(env, "CACHE_VALKEY_REGION"),
+      url: valkeyUrl,
+      userId: requiredEnv(env, "CACHE_VALKEY_USER_ID"),
+    });
   }
   const maxEntries = numberFromEnv(env.CACHE_MAX_ENTRIES, DEFAULT_MAX_ENTRIES);
   return new InMemoryContentCache({ maxEntries });
@@ -268,4 +270,10 @@ function readProcessEnv(): Record<string, string | undefined> {
 function numberFromEnv(raw: string | undefined, fallback: number): number {
   const parsed = raw ? Number(raw) : NaN;
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function requiredEnv(env: Record<string, string | undefined>, name: string): string {
+  const value = env[name]?.trim();
+  if (!value) throw new Error(`${name} is required when CACHE_VALKEY_URL is set.`);
+  return value;
 }

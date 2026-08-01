@@ -39,6 +39,34 @@ variable "task_memory" {
   description = "Fargate task memory in MiB."
 }
 
+variable "valkey_node_type" {
+  type        = string
+  default     = "cache.t4g.micro"
+  description = "ElastiCache node type for the shared source-content cache."
+}
+
+variable "valkey_num_node_groups" {
+  type        = number
+  default     = 1
+  description = "Number of shards in the cluster-mode Valkey replication group."
+
+  validation {
+    condition     = var.valkey_num_node_groups >= 1
+    error_message = "valkey_num_node_groups must be at least 1."
+  }
+}
+
+variable "valkey_replicas_per_node_group" {
+  type        = number
+  default     = 1
+  description = "Number of replicas per Valkey shard. At least one is required for automatic failover."
+
+  validation {
+    condition     = var.valkey_replicas_per_node_group >= 1
+    error_message = "valkey_replicas_per_node_group must be at least 1."
+  }
+}
+
 variable "vpc_cidr" {
   type        = string
   default     = "10.42.0.0/16"

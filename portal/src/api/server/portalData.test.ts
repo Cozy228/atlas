@@ -26,7 +26,12 @@ describe("Portal-only server data", () => {
       warnings: [],
     }));
 
-    await expect(loadPortalAvailability({ getAvailability })).resolves.toEqual({ zones: [] });
+    await expect(
+      Promise.all([
+        loadPortalAvailability({ getAvailability }),
+        loadPortalAvailability({ getAvailability }),
+      ]),
+    ).resolves.toEqual([{ zones: [] }, { zones: [] }]);
     await expect(loadPortalAvailability({ getAvailability })).resolves.toEqual({ zones: [] });
     expect(getAvailability).toHaveBeenCalledTimes(1);
   });

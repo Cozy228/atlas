@@ -98,9 +98,10 @@ Caching and Atlas's freshness/drift honesty are reconciled by two rules:
    computed at the bundle level from the Source's review metadata, not from the
    fetched bytes, so the cache cannot mask it.
 
-The availability matrix (ADR-0009) resolves from the in-process content
-provider, **not** the live fetch path, so it is never cached here — consistent
-with its "never a stale cached matrix" rule.
+The availability provider now receives the same cached `FetchLike` as resource
+resolution. Its raw Confluence response therefore gets the same auth-scoped
+single-flight, negative-cache, and stale-while-revalidate behavior; the Portal
+also coalesces concurrent anonymous availability projections in each process.
 
 ## Adapter: ElastiCache (Valkey)
 
@@ -109,47 +110,38 @@ default new-cluster engine and is cheaper than the Redis OSS option
 ([AWS](https://aws.amazon.com/elasticache/what-is-valkey/)).
 
 > **Status.** Implemented. The shipped adapter (`valkeyContentCache.ts`) uses
-> **GLIDE** (`@valkey/valkey-glide`).
+> the pure-JS **iovalkey cluster client** with ElastiCache IAM authentication.
 
-**Client choice — GLIDE.** We use **`@valkey/valkey-glide`** (GLIDE), the
-AWS-recommended client for ElastiCache: a Rust-core, multi-language client with
-cluster topology auto-discovery, IAM auth, and best-practice defaults baked in
-([AWS blog](https://aws.amazon.com/blogs/database/introducing-valkey-glide-an-open-source-client-library-for-valkey-and-redis-open-source/)).
+**Client choice — iovalkey Cluster.** The cluster configuration endpoint seeds
+topology discovery and TLS uses hostname-preserving DNS lookup. The adapter
+generates the ElastiCache IAM password with SigV4, supplies the IAM user id as
+the ACL username, and replaces the cluster connection at 14 minutes — before
+the 15-minute token expires.
 
-**Tradeoff (accepted):** GLIDE ships **platform-native binaries** (e.g.
-`@valkey/valkey-glide-linux-musl-x64`), whereas the pure-JS `iovalkey` does not.
-As an optional, lazily-imported dependency neither lands in the default install,
-so the native binary only matters in the runtime that actually turns the cache
-on — acceptable given ElastiCache itself is operator/live territory.
+**Tradeoff (accepted):** iovalkey has no native runtime, so it can remain inside
+the self-contained server artifact. It does not expose a dynamic IAM credentials
+provider, so Atlas owns the short token lifecycle at the cache-adapter boundary
+and rotates the whole cluster connection before expiry.
 
-**Fallback: `iovalkey` (present, not enabled).** A full pure-JS adapter
-(`iovalkeyContentCache.ts`) is kept for runtimes where GLIDE's native binaries
-are a problem. It is **not** active by default — `createSourceContentCache`
-selects it only when `CACHE_VALKEY_CLIENT=iovalkey`. The seam is identical
-(both implement `SourceContentCache`), so the switch is config-only and touches
-no callers. `iovalkey` reads `rediss://` from the URL and enables TLS itself, so
-it needs no `parseValkeyUrl`.
+Terraform provisions a TLS-enabled, cluster-mode Valkey replication group and
+restricts port 6379 ingress to the ECS task security group. An IAM-authenticated
+ElastiCache user can access only `atlas:source-content:*`; the ECS task role can
+connect only to that user and replication group. Leaving `CACHE_VALKEY_URL`
+unset outside that deployment still selects the bounded in-memory fallback.
 
-**Optional dependency.** `@valkey/valkey-glide` stays a non-hard dependency: the
-adapter `await import("@valkey/valkey-glide")` lazily, only when
-`CACHE_VALKEY_URL` is set, and throws a clear "install @valkey/valkey-glide"
-error if configured-on but absent. The default install pulls no Valkey client
-("leave it when config is on").
-
-**Connection (GLIDE target).** `CACHE_VALKEY_URL` is a `rediss://host:6379`
-URL parsed into GLIDE's `{ addresses: [{host, port}], useTLS }` config
-(`rediss://` ⇒ `useTLS: true`, required for ElastiCache in-transit encryption,
-[AWS](https://docs.aws.amazon.com/AmazonElastiCache/latest/dg/connect-tls.html)).
-TTL uses `client.set(key, value, { expiry: { type: TimeUnit.Seconds, count } })`
-([SetOptions](https://valkey.io/valkey-glide/node/Commands/type-aliases/SetOptions/)).
-Values are JSON-serialized `CachedResponse`s.
+**Connection.** `CACHE_VALKEY_URL` must be `rediss://host:6379`; IAM auth
+requires TLS. The cache name, region, and IAM user id are separate inputs because
+the SigV4 token signs the replication-group id, not the DNS endpoint. TTL uses
+`SET key value EX seconds`; values are JSON-serialized `CachedResponse`s.
 
 ## Environment variables
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `CACHE_VALKEY_URL` | _(unset)_ | `rediss://…`. When set, use the Valkey adapter; else in-memory. |
-| `CACHE_VALKEY_CLIENT` | `glide` | Valkey client when the URL is set: `glide` (default) or `iovalkey` (pure-JS fallback). |
+| `CACHE_VALKEY_CACHE_NAME` | _(required with URL)_ | Lowercase replication-group id signed into the IAM token. |
+| `CACHE_VALKEY_REGION` | _(required with URL)_ | AWS region used for SigV4. |
+| `CACHE_VALKEY_USER_ID` | _(required with URL)_ | IAM-enabled ElastiCache ACL user id and username. |
 | `CACHE_TTL_SECONDS` | `300` | Entry TTL for both adapters. |
 | `CACHE_MAX_ENTRIES` | `500` | In-memory adapter bound (ignored by Valkey). |
 
@@ -160,10 +152,9 @@ Values are JSON-serialized `CachedResponse`s.
 3. `withCache(fetch, cache, ttl)` `FetchLike` decorator (key, GET-only, OK-only).
 4. `createSourceContentCache(env)` selector + a memoized `cachedResolutionContext()`
    wired into both the HTTP router and the in-process `handleContextRequest`.
-5. `ValkeyContentCache` (lazy `@valkey/valkey-glide` import, gated by
-   `CACHE_VALKEY_URL`).
+5. `ValkeyContentCache` (iovalkey Cluster + IAM, gated by `CACHE_VALKEY_URL`)
+   plus Terraform user-group and task-role wiring.
 6. Tests: in-memory hit/miss/expiry/auth-isolation; decorator caches GET and
    skips non-OK; selector returns in-memory without config. Valkey adapter:
    `parseValkeyUrl` + a roundtrip against an injected fake client (always run),
-   plus a real-server integration block gated by `CACHE_VALKEY_URL`
-   (skipped unless a live Valkey + the GLIDE package are present).
+   plus a real-server integration block gated by `CACHE_VALKEY_URL`.

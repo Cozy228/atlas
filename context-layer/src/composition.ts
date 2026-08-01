@@ -28,6 +28,7 @@ import { defaultResolutionContext, type FetchLike } from "./resolvers/resolverTy
 import { createConfluenceReferenceDiscovery } from "./sourceContent/confluenceReferenceDiscovery";
 import { createConfluenceGuidanceSource } from "./sourceContent/confluenceGuidanceProvider";
 import { createConfluenceAvailabilityProvider } from "./sourceContent/confluenceAvailabilityProvider";
+import { cachedResolutionContext } from "./sourceContent/sourceContentCache";
 import type { AvailabilityProvider } from "./services/availabilityProvider";
 import type { ResourceReferenceDiscovery } from "./services/resourceReferenceDiscovery";
 import type { ContextService, ContextServiceOptions } from "./services/contextService";
@@ -174,7 +175,10 @@ export async function createDefaultContextService(
   const env = options.env ?? readProcessEnv();
   const availabilityProvider =
     options.availabilityProvider ??
-    createConfluenceAvailabilityProvider({ fetch: liveFetch, env: options.env });
+    createConfluenceAvailabilityProvider({
+      fetch: (await cachedResolutionContext(env)).fetch,
+      env,
+    });
 
   const { services, guardrails } = await discoverAll(
     env,

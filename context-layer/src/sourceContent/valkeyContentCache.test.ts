@@ -1,124 +1,81 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
 import type { CachedResponse } from "./sourceContentCache";
-import { ValkeyContentCache, parseValkeyUrl } from "./valkeyContentCache";
+import { ValkeyContentCache } from "./valkeyContentCache";
 
-describe("parseValkeyUrl", () => {
-  it("enables TLS for rediss:// and defaults the port", () => {
-    expect(parseValkeyUrl("rediss://cache.example.com")).toEqual({
-      host: "cache.example.com",
-      port: 6379,
-      useTLS: true,
-    });
-  });
+const VALUE: CachedResponse = { status: 200, body: { hello: "world" } };
 
-  it("leaves TLS off for redis:// and keeps an explicit port", () => {
-    expect(parseValkeyUrl("redis://localhost:6380")).toEqual({
-      host: "localhost",
-      port: 6380,
-      useTLS: false,
-    });
-  });
-});
-
-/**
- * A Map-backed stand-in for the GLIDE client. Records the expiry option so we
- * can assert the adapter translates `ttlSeconds` into GLIDE's SetOptions shape.
- */
-function fakeGlideClient() {
+function fakeClusterClient() {
   const store = new Map<string, string>();
-  const expiries: { key: string; type: unknown; count: number }[] = [];
-  let closeCalls = 0;
   return {
-    expiries,
-    get closeCalls() {
-      return closeCalls;
-    },
-    client: {
-      async get(key: string) {
-        return store.get(key) ?? null;
-      },
-      async set(key: string, value: string, options: { expiry: { type: unknown; count: number } }) {
-        store.set(key, value);
-        expiries.push({ key, ...options.expiry });
-      },
-      close() {
-        closeCalls += 1;
-      },
-    },
+    connect: vi.fn(async () => {}),
+    disconnect: vi.fn(),
+    get: vi.fn(async (key: string) => store.get(key) ?? null),
+    quit: vi.fn(async () => {}),
+    set: vi.fn(async (key: string, value: string) => {
+      store.set(key, value);
+    }),
   };
 }
 
-const SECONDS = Symbol("seconds");
-const VALUE: CachedResponse = { status: 200, body: { hello: "world" } };
-
-describe("ValkeyContentCache (injected client)", () => {
-  it("round-trips a value through set/get", async () => {
-    const fake = fakeGlideClient();
+describe("ValkeyContentCache", () => {
+  it("uses a cluster client with IAM username and token", async () => {
+    const client = fakeClusterClient();
+    const clientFactory = vi.fn(async () => client);
     const cache = new ValkeyContentCache({
-      url: "rediss://cache.example.com",
-      client: fake.client,
-      secondsUnit: SECONDS,
-    });
-
-    await cache.set("k", VALUE, 120);
-    expect(await cache.get("k")).toEqual(VALUE);
-  });
-
-  it("sets the TTL as a GLIDE seconds-expiry option", async () => {
-    const fake = fakeGlideClient();
-    const cache = new ValkeyContentCache({
-      url: "rediss://cache.example.com",
-      client: fake.client,
-      secondsUnit: SECONDS,
+      cacheName: "atlas-production-content-cache",
+      region: "us-east-1",
+      url: "rediss://configuration.example.com:6379",
+      userId: "atlas-portal",
+      clientFactory,
+      tokenProvider: async () => "signed-token",
     });
 
     await cache.set("k", VALUE, 90);
-    expect(fake.expiries).toEqual([{ key: "k", type: SECONDS, count: 90 }]);
+    expect(await cache.get("k")).toEqual(VALUE);
+    expect(clientFactory).toHaveBeenCalledWith({
+      host: "configuration.example.com",
+      password: "signed-token",
+      port: 6379,
+      username: "atlas-portal",
+    });
+    expect(client.set).toHaveBeenCalledWith("k", JSON.stringify(VALUE), "EX", 90);
   });
 
-  it("treats a missing key as undefined", async () => {
-    const fake = fakeGlideClient();
+  it("rotates the cluster connection before the IAM token expires", async () => {
+    let now = 0;
+    const first = fakeClusterClient();
+    const second = fakeClusterClient();
+    const clientFactory = vi.fn().mockResolvedValueOnce(first).mockResolvedValueOnce(second);
+    const tokenProvider = vi.fn().mockResolvedValueOnce("token-1").mockResolvedValueOnce("token-2");
     const cache = new ValkeyContentCache({
-      url: "rediss://cache.example.com",
-      client: fake.client,
-      secondsUnit: SECONDS,
+      cacheName: "atlas-production-content-cache",
+      region: "us-east-1",
+      url: "rediss://configuration.example.com:6379",
+      userId: "atlas-portal",
+      clientFactory,
+      now: () => now,
+      tokenProvider,
     });
 
-    expect(await cache.get("absent")).toBeUndefined();
+    await cache.get("k");
+    now = 14 * 60_000;
+    await cache.get("k");
+
+    expect(tokenProvider).toHaveBeenCalledTimes(2);
+    expect(first.quit).toHaveBeenCalledTimes(1);
+    expect(clientFactory.mock.calls[1]?.[0]).toMatchObject({ password: "token-2" });
   });
 
-  it("closes an initialized GLIDE client once", () => {
-    const fake = fakeGlideClient();
-    const cache = new ValkeyContentCache({
-      url: "rediss://cache.example.com",
-      client: fake.client,
-      secondsUnit: SECONDS,
-    });
-
-    cache.close();
-    cache.close();
-
-    expect(fake.closeCalls).toBe(1);
-  });
-});
-
-/**
- * Integration test against a real Valkey/ElastiCache, exercising the lazy
- * `@valkey/valkey-glide` import and a true network round-trip. Skipped unless
- * `CACHE_VALKEY_URL` is set (and the GLIDE package is installed) — e.g.
- *   CACHE_VALKEY_URL=redis://localhost:6379 pnpm --filter @atlas/context-layer test
- */
-const liveUrl = process.env.CACHE_VALKEY_URL;
-
-describe.skipIf(!liveUrl)("ValkeyContentCache (live server)", () => {
-  it("stores and reads back a value, and expires it", async () => {
-    const cache = new ValkeyContentCache({ url: liveUrl as string });
-    const key = `atlas-cache-test:${process.pid}`;
-
-    await cache.set(key, VALUE, 1);
-    expect(await cache.get(key)).toEqual(VALUE);
-
-    await new Promise((resolve) => setTimeout(resolve, 1_500));
-    expect(await cache.get(key)).toBeUndefined();
+  it("requires TLS for IAM authentication", () => {
+    expect(
+      () =>
+        new ValkeyContentCache({
+          cacheName: "atlas-production-content-cache",
+          region: "us-east-1",
+          url: "redis://configuration.example.com:6379",
+          userId: "atlas-portal",
+        }),
+    ).toThrow("must use rediss://");
   });
 });

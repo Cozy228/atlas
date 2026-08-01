@@ -1,41 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-const valkeyLifecycle = vi.hoisted(() => {
-  let releaseImport!: () => void;
-  const importGate = new Promise<void>((resolve) => {
-    releaseImport = resolve;
-  });
-  return {
-    close: vi.fn(),
-    importGate,
-    instances: 0,
-    releaseImport,
-  };
-});
+const valkeyLifecycle = vi.hoisted(() => ({ close: vi.fn(), instances: 0 }));
 
-vi.mock("./valkeyContentCache", async () => {
-  await valkeyLifecycle.importGate;
-  return {
-    ValkeyContentCache: class {
-      constructor() {
-        valkeyLifecycle.instances += 1;
-      }
-
-      async get() {
-        return undefined;
-      }
-
-      async set() {}
-
-      close() {
-        valkeyLifecycle.close();
-      }
-    },
-  };
-});
-
-vi.mock("./iovalkeyContentCache", () => ({
-  IoValkeyContentCache: class {
+vi.mock("./valkeyContentCache", () => ({
+  ValkeyContentCache: class {
     constructor() {
       valkeyLifecycle.instances += 1;
     }
@@ -68,20 +36,21 @@ describe("closeSourceContentCache", () => {
     expect(valkeyLifecycle.close).not.toHaveBeenCalled();
   });
 
-  it("atomically resets a pending shared cache and closes each instance once", async () => {
-    const firstContext = cachedResolutionContext({
+  it("resets the shared cache and closes each instance once", async () => {
+    await cachedResolutionContext({
+      CACHE_VALKEY_CACHE_NAME: "first-cache",
+      CACHE_VALKEY_REGION: "us-east-1",
       CACHE_VALKEY_URL: "redis://first-cache.example.com",
+      CACHE_VALKEY_USER_ID: "atlas-portal",
     });
-    await Promise.resolve();
-    const firstClose = closeSourceContentCache();
-    const duplicateClose = closeSourceContentCache();
-    const secondContext = cachedResolutionContext({
-      CACHE_VALKEY_CLIENT: "iovalkey",
+    await closeSourceContentCache();
+    await closeSourceContentCache();
+    await cachedResolutionContext({
+      CACHE_VALKEY_CACHE_NAME: "second-cache",
+      CACHE_VALKEY_REGION: "us-east-1",
       CACHE_VALKEY_URL: "redis://second-cache.example.com",
+      CACHE_VALKEY_USER_ID: "atlas-portal",
     });
-
-    valkeyLifecycle.releaseImport();
-    await Promise.all([firstContext, firstClose, duplicateClose, secondContext]);
 
     expect({
       closeCalls: valkeyLifecycle.close.mock.calls.length,

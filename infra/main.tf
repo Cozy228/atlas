@@ -123,6 +123,88 @@ resource "aws_security_group" "ecs_tasks" {
   })
 }
 
+resource "aws_security_group" "content_cache" {
+  name        = "${local.name_prefix}-content-cache"
+  description = "Valkey ingress from Atlas ECS tasks"
+  vpc_id      = aws_vpc.atlas.id
+
+  ingress {
+    from_port       = 6379
+    to_port         = 6379
+    protocol        = "tcp"
+    security_groups = [aws_security_group.ecs_tasks.id]
+  }
+
+  tags = merge(local.common_tags, {
+    Name = "${local.name_prefix}-content-cache"
+  })
+}
+
+resource "aws_elasticache_subnet_group" "content_cache" {
+  name       = "${local.name_prefix}-content-cache"
+  subnet_ids = aws_subnet.public[*].id
+
+  tags = local.common_tags
+}
+
+resource "aws_elasticache_user" "content_cache_default" {
+  user_id       = "${local.name_prefix}-cache-default"
+  user_name     = "default"
+  access_string = "off ~* -@all"
+  engine        = "valkey"
+
+  authentication_mode {
+    type = "no-password-required"
+  }
+
+  tags = local.common_tags
+}
+
+resource "aws_elasticache_user" "content_cache" {
+  user_id       = "${local.name_prefix}-portal"
+  user_name     = "${local.name_prefix}-portal"
+  access_string = "on ~atlas:source-content:* +@read +@write +@connection +cluster|slots +cluster|shards +cluster|info"
+  engine        = "valkey"
+
+  authentication_mode {
+    type = "iam"
+  }
+
+  tags = local.common_tags
+}
+
+resource "aws_elasticache_user_group" "content_cache" {
+  user_group_id = "${local.name_prefix}-content-cache"
+  engine        = "valkey"
+  user_ids = [
+    aws_elasticache_user.content_cache_default.user_id,
+    aws_elasticache_user.content_cache.user_id
+  ]
+
+  tags = local.common_tags
+}
+
+resource "aws_elasticache_replication_group" "content_cache" {
+  replication_group_id       = "${local.name_prefix}-content-cache"
+  description                = "Shared Atlas source-content cache"
+  engine                     = "valkey"
+  engine_version             = "7.2"
+  node_type                  = var.valkey_node_type
+  port                       = 6379
+  num_node_groups            = var.valkey_num_node_groups
+  replicas_per_node_group    = var.valkey_replicas_per_node_group
+  automatic_failover_enabled = true
+  multi_az_enabled           = true
+  subnet_group_name          = aws_elasticache_subnet_group.content_cache.name
+  security_group_ids         = [aws_security_group.content_cache.id]
+  user_group_ids             = [aws_elasticache_user_group.content_cache.user_group_id]
+  at_rest_encryption_enabled = true
+  transit_encryption_enabled = true
+  apply_immediately          = true
+
+  tags = local.common_tags
+}
+
 resource "aws_lb" "portal" {
   name               = "${local.name_prefix}-portal"
   internal           = false
@@ -274,6 +356,16 @@ resource "aws_iam_role_policy" "task" {
         ]
         Effect   = "Allow"
         Resource = aws_secretsmanager_secret.runtime.arn
+      },
+      {
+        Action = [
+          "elasticache:Connect"
+        ]
+        Effect = "Allow"
+        Resource = [
+          aws_elasticache_replication_group.content_cache.arn,
+          aws_elasticache_user.content_cache.arn
+        ]
       }
     ]
   })
@@ -331,6 +423,10 @@ resource "aws_ecs_task_definition" "portal" {
         { name = "PORT", value = tostring(var.container_port) },
         { name = "PORTAL_ORIGIN", value = var.portal_origin },
         { name = "FEEDBACK_TABLE", value = aws_dynamodb_table.feedback.name },
+        { name = "CACHE_VALKEY_URL", value = "rediss://${aws_elasticache_replication_group.content_cache.configuration_endpoint_address}:6379" },
+        { name = "CACHE_VALKEY_CACHE_NAME", value = aws_elasticache_replication_group.content_cache.replication_group_id },
+        { name = "CACHE_VALKEY_REGION", value = var.aws_region },
+        { name = "CACHE_VALKEY_USER_ID", value = aws_elasticache_user.content_cache.user_id },
         { name = "RUNTIME_SECRET", value = aws_secretsmanager_secret.runtime.name }
       ]
 
