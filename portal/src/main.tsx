@@ -2,9 +2,10 @@ import { createRoot } from "react-dom/client";
 import { RouterProvider } from "@tanstack/react-router";
 
 import { getRouter } from "./router";
+import { markNavigationStart } from "./lib/readinessMetrics";
 import "./styles/globals.css";
 
-performance.mark("atlas:navigation-start");
+markNavigationStart();
 
 const appElement = document.getElementById("app");
 if (!appElement) throw new Error("Atlas Portal root element was not found.");

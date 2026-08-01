@@ -18,6 +18,7 @@ import { useAskAtlas } from "@/components/ask-atlas/context";
 import { JourneyGrid } from "@/components/home/journey-grid";
 import { IntentSearch } from "@/components/intent-search";
 import { Skeleton } from "@/components/ui/skeleton";
+import { markReady } from "@/lib/readinessMetrics";
 import { cn } from "@/lib/utils";
 
 import { ENTRY_DOT } from "@/components/catalog/data";
@@ -71,9 +72,7 @@ function HomeDeferredFallback() {
 
 export function HomeWelcome({ data }: { data: HomeLoaderData }) {
   useEffect(() => {
-    if (performance.getEntriesByName("atlas:primary-content-ready").length === 0) {
-      performance.mark("atlas:primary-content-ready");
-    }
+    markReady("atlas:primary-content-ready");
   }, []);
   return (
     <div className="flex flex-col gap-16">

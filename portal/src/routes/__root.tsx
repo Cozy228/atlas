@@ -4,6 +4,7 @@ import { Link, Outlet, createRootRouteWithContext } from "@tanstack/react-router
 
 import { fetchPortalDataMode } from "@/api/portalContextApiClient";
 import { PortalShell } from "@/components/portal-shell";
+import { markReady } from "@/lib/readinessMetrics";
 
 // Toasts only matter once one fires; keep sonner out of the entry chunk and
 // mount the Toaster after the initial client render so it never blocks first paint.
@@ -62,14 +63,18 @@ function RootComponent() {
   // interacts. Successful passive page loads never pay for Sonner.
   const [showToaster, setShowToaster] = useState(false);
   useEffect(() => {
-    markOnce("atlas:app-mounted");
-    markOnce("atlas:interaction-ready");
+    markReady("atlas:app-mounted");
+    markReady("atlas:interaction-ready");
     const show = () => setShowToaster(true);
     window.addEventListener("atlas:toast-needed", show, { once: true });
+    window.addEventListener("focusin", show, { once: true });
+    window.addEventListener("pointerover", show, { once: true });
     window.addEventListener("pointerdown", show, { once: true });
     window.addEventListener("keydown", show, { once: true });
     return () => {
       window.removeEventListener("atlas:toast-needed", show);
+      window.removeEventListener("focusin", show);
+      window.removeEventListener("pointerover", show);
       window.removeEventListener("pointerdown", show);
       window.removeEventListener("keydown", show);
     };
@@ -86,8 +91,4 @@ function RootComponent() {
       ) : null}
     </QueryClientProvider>
   );
-}
-
-function markOnce(name: string) {
-  if (performance.getEntriesByName(name).length === 0) performance.mark(name);
 }
