@@ -28,19 +28,19 @@
   },
   "dependencies": {
     "@atlas/schema": "workspace:*",
-    "@aws-sdk/client-dynamodb": "3.1075.0",
-    "@aws-sdk/lib-dynamodb": "3.1075.0",
+    "@aws-sdk/client-dynamodb": "3.1098.0",
+    "@aws-sdk/lib-dynamodb": "3.1098.0",
     "@modelcontextprotocol/server": "2.0.0",
-    "node-html-parser": "^8.0.3",
+    "node-html-parser": "^9.0.1",
     "yaml": "2.9.0",
     "zod": "4.4.3"
   },
   "devDependencies": {
     "@modelcontextprotocol/client": "2.0.0",
-    "@types/node": "26.0.0",
-    "tsdown": "0.22.3",
-    "typescript": "6.0.3",
-    "vite": "8.1.0",
-    "vitest": "4.1.9"
+    "@types/node": "26.1.2",
+    "tsdown": "0.22.14",
+    "typescript": "7.0.2",
+    "vite": "8.2.0",
+    "vitest": "4.1.10"
   }
 }

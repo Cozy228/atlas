@@ -22,14 +22,14 @@
     "typecheck": "tsc --noEmit --pretty false",
     "test": "vitest run"
   },
-  "peerDependencies": {
-    "react": "*"
-  },
   "devDependencies": {
     "@types/react": "19.2.17",
-    "react": "^19.2.7",
-    "typescript": "6.0.3",
-    "vite": "8.1.0",
-    "vitest": "4.1.9"
+    "react": "^19.2.8",
+    "typescript": "7.0.2",
+    "vite": "8.2.0",
+    "vitest": "4.1.10"
+  },
+  "peerDependencies": {
+    "react": "*"
   }
 }

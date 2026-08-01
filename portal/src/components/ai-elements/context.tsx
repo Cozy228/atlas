@@ -206,9 +206,7 @@ export const ContextContentFooter = ({
 
 const TokensWithCost = ({ tokens, costText }: { tokens?: number; costText?: string }) => (
   <span>
-    {tokens === undefined
-      ? "—"
-      : COMPACT_FORMAT.format(tokens)}
+    {tokens === undefined ? "—" : COMPACT_FORMAT.format(tokens)}
     {costText ? <span className="ml-2 text-muted-foreground">• {costText}</span> : null}
   </span>
 );
@@ -281,7 +279,7 @@ export const ContextReasoningUsage = ({
   ...props
 }: ContextReasoningUsageProps) => {
   const { usage, modelId } = useContextValue();
-  const reasoningTokens = usage?.reasoningTokens ?? 0;
+  const reasoningTokens = usage?.outputTokenDetails.reasoningTokens ?? 0;
 
   if (children) {
     return children;
@@ -311,7 +309,7 @@ export type ContextCacheUsageProps = ComponentProps<"div">;
 
 export const ContextCacheUsage = ({ className, children, ...props }: ContextCacheUsageProps) => {
   const { usage, modelId } = useContextValue();
-  const cacheTokens = usage?.cachedInputTokens ?? 0;
+  const cacheTokens = usage?.inputTokenDetails.cacheReadTokens ?? 0;
 
   if (children) {
     return children;
