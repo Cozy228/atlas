@@ -28,5 +28,8 @@ export { LANDING_ZONES } from "./landingZones";
 export { resolveReleaseNotes } from "./releaseNotes/resolveReleaseNotes";
 export { loadConfluenceGuidance } from "./composition";
 export type { Announcement } from "./releaseNotes/parseAnnouncements";
-export { cachedResolutionContext } from "./sourceContent/sourceContentCache";
+export {
+  cachedResolutionContext,
+  closeSourceContentCache,
+} from "./sourceContent/sourceContentCache";
 export type { Release, ReleaseItem } from "./releaseNotes/parseReleaseNotes";

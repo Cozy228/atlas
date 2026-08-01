@@ -22,6 +22,26 @@ describe("Hono portal host", () => {
     await expect(response.json()).resolves.toEqual({ status: "ok" });
   });
 
+  it("reports unavailable readiness while the host drains", async () => {
+    const response = await createPortalApp({ isReady: () => false }).request("/health");
+
+    expect(response.status).toBe(503);
+    await expect(response.json()).resolves.toEqual({ status: "draining" });
+  });
+
+  it("tracks each request through response completion", async () => {
+    const events: string[] = [];
+    const response = await createPortalApp({
+      onRequestStart: () => {
+        events.push("start");
+        return () => events.push("finish");
+      },
+    }).request("/health");
+
+    expect(response.status).toBe(200);
+    expect(events).toEqual(["start", "finish"]);
+  });
+
   it("keeps unmatched Context API requests inside the JSON API contract", async () => {
     const response = await createPortalApp().request("/api/not-registered");
 
@@ -132,7 +152,7 @@ describe("Hono portal host", () => {
     expect(catalogResponse.headers.has("link")).toBe(false);
   });
 
-  it("preserves Nitro's method-wildcard route behavior during the shadow phase", async () => {
+  it("preserves the established method-wildcard route behavior", async () => {
     const app = createPortalApp();
 
     for (const path of [

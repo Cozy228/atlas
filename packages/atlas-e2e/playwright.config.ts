@@ -41,8 +41,8 @@ export default defineConfig({
     env: { DEV_MOCKS: "1", LLM_PROVIDER: "simulated", DEV_MOCK_LATENCY_MS: "250" },
     url: baseURL,
     reuseExistingServer: !process.env.CI,
-    // Bound teardown: SIGTERM the dev server, then SIGKILL after 15s if `vite dev`
-    // (pnpm → vite → nitro) doesn't exit cleanly — otherwise `playwright test` can
+    // Bound teardown: SIGTERM the dev coordinator, then SIGKILL after 15s if its
+    // Vite and Hono children do not exit cleanly — otherwise `playwright test` can
     // hang indefinitely after the suite finishes (observed locally; in CI it would
     // wedge the job to its 20-min timeout).
     gracefulShutdown: { signal: "SIGTERM", timeout: 15_000 },

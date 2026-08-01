@@ -1,7 +1,7 @@
 /**
  * Shared dev/integration MSW surface (plan 018). Consumed by:
  *   - context-layer integration tests (via `setup.ts`),
- *   - portal integration tests + the portal dev-runtime Nitro plugin,
+ *   - portal integration tests + the Portal's Hono dev initializer,
  * all of which point `CONFLUENCE_*` / `TERRAFORM_*` at this fixture
  * and let the live adapters fetch through the Node-mode interceptor.
  *

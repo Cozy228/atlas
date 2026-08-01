@@ -87,7 +87,7 @@ function mutationsOf(document: { paths: Record<string, Record<string, unknown>> 
  * Route ↔ OpenAPI parity. The net invariant is `agent ⊆ router == internal`:
  *
  * - agent ⊆ router: every agent `/api/*` path dispatches in `handleHttpRequest`
- *   (the discovery paths `/llms.txt` and `/.well-known/*` are Nitro routes, not
+ *   (the discovery paths `/llms.txt` and `/.well-known/*` are Hono host routes, not
  *   Context-API routes, so they are excluded here).
  * - router == internal: forward — every internal path dispatches; reverse —
  *   every dispatch parsed from `httpRoute.ts` has a documented internal path.

@@ -13,6 +13,8 @@ import type { CachedResponse, SourceContentCache } from "./sourceContentCache";
 type ValkeyClient = {
   get(key: string): Promise<string | null>;
   set(key: string, value: string, mode: "EX", ttlSeconds: number): Promise<unknown>;
+  quit(): Promise<unknown>;
+  disconnect(reconnect?: boolean): void;
 };
 
 export type IoValkeyContentCacheInput = {
@@ -48,6 +50,17 @@ export class IoValkeyContentCache implements SourceContentCache {
   async set(key: string, value: CachedResponse, ttlSeconds: number): Promise<void> {
     const client = await this.connect();
     await client.set(key, JSON.stringify(value), "EX", ttlSeconds);
+  }
+
+  async close(): Promise<void> {
+    const client = this.client;
+    this.client = undefined;
+    if (!client) return;
+    try {
+      await client.quit();
+    } catch {
+      client.disconnect();
+    }
   }
 
   private async connect(): Promise<ValkeyClient> {

@@ -1,12 +1,12 @@
 /**
- * The dev-runtime mock/live decision — evaluated ONCE at boot by the MSW plugin
+ * The dev-runtime mock/live decision — evaluated once at boot by the MSW initializer
  * (`start.ts`), which caches the result in `DEV_DATA_MODE` for the data-mode badge
  * (`src/api/server/dataMode.ts`) to read. That cached marker is the runtime source
  * of truth, NOT this function: do NOT call `shouldMockData()` again after boot to
  * re-derive the mode, because `setDevDiscoveryEnv()` then injects fixture
  * CONFLUENCE_* creds, so a second call would see creds present and wrongly report
  * 'live' while MSW is still serving mocks. Pure + dependency-free on purpose, so
- * it is safe to import from the Nitro dev plugin without dragging in `msw`.
+ * it is safe to import from the Hono dev bootstrap without dragging in `msw`.
  *
  * Three-state contract: an explicit `DEV_MOCKS` override wins — exactly '1' forces
  * mock, exactly '0' forces real. ANY other value (unset, '', 'false', …) means "no

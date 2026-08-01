@@ -7,6 +7,7 @@ packages:
 allowBuilds:
   # MSW's postinstall only copies the browser Service Worker; we use Node mode
   # (msw/node) for dev/integration source-system mocking, so the build is skipped.
+  esbuild: true
   msw: false
 
 minimumReleaseAgeExclude:

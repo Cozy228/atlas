@@ -23,6 +23,7 @@ export type CachedResponse = { status: number; body: unknown; freshUntil?: numbe
 export interface SourceContentCache {
   get(key: string): Promise<CachedResponse | undefined>;
   set(key: string, value: CachedResponse, ttlSeconds: number): Promise<void>;
+  close?(): void | Promise<void>;
 }
 
 const DEFAULT_TTL_SECONDS = 300;
@@ -232,6 +233,14 @@ let sharedCachePromise: Promise<SourceContentCache> | undefined;
 
 function sharedCache(env: Record<string, string | undefined>): Promise<SourceContentCache> {
   return (sharedCachePromise ??= createSourceContentCache(env));
+}
+
+export async function closeSourceContentCache(): Promise<void> {
+  const cachePromise = sharedCachePromise;
+  sharedCachePromise = undefined;
+  if (!cachePromise) return;
+  const cache = await cachePromise;
+  await cache.close?.();
 }
 
 /**

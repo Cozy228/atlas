@@ -74,6 +74,12 @@ export class ValkeyContentCache implements SourceContentCache {
     });
   }
 
+  close(): void {
+    const client = this.client;
+    this.client = undefined;
+    client?.close();
+  }
+
   private async connect(): Promise<GlideClientLike> {
     if (this.client) {
       return this.client;

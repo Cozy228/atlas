@@ -6,11 +6,19 @@ import { IoValkeyContentCache } from "./iovalkeyContentCache";
  * A Map-backed stand-in for the `iovalkey` client. Records the EX TTL so we can
  * assert the adapter passes `set(key, value, "EX", ttlSeconds)`.
  */
-function fakeIoValkeyClient() {
+function fakeIoValkeyClient(options: { quitError?: Error } = {}) {
   const store = new Map<string, string>();
   const expiries: { key: string; mode: string; ttl: number }[] = [];
+  let quitCalls = 0;
+  let disconnectCalls = 0;
   return {
     expiries,
+    get quitCalls() {
+      return quitCalls;
+    },
+    get disconnectCalls() {
+      return disconnectCalls;
+    },
     client: {
       async get(key: string) {
         return store.get(key) ?? null;
@@ -18,6 +26,13 @@ function fakeIoValkeyClient() {
       async set(key: string, value: string, mode: "EX", ttl: number) {
         store.set(key, value);
         expiries.push({ key, mode, ttl });
+      },
+      async quit() {
+        quitCalls += 1;
+        if (options.quitError) throw options.quitError;
+      },
+      disconnect() {
+        disconnectCalls += 1;
       },
     },
   };
@@ -56,6 +71,33 @@ describe("IoValkeyContentCache (injected client)", () => {
     });
 
     expect(await cache.get("absent")).toBeUndefined();
+  });
+
+  it("quits an initialized client once", async () => {
+    const fake = fakeIoValkeyClient();
+    const cache = new IoValkeyContentCache({
+      url: "rediss://cache.example.com",
+      client: fake.client,
+    });
+
+    await cache.close();
+    await cache.close();
+
+    expect(fake.quitCalls).toBe(1);
+    expect(fake.disconnectCalls).toBe(0);
+  });
+
+  it("disconnects when graceful quit fails", async () => {
+    const fake = fakeIoValkeyClient({ quitError: new Error("connection lost") });
+    const cache = new IoValkeyContentCache({
+      url: "rediss://cache.example.com",
+      client: fake.client,
+    });
+
+    await expect(cache.close()).resolves.toBeUndefined();
+
+    expect(fake.quitCalls).toBe(1);
+    expect(fake.disconnectCalls).toBe(1);
   });
 });
 

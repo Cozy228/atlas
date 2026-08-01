@@ -1,13 +1,23 @@
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
 import { tanstackRouter } from "@tanstack/router-plugin/vite";
-import { nitro } from "nitro/vite";
 import viteReact, { reactCompilerPreset } from "@vitejs/plugin-react";
 import babel from "@rolldown/plugin-babel";
 import tailwindcss from "@tailwindcss/vite";
 
 const portalRoot = fileURLToPath(new URL(".", import.meta.url));
-const isVitest = process.env.VITEST === "true";
+const devApiTarget = "http://127.0.0.1:3001";
+const devApiPaths = [
+  "/api",
+  "/mcp",
+  "/.well-known",
+  "/resources",
+  "/health",
+  "/robots.txt",
+  "/sitemap.xml",
+  "/llms.txt",
+  "/openapi.json",
+];
 
 /**
  * Rolldown manual code splitting. Higher `priority` wins when groups overlap.
@@ -47,19 +57,6 @@ export default defineConfig(({ command }) => ({
       routesDirectory: `${portalRoot}src/routes`,
       generatedRouteTree: `${portalRoot}src/routeTree.gen.ts`,
     }),
-    // Keep the existing one-process development host until the dedicated Hono
-    // dev process lands. Production builds are assembled by Atlas and never
-    // invoke Nitro.
-    !isVitest &&
-      command === "serve" &&
-      nitro({
-        serverDir: "server",
-        // Dev-only MSW boot (plan 018 seam): start the Node-mode source-system
-        // interceptor so the dev runtime's live discovery resolves against the
-        // fixtures. Registered for `vite serve` ONLY — the prod build
-        // (`command === "build"`) never lists it, so `msw` stays out of the bundle.
-        plugins: ["./server/devMocks/start"],
-      }),
     viteReact(),
     // React Compiler — official Babel route for React 19 + Vite 8 Rolldown: keep
     // the Oxc/Rolldown main chain and run the compiler as a standalone
@@ -70,6 +67,20 @@ export default defineConfig(({ command }) => ({
     babel({ presets: [reactCompilerPreset()] }),
     tailwindcss(),
   ],
+  server: {
+    port: 3000,
+    strictPort: true,
+    proxy: Object.fromEntries(
+      devApiPaths.map((path) => [
+        path,
+        {
+          target: devApiTarget,
+          bypass: (request: { url?: string }) =>
+            request.url?.startsWith("/.well-known/agent-skills/") ? request.url : undefined,
+        },
+      ]),
+    ),
+  },
   build: {
     ...(command === "build"
       ? {

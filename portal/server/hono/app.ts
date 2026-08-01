@@ -6,7 +6,6 @@ import { answerAskAtlas, parseAskAtlasRequest } from "@/api/server/ask";
 import { bridgeContextApiRequest } from "@/api/server/contextApiBridge";
 import { createServerContextApiClient } from "@/api/server/httpContextApiClient";
 import { handleMcpRequest } from "@/api/server/mcp/handler";
-import { resolvePortalOrigin } from "@/api/server/portalOrigin";
 import {
   loadPortalAnnouncements,
   loadPortalAvailability,
@@ -15,38 +14,79 @@ import {
   resolveDataMode,
 } from "@/api/server/portalData";
 import { loadGuidance } from "@/lib/loadGuidance";
-import aiCatalogHandler from "../routes/.well-known/ai-catalog.json";
-import apiCatalogHandler from "../routes/.well-known/api-catalog";
-import mcpServerCardHandler from "../routes/.well-known/mcp/server-card.json";
-import oauthProtectedResourceHandler from "../routes/.well-known/oauth-protected-resource";
-import internalOpenApiHandler from "../routes/api/internal/openapi.json";
-import healthHandler from "../routes/health";
-import llmsTxtHandler from "../routes/llms.txt";
-import openApiHandler from "../routes/openapi.json";
-import resourceMarkdownHandler from "../routes/resources/[...]";
-import robotsTxtHandler from "../routes/robots.txt";
-import sitemapHandler from "../routes/sitemap.xml";
+import {
+  handleAgentOpenApi,
+  handleAiCatalog,
+  handleApiCatalog,
+  handleInternalOpenApi,
+  handleLlmsTxt,
+  handleMcpServerCard,
+  handleOauthProtectedResource,
+  handleRobotsTxt,
+} from "./handlers/agentDiscovery";
+import { handleHealth } from "./handlers/health";
+import { handleResourceMarkdown } from "./handlers/resourceMarkdown";
+import { handleSitemap } from "./handlers/sitemap";
+import {
+  createRequestContext,
+  type RequestContext,
+  type RequestContextOptions,
+} from "./requestContext";
+import { createRequestLogEvent, type RequestLogEvent } from "./requestLogging";
 
 const SERVER_PATH_PREFIXES = ["/api", "/health", "/mcp", "/.well-known", "/resources"];
 const STATIC_FILE_EXTENSION =
   /\.(?:avif|br|css|gif|gz|html?|ico|jpe?g|js|json|map|md|mjs|otf|png|svg|ttf|txt|webmanifest|webp|woff2?|xml)$/i;
 
-export type PortalAppOptions = {
+type PortalEnv = {
+  Variables: {
+    requestContext: RequestContext;
+  };
+};
+
+export type PortalAppOptions = RequestContextOptions & {
+  isReady?: () => boolean;
+  onRequestStart?: (requestContext: RequestContext) => (() => void) | undefined;
+  onRequestComplete?: (event: RequestLogEvent) => void;
   serveStaticAsset?: (request: Request) => Response | undefined | Promise<Response | undefined>;
   renderSpaDocument?: (request: Request) => Response | Promise<Response>;
 };
 
-export function createPortalApp(options: PortalAppOptions = {}): Hono {
-  const app = new Hono();
+export function createPortalApp(options: PortalAppOptions = {}): Hono<PortalEnv> {
+  const app = new Hono<PortalEnv>();
 
   app.use("*", async (context, next) => {
-    await next();
-    if (context.req.path === "/") {
-      context.header("Link", buildHomeLinkHeader(resolvePortalOrigin(context.req.raw)));
+    const requestContext = createRequestContext(context.req.raw, options);
+    context.set("requestContext", requestContext);
+    const finishRequest = options.onRequestStart?.(requestContext);
+    let status = 500;
+    try {
+      await next();
+      context.header("X-Request-Id", requestContext.requestId);
+      if (context.req.path === "/") {
+        context.header("Link", buildHomeLinkHeader(requestContext.publicOrigin));
+      }
+      status = context.res.status;
+    } finally {
+      try {
+        options.onRequestComplete?.(
+          createRequestLogEvent({
+            requestContext,
+            method: context.req.method,
+            path: context.req.path,
+            status,
+            completedAt: (options.now ?? Date.now)(),
+          }),
+        );
+      } finally {
+        finishRequest?.();
+      }
     }
   });
 
-  app.all("/health", () => healthHandler());
+  app.all("/health", (context) =>
+    options.isReady?.() === false ? context.json({ status: "draining" }, 503) : handleHealth(),
+  );
   app.get("/api/portal/data-mode", (context) => context.json({ dataMode: resolveDataMode() }));
   app.get("/api/portal/landing-zones", (context) =>
     context.json({ landingZones: loadPortalLandingZones() }),
@@ -91,22 +131,22 @@ export function createPortalApp(options: PortalAppOptions = {}): Hono {
       }),
     );
   });
-  app.all("/api/internal/openapi.json", (context) => internalOpenApiHandler(context.req.raw));
+  app.all("/api/internal/openapi.json", (context) => handleInternalOpenApi(context.req.raw));
   app.all("/api", (context) => bridgeContextApiRequest(context.req.raw));
   app.all("/api/*", (context) => bridgeContextApiRequest(context.req.raw));
-  app.all("/.well-known/ai-catalog.json", (context) => aiCatalogHandler(context.req.raw));
-  app.all("/.well-known/api-catalog", (context) => apiCatalogHandler(context.req.raw));
-  app.all("/.well-known/mcp/server-card.json", (context) => mcpServerCardHandler(context.req.raw));
+  app.all("/.well-known/ai-catalog.json", (context) => handleAiCatalog(context.req.raw));
+  app.all("/.well-known/api-catalog", (context) => handleApiCatalog(context.req.raw));
+  app.all("/.well-known/mcp/server-card.json", (context) => handleMcpServerCard(context.req.raw));
   app.all("/.well-known/oauth-protected-resource", (context) =>
-    oauthProtectedResourceHandler(context.req.raw),
+    handleOauthProtectedResource(context.req.raw),
   );
-  app.all("/llms.txt", (context) => llmsTxtHandler(context.req.raw));
-  app.all("/openapi.json", (context) => openApiHandler(context.req.raw));
-  app.all("/robots.txt", (context) => robotsTxtHandler(context.req.raw));
-  app.all("/sitemap.xml", (context) => sitemapHandler(context.req.raw));
+  app.all("/llms.txt", (context) => handleLlmsTxt(context.req.raw));
+  app.all("/openapi.json", (context) => handleAgentOpenApi(context.req.raw));
+  app.all("/robots.txt", (context) => handleRobotsTxt(context.req.raw));
+  app.all("/sitemap.xml", (context) => handleSitemap(context.req.raw));
   app.all("/mcp", (context) => handleMcpRequest(context.req.raw));
-  app.all("/resources", (context) => resourceMarkdownHandler(context.req.raw));
-  app.all("/resources/*", (context) => resourceMarkdownHandler(context.req.raw));
+  app.all("/resources", (context) => handleResourceMarkdown(context.req.raw));
+  app.all("/resources/*", (context) => handleResourceMarkdown(context.req.raw));
   app.notFound(async (context) => {
     const staticResponse = await options.serveStaticAsset?.(context.req.raw);
     if (staticResponse) return staticResponse;
@@ -141,7 +181,7 @@ export function createPortalApp(options: PortalAppOptions = {}): Hono {
   return app;
 }
 
-function acceptsHtml(context: Context): boolean {
+function acceptsHtml(context: Context<PortalEnv>): boolean {
   return (
     accepts(context, {
       header: "Accept",

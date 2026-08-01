@@ -11,6 +11,11 @@ export type PortalNodeServer = ReturnType<typeof serve>;
 
 export function startPortalServer(options: PortalServerOptions = {}): PortalNodeServer {
   const app = createPortalApp({
+    generateRequestId: options.generateRequestId,
+    isReady: options.isReady,
+    now: options.now,
+    onRequestComplete: options.onRequestComplete,
+    onRequestStart: options.onRequestStart,
     serveStaticAsset: options.serveStaticAsset,
     renderSpaDocument: options.renderSpaDocument,
   });

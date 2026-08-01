@@ -27,8 +27,12 @@ describe("parseValkeyUrl", () => {
 function fakeGlideClient() {
   const store = new Map<string, string>();
   const expiries: { key: string; type: unknown; count: number }[] = [];
+  let closeCalls = 0;
   return {
     expiries,
+    get closeCalls() {
+      return closeCalls;
+    },
     client: {
       async get(key: string) {
         return store.get(key) ?? null;
@@ -37,7 +41,9 @@ function fakeGlideClient() {
         store.set(key, value);
         expiries.push({ key, ...options.expiry });
       },
-      close() {},
+      close() {
+        closeCalls += 1;
+      },
     },
   };
 }
@@ -79,6 +85,20 @@ describe("ValkeyContentCache (injected client)", () => {
     });
 
     expect(await cache.get("absent")).toBeUndefined();
+  });
+
+  it("closes an initialized GLIDE client once", () => {
+    const fake = fakeGlideClient();
+    const cache = new ValkeyContentCache({
+      url: "rediss://cache.example.com",
+      client: fake.client,
+      secondsUnit: SECONDS,
+    });
+
+    cache.close();
+    cache.close();
+
+    expect(fake.closeCalls).toBe(1);
   });
 });
 
