@@ -141,7 +141,14 @@ export async function verifyProductionOutput() {
     entries,
     installedPackageNames,
     packageSections,
-    workspaceRoots: [workspaceRoot, portalRoot],
+    workspaceRoots: [
+      portalRoot,
+      resolve(workspaceRoot, "context-layer"),
+      resolve(workspaceRoot, "packages"),
+      resolve(workspaceRoot, "infra"),
+      resolve(workspaceRoot, "plans"),
+      resolve(workspaceRoot, "docs"),
+    ],
   });
 
   if (violations.length > 0) {

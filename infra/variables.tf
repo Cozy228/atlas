@@ -12,7 +12,7 @@ variable "environment_name" {
 
 variable "container_image" {
   type        = string
-  description = "Container image for the Atlas portal Nitro server."
+  description = "Container image for the Atlas Portal Hono server."
 }
 
 variable "container_port" {

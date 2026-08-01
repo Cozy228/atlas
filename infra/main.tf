@@ -136,18 +136,19 @@ resource "aws_lb" "portal" {
 }
 
 resource "aws_lb_target_group" "portal" {
-  name        = "${local.name_prefix}-portal"
-  port        = var.container_port
-  protocol    = "HTTP"
-  target_type = "ip"
-  vpc_id      = aws_vpc.atlas.id
+  name                 = "${local.name_prefix}-portal"
+  port                 = var.container_port
+  protocol             = "HTTP"
+  target_type          = "ip"
+  vpc_id               = aws_vpc.atlas.id
+  deregistration_delay = 30
 
   health_check {
     enabled             = true
     healthy_threshold   = 2
     interval            = 30
     matcher             = "200-399"
-    path                = "/"
+    path                = "/health"
     protocol            = "HTTP"
     timeout             = 5
     unhealthy_threshold = 3
@@ -305,11 +306,17 @@ resource "aws_ecs_task_definition" "portal" {
   execution_role_arn       = aws_iam_role.task_execution.arn
   task_role_arn            = aws_iam_role.task.arn
 
+  runtime_platform {
+    operating_system_family = "LINUX"
+    cpu_architecture        = "X86_64"
+  }
+
   container_definitions = jsonencode([
     {
-      name      = "atlas-portal"
-      image     = var.container_image
-      essential = true
+      name        = "atlas-portal"
+      image       = var.container_image
+      essential   = true
+      stopTimeout = 30
 
       portMappings = [
         {

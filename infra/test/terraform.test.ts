@@ -41,4 +41,12 @@ describe("Atlas Terraform deployment", () => {
       '{ name = "FEEDBACK_TABLE", value = aws_dynamodb_table.feedback.name }',
     );
   });
+
+  it("aligns ALB and ECS lifecycle with the Hono runtime", () => {
+    expect(mainTerraform).toContain('path                = "/health"');
+    expect(mainTerraform).toContain("deregistration_delay = 30");
+    expect(mainTerraform).toContain("stopTimeout = 30");
+    expect(mainTerraform).toContain('operating_system_family = "LINUX"');
+    expect(mainTerraform).toContain('cpu_architecture        = "X86_64"');
+  });
 });
