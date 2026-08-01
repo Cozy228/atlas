@@ -3,8 +3,17 @@ import { accepts } from "hono/accepts";
 
 import { buildHomeLinkHeader } from "@/api/server/agentDiscovery";
 import { bridgeContextApiRequest } from "@/api/server/contextApiBridge";
+import { createServerContextApiClient } from "@/api/server/httpContextApiClient";
 import { handleMcpRequest } from "@/api/server/mcp/handler";
 import { resolvePortalOrigin } from "@/api/server/portalOrigin";
+import {
+  loadPortalAnnouncements,
+  loadPortalAvailability,
+  loadPortalLandingZones,
+  loadPortalReleases,
+  resolveDataMode,
+} from "@/api/server/portalData";
+import { loadGuidance } from "@/lib/loadGuidance";
 import aiCatalogHandler from "../routes/.well-known/ai-catalog.json";
 import apiCatalogHandler from "../routes/.well-known/api-catalog";
 import mcpServerCardHandler from "../routes/.well-known/mcp/server-card.json";
@@ -36,6 +45,27 @@ export function createPortalApp(options: PortalAppOptions = {}): Hono {
   });
 
   app.all("/health", () => healthHandler());
+  app.get("/api/portal/data-mode", (context) => context.json({ dataMode: resolveDataMode() }));
+  app.get("/api/portal/landing-zones", (context) =>
+    context.json({ landingZones: loadPortalLandingZones() }),
+  );
+  app.get("/api/portal/availability", async (context) => {
+    const token = bearerToken(context.req.raw);
+    return context.json(
+      await loadPortalAvailability(createServerContextApiClient({ token }), {
+        memoize: !token,
+      }),
+    );
+  });
+  app.get("/api/portal/guidance", async (context) =>
+    context.json({ guidance: await loadGuidance() }),
+  );
+  app.get("/api/portal/announcements", async (context) =>
+    context.json({ announcements: await loadPortalAnnouncements() }),
+  );
+  app.get("/api/portal/releases", async (context) =>
+    context.json({ releases: await loadPortalReleases() }),
+  );
   app.all("/api/internal/openapi.json", (context) => internalOpenApiHandler(context.req.raw));
   app.all("/api", (context) => bridgeContextApiRequest(context.req.raw));
   app.all("/api/*", (context) => bridgeContextApiRequest(context.req.raw));
@@ -98,4 +128,9 @@ function acceptsHtml(context: Context): boolean {
       },
     }) === "text/html"
   );
+}
+
+function bearerToken(request: Request): string | undefined {
+  const match = request.headers.get("authorization")?.match(/^Bearer\s+(.+)$/i);
+  return match ? match[1].trim() : undefined;
 }

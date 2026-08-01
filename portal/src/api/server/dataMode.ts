@@ -10,16 +10,13 @@
  */
 import { createServerFn } from "@tanstack/react-start";
 
-export type DataMode = "mock" | "live";
+import type { DataMode } from "../portalContracts";
 
-export function resolveDataMode(): DataMode {
-  // Hard prod gate: the MSW plugin only registers under `vite serve`, so prod can
-  // never be serving mocks. Ignore any DEV_DATA_MODE that leaked into the prod
-  // environment (copied env dump / baked image) so the badge can't lie.
-  if (process.env.NODE_ENV === "production") return "live";
-  return process.env.DEV_DATA_MODE === "mock" ? "mock" : "live";
-}
+export type { DataMode } from "../portalContracts";
 
 export const getDataMode = createServerFn({ method: "GET" }).handler(
-  (): DataMode => resolveDataMode(),
+  async (): Promise<DataMode> => {
+    const { resolveDataMode } = await import("./portalData");
+    return resolveDataMode();
+  },
 );

@@ -2,6 +2,12 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { serviceProjection } from "../fixtures/resourceContexts";
 import {
+  fetchPortalAnnouncements,
+  fetchPortalAvailability,
+  fetchPortalDataMode,
+  fetchPortalGuidance,
+  fetchPortalLandingZones,
+  fetchPortalReleases,
   fetchPortalResourceCatalog,
   fetchPortalResourceContext,
   fetchPortalResourceRecord,
@@ -111,6 +117,44 @@ describe("Portal Context API client", () => {
       "/api/resources/service/aws/textract/record",
       "/api/resources/service/aws/textract",
     ]);
+  });
+
+  it("reads each Portal-only query contract", async () => {
+    const bodies: Record<string, unknown> = {
+      "/api/portal/data-mode": { dataMode: "mock" },
+      "/api/portal/landing-zones": { landingZones: [] },
+      "/api/portal/availability": { zones: [] },
+      "/api/portal/guidance": { guidance: [] },
+      "/api/portal/announcements": { announcements: [] },
+      "/api/portal/releases": { releases: [] },
+    };
+    const fetch = vi.fn(async (url: string) => jsonResponse(200, bodies[url]));
+    vi.stubGlobal("fetch", fetch);
+
+    await expect(
+      Promise.all([
+        fetchPortalDataMode(),
+        fetchPortalLandingZones(),
+        fetchPortalAvailability(),
+        fetchPortalGuidance(),
+        fetchPortalAnnouncements(),
+        fetchPortalReleases(),
+      ]),
+    ).resolves.toEqual(["mock", [], { zones: [] }, [], [], []]);
+    expect(fetch.mock.calls.map(([url]) => url)).toEqual(Object.keys(bodies));
+  });
+
+  it.each([
+    [fetchPortalGuidance, { guidance: [{ id: 42 }] }],
+    [fetchPortalAnnouncements, { announcements: [{ id: 42 }] }],
+    [fetchPortalReleases, { releases: [{ id: 42 }] }],
+  ])("rejects malformed Portal presentation records", async (request, body) => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => jsonResponse(200, body)),
+    );
+
+    await expect(request()).rejects.toThrow(/response is invalid/i);
   });
 });
 

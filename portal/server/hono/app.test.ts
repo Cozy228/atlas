@@ -195,6 +195,32 @@ describe("Hono portal host", () => {
     expect(feedback.feedback.target_id).toBe("service/aws/textract");
   });
 
+  it.each([
+    ["/api/portal/landing-zones", "landingZones"],
+    ["/api/portal/availability", "zones"],
+    ["/api/portal/guidance", "guidance"],
+    ["/api/portal/announcements", "announcements"],
+    ["/api/portal/releases", "releases"],
+  ])("serves the Portal-only query contract %s", async (path, key) => {
+    const response = await createPortalApp().request(path);
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toContain("application/json");
+    const body = (await response.json()) as Record<string, unknown>;
+    expect(Array.isArray(body[key])).toBe(true);
+  });
+
+  it("serves data mode without accepting mutation methods", async () => {
+    const app = createPortalApp();
+    const response = await app.request("/api/portal/data-mode");
+    const postResponse = await app.request("/api/portal/data-mode", { method: "POST" });
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ dataMode: "live" });
+    expect(postResponse.status).toBe(404);
+    expect(postResponse.headers.get("content-type")).toContain("application/json");
+  });
+
   it("serves an unmatched browser document from the SPA fallback", async () => {
     const app = createPortalApp({
       renderSpaDocument: () =>

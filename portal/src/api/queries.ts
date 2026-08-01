@@ -21,6 +21,11 @@ import { fetchAnnouncements, type Announcement } from "@/api/server/announcement
 import { fetchGuidance } from "@/api/server/guidance";
 import type { Guidance } from "@/lib/guidance";
 import {
+  fetchPortalAnnouncements,
+  fetchPortalAvailability,
+  fetchPortalGuidance,
+  fetchPortalLandingZones,
+  fetchPortalReleases,
   fetchPortalResourceCatalog,
   fetchPortalResourceContext,
   fetchPortalResourceRecord,
@@ -29,19 +34,22 @@ import {
 
 export const releaseNotesQueryOptions = queryOptions<Release[]>({
   queryKey: ["release-notes"] as const,
-  queryFn: () => fetchReleaseNotes(),
+  queryFn: ({ signal }) =>
+    typeof window === "undefined" ? fetchReleaseNotes() : fetchPortalReleases({ signal }),
   staleTime: 60_000,
 });
 
 export const announcementsQueryOptions = queryOptions<Announcement[]>({
   queryKey: ["announcements"] as const,
-  queryFn: () => fetchAnnouncements(),
+  queryFn: ({ signal }) =>
+    typeof window === "undefined" ? fetchAnnouncements() : fetchPortalAnnouncements({ signal }),
   staleTime: 60_000,
 });
 
 export const guidanceQueryOptions = queryOptions<Guidance[]>({
   queryKey: ["guidance"] as const,
-  queryFn: () => fetchGuidance(),
+  queryFn: ({ signal }) =>
+    typeof window === "undefined" ? fetchGuidance() : fetchPortalGuidance({ signal }),
   staleTime: Infinity,
 });
 
@@ -49,13 +57,15 @@ export const availabilityQueryKey = ["availability"] as const;
 
 export const availabilityQueryOptions = queryOptions<AvailabilityResponse>({
   queryKey: availabilityQueryKey,
-  queryFn: () => fetchAvailability(),
+  queryFn: ({ signal }) =>
+    typeof window === "undefined" ? fetchAvailability() : fetchPortalAvailability({ signal }),
   staleTime: Infinity,
 });
 
 export const landingZonesQueryOptions = queryOptions<LandingZone[]>({
   queryKey: ["landing-zones"] as const,
-  queryFn: () => fetchLandingZones(),
+  queryFn: ({ signal }) =>
+    typeof window === "undefined" ? fetchLandingZones() : fetchPortalLandingZones({ signal }),
   // The LZ topology is config (dev=prod), effectively static within a session.
   staleTime: Infinity,
 });

@@ -8,7 +8,7 @@
  * `announcements.ts`.)
  */
 import { createServerFn } from "@tanstack/react-start";
-import { cachedResolutionContext, resolveReleaseNotes, type Release } from "@atlas/context-layer";
+import type { Release } from "@atlas/context-layer";
 
 export type { Release } from "@atlas/context-layer";
 
@@ -16,6 +16,6 @@ export const fetchReleaseNotes = createServerFn({
   method: "GET",
   strict: { output: false },
 }).handler(async (): Promise<Release[]> => {
-  const result = await resolveReleaseNotes(await cachedResolutionContext());
-  return result.ok ? result.releases : [];
+  const { loadPortalReleases } = await import("./portalData");
+  return loadPortalReleases();
 });

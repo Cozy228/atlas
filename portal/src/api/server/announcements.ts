@@ -7,11 +7,7 @@
  * / unavailable resolves to an honest empty list — never a fake fallback.
  */
 import { createServerFn } from "@tanstack/react-start";
-import {
-  cachedResolutionContext,
-  resolveReleaseNotes,
-  type Announcement,
-} from "@atlas/context-layer";
+import type { Announcement } from "@atlas/context-layer";
 
 export type { Announcement } from "@atlas/context-layer";
 
@@ -19,6 +15,6 @@ export const fetchAnnouncements = createServerFn({
   method: "GET",
   strict: { output: false },
 }).handler(async (): Promise<Announcement[]> => {
-  const result = await resolveReleaseNotes(await cachedResolutionContext());
-  return result.ok ? result.announcements : [];
+  const { loadPortalAnnouncements } = await import("./portalData");
+  return loadPortalAnnouncements();
 });

@@ -3,7 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { IconMenu2, IconSearch } from "@tabler/icons-react";
 
 import logoSvg from "@/assets/logo.svg?url";
-import type { DataMode } from "@/api/server/dataMode";
+import type { DataMode } from "@/api/portalContracts";
 import { AskAtlasFab } from "@/components/ask-atlas-fab";
 import { AskAtlasProvider, useAskAtlas } from "@/components/ask-atlas/context";
 import { CurrentLandingZoneProvider } from "@/components/landing-zone/context";

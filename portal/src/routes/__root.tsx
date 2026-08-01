@@ -9,6 +9,7 @@ import {
 } from "@tanstack/react-router";
 
 import { getDataMode } from "@/api/server/dataMode";
+import { fetchPortalDataMode } from "@/api/portalContextApiClient";
 import { PortalShell } from "@/components/portal-shell";
 import { themeInitScript } from "@/lib/theme-script";
 import faviconSvg from "@/assets/favicon.svg?url";
@@ -69,7 +70,12 @@ export const Route = createRootRouteWithContext<RouterContext>()({
   // Dev-only data-mode signal for the top-nav badge (plan 026 WU-B). Resolved
   // server-side from the same predicate that gates the MSW boot; serialized into
   // the SSR payload so server and client render the badge identically.
-  loader: async () => ({ dataMode: await getDataMode() }),
+  loader: async ({ abortController }) => ({
+    dataMode:
+      typeof window === "undefined"
+        ? await getDataMode()
+        : await fetchPortalDataMode({ signal: abortController.signal }),
+  }),
   component: RootComponent,
   notFoundComponent: NotFoundComponent,
 });

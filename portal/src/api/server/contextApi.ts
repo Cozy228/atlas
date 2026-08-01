@@ -8,13 +8,7 @@
  */
 import { createServerFn } from "@tanstack/react-start";
 import { getRequestHeader } from "@tanstack/react-start/server";
-import {
-  SourceDiscoveryRequestSchema,
-  type AvailabilityResponse,
-  type LandingZone,
-  type SourceDiscoveryRequest,
-} from "@atlas/schema";
-import { LANDING_ZONES } from "@atlas/context-layer";
+import { SourceDiscoveryRequestSchema, type SourceDiscoveryRequest } from "@atlas/schema";
 import { z } from "zod";
 
 import { createServerContextApiClient } from "./httpContextApiClient";
@@ -55,29 +49,13 @@ const SERVER_FN_OPTIONS = { method: "GET", strict: { output: false } } as const;
  * availability read (plan 014). Drops the read's citation/warnings and returns
  * just the `{ zones }` wire shape the Explore + catalog consumers depend on.
  */
-// Process-level memo for the availability read. The in-process availability path
-// fetches through an UNcached live fetch (unlike the release-notes path, which
-// uses the shared source-content cache), so without this every full-page refresh
-// (a fresh per-request queryClient) would re-pay the live Confluence fetch + dev
-// latency. Memoizing the response here gives availability the same "first read is
-// slow, every refresh is instant" behaviour the cached paths already have. TTL
-// mirrors the source-content cache (5 min); the client's React Query cache covers
-// intra-session navigation on top of this.
-const AVAILABILITY_MEMO_MS = 5 * 60_000;
-let availabilityMemo: { at: number; data: AvailabilityResponse } | undefined;
-
-export const fetchAvailability = createServerFn(SERVER_FN_OPTIONS).handler(
-  async (): Promise<AvailabilityResponse> => {
-    const now = Date.now();
-    if (availabilityMemo && now - availabilityMemo.at < AVAILABILITY_MEMO_MS) {
-      return availabilityMemo.data;
-    }
-    const { zones } = await contextApiForRequest().getAvailability();
-    const data: AvailabilityResponse = { zones };
-    availabilityMemo = { at: now, data };
-    return data;
-  },
-);
+export const fetchAvailability = createServerFn(SERVER_FN_OPTIONS).handler(async () => {
+  const token = callerBearerToken();
+  const { loadPortalAvailability } = await import("./portalData");
+  return loadPortalAvailability(createServerContextApiClient({ token }), {
+    memoize: !token,
+  });
+});
 
 /**
  * The landing-zone topology (plan 021 G3, ADR-0017) — the discovery root's LZ
@@ -86,9 +64,10 @@ export const fetchAvailability = createServerFn(SERVER_FN_OPTIONS).handler(
  * immediately and the unwired LZs (`dataStatus: "not-available"`) are listed, not
  * hidden — an honest dead-end on selection, never another LZ's data (ADR-0006).
  */
-export const fetchLandingZones = createServerFn(SERVER_FN_OPTIONS).handler(
-  async (): Promise<LandingZone[]> => LANDING_ZONES.map((zone) => ({ ...zone })),
-);
+export const fetchLandingZones = createServerFn(SERVER_FN_OPTIONS).handler(async () => {
+  const { loadPortalLandingZones } = await import("./portalData");
+  return loadPortalLandingZones();
+});
 
 const resourceRefSchema = z.object({ kind: z.string().min(1), slug: z.string().min(1) });
 

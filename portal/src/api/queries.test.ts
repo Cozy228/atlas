@@ -1,6 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 
 const client = vi.hoisted(() => ({
+  fetchPortalAnnouncements: vi.fn(async () => []),
+  fetchPortalAvailability: vi.fn(async () => ({ zones: [] })),
+  fetchPortalGuidance: vi.fn(async () => []),
+  fetchPortalLandingZones: vi.fn(async () => []),
+  fetchPortalReleases: vi.fn(async () => []),
   fetchPortalResourceCatalog: vi.fn(async () => ({ resources: [] })),
   fetchPortalResourceContext: vi.fn(async () => ({})),
   fetchPortalResourceRecord: vi.fn(async () => ({})),
@@ -10,6 +15,11 @@ const client = vi.hoisted(() => ({
 vi.mock("./portalContextApiClient", () => client);
 
 import {
+  announcementsQueryOptions,
+  availabilityQueryOptions,
+  guidanceQueryOptions,
+  landingZonesQueryOptions,
+  releaseNotesQueryOptions,
   resourceCatalogQueryOptions,
   resourceContextQueryOptions,
   resourceRecordQueryOptions,
@@ -62,6 +72,33 @@ describe("Portal query transport", () => {
     expect(client.fetchPortalResourceContext).toHaveBeenCalledWith(ref, {
       signal: controller.signal,
     });
+    vi.unstubAllGlobals();
+  });
+
+  it("loads Portal-only queries through their explicit browser contracts", async () => {
+    const controller = new AbortController();
+    vi.stubGlobal("window", {});
+
+    for (const options of [
+      releaseNotesQueryOptions,
+      announcementsQueryOptions,
+      guidanceQueryOptions,
+      availabilityQueryOptions,
+      landingZonesQueryOptions,
+    ]) {
+      const queryFn = options.queryFn as BrowserQueryFn;
+      await queryFn({ signal: controller.signal });
+    }
+
+    for (const request of [
+      client.fetchPortalReleases,
+      client.fetchPortalAnnouncements,
+      client.fetchPortalGuidance,
+      client.fetchPortalAvailability,
+      client.fetchPortalLandingZones,
+    ]) {
+      expect(request).toHaveBeenCalledWith({ signal: controller.signal });
+    }
     vi.unstubAllGlobals();
   });
 });

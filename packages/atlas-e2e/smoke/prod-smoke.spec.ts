@@ -21,6 +21,13 @@ const TOP_ROUTES = [
 ] as const;
 
 test.describe("production smoke (mock-free)", () => {
+  test("Portal-owned API routes before the Context API catch-all", async ({ request }) => {
+    const response = await request.get("/api/portal/data-mode");
+
+    expect(response.status()).toBe(200);
+    await expect(response.json()).resolves.toEqual({ dataMode: "live" });
+  });
+
   for (const path of TOP_ROUTES) {
     test(`${path}: 200 + SSR shell + no mode badge + no JS error`, async ({ page }) => {
       const pageErrors: string[] = [];
