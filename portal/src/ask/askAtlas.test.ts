@@ -92,6 +92,31 @@ describe("Ask Atlas", () => {
     expect(answer.warnings).toEqual([]);
   });
 
+  it("propagates cancellation to the claims adapter", async () => {
+    const controller = new AbortController();
+    const adapter: LlmAdapter = {
+      async answer(_prompt, options) {
+        return new Promise((_resolve, reject) => {
+          options?.signal?.addEventListener("abort", () => reject(options.signal?.reason), {
+            once: true,
+          });
+        });
+      },
+    };
+
+    const pending = askAtlas({
+      question: "How do I use Textract from a private subnet?",
+      projection: serviceProjection,
+      adapter,
+      userId: "user-1",
+      rateLimiter: createDailyRateLimiter(5),
+      signal: controller.signal,
+    });
+    controller.abort(new DOMException("Client disconnected", "AbortError"));
+
+    await expect(pending).rejects.toMatchObject({ name: "AbortError" });
+  });
+
   it("returns a no-evidence answer when the projection has no governed content", async () => {
     const answer = await askAtlas({
       question: "How do I use a mainframe?",

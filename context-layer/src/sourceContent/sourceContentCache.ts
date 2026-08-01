@@ -128,13 +128,14 @@ export function withCache(
   ): Promise<CachedResponse> {
     let pending = inFlight.get(key);
     if (!pending) {
-      pending = fetchAndStore(key, input, init).finally(() => inFlight.delete(key));
+      pending = fetchAndStore(key, input, withoutSignal(init)).finally(() => inFlight.delete(key));
       inFlight.set(key, pending);
     }
     return pending;
   }
 
   return async (input, init) => {
+    init?.signal?.throwIfAborted();
     const method = init?.method ?? "GET";
     if (method !== "GET") {
       return fetch(input, init);
@@ -157,8 +158,24 @@ export function withCache(
       return replay(hit);
     }
 
-    return replay(await startFetch(key, input, init));
+    return replay(await waitForCaller(startFetch(key, input, init), init?.signal));
   };
+}
+
+function withoutSignal(init: Parameters<FetchLike>[1]): Parameters<FetchLike>[1] {
+  if (!init?.signal) return init;
+  const { signal: _signal, ...sharedInit } = init;
+  return sharedInit;
+}
+
+function waitForCaller<T>(pending: Promise<T>, signal: AbortSignal | undefined): Promise<T> {
+  if (!signal) return pending;
+  if (signal.aborted) return Promise.reject(signal.reason);
+  return new Promise<T>((resolve, reject) => {
+    const onAbort = () => reject(signal.reason);
+    signal.addEventListener("abort", onAbort, { once: true });
+    pending.then(resolve, reject).finally(() => signal.removeEventListener("abort", onAbort));
+  });
 }
 
 /** Reconstruct a `FetchLike` result from a buffered body (replayable json()). */

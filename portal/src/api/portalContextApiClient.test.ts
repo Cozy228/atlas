@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { serviceProjection } from "../fixtures/resourceContexts";
 import {
   fetchPortalAnnouncements,
+  fetchPortalAsk,
   fetchPortalAvailability,
   fetchPortalDataMode,
   fetchPortalGuidance,
@@ -76,6 +77,26 @@ describe("Portal Context API client", () => {
       "/api/feedback",
       expect.objectContaining({ method: "POST" }),
     );
+  });
+
+  it("posts Ask Atlas without a Start server-function transport", async () => {
+    const body = { answer: "Use the cited control. [source#anchor]", sources: [], warnings: [] };
+    const fetch = vi.fn(async () => jsonResponse(200, body));
+    vi.stubGlobal("fetch", fetch);
+    const controller = new AbortController();
+
+    await expect(
+      fetchPortalAsk(
+        { resourceSlug: "aws/textract", question: "What applies?" },
+        { signal: controller.signal },
+      ),
+    ).resolves.toEqual(body);
+    expect(fetch).toHaveBeenCalledWith("/api/portal/ask", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ resourceSlug: "aws/textract", question: "What applies?" }),
+      signal: controller.signal,
+    });
   });
 
   it("queries source discovery through the explicit API", async () => {

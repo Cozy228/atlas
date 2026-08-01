@@ -2,6 +2,7 @@ import { Hono, type Context } from "hono";
 import { accepts } from "hono/accepts";
 
 import { buildHomeLinkHeader } from "@/api/server/agentDiscovery";
+import { answerAskAtlas, parseAskAtlasRequest } from "@/api/server/ask";
 import { bridgeContextApiRequest } from "@/api/server/contextApiBridge";
 import { createServerContextApiClient } from "@/api/server/httpContextApiClient";
 import { handleMcpRequest } from "@/api/server/mcp/handler";
@@ -66,6 +67,29 @@ export function createPortalApp(options: PortalAppOptions = {}): Hono {
   app.get("/api/portal/releases", async (context) =>
     context.json({ releases: await loadPortalReleases() }),
   );
+  app.post("/api/portal/ask", async (context) => {
+    let request;
+    try {
+      request = parseAskAtlasRequest(await context.req.json());
+    } catch {
+      return context.json(
+        {
+          error: {
+            code: "invalid_request",
+            message: "Ask Atlas requires a non-empty question.",
+          },
+        },
+        400,
+      );
+    }
+    return context.json(
+      await answerAskAtlas({
+        request,
+        token: bearerToken(context.req.raw),
+        signal: context.req.raw.signal,
+      }),
+    );
+  });
   app.all("/api/internal/openapi.json", (context) => internalOpenApiHandler(context.req.raw));
   app.all("/api", (context) => bridgeContextApiRequest(context.req.raw));
   app.all("/api/*", (context) => bridgeContextApiRequest(context.req.raw));

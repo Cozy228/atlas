@@ -221,6 +221,34 @@ describe("Hono portal host", () => {
     expect(postResponse.headers.get("content-type")).toContain("application/json");
   });
 
+  it("serves Ask Atlas through an explicit validated HTTP contract", async () => {
+    const app = createPortalApp();
+    const invalidResponse = await app.request("/api/portal/ask", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: "{}",
+    });
+    const response = await app.request("/api/portal/ask", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        resourceSlug: "aws/textract",
+        question: "What governed evidence is available?",
+      }),
+    });
+
+    expect(invalidResponse.status).toBe(400);
+    await expect(invalidResponse.json()).resolves.toMatchObject({
+      error: { code: "invalid_request" },
+    });
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      answer: expect.any(String),
+      sources: expect.any(Array),
+      warnings: expect.any(Array),
+    });
+  });
+
   it("serves an unmatched browser document from the SPA fallback", async () => {
     const app = createPortalApp({
       renderSpaDocument: () =>

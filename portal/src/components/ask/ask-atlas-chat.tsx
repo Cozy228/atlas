@@ -1,9 +1,10 @@
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { IconArrowUp, IconBook, IconExclamationCircle } from "@tabler/icons-react";
 import { toast } from "sonner";
 
-import { askAtlas, type AskAtlasResponse } from "@/api/server/ask";
+import { fetchPortalAsk } from "@/api/portalContextApiClient";
+import type { AskAtlasResponse } from "@/api/portalContracts";
 import {
   Conversation,
   ConversationContent,
@@ -60,9 +61,17 @@ export function AskAtlasChat({
   const [input, setInput] = useState("");
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const formId = useId();
+  const requestController = useRef<AbortController | null>(null);
+
+  useEffect(() => () => requestController.current?.abort(), []);
 
   const mutation = useMutation({
-    mutationFn: async (question: string) => askAtlas({ data: { resourceSlug, question } }),
+    mutationFn: async (question: string) => {
+      requestController.current?.abort();
+      const controller = new AbortController();
+      requestController.current = controller;
+      return fetchPortalAsk({ resourceSlug, question }, { signal: controller.signal });
+    },
     onError: (error) => {
       toast.error("Ask Atlas failed", {
         description: error instanceof Error ? error.message : "Unknown error",

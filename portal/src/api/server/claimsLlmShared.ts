@@ -28,6 +28,7 @@ type GenerateClaimsObjectInput = {
   schema: typeof claimResponseSchema;
   system: string;
   prompt: string;
+  abortSignal?: AbortSignal;
 };
 
 export type GenerateClaimsObject = (
@@ -61,17 +62,18 @@ export function createSimulatedClaimsAdapter(projection: ResourceContextResponse
 }
 
 export function createGeneratedClaimsAdapter(input: {
-  resolveModel(): Promise<LanguageModel>;
+  resolveModel(options?: { signal?: AbortSignal }): Promise<LanguageModel>;
   generateObject?: GenerateClaimsObject;
 }): LlmAdapter {
   return {
-    async answer(prompt: string): Promise<ClaimResponse> {
+    async answer(prompt: string, options?: { signal?: AbortSignal }): Promise<ClaimResponse> {
       const run = input.generateObject ?? defaultGenerateClaimsObject;
       const result = await run({
-        model: await input.resolveModel(),
+        model: await input.resolveModel(options),
         schema: claimResponseSchema,
         system: SYSTEM_PROMPT,
         prompt,
+        abortSignal: options?.signal,
       });
       const parsed = claimResponseSchema.safeParse(result.object);
       return parsed.success ? parsed.data : { claims: [] };
@@ -87,6 +89,7 @@ async function defaultGenerateClaimsObject(
     system: input.system,
     prompt: input.prompt,
     output: Output.object({ schema: input.schema }),
+    abortSignal: input.abortSignal,
   });
   return { object: result.output };
 }

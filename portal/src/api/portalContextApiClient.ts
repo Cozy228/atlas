@@ -14,7 +14,7 @@ import type { Announcement, Release } from "@atlas/context-layer";
 import type { Guidance } from "@/lib/guidance";
 import type { ContextApiRequestOptions } from "./contextApiClient";
 import { ContextApiError, type ContextApiErrorCode } from "./contextApiError";
-import type { DataMode } from "./portalContracts";
+import type { AskAtlasRequest, AskAtlasResponse, DataMode } from "./portalContracts";
 
 type AtlasSchemas = typeof import("@atlas/schema");
 
@@ -130,6 +130,14 @@ export function submitPortalFeedback(
   });
 }
 
+export function fetchPortalAsk(request: AskAtlasRequest, options?: ContextApiRequestOptions) {
+  return requestPortalJson<AskAtlasResponse>({
+    url: "/api/portal/ask",
+    init: withSignal(jsonPost(request), options),
+    parse: parseAskAtlasResponse,
+  });
+}
+
 type PortalJsonRequest<TBody> = {
   url: string;
   init: RequestInit;
@@ -196,6 +204,22 @@ function isAnnouncement(value: unknown): value is Announcement {
   return (
     value.link === undefined || (isRecord(value.link) && hasStrings(value.link, ["label", "href"]))
   );
+}
+
+function parseAskAtlasResponse(body: unknown): AskAtlasResponse {
+  if (
+    !isRecord(body) ||
+    typeof body.answer !== "string" ||
+    !Array.isArray(body.sources) ||
+    !body.sources.every(
+      (source) => isRecord(source) && hasStrings(source, ["source_id", "title", "url"]),
+    ) ||
+    !Array.isArray(body.warnings) ||
+    !body.warnings.every((warning) => typeof warning === "string")
+  ) {
+    throw new TypeError("Portal Ask response is invalid.");
+  }
+  return body as AskAtlasResponse;
 }
 
 function isRelease(value: unknown): value is Release {
@@ -321,6 +345,14 @@ function optionalStringArray(value: unknown): boolean {
 
 function withSignal(init: RequestInit, options?: ContextApiRequestOptions): RequestInit {
   return options?.signal ? { ...init, signal: options.signal } : init;
+}
+
+function jsonPost(body: unknown): RequestInit {
+  return {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body),
+  };
 }
 
 function encodeSlug(slug: string): string {

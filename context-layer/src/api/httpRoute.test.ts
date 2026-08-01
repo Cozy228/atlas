@@ -65,4 +65,17 @@ describe("context API HTTP route adapter", () => {
       },
     });
   });
+
+  it("rejects an already-aborted Context API query", async () => {
+    const controller = new AbortController();
+    controller.abort(new DOMException("Client disconnected", "AbortError"));
+
+    await expect(
+      handleHttpRequest({
+        method: "GET",
+        path: "/resources/catalog",
+        signal: controller.signal,
+      }),
+    ).rejects.toMatchObject({ name: "AbortError" });
+  });
 });

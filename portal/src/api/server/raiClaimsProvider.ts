@@ -17,18 +17,16 @@ export type RaiTokenProviderInput = {
 };
 
 export type RaiTokenProvider = {
-  getToken(): Promise<string>;
+  getToken(options?: { signal?: AbortSignal }): Promise<string>;
 };
 
-export function createRaiTokenProvider(
-  input: RaiTokenProviderInput,
-): RaiTokenProvider {
+export function createRaiTokenProvider(input: RaiTokenProviderInput): RaiTokenProvider {
   const fetchImpl = input.fetch ?? globalThis.fetch;
   const now = input.now ?? Date.now;
   let cachedToken: { token: string; expiresAt: number } | undefined;
 
   return {
-    async getToken(): Promise<string> {
+    async getToken(options?: { signal?: AbortSignal }): Promise<string> {
       if (cachedToken && cachedToken.expiresAt > now()) {
         return cachedToken.token;
       }
@@ -41,6 +39,7 @@ export function createRaiTokenProvider(
           client_id: input.clientId,
           client_secret: input.clientSecret,
         }),
+        signal: options?.signal,
       });
 
       if (!response.ok) {
@@ -80,8 +79,8 @@ export function createRaiClaimsAdapter(input: RaiClaimsAdapterInput): LlmAdapter
   const tokenProvider = createRaiTokenProvider(input);
 
   return createGeneratedClaimsAdapter({
-    resolveModel: async () => {
-      const accessToken = await tokenProvider.getToken();
+    resolveModel: async (options) => {
+      const accessToken = await tokenProvider.getToken(options);
       const createModel = input.createModel ?? createRaiModel;
       return createModel({
         baseUrl: input.baseUrl,

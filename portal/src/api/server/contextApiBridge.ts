@@ -21,6 +21,7 @@ export async function bridgeContextApiRequest(request: Request): Promise<Respons
     // Absolute self-referential URLs in resource responses, so a blind agent can
     // follow `resourceUrl` / `markdownUrl` without resolving against the host.
     origin: resolvePortalOrigin(request),
+    signal: request.signal,
   });
   return new Response(response.body, {
     status: response.status,

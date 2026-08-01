@@ -80,6 +80,32 @@ describe("withCache", () => {
     }
   });
 
+  it("cancels one waiter without aborting shared single-flight work", async () => {
+    let resolveFetch!: (response: Awaited<ReturnType<FetchLike>>) => void;
+    let calls = 0;
+    let underlyingSignal: AbortSignal | undefined;
+    const fetch: FetchLike = async (_url, init) => {
+      calls += 1;
+      underlyingSignal = init?.signal;
+      return new Promise((resolve) => {
+        resolveFetch = resolve;
+      });
+    };
+    const cached = withCache(fetch, new InMemoryContentCache(), 60);
+    const firstController = new AbortController();
+    const secondController = new AbortController();
+
+    const first = cached("https://x/page", { signal: firstController.signal });
+    const second = cached("https://x/page", { signal: secondController.signal });
+    firstController.abort(new DOMException("Navigation superseded", "AbortError"));
+
+    await expect(first).rejects.toMatchObject({ name: "AbortError" });
+    resolveFetch(jsonResponse({ ok: true }));
+    await expect(second).resolves.toMatchObject({ status: 200 });
+    expect(calls).toBe(1);
+    expect(underlyingSignal).toBeUndefined();
+  });
+
   it("caches non-OK responses briefly so repeated calls do not re-hit the source", async () => {
     let calls = 0;
     const fetch: FetchLike = async () => {
