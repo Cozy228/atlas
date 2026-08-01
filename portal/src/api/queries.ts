@@ -20,7 +20,12 @@ import { fetchReleaseNotes, type Release } from "@/api/server/releaseNotes";
 import { fetchAnnouncements, type Announcement } from "@/api/server/announcements";
 import { fetchGuidance } from "@/api/server/guidance";
 import type { Guidance } from "@/lib/guidance";
-import { fetchPortalResourceCatalog } from "./portalContextApiClient";
+import {
+  fetchPortalResourceCatalog,
+  fetchPortalResourceContext,
+  fetchPortalResourceRecord,
+  fetchPortalSourceDiscovery,
+} from "./portalContextApiClient";
 
 export const releaseNotesQueryOptions = queryOptions<Release[]>({
   queryKey: ["release-notes"] as const,
@@ -67,7 +72,10 @@ export const resourceCatalogQueryOptions = queryOptions<ResourceCatalogResponse>
 export function sourceDiscoveryQueryOptionsFor(request: SourceDiscoveryRequest = {}) {
   return queryOptions<SourceDiscoveryResponse>({
     queryKey: ["sources", request] as const,
-    queryFn: () => fetchSourceDiscovery({ data: request }),
+    queryFn: ({ signal }) =>
+      typeof window === "undefined"
+        ? fetchSourceDiscovery({ data: request })
+        : fetchPortalSourceDiscovery(request, { signal }),
     staleTime: 60_000,
   });
 }
@@ -77,7 +85,10 @@ export const sourceDiscoveryQueryOptions = sourceDiscoveryQueryOptionsFor();
 export function resourceRecordQueryOptions(ref: { kind: string; slug: string }) {
   return queryOptions<ResourceRecordResponse>({
     queryKey: ["resource-record", ref] as const,
-    queryFn: () => fetchResourceRecord({ data: ref }),
+    queryFn: ({ signal }) =>
+      typeof window === "undefined"
+        ? fetchResourceRecord({ data: ref })
+        : fetchPortalResourceRecord(ref, { signal }),
     // Durable presentation metadata (ADR-0015 §2) — long-lived like the topic read.
     staleTime: 5 * 60_000,
   });
@@ -86,7 +97,10 @@ export function resourceRecordQueryOptions(ref: { kind: string; slug: string }) 
 export function resourceContextQueryOptions(ref: { kind: string; slug: string }) {
   return queryOptions<ResourceContextResponse>({
     queryKey: ["resource-context", ref] as const,
-    queryFn: () => fetchResourceContext({ data: ref }),
+    queryFn: ({ signal }) =>
+      typeof window === "undefined"
+        ? fetchResourceContext({ data: ref })
+        : fetchPortalResourceContext(ref, { signal }),
     // Reference discovery is cached per Resource key on the server (plan 017 SWR);
     // a short client staleTime avoids re-fetching on intra-session re-nav.
     staleTime: 5 * 60_000,

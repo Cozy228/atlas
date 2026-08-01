@@ -166,6 +166,8 @@ describe("Hono portal host", () => {
   it("serves the migrated browser query and mutation contracts", async () => {
     const app = createPortalApp();
     const catalogResponse = await app.request("/api/resources/catalog");
+    const sourcesResponse = await app.request("/api/sources?query=module");
+    const resourceRecordResponse = await app.request("/api/resources/service/aws/textract/record");
     const invalidFeedbackResponse = await app.request("/api/feedback", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -185,6 +187,8 @@ describe("Hono portal host", () => {
     expect(catalogResponse.status).toBe(200);
     const catalog = (await catalogResponse.json()) as { resources: Array<{ id: string }> };
     expect(catalog.resources.some((resource) => resource.id === "service/aws/textract")).toBe(true);
+    expect(sourcesResponse.status).toBe(200);
+    expect(resourceRecordResponse.status).toBe(200);
     expect(invalidFeedbackResponse.status).toBe(400);
     expect(feedbackResponse.status).toBe(201);
     const feedback = (await feedbackResponse.json()) as { feedback: { target_id: string } };

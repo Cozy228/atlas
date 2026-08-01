@@ -50,12 +50,6 @@ function callerBearerToken(): string | undefined {
  */
 const SERVER_FN_OPTIONS = { method: "GET", strict: { output: false } } as const;
 
-const idSchema = z.string().min(1);
-
-export const fetchSource = createServerFn(SERVER_FN_OPTIONS)
-  .validator((input: unknown): string => idSchema.parse(input))
-  .handler(async ({ data }) => contextApiForRequest().getSource(data));
-
 /**
  * The Explore availability grid, read through the one cited Context Layer
  * availability read (plan 014). Drops the read's citation/warnings and returns

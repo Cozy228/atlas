@@ -1,6 +1,13 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { fetchPortalResourceCatalog, submitPortalFeedback } from "./portalContextApiClient";
+import { serviceProjection } from "../fixtures/resourceContexts";
+import {
+  fetchPortalResourceCatalog,
+  fetchPortalResourceContext,
+  fetchPortalResourceRecord,
+  fetchPortalSourceDiscovery,
+  submitPortalFeedback,
+} from "./portalContextApiClient";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -63,6 +70,47 @@ describe("Portal Context API client", () => {
       "/api/feedback",
       expect.objectContaining({ method: "POST" }),
     );
+  });
+
+  it("queries source discovery through the explicit API", async () => {
+    const fetch = vi.fn(async () => jsonResponse(200, { sources: [] }));
+    vi.stubGlobal("fetch", fetch);
+
+    await expect(fetchPortalSourceDiscovery({ query: "module" })).resolves.toEqual({
+      sources: [],
+    });
+    expect(fetch).toHaveBeenCalledWith("/api/sources?query=module", { method: "GET" });
+  });
+
+  it("preserves slash-separated resource addresses", async () => {
+    const record = {
+      kind: "service",
+      id: "service/aws/textract",
+      slug: "aws/textract",
+      provider: "aws",
+      name: "Amazon Textract",
+      aliases: ["Textract"],
+      category: "AI Services",
+      status: "active",
+      description: "Extract text from documents.",
+      entry_tools: [],
+    };
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(200, record))
+      .mockResolvedValueOnce(jsonResponse(200, serviceProjection));
+    vi.stubGlobal("fetch", fetch);
+
+    await expect(
+      fetchPortalResourceRecord({ kind: "service", slug: "aws/textract" }),
+    ).resolves.toEqual(record);
+    await expect(
+      fetchPortalResourceContext({ kind: "service", slug: "aws/textract" }),
+    ).resolves.toEqual(serviceProjection);
+    expect(fetch.mock.calls.map(([url]) => url)).toEqual([
+      "/api/resources/service/aws/textract/record",
+      "/api/resources/service/aws/textract",
+    ]);
   });
 });
 
