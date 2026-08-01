@@ -42,7 +42,7 @@ import {
   resourceContextQueryOptions,
   resourceRecordQueryOptions,
 } from "@/api/queries";
-import type { AvailabilityRecord, LandingZoneAvailability } from "@/api/server/availability";
+import type { AvailabilityRecord, LandingZoneAvailability } from "@atlas/schema";
 import { FeedbackInlineForm } from "@/components/evidence/feedback-inline-form";
 import { ServiceIcon } from "@/components/explore/service-icon";
 import { ServiceIconFallback } from "@/components/explore/service-icon-frame";

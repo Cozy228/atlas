@@ -9,7 +9,7 @@ import {
 import { AnimatePresence, LazyMotion, domAnimation, m } from "motion/react";
 import { IconArrowUpRight, IconChevronDown } from "@tabler/icons-react";
 
-import type { AvailabilityRecord, Location } from "@/api/server/availability";
+import type { AvailabilityRecord, Location } from "@atlas/schema";
 import { ServiceIcon } from "@/components/explore/service-icon";
 import type { ServiceIconProvider } from "@/components/explore/service-icon";
 import { StatusDot } from "@/components/explore/status-dot";

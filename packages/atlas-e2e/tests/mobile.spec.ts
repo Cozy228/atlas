@@ -35,7 +35,7 @@ test.describe("mobile (375px)", () => {
 
   test("hamburger nav opens and navigates", async ({ page }) => {
     await page.goto("/");
-    await page.waitForLoadState("networkidle"); // let the menu button hydrate before clicking
+    await page.waitForLoadState("networkidle"); // let the menu button mount before clicking
     await page.getByRole("button", { name: "Open navigation menu" }).click();
     const drawer = page.getByRole("dialog");
     await expect(drawer).toBeVisible();

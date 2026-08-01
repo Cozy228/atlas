@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <meta
+      name="description"
+      content="Cloud DevEx Portal: governed cloud platform context for application teams."
+    />
+    <title>Cloud DevEx Portal</title>
+    <link rel="icon" type="image/svg+xml" href="/src/assets/favicon.svg" />
+    <link rel="llms-txt" type="text/plain" href="/llms.txt" />
+    <link rel="service-desc" type="application/openapi+json" href="/openapi.json" />
+    <link rel="api-catalog" type="application/linkset+json" href="/.well-known/api-catalog" />
+    <link rel="ai-catalog" type="application/json" href="/.well-known/ai-catalog.json" />
+    <link
+      rel="agent-skills"
+      type="application/json"
+      href="/.well-known/agent-skills/index.json"
+    />
+    <link rel="mcp-server" href="/mcp" />
+    <link rel="sitemap" type="application/xml" href="/sitemap.xml" />
+    <script>
+      try {
+        var m = localStorage.getItem("atlas-theme");
+        var d =
+          m === "dark" ||
+          (m !== "light" && matchMedia("(prefers-color-scheme:dark)").matches);
+        if (d) document.documentElement.classList.add("dark");
+      } catch (e) {}
+    </script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

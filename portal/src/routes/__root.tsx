@@ -1,26 +1,12 @@
-import { Suspense, lazy, useEffect, useState, type ReactNode } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
 import { QueryClientProvider, type QueryClient } from "@tanstack/react-query";
-import {
-  HeadContent,
-  Link,
-  Outlet,
-  Scripts,
-  createRootRouteWithContext,
-} from "@tanstack/react-router";
+import { Link, Outlet, createRootRouteWithContext } from "@tanstack/react-router";
 
-import { getDataMode } from "@/api/server/dataMode";
 import { fetchPortalDataMode } from "@/api/portalContextApiClient";
 import { PortalShell } from "@/components/portal-shell";
-import { themeInitScript } from "@/lib/theme-script";
-import faviconSvg from "@/assets/favicon.svg?url";
-import globalsCss from "@/styles/globals.css?url";
-// Preload the latin Inter Variable file so the brand font is discovered in the
-// first HTML response instead of only after globals.css parses — one fewer serial
-// hop before text paints in-brand (swap is on, so this trims the swap-in delay).
-import interLatinWoff2 from "@fontsource-variable/inter/files/inter-latin-wght-normal.woff2?url";
 
 // Toasts only matter once one fires; keep sonner out of the entry chunk and
-// mount the Toaster after hydration so it never blocks first paint.
+// mount the Toaster after the initial client render so it never blocks first paint.
 const Toaster = lazy(() => import("@/components/ui/sonner").then((m) => ({ default: m.Toaster })));
 
 export interface RouterContext {
@@ -28,53 +14,8 @@ export interface RouterContext {
 }
 
 export const Route = createRootRouteWithContext<RouterContext>()({
-  head: () => ({
-    meta: [
-      { charSet: "utf-8" },
-      {
-        name: "viewport",
-        content: "width=device-width, initial-scale=1, viewport-fit=cover",
-      },
-      { name: "color-scheme", content: "light dark" },
-      {
-        name: "description",
-        content: "Cloud DevEx Portal: governed cloud platform context for application teams.",
-      },
-      { title: "Cloud DevEx Portal" },
-    ],
-    links: [
-      { rel: "icon", type: "image/svg+xml", href: faviconSvg },
-      {
-        rel: "preload",
-        as: "font",
-        type: "font/woff2",
-        href: interLatinWoff2,
-        crossOrigin: "anonymous",
-      },
-      { rel: "stylesheet", href: globalsCss },
-      // Agent-discovery hints mirrored into <head> so a body-only reader (not
-      // just a client that inspects response `Link` headers) finds the surface.
-      { rel: "llms-txt", type: "text/plain", href: "/llms.txt" },
-      { rel: "service-desc", type: "application/openapi+json", href: "/openapi.json" },
-      { rel: "api-catalog", type: "application/linkset+json", href: "/.well-known/api-catalog" },
-      { rel: "ai-catalog", type: "application/json", href: "/.well-known/ai-catalog.json" },
-      {
-        rel: "agent-skills",
-        type: "application/json",
-        href: "/.well-known/agent-skills/index.json",
-      },
-      { rel: "mcp-server", href: "/mcp" },
-      { rel: "sitemap", type: "application/xml", href: "/sitemap.xml" },
-    ],
-  }),
-  // Dev-only data-mode signal for the top-nav badge (plan 026 WU-B). Resolved
-  // server-side from the same predicate that gates the MSW boot; serialized into
-  // the SSR payload so server and client render the badge identically.
   loader: async ({ abortController }) => ({
-    dataMode:
-      typeof window === "undefined"
-        ? await getDataMode()
-        : await fetchPortalDataMode({ signal: abortController.signal }),
+    dataMode: await fetchPortalDataMode({ signal: abortController.signal }),
   }),
   component: RootComponent,
   notFoundComponent: NotFoundComponent,
@@ -120,32 +61,15 @@ function RootComponent() {
   const [showToaster, setShowToaster] = useState(false);
   useEffect(() => setShowToaster(true), []);
   return (
-    <RootDocument>
-      <QueryClientProvider client={queryClient}>
-        <PortalShell dataMode={dataMode}>
-          <Outlet />
-        </PortalShell>
-        {showToaster ? (
-          <Suspense fallback={null}>
-            <Toaster />
-          </Suspense>
-        ) : null}
-      </QueryClientProvider>
-    </RootDocument>
-  );
-}
-
-function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
-  return (
-    <html lang="en" suppressHydrationWarning>
-      <head>
-        <HeadContent />
-        <script>{themeInitScript}</script>
-      </head>
-      <body>
-        <div id="app">{children}</div>
-        <Scripts />
-      </body>
-    </html>
+    <QueryClientProvider client={queryClient}>
+      <PortalShell dataMode={dataMode}>
+        <Outlet />
+      </PortalShell>
+      {showToaster ? (
+        <Suspense fallback={null}>
+          <Toaster />
+        </Suspense>
+      ) : null}
+    </QueryClientProvider>
   );
 }

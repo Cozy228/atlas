@@ -21,7 +21,7 @@ export function useCurrentLandingZoneRecord() {
  * wired LZ renders its children. This is honesty ONLY — making a wired zone's
  * content actually vary per LZ (s3@awsf ≠ s3@azure) is plan 023.
  *
- * Default current-LZ is the wired `awsf`, so first paint / SSR always renders
+ * Default current-LZ is the wired `awsf`, so the first client paint renders
  * children; the dead-end only appears after a client-side switch to an unwired
  * zone (by which point the static LZ list is warm), so there is no flash.
  */

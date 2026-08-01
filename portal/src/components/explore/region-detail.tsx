@@ -5,7 +5,7 @@ import {
   IconMapPin,
 } from "@tabler/icons-react";
 
-import type { Location } from "@/api/server/availability";
+import type { Location } from "@atlas/schema";
 import { cn } from "@/lib/utils";
 import { regionLabel, type RegionHealth } from "./region-map";
 

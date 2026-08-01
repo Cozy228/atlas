@@ -10,10 +10,8 @@
  * snake_case manifest to the camelCase shape the portal lib consumes. A
  * Confluence-authored journey takes precedence over the store on id collision.
  *
- * Kept free of `@tanstack/react-start` so cross-package consumers (e.g.
- * @atlas/acceptance) can load guidance through the package barrel without pulling
- * the server-fn runtime; the `fetchGuidance` server fn in
- * `../api/server/guidance` wraps this.
+ * Kept framework-free so the Hono endpoint and cross-package consumers (e.g.
+ * @atlas/acceptance) can share the same validated loader.
  */
 import { loadConfluenceGuidance } from "@atlas/context-layer";
 import { GuidanceSchema, type Guidance as GuidanceManifest } from "@atlas/schema";

@@ -31,7 +31,7 @@ import type {
   LandingZoneAvailability,
   Location,
   LocationStatus,
-} from "@/api/server/availability";
+} from "@atlas/schema";
 import { CatalogSearchField } from "@/components/catalog-search-field";
 import { ServiceIcon } from "@/components/explore/service-icon";
 import { ServiceIconFallback } from "@/components/explore/service-icon-frame";

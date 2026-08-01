@@ -1,6 +1,5 @@
 import { QueryClient } from "@tanstack/react-query";
 import { createRouter as createTanStackRouter } from "@tanstack/react-router";
-import { setupRouterSsrQueryIntegration } from "@tanstack/react-router-ssr-query";
 
 import { routeTree } from "./routeTree.gen";
 import { RouteError } from "@/components/route-error";
@@ -31,8 +30,6 @@ export function getRouter() {
     // (P0-1). Net-negative on the slow-device lens; see perf-iteration-log Iter 9.
     context: { queryClient },
   });
-
-  setupRouterSsrQueryIntegration({ router, queryClient });
 
   return router;
 }

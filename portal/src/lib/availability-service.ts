@@ -1,6 +1,6 @@
 import type { ResourceRecordResponse } from "@atlas/schema";
 
-import type { AvailabilityRecord } from "@/api/server/availability";
+import type { AvailabilityRecord } from "@atlas/schema";
 
 /**
  * Map a service Resource to its canonical detail-route params

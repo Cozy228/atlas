@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 /**
  * Production smoke (plan 026 WU11): the mock-free prod build. Each top route
- * returns 200, the SSR shell/nav renders, the "Mock data" badge is ABSENT (the
+ * returns 200, the SPA client boots, the "Mock data" badge is ABSENT (the
  * seam contract — prod registers no MSW, so resolveDataMode reports 'live'), and
  * there is no uncaught JS error. NO deterministic-data assertions — honest-empty
  * without creds is expected, and console errors from failed live fetches are not
@@ -28,13 +28,25 @@ test.describe("production smoke (mock-free)", () => {
     await expect(response.json()).resolves.toEqual({ dataMode: "live" });
   });
 
+  test("deep links return the static SPA document before client boot", async ({ request }) => {
+    const response = await request.get("/catalog", {
+      headers: { accept: "text/html" },
+    });
+    const html = await response.text();
+
+    expect(response.status()).toBe(200);
+    expect(html).toContain('<div id="app"></div>');
+    expect(html).toContain('type="module"');
+    expect(html).not.toContain('aria-label="Primary"');
+  });
+
   for (const path of TOP_ROUTES) {
-    test(`${path}: 200 + SSR shell + no mode badge + no JS error`, async ({ page }) => {
+    test(`${path}: 200 + SPA client boot + no mode badge + no JS error`, async ({ page }) => {
       const pageErrors: string[] = [];
       page.on("pageerror", (error) => pageErrors.push(error.message));
       const response = await page.goto(path);
       expect(response?.status(), `${path} HTTP status`).toBeLessThan(400);
-      await expect(page.getByRole("link", { name: "Cloud DevEx Portal home" })).toBeVisible(); // SSR shell/nav
+      await expect(page.getByRole("link", { name: "Cloud DevEx Portal home" })).toBeVisible();
       // Badge ABSENT in prod — by stable testid, not copy, so a label rename can't
       // make this seam-contract check pass vacuously.
       await expect(page.getByTestId("data-mode-badge")).toHaveCount(0);

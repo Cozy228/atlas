@@ -1,10 +1,6 @@
-// @ts-nocheck
-// TanStack Start `tanstackStart()` plus Vite 8 Rolldown `UserConfig` nesting can exceed TypeScript's inference stack
-// in strict IDE checks. Runtime matches TanStack docs; `pnpm run lint` still typechecks app sources.
-
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
-import { tanstackStart } from "@tanstack/react-start/plugin/vite";
+import { tanstackRouter } from "@tanstack/router-plugin/vite";
 import { nitro } from "nitro/vite";
 import viteReact, { reactCompilerPreset } from "@vitejs/plugin-react";
 import babel from "@rolldown/plugin-babel";
@@ -45,11 +41,11 @@ export default defineConfig(({ command }) => ({
     },
   },
   plugins: [
-    tanstackStart({
-      router: {
-        routesDirectory: `${portalRoot}src/routes`,
-        generatedRouteTree: `${portalRoot}src/routeTree.gen.ts`,
-      },
+    tanstackRouter({
+      target: "react",
+      autoCodeSplitting: true,
+      routesDirectory: `${portalRoot}src/routes`,
+      generatedRouteTree: `${portalRoot}src/routeTree.gen.ts`,
     }),
     // `serverDir` enables Nitro filesystem routing for the agent-facing
     // server surface (`server/routes/**`, `server/middleware/**`) without

@@ -41,9 +41,9 @@ function applyThemeToDOM(resolved: ResolvedTheme) {
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  // Start with static server-safe defaults so the initial render matches SSR.
-  // The inline theme script in <head> already handles the visual dark class before
-  // first paint, so there is no flash. State syncs to actual browser values after mount.
+  // Start with stable defaults for the initial client render. The inline theme
+  // script in <head> already applies the visual dark class before first paint, so
+  // there is no flash. State syncs to actual browser values after mount.
   const [mode, setModeState] = useState<ThemeMode>("system");
   const [systemPref, setSystemPref] = useState<ResolvedTheme>("light");
   const isTransitioning = useRef(false);
@@ -51,84 +51,78 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   const resolved: ResolvedTheme = mode === "system" ? systemPref : mode;
 
-  const setMode = useCallback(
-    async (next: ThemeMode, event?: MouseEvent | React.MouseEvent) => {
-      const nextResolved = next === "system" ? getSystemPreference() : next;
-      const prevResolved = document.documentElement.classList.contains("dark") ? "dark" : "light";
-      const noVisualChange = nextResolved === prevResolved;
+  const setMode = useCallback(async (next: ThemeMode, event?: MouseEvent | React.MouseEvent) => {
+    const nextResolved = next === "system" ? getSystemPreference() : next;
+    const prevResolved = document.documentElement.classList.contains("dark") ? "dark" : "light";
+    const noVisualChange = nextResolved === prevResolved;
 
-      const canAnimate =
-        !noVisualChange &&
-        !isTransitioning.current &&
-        typeof document !== "undefined" &&
-        "startViewTransition" in document &&
-        !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const canAnimate =
+      !noVisualChange &&
+      !isTransitioning.current &&
+      typeof document !== "undefined" &&
+      "startViewTransition" in document &&
+      !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-      if (!canAnimate) {
-        applyThemeToDOM(nextResolved);
-        localStorage.setItem(STORAGE_KEY, next);
-        startTransition(() => setModeState(next));
-        return;
+    if (!canAnimate) {
+      applyThemeToDOM(nextResolved);
+      localStorage.setItem(STORAGE_KEY, next);
+      startTransition(() => setModeState(next));
+      return;
+    }
+
+    let x = event?.clientX ?? window.innerWidth / 2;
+    let y = event?.clientY ?? 0;
+    // Keyboard-triggered clicks report (0, 0); expand from the control instead.
+    if (event && event.clientX === 0 && event.clientY === 0) {
+      const target = event.currentTarget;
+      if (target instanceof Element) {
+        const rect = target.getBoundingClientRect();
+        x = rect.left + rect.width / 2;
+        y = rect.top + rect.height / 2;
       }
+    }
+    const endRadius = Math.hypot(
+      Math.max(x, window.innerWidth - x),
+      Math.max(y, window.innerHeight - y),
+    );
 
-      let x = event?.clientX ?? window.innerWidth / 2;
-      let y = event?.clientY ?? 0;
-      // Keyboard-triggered clicks report (0, 0); expand from the control instead.
-      if (event && event.clientX === 0 && event.clientY === 0) {
-        const target = event.currentTarget;
-        if (target instanceof Element) {
-          const rect = target.getBoundingClientRect();
-          x = rect.left + rect.width / 2;
-          y = rect.top + rect.height / 2;
-        }
-      }
-      const endRadius = Math.hypot(
-        Math.max(x, window.innerWidth - x),
-        Math.max(y, window.innerHeight - y),
-      );
+    isTransitioning.current = true;
 
-      isTransitioning.current = true;
+    // Apply DOM changes inside the VT callback so the browser captures the correct
+    // before/after snapshots. React state is synced via startTransition concurrently.
+    const transition = document.startViewTransition(() => {
+      applyThemeToDOM(nextResolved);
+      localStorage.setItem(STORAGE_KEY, next);
+    });
 
-      // Apply DOM changes inside the VT callback so the browser captures the correct
-      // before/after snapshots. React state is synced via startTransition concurrently.
-      const transition = document.startViewTransition(() => {
-        applyThemeToDOM(nextResolved);
-        localStorage.setItem(STORAGE_KEY, next);
+    startTransition(() => setModeState(next));
+
+    // Release the guard however the transition ends, including when the
+    // browser skips it (`ready`/`finished` reject in that case).
+    transition.finished
+      .catch(() => {})
+      .finally(() => {
+        isTransitioning.current = false;
       });
 
-      startTransition(() => setModeState(next));
+    try {
+      await transition.ready;
+    } catch {
+      // Transition was skipped; the theme is already applied.
+      return;
+    }
 
-      // Release the guard however the transition ends, including when the
-      // browser skips it (`ready`/`finished` reject in that case).
-      transition.finished
-        .catch(() => {})
-        .finally(() => {
-          isTransitioning.current = false;
-        });
-
-      try {
-        await transition.ready;
-      } catch {
-        // Transition was skipped; the theme is already applied.
-        return;
-      }
-
-      document.documentElement.animate(
-        {
-          clipPath: [
-            `circle(0px at ${x}px ${y}px)`,
-            `circle(${endRadius}px at ${x}px ${y}px)`,
-          ],
-        },
-        {
-          duration: TRANSITION_DURATION,
-          easing: "cubic-bezier(0.16, 1, 0.3, 1)",
-          pseudoElement: "::view-transition-new(root)",
-        },
-      );
-    },
-    [],
-  );
+    document.documentElement.animate(
+      {
+        clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${endRadius}px at ${x}px ${y}px)`],
+      },
+      {
+        duration: TRANSITION_DURATION,
+        easing: "cubic-bezier(0.16, 1, 0.3, 1)",
+        pseudoElement: "::view-transition-new(root)",
+      },
+    );
+  }, []);
 
   useEffect(() => {
     setModeState(readStoredMode());
@@ -136,7 +130,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    // Skip the first run: `resolved` still holds the SSR default here, and the
+    // Skip the first run: `resolved` still holds the initial default here, and the
     // inline head script already applied the correct class before first paint.
     if (!hasMounted.current) {
       hasMounted.current = true;

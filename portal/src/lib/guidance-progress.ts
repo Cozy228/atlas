@@ -6,8 +6,8 @@ import { useCallback, useMemo, useSyncExternalStore } from "react";
  * system of record and is never sent anywhere. Task keys are `${stepId}:${taskId}`.
  *
  * Backed by a module-level external store read through `useSyncExternalStore`, so
- * SSR renders the empty server snapshot and the client swaps in the stored value
- * on hydration — no effect-driven setState, no hydration mismatch.
+ * the first render can use an empty snapshot before the stored value is available,
+ * without effect-driven state synchronization.
  */
 
 const STORAGE_KEY = "atlas:guidance-progress";
@@ -73,7 +73,7 @@ function useStore(): ProgressMap {
   return useSyncExternalStore(subscribe, current, () => EMPTY);
 }
 
-/** False during SSR and the hydration render, true once mounted on the client. */
+/** False until the component is mounted on the client. */
 export function useIsHydrated(): boolean {
   return useSyncExternalStore(
     () => () => {},
