@@ -1,7 +1,21 @@
 import { Hono, type Context } from "hono";
 import { accepts } from "hono/accepts";
 
+import { buildHomeLinkHeader } from "@/api/server/agentDiscovery";
 import { bridgeContextApiRequest } from "@/api/server/contextApiBridge";
+import { handleMcpRequest } from "@/api/server/mcp/handler";
+import { resolvePortalOrigin } from "@/api/server/portalOrigin";
+import aiCatalogHandler from "../routes/.well-known/ai-catalog.json";
+import apiCatalogHandler from "../routes/.well-known/api-catalog";
+import mcpServerCardHandler from "../routes/.well-known/mcp/server-card.json";
+import oauthProtectedResourceHandler from "../routes/.well-known/oauth-protected-resource";
+import internalOpenApiHandler from "../routes/api/internal/openapi.json";
+import healthHandler from "../routes/health";
+import llmsTxtHandler from "../routes/llms.txt";
+import openApiHandler from "../routes/openapi.json";
+import resourceMarkdownHandler from "../routes/resources/[...]";
+import robotsTxtHandler from "../routes/robots.txt";
+import sitemapHandler from "../routes/sitemap.xml";
 
 const SERVER_PATH_PREFIXES = ["/api", "/health", "/mcp", "/.well-known", "/resources"];
 const STATIC_FILE_EXTENSION =
@@ -14,8 +28,30 @@ export type PortalAppOptions = {
 export function createPortalApp(options: PortalAppOptions = {}): Hono {
   const app = new Hono();
 
-  app.get("/health", (context) => context.json({ status: "ok" }));
+  app.use("*", async (context, next) => {
+    await next();
+    if (context.req.path === "/") {
+      context.header("Link", buildHomeLinkHeader(resolvePortalOrigin(context.req.raw)));
+    }
+  });
+
+  app.all("/health", () => healthHandler());
+  app.all("/api/internal/openapi.json", (context) => internalOpenApiHandler(context.req.raw));
+  app.all("/api", (context) => bridgeContextApiRequest(context.req.raw));
   app.all("/api/*", (context) => bridgeContextApiRequest(context.req.raw));
+  app.all("/.well-known/ai-catalog.json", (context) => aiCatalogHandler(context.req.raw));
+  app.all("/.well-known/api-catalog", (context) => apiCatalogHandler(context.req.raw));
+  app.all("/.well-known/mcp/server-card.json", (context) => mcpServerCardHandler(context.req.raw));
+  app.all("/.well-known/oauth-protected-resource", (context) =>
+    oauthProtectedResourceHandler(context.req.raw),
+  );
+  app.all("/llms.txt", (context) => llmsTxtHandler(context.req.raw));
+  app.all("/openapi.json", (context) => openApiHandler(context.req.raw));
+  app.all("/robots.txt", (context) => robotsTxtHandler(context.req.raw));
+  app.all("/sitemap.xml", (context) => sitemapHandler(context.req.raw));
+  app.all("/mcp", (context) => handleMcpRequest(context.req.raw));
+  app.all("/resources", (context) => resourceMarkdownHandler(context.req.raw));
+  app.all("/resources/*", (context) => resourceMarkdownHandler(context.req.raw));
   app.notFound(async (context) => {
     const isDocumentMethod = context.req.method === "GET" || context.req.method === "HEAD";
     const lastPathSegment = context.req.path.split("/").at(-1) ?? "";

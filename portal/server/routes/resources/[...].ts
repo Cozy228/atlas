@@ -14,14 +14,16 @@ export default async (event: unknown): Promise<Response> => {
   const url = request ? new URL(request.url) : undefined;
   const path = url?.pathname ?? "";
 
-  const match = path.match(/^\/resources\/([^/]+)\/(.+?)(?:\.md)?$/);
+  const match = path.match(/^\/resources\/([^/]+)\/(.+)$/);
   if (!match) {
     return new Response("Not found", { status: 404 });
   }
 
+  const slug = match[2].endsWith(".md") ? match[2].slice(0, -3) : match[2];
+
   const result = await handleResourceContextRequest({
     kind: decodeURIComponent(match[1]),
-    slug: decodeURIComponent(match[2]),
+    slug: decodeURIComponent(slug),
     sections: url?.searchParams.get("sections") ?? undefined,
     baseUrl: origin,
   });
