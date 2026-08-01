@@ -1,6 +1,6 @@
 import { Suspense, lazy, useEffect, useState } from "react";
 import { QueryClientProvider, type QueryClient } from "@tanstack/react-query";
-import { Link, Outlet, createRootRouteWithContext } from "@tanstack/react-router";
+import { Link, Outlet, createRootRouteWithContext, useRouterState } from "@tanstack/react-router";
 
 import { fetchPortalDataMode } from "@/api/portalContextApiClient";
 import { PortalShell } from "@/components/portal-shell";
@@ -59,26 +59,26 @@ function NotFoundComponent() {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const { dataMode } = Route.useLoaderData();
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
   // Load the toast runtime only when a toast is requested or the user first
   // interacts. Successful passive page loads never pay for Sonner.
-  const [showToaster, setShowToaster] = useState(false);
+  const [showToaster, setShowToaster] = useState(pathname !== "/");
   useEffect(() => {
     markReady("atlas:app-mounted");
     markReady("atlas:interaction-ready");
     const show = () => setShowToaster(true);
     window.addEventListener("atlas:toast-needed", show, { once: true });
-    window.addEventListener("focusin", show, { once: true });
-    window.addEventListener("pointerover", show, { once: true });
     window.addEventListener("pointerdown", show, { once: true });
     window.addEventListener("keydown", show, { once: true });
     return () => {
       window.removeEventListener("atlas:toast-needed", show);
-      window.removeEventListener("focusin", show);
-      window.removeEventListener("pointerover", show);
       window.removeEventListener("pointerdown", show);
       window.removeEventListener("keydown", show);
     };
   }, []);
+  useEffect(() => {
+    if (pathname !== "/") setShowToaster(true);
+  }, [pathname]);
   return (
     <QueryClientProvider client={queryClient}>
       <PortalShell dataMode={dataMode}>

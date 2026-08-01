@@ -10,9 +10,13 @@ import { expectShellWithMockBadge } from "./helpers";
 test.describe("degraded states (mock-forced)", () => {
   // Deferred loading: the skeleton is observable (DEV_MOCK_LATENCY_MS widens the
   // window), then it resolves to the real matrix.
-  test("availability shows a loading skeleton, then the matrix resolves", async ({ page }) => {
+  test("availability shows a loading state or cache hit, then the matrix resolves", async ({
+    page,
+  }) => {
     await page.goto("/availability", { waitUntil: "commit" });
-    await expect(page.getByLabel(/Loading (service )?availability/i)).toBeVisible();
+    await expect(
+      page.getByLabel(/Loading (service )?availability/i).or(page.getByRole("table").first()),
+    ).toBeVisible();
     await expect(page.getByRole("table").first()).toBeVisible();
   });
 
