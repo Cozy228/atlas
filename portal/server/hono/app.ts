@@ -32,6 +32,7 @@ const STATIC_FILE_EXTENSION =
   /\.(?:avif|br|css|gif|gz|html?|ico|jpe?g|js|json|map|md|mjs|otf|png|svg|ttf|txt|webmanifest|webp|woff2?|xml)$/i;
 
 export type PortalAppOptions = {
+  serveStaticAsset?: (request: Request) => Response | undefined | Promise<Response | undefined>;
   renderSpaDocument?: (request: Request) => Response | Promise<Response>;
 };
 
@@ -107,6 +108,9 @@ export function createPortalApp(options: PortalAppOptions = {}): Hono {
   app.all("/resources", (context) => resourceMarkdownHandler(context.req.raw));
   app.all("/resources/*", (context) => resourceMarkdownHandler(context.req.raw));
   app.notFound(async (context) => {
+    const staticResponse = await options.serveStaticAsset?.(context.req.raw);
+    if (staticResponse) return staticResponse;
+
     const isDocumentMethod = context.req.method === "GET" || context.req.method === "HEAD";
     const lastPathSegment = context.req.path.split("/").at(-1) ?? "";
     const isFileRequest =

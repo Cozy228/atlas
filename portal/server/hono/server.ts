@@ -10,7 +10,10 @@ type PortalServerOptions = PortalAppOptions & {
 export type PortalNodeServer = ReturnType<typeof serve>;
 
 export function startPortalServer(options: PortalServerOptions = {}): PortalNodeServer {
-  const app = createPortalApp({ renderSpaDocument: options.renderSpaDocument });
+  const app = createPortalApp({
+    serveStaticAsset: options.serveStaticAsset,
+    renderSpaDocument: options.renderSpaDocument,
+  });
 
   return serve({
     fetch: app.fetch,

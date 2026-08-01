@@ -13,7 +13,11 @@
   },
   "scripts": {
     "dev": "vite dev",
-    "build": "node scripts/gen-agent-skills-index.mjs && vite build",
+    "build": "pnpm run build:clean && pnpm run gen:agent-skills && pnpm run build:client && pnpm run build:server && pnpm run build:assemble",
+    "build:clean": "node scripts/clean-output.mjs",
+    "build:client": "vite build",
+    "build:server": "vite build --config vite.server.config.ts",
+    "build:assemble": "node scripts/assemble-output.mjs",
     "gen:agent-skills": "node scripts/gen-agent-skills-index.mjs",
     "start": "node .output/server/index.mjs",
     "lint": "oxlint",

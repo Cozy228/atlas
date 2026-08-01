@@ -47,21 +47,18 @@ export default defineConfig(({ command }) => ({
       routesDirectory: `${portalRoot}src/routes`,
       generatedRouteTree: `${portalRoot}src/routeTree.gen.ts`,
     }),
-    // `serverDir` enables Nitro filesystem routing for the agent-facing
-    // server surface (`server/routes/**`, `server/middleware/**`) without
-    // touching the TanStack route tree.
+    // Keep the existing one-process development host until the dedicated Hono
+    // dev process lands. Production builds are assembled by Atlas and never
+    // invoke Nitro.
     !isVitest &&
+      command === "serve" &&
       nitro({
         serverDir: "server",
         // Dev-only MSW boot (plan 018 seam): start the Node-mode source-system
         // interceptor so the dev runtime's live discovery resolves against the
         // fixtures. Registered for `vite serve` ONLY — the prod build
         // (`command === "build"`) never lists it, so `msw` stays out of the bundle.
-        plugins: command === "serve" ? ["./server/devMocks/start"] : [],
-        // Pre-compress public assets (>1KB) to .gz/.br at build time so any host
-        // serves smaller bytes with zero runtime overhead. CDNs that already
-        // compress will simply ignore these files.
-        compressPublicAssets: { gzip: true, brotli: true },
+        plugins: ["./server/devMocks/start"],
       }),
     viteReact(),
     // React Compiler — official Babel route for React 19 + Vite 8 Rolldown: keep
@@ -74,9 +71,13 @@ export default defineConfig(({ command }) => ({
     tailwindcss(),
   ],
   build: {
-    // ponytail: chunkImportMap (Vite 8.1) left off — it breaks the Nitro server
-    // re-bundle pass (UNRESOLVED_IMPORT on importmap-driven SSR chunks).
-    // Re-enable if/when nitro/vite resolves importmap chunks.
+    ...(command === "build"
+      ? {
+          outDir: ".output/public",
+          emptyOutDir: true,
+          manifest: true,
+        }
+      : {}),
     rolldownOptions: {
       output: {
         codeSplitting: {

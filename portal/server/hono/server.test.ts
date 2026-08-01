@@ -31,6 +31,12 @@ describe("Hono Node host", () => {
     server = startPortalServer({
       hostname: "127.0.0.1",
       port: 0,
+      serveStaticAsset: (request) =>
+        new URL(request.url).pathname === "/app.js"
+          ? new Response("export {};", {
+              headers: { "content-type": "text/javascript; charset=utf-8" },
+            })
+          : undefined,
       renderSpaDocument: () =>
         new Response('<!doctype html><div id="app"></div>', {
           headers: { "content-type": "text/html; charset=utf-8" },
@@ -46,9 +52,12 @@ describe("Hono Node host", () => {
     const assetResponse = await fetch(`${origin}/missing.js`, {
       headers: { accept: "text/html" },
     });
+    const existingAssetResponse = await fetch(`${origin}/app.js`);
 
     expect(documentResponse.status).toBe(200);
     await expect(documentResponse.text()).resolves.toContain('<div id="app"></div>');
     expect(assetResponse.status).toBe(404);
+    expect(existingAssetResponse.status).toBe(200);
+    await expect(existingAssetResponse.text()).resolves.toBe("export {};");
   });
 });
