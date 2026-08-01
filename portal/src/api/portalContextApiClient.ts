@@ -212,30 +212,44 @@ function isAnnouncement(value: unknown): value is Announcement {
 function isAvailabilityResponse(value: unknown): value is AvailabilityResponse {
   return (
     isRecord(value) &&
+    hasOnlyKeys(value, ["zones"]) &&
     Array.isArray(value.zones) &&
     value.zones.every(
       (zone) =>
         isRecord(zone) &&
-        hasStrings(zone, ["id", "name", "cloud", "dataStatus"]) &&
+        hasOnlyKeys(zone, ["id", "name", "cloud", "tier", "dataStatus", "locations", "services"]) &&
+        hasNonEmptyStrings(zone, ["id", "name"]) &&
+        isOneOf(zone.cloud, ["aws", "azure"]) &&
+        isOneOf(zone.dataStatus, ["available", "not-available"]) &&
+        (zone.tier === undefined || isNonEmptyString(zone.tier)) &&
         Array.isArray(zone.locations) &&
         zone.locations.every(
           (location) =>
             isRecord(location) &&
-            hasStrings(location, ["id", "label", "sub", "kind"]) &&
+            hasOnlyKeys(location, ["id", "label", "sub", "kind", "coordinates"]) &&
+            hasNonEmptyStrings(location, ["id", "label"]) &&
+            typeof location.sub === "string" &&
+            isOneOf(location.kind, ["region", "outpost"]) &&
             (location.coordinates === undefined ||
               (Array.isArray(location.coordinates) &&
                 location.coordinates.length === 2 &&
-                location.coordinates.every((coordinate) => typeof coordinate === "number"))),
+                location.coordinates.every(
+                  (coordinate) => typeof coordinate === "number" && Number.isFinite(coordinate),
+                ))),
         ) &&
         Array.isArray(zone.services) &&
         zone.services.every(
           (service) =>
             isRecord(service) &&
-            hasStrings(service, ["id", "name", "iconKey", "domain"]) &&
+            hasOnlyKeys(service, ["id", "name", "iconKey", "domain", "availability"]) &&
+            hasNonEmptyStrings(service, ["id", "name", "iconKey", "domain"]) &&
             isRecord(service.availability) &&
             Object.values(service.availability).every(
               (entry) =>
-                isRecord(entry) && typeof entry.status === "string" && optionalString(entry.note),
+                isRecord(entry) &&
+                hasOnlyKeys(entry, ["status", "note"]) &&
+                isOneOf(entry.status, ["available", "planned", "interim", "not-planned"]) &&
+                (entry.note === undefined || isNonEmptyString(entry.note)),
             ),
         ),
     )
@@ -363,6 +377,22 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function hasStrings(value: Record<string, unknown>, keys: string[]): boolean {
   return keys.every((key) => typeof value[key] === "string");
+}
+
+function hasNonEmptyStrings(value: Record<string, unknown>, keys: string[]): boolean {
+  return keys.every((key) => isNonEmptyString(value[key]));
+}
+
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === "string" && value.length > 0;
+}
+
+function isOneOf<const T extends string>(value: unknown, values: readonly T[]): value is T {
+  return typeof value === "string" && values.includes(value as T);
+}
+
+function hasOnlyKeys(value: Record<string, unknown>, keys: readonly string[]): boolean {
+  return Object.keys(value).every((key) => keys.includes(key));
 }
 
 function hasOptionalStrings(value: Record<string, unknown>, keys: string[]): boolean {

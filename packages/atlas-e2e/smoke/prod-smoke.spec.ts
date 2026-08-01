@@ -40,6 +40,21 @@ test.describe("production smoke (mock-free)", () => {
     expect(html).not.toContain('aria-label="Primary"');
   });
 
+  test("cold home stays within the browser request budget", async ({ page }) => {
+    const responses: string[] = [];
+    page.on("response", (response) => responses.push(new URL(response.url()).pathname));
+
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+
+    expect(responses.filter((path) => path.endsWith(".js"))).toHaveLength(14);
+    expect(responses.filter((path) => path.startsWith("/api/portal/")).sort()).toEqual([
+      "/api/portal/announcements",
+      "/api/portal/availability",
+    ]);
+    expect(responses.length).toBeLessThanOrEqual(20);
+  });
+
   for (const path of TOP_ROUTES) {
     test(`${path}: 200 + SPA client boot + no mode badge + no JS error`, async ({ page }) => {
       const pageErrors: string[] = [];

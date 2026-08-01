@@ -92,6 +92,15 @@ export const Route = createFileRoute("/service/$provider/$id")({
 
     const guidancesPromise = context.queryClient.ensureQueryData(guidanceQueryOptions);
 
+    // Start the durable catalog and guidance reads alongside the record. The
+    // expensive live reads wait for identity validation so a bad slug cannot
+    // amplify into unnecessary Confluence/resource-resolution work.
+    const record = await recordPromise;
+    if (!record) {
+      void Promise.allSettled([catalogPromise, guidancesPromise]);
+      throw notFound();
+    }
+
     // Slow: availability is a live Confluence fetch + parse in the real adapter —
     // defer it (no await) so navigation is instant; the specs, where-it-runs and
     // identity icon render a skeleton until it lands.
@@ -115,11 +124,6 @@ export const Route = createFileRoute("/service/$provider/$id")({
       .ensureQueryData(resourceContextQueryOptions({ kind: "service", slug }))
       .catch(() => null);
 
-    // Start every independent request before awaiting the shell-critical data.
-    // This removes the record → catalog → guidance waterfall while keeping
-    // availability and the live projection deferred for progressive rendering.
-    const record = await recordPromise;
-    if (!record) throw notFound();
     const [catalogResp, guidances] = await Promise.all([catalogPromise, guidancesPromise]);
 
     // Related in domain: sibling service resources sharing this resource's

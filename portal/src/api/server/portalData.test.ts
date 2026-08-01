@@ -15,7 +15,7 @@ describe("Portal-only server data", () => {
     expect(resolveDataMode()).toBe("live");
   });
 
-  it("preserves the five-minute process memo for availability", async () => {
+  it("coalesces concurrent availability reads without adding another freshness TTL", async () => {
     const getAvailability = vi.fn(async () => ({
       zones: [],
       citation: {
@@ -33,10 +33,10 @@ describe("Portal-only server data", () => {
       ]),
     ).resolves.toEqual([{ zones: [] }, { zones: [] }]);
     await expect(loadPortalAvailability({ getAvailability })).resolves.toEqual({ zones: [] });
-    expect(getAvailability).toHaveBeenCalledTimes(1);
+    expect(getAvailability).toHaveBeenCalledTimes(2);
   });
 
-  it("never shares memoized availability across authenticated requests", async () => {
+  it("never coalesces availability across authenticated requests", async () => {
     const firstClient = {
       getAvailability: vi.fn(async () => availabilityResult("first-zone")),
     };
@@ -44,10 +44,10 @@ describe("Portal-only server data", () => {
       getAvailability: vi.fn(async () => availabilityResult("second-zone")),
     };
 
-    await expect(loadPortalAvailability(firstClient, { memoize: false })).resolves.toMatchObject({
+    await expect(loadPortalAvailability(firstClient, { coalesce: false })).resolves.toMatchObject({
       zones: [{ id: "first-zone" }],
     });
-    await expect(loadPortalAvailability(secondClient, { memoize: false })).resolves.toMatchObject({
+    await expect(loadPortalAvailability(secondClient, { coalesce: false })).resolves.toMatchObject({
       zones: [{ id: "second-zone" }],
     });
     expect(firstClient.getAvailability).toHaveBeenCalledTimes(1);

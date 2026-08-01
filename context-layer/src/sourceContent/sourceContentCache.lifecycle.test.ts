@@ -24,6 +24,7 @@ import { cachedResolutionContext, closeSourceContentCache } from "./sourceConten
 
 afterEach(async () => {
   await closeSourceContentCache();
+  vi.unstubAllGlobals();
   valkeyLifecycle.instances = 0;
   valkeyLifecycle.close.mockClear();
 });
@@ -60,5 +61,28 @@ describe("closeSourceContentCache", () => {
     await closeSourceContentCache();
     await closeSourceContentCache();
     expect(valkeyLifecycle.close).toHaveBeenCalledTimes(2);
+  });
+
+  it("shares single-flight state across resolution contexts", async () => {
+    let resolveFetch!: (response: Response) => void;
+    const fetch = vi.fn(
+      async () =>
+        new Promise<Response>((resolve) => {
+          resolveFetch = resolve;
+        }),
+    );
+    vi.stubGlobal("fetch", fetch);
+    const [firstContext, secondContext] = await Promise.all([
+      cachedResolutionContext({}),
+      cachedResolutionContext({}),
+    ]);
+
+    const first = firstContext.fetch("https://example.test/page");
+    const second = secondContext.fetch("https://example.test/page");
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
+    resolveFetch(new Response(JSON.stringify({ ok: true }), { status: 200 }));
+
+    await expect(Promise.all([first, second])).resolves.toHaveLength(2);
+    expect(fetch).toHaveBeenCalledTimes(1);
   });
 });

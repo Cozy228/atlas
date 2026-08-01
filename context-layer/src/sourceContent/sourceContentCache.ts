@@ -10,7 +10,7 @@ import {
  * Source-content cache (docs/architecture/source-content-cache.md). Removes the
  * repeat live fetch of the same Confluence page / Terraform README within a
  * short window. The default needs no infrastructure; an ElastiCache (Valkey)
- * adapter activates only when `CACHE_VALKEY_URL` is set.
+ * cluster adapter activates only when `CACHE_VALKEY_URL` is set.
  */
 
 /**
@@ -205,8 +205,8 @@ function cacheKey(
 /**
  * Select the cache implementation from the environment, mirroring
  * `createFeedbackRepository`: a Valkey adapter when `CACHE_VALKEY_URL` is
- * set, otherwise the in-memory default. GLIDE is a hard production dependency
- * so the configured path is present in the self-contained deployment artifact.
+ * set, otherwise the in-memory default. iovalkey is a hard production dependency
+ * so the configured cluster path is present in the self-contained deployment artifact.
  */
 export async function createSourceContentCache(
   env: Record<string, string | undefined>,
@@ -232,6 +232,7 @@ export function cacheTtlSeconds(env: Record<string, string | undefined>): number
 // One shared cache across every entry point — it is useless if rebuilt per
 // request, so memoize it at module scope like the default registry.
 let sharedCachePromise: Promise<SourceContentCache> | undefined;
+let sharedResolutionContextPromise: Promise<ResolutionContext> | undefined;
 
 function sharedCache(env: Record<string, string | undefined>): Promise<SourceContentCache> {
   return (sharedCachePromise ??= createSourceContentCache(env));
@@ -240,6 +241,7 @@ function sharedCache(env: Record<string, string | undefined>): Promise<SourceCon
 export async function closeSourceContentCache(): Promise<void> {
   const cachePromise = sharedCachePromise;
   sharedCachePromise = undefined;
+  sharedResolutionContextPromise = undefined;
   if (!cachePromise) return;
   const cache = await cachePromise;
   await cache.close?.();
@@ -255,9 +257,10 @@ export async function closeSourceContentCache(): Promise<void> {
 export async function cachedResolutionContext(
   env: Record<string, string | undefined> = readProcessEnv(),
 ): Promise<ResolutionContext> {
-  const base = defaultResolutionContext();
-  const cache = await sharedCache(env);
-  return { ...base, fetch: withCache(base.fetch, cache, cacheTtlSeconds(env)) };
+  return (sharedResolutionContextPromise ??= sharedCache(env).then((cache) => {
+    const base = defaultResolutionContext();
+    return { ...base, fetch: withCache(base.fetch, cache, cacheTtlSeconds(env)) };
+  }));
 }
 
 function readProcessEnv(): Record<string, string | undefined> {

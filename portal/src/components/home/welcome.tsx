@@ -76,7 +76,10 @@ export function HomeWelcome({ data }: { data: HomeLoaderData }) {
     let active = true;
     void Promise.allSettled([data.announcements, data.stats]).then(() => {
       if (!active) return;
-      frame = requestAnimationFrame(() => markReady("atlas:primary-content-ready"));
+      frame = requestAnimationFrame(() => {
+        markReady("atlas:primary-content-ready");
+        markReady("atlas:interaction-ready");
+      });
     });
     return () => {
       active = false;

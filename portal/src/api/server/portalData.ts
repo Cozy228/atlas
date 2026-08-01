@@ -33,29 +33,21 @@ export async function loadPortalReleases(): Promise<Release[]> {
   return result.ok ? result.releases : [];
 }
 
-const AVAILABILITY_MEMO_MS = 5 * 60_000;
-let availabilityMemo: { at: number; data: AvailabilityResponse } | undefined;
 let availabilityInFlight: Promise<AvailabilityResponse> | undefined;
 
 export async function loadPortalAvailability(
   client: Pick<ContextApiClient, "getAvailability">,
-  options: { memoize?: boolean } = {},
+  options: { coalesce?: boolean } = {},
 ): Promise<AvailabilityResponse> {
-  const now = Date.now();
-  const memoize = options.memoize !== false;
-  if (memoize && availabilityMemo && now - availabilityMemo.at < AVAILABILITY_MEMO_MS) {
-    return availabilityMemo.data;
-  }
-  if (!memoize) {
+  const coalesce = options.coalesce !== false;
+  if (!coalesce) {
     const { zones } = await client.getAvailability();
     return { zones };
   }
   return (availabilityInFlight ??= client
     .getAvailability()
     .then(({ zones }) => {
-      const data: AvailabilityResponse = { zones };
-      availabilityMemo = { at: Date.now(), data };
-      return data;
+      return { zones };
     })
     .finally(() => {
       availabilityInFlight = undefined;

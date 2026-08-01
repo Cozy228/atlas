@@ -178,7 +178,48 @@ describe("Portal Context API client", () => {
 
     await expect(request()).rejects.toThrow(/response is invalid/i);
   });
+
+  it.each([
+    ["unknown enum", availabilityBody({ cloud: "gcp" })],
+    ["empty required string", availabilityBody({ name: "" })],
+    ["non-finite coordinate", availabilityBody({}, { coordinates: [Number.NaN, 0] })],
+    ["extra property", availabilityBody({ extra: true })],
+  ])("rejects availability with an %s", async (_label, body) => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => jsonResponse(200, body)),
+    );
+
+    await expect(fetchPortalAvailability()).rejects.toThrow(/response is invalid/i);
+  });
 });
+
+function availabilityBody(
+  zoneOverrides: Record<string, unknown> = {},
+  locationOverrides: Record<string, unknown> = {},
+) {
+  return {
+    zones: [
+      {
+        id: "awsf",
+        name: "AWS Foundation",
+        cloud: "aws",
+        dataStatus: "available",
+        locations: [
+          {
+            id: "us-east-1",
+            label: "US-East-1",
+            sub: "North Virginia",
+            kind: "region",
+            ...locationOverrides,
+          },
+        ],
+        services: [],
+        ...zoneOverrides,
+      },
+    ],
+  };
+}
 
 function jsonResponse(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), {

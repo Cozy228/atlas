@@ -95,7 +95,7 @@ export function createPortalApp(options: PortalAppOptions = {}): Hono<PortalEnv>
     const token = bearerToken(context.req.raw);
     return context.json(
       await loadPortalAvailability(createServerContextApiClient({ token }), {
-        memoize: !token,
+        coalesce: !token,
       }),
     );
   });

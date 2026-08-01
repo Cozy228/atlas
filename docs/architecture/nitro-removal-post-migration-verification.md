@@ -147,3 +147,83 @@ All five application journeys completed and produced per-edge HTML and trace art
 - Readiness has an explicit `/health` contract and returns 503 while draining.
 
 These differences are the approved Router-only boundary. They are not accidental parity gaps.
+
+## 9. Performance remediation follow-up
+
+- Verified: 2026-08-01, Asia/Taipei (UTC+08:00)
+- Remediation commits: `060062ba` through `a19b4466`
+- Runner: the same Profile C network and CPU constraints as Section 6
+
+The post-migration cold-load findings were fixed and remeasured. Production home no longer
+requests data mode or landing zones, the service-detail loader starts independent reads before
+checking the primary record, and Motion, Sonner, and Zod are absent from the successful passive
+home dependency closure. Native readiness marks distinguish React interaction readiness from the
+later point at which both live home-data regions have settled and committed.
+
+### 9.1 Cold home and controlled source delay
+
+The 0 ms and cold 500 ms rows are five-run medians. Every cold 500 ms iteration restarted the
+Portal process so neither source-content cache nor in-flight state could leak between runs.
+The warm 500 ms row is a three-run median after explicitly priming both home API paths. It uses the
+in-memory implementation of the same cache contract; it does not measure a real ElastiCache
+network hop.
+
+| Profile C home | TTFB | FCP / LCP | Load | Shell ready* | Data interaction / primary ready | TBT | CLS |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Hono SPA before remediation | 1,156 ms | 6,768 / 6,768 ms | 5,131 ms | not instrumented | not instrumented | 7 ms | 0.084 |
+| Remediated, MSW 0 ms | 1,113 ms | 6,496 / 6,496 ms | 5,194 ms | 6,214 ms | 6,236 ms | 0 ms | 0.0564 |
+| Remediated, MSW 500 ms, cold server cache | 1,129 ms | 6,584 / 6,584 ms | 5,284 ms | 6,305 ms | 8,097 ms | 0 ms | 0.0575 |
+| Remediated, MSW 500 ms, warm source cache | 1,115 ms | 6,600 / 6,600 ms | 5,165 ms | 6,233 ms | 6,262 ms | 5 ms | 0.0564 |
+
+The controlled 500 ms delay adds only 88 ms to LCP but 1,860 ms to primary-content readiness.
+That is the important distinction: paint remains visually fast while decision data is still
+pending. In the representative cold process, announcements took 521 ms and availability took
+2,058 ms because the latter resolves multiple source reads. After priming, those Portal API paths
+returned in 2 ms and 3 ms respectively. The warm-cache median recovered 1,834 ms of the 1,860 ms
+cold-data penalty (98.6%); the remaining 26 ms is within this small local series' browser/runtime
+noise and cache-access overhead.
+
+\* The captured series called the React-shell mark `atlas:interaction-ready`. Final code names that
+transition `atlas:shell-interaction-ready`; `atlas:interaction-ready` is now emitted with
+`atlas:primary-content-ready` only after both live-data regions settle and their UI commits. The
+primary-ready column is therefore the final data-interaction metric.
+
+Raw HTML reports, HARs, traces, screenshots, and videos are retained outside the repository under
+`/tmp/atlas-perf-remediation-929a80c`. The final 0 ms series is
+`profile-c-msw-0-ready-final`; forced-cold 500 ms runs are
+`profile-c-msw-500-cold-{1..5}`; the primed comparison is
+`profile-c-msw-500-source-cache-final`.
+
+### 9.2 Request and bundle result
+
+| Home cold-load measure | Before remediation | After remediation | Change |
+| --- | ---: | ---: | ---: |
+| Browser requests | 29 | 20 | -9 (-31%) |
+| JavaScript requests | 21 | 14 | -7 (-33%) |
+| JavaScript transfer, including HAR headers | 263,387 bytes | 208,377 bytes | -55,010 (-21%) |
+| Portal JSON requests | 4 | 2 | -2 (-50%) |
+| Built JavaScript files | 58 | 55 | -3 (-5%) |
+
+The production build now fails if the home static closure exceeds 14 JavaScript files or 205,000
+effective transfer bytes, if the whole client exceeds 56 JavaScript files or 500,000 bytes, or if
+CSS exceeds 22,000 bytes. The final metadata records 14 home files / 202,264 bytes, 55 total
+JavaScript files / 483,679 bytes, and 21,132 CSS bytes. Total `.output` size increased from 5,188
+KiB to 5,444 KiB because the deployable server now includes iovalkey and AWS SigV4 credential
+support; this server-only increase does not enter the browser bundle.
+
+### 9.3 Shared Valkey deployment
+
+The optional production cache is now a TLS iovalkey `Cluster` client seeded from the ElastiCache
+configuration endpoint. It generates a SigV4 IAM password from the ECS task role, uses the IAM user
+id as the Valkey username, and rotates the cluster connection before the 15-minute token expires.
+Terraform provisions cluster mode, an IAM-enabled ElastiCache user and user group, task-role
+`elasticache:Connect`, TLS, failover, and the four required Portal environment values. Cache keys
+include a digest of the source authorization scope; successful entries use bounded
+stale-while-revalidate, failures use a shorter negative TTL, and concurrent misses use
+single-flight.
+
+Unit tests cover token signing inputs, TLS enforcement, cluster options, token rotation, cache
+isolation, SWR, negative caching, and single-flight; Terraform validates and the self-contained
+production artifact contains the configured path. No AWS cache or credentials are available in
+this public-safe local environment, so a real IAM-authenticated ElastiCache handshake and its
+network latency remain deployment-time checks rather than claimed local passes.

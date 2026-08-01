@@ -65,7 +65,7 @@ function RootComponent() {
   const [showToaster, setShowToaster] = useState(pathname !== "/");
   useEffect(() => {
     markReady("atlas:app-mounted");
-    markReady("atlas:interaction-ready");
+    markReady("atlas:shell-interaction-ready");
     const show = () => setShowToaster(true);
     window.addEventListener("atlas:toast-needed", show, { once: true });
     window.addEventListener("pointerdown", show, { once: true });
