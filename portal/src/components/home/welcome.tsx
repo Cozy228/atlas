@@ -72,8 +72,17 @@ function HomeDeferredFallback() {
 
 export function HomeWelcome({ data }: { data: HomeLoaderData }) {
   useEffect(() => {
-    markReady("atlas:primary-content-ready");
-  }, []);
+    let frame: number | undefined;
+    let active = true;
+    void Promise.allSettled([data.announcements, data.stats]).then(() => {
+      if (!active) return;
+      frame = requestAnimationFrame(() => markReady("atlas:primary-content-ready"));
+    });
+    return () => {
+      active = false;
+      if (frame !== undefined) cancelAnimationFrame(frame);
+    };
+  }, [data.announcements, data.stats]);
   return (
     <div className="flex flex-col gap-16">
       <div className="flex flex-col gap-8">
