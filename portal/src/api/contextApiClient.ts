@@ -20,22 +20,43 @@ import {
 } from "@atlas/schema";
 
 export type ContextApiClient = {
-  getSource(id: string): Promise<SourceResponse>;
-  getAvailability(): Promise<AvailabilityReadResponse>;
+  getSource(id: string, options?: ContextApiRequestOptions): Promise<SourceResponse>;
+  getAvailability(options?: ContextApiRequestOptions): Promise<AvailabilityReadResponse>;
   /** Live resource projection (plan 017): governed sections + reference-only
    *  discovery links for a canonical `{kind}/{slug}`. */
-  getResourceContext(kind: string, slug: string): Promise<ResourceContextResponse>;
+  getResourceContext(
+    kind: string,
+    slug: string,
+    options?: ContextApiRequestOptions,
+  ): Promise<ResourceContextResponse>;
   /** Resource presentation metadata (ADR-0015 §2): the identity / owner / entry
    *  fields. Separate from getResourceContext, which stays content-only — the
    *  resource-first page composes this metadata read + that content read. */
-  getResourceRecord(kind: string, slug: string): Promise<ResourceRecordResponse>;
+  getResourceRecord(
+    kind: string,
+    slug: string,
+    options?: ContextApiRequestOptions,
+  ): Promise<ResourceRecordResponse>;
   /** Resolve a free-text name to canonical resource ids (proposal §5.7). */
-  searchResources(query: string): Promise<ResourceSearchResponse>;
-  discoverSources(request?: SourceDiscoveryRequest): Promise<SourceDiscoveryResponse>;
+  searchResources(
+    query: string,
+    options?: ContextApiRequestOptions,
+  ): Promise<ResourceSearchResponse>;
+  discoverSources(
+    request?: SourceDiscoveryRequest,
+    options?: ContextApiRequestOptions,
+  ): Promise<SourceDiscoveryResponse>;
   /** The discovery-derived catalog: every discovered Resource (services +
    *  guardrails) as a presentation record. The Portal catalog facets/tabs it. */
-  discoverResources(): Promise<ResourceCatalogResponse>;
-  submitFeedback(request: FeedbackSubmission): Promise<FeedbackResponse>;
+  discoverResources(options?: ContextApiRequestOptions): Promise<ResourceCatalogResponse>;
+  submitFeedback(
+    request: FeedbackSubmission,
+    options?: ContextApiRequestOptions,
+  ): Promise<FeedbackResponse>;
+};
+
+export type ContextApiRequestOptions = {
+  signal?: AbortSignal;
 };
 
 type StaticContextApiClientInput = {

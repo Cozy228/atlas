@@ -4,7 +4,7 @@ import { IconMessageReport } from "@tabler/icons-react";
 import { toast } from "sonner";
 import { z } from "zod";
 
-import { submitFeedback } from "@/api/server/feedback";
+import { submitPortalFeedback } from "@/api/portalContextApiClient";
 import { Button } from "@/components/ui/button";
 import {
   Field,
@@ -39,7 +39,7 @@ const formSchema = z.object({
 
 export function FeedbackInlineForm({ target, className }: FeedbackInlineFormProps) {
   const mutation = useMutation({
-    mutationFn: async (value: z.infer<typeof formSchema>) => submitFeedback({ data: value }),
+    mutationFn: async (value: z.infer<typeof formSchema>) => submitPortalFeedback(value),
   });
   const form = useForm({
     defaultValues: {

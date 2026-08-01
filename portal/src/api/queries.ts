@@ -20,6 +20,7 @@ import { fetchReleaseNotes, type Release } from "@/api/server/releaseNotes";
 import { fetchAnnouncements, type Announcement } from "@/api/server/announcements";
 import { fetchGuidance } from "@/api/server/guidance";
 import type { Guidance } from "@/lib/guidance";
+import { fetchPortalResourceCatalog } from "./portalContextApiClient";
 
 export const releaseNotesQueryOptions = queryOptions<Release[]>({
   queryKey: ["release-notes"] as const,
@@ -56,7 +57,10 @@ export const landingZonesQueryOptions = queryOptions<LandingZone[]>({
 
 export const resourceCatalogQueryOptions = queryOptions<ResourceCatalogResponse>({
   queryKey: ["resource-catalog"] as const,
-  queryFn: () => fetchResourceCatalog(),
+  // Start SSR cannot resolve a same-origin relative URL. Keep this server-only
+  // branch until the Router-only client replaces the Start renderer.
+  queryFn: ({ signal }) =>
+    typeof window === "undefined" ? fetchResourceCatalog() : fetchPortalResourceCatalog({ signal }),
   staleTime: 60_000,
 });
 

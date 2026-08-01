@@ -163,6 +163,34 @@ describe("Hono portal host", () => {
     await expect(resourceResponse.text()).resolves.toBe("Not found");
   });
 
+  it("serves the migrated browser query and mutation contracts", async () => {
+    const app = createPortalApp();
+    const catalogResponse = await app.request("/api/resources/catalog");
+    const invalidFeedbackResponse = await app.request("/api/feedback", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: "{}",
+    });
+    const feedbackResponse = await app.request("/api/feedback", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        target_type: "resource",
+        target_id: "service/aws/textract",
+        feedback_type: "missing",
+        message: "Add region guidance.",
+      }),
+    });
+
+    expect(catalogResponse.status).toBe(200);
+    const catalog = (await catalogResponse.json()) as { resources: Array<{ id: string }> };
+    expect(catalog.resources.some((resource) => resource.id === "service/aws/textract")).toBe(true);
+    expect(invalidFeedbackResponse.status).toBe(400);
+    expect(feedbackResponse.status).toBe(201);
+    const feedback = (await feedbackResponse.json()) as { feedback: { target_id: string } };
+    expect(feedback.feedback.target_id).toBe("service/aws/textract");
+  });
+
   it("serves an unmatched browser document from the SPA fallback", async () => {
     const app = createPortalApp({
       renderSpaDocument: () =>
