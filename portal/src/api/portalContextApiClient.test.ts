@@ -166,6 +166,7 @@ describe("Portal Context API client", () => {
   });
 
   it.each([
+    [fetchPortalAvailability, { zones: [{ id: "broken" }] }],
     [fetchPortalGuidance, { guidance: [{ id: 42 }] }],
     [fetchPortalAnnouncements, { announcements: [{ id: 42 }] }],
     [fetchPortalReleases, { releases: [{ id: 42 }] }],

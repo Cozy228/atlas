@@ -10,6 +10,10 @@
       "types": "./src/index.ts",
       "import": "./src/index.ts"
     },
+    "./landingZones": {
+      "types": "./src/landingZones/landingZones.ts",
+      "import": "./src/landingZones/landingZones.ts"
+    },
     "./devMocks": {
       "types": "./src/devMocks/index.ts",
       "import": "./src/devMocks/index.ts"

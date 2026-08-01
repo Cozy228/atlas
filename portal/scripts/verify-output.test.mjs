@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { findProductionExclusionViolations } from "./verify-output.mjs";
+import {
+  findPerformanceBudgetViolations,
+  findProductionExclusionViolations,
+} from "./verify-output.mjs";
 
 const cleanInput = {
   entries: [
@@ -71,5 +74,19 @@ describe("production output exclusion gate", () => {
         "portal/node_modules exposes forbidden Nitro package nitro",
       ]),
     );
+  });
+});
+
+describe("performance budgets", () => {
+  it("reports the exact dimension that exceeds its budget", () => {
+    const performance = {
+      initialHome: { requestCount: 15, transferBytes: 200_000 },
+      javascript: { fileCount: 55, transferBytes: 480_000 },
+      stylesheets: { fileCount: 1, transferBytes: 21_000 },
+    };
+
+    expect(findPerformanceBudgetViolations(performance)).toEqual([
+      "initial home JS requests: 15 exceeds budget 14",
+    ]);
   });
 });

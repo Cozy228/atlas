@@ -26,8 +26,11 @@ const devApiPaths = [
  * @see https://rolldown.rs/reference/outputoptions.codesplitting
  */
 const portalCodeSplittingGroups = [
-  { name: "react-dom", test: /node_modules[\\/]react-dom[\\/]/, priority: 52 },
-  { name: "react", test: /node_modules[\\/]react[\\/]/, priority: 50 },
+  {
+    name: "react-dom",
+    test: /node_modules[\\/](?:react|react-dom)[\\/]/,
+    priority: 52,
+  },
   { name: "motion", test: /node_modules[\\/]motion[\\/]/, priority: 30 },
   // react-table is imported only by the lazy availability matrix, so split it
   // out of the eager `tanstack` group (higher priority wins) to keep it off the

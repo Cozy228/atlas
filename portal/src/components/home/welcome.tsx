@@ -12,9 +12,7 @@
  */
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Await, CatchBoundary, Link } from "@tanstack/react-router";
-import { toast } from "sonner";
 import { IconArrowLeft, IconArrowRight, IconMessageCircle } from "@tabler/icons-react";
-import { AnimatePresence, LazyMotion, MotionConfig, m, type Variants } from "motion/react";
 
 import { useAskAtlas } from "@/components/ask-atlas/context";
 import { JourneyGrid } from "@/components/home/journey-grid";
@@ -34,10 +32,6 @@ import {
   type HomeStats,
   type MainlineRoute,
 } from "./data";
-
-// Load motion's DOM feature bundle (~26 kB gzip) lazily so it stays off the
-// home page's first paint — it loads when the catalog swap first animates.
-const loadDomAnimation = () => import("motion/react").then((mod) => mod.domAnimation);
 
 /* Home defers its live data (availability stats, the What's-new feed). Unlike the
  * detail surfaces, a home failure must NOT take over the page or offer an in-place
@@ -63,16 +57,24 @@ function HomeDeferred<T>({
 
 function HomeDeferredFallback() {
   useEffect(() => {
-    toast.error("Some live data couldn’t load", {
-      // Shared id: several home regions may fail at once, but the user sees one toast.
-      id: "home-live-data",
-      description: "The page is still usable — live figures will return shortly.",
-    });
+    window.dispatchEvent(new Event("atlas:toast-needed"));
+    void import("sonner").then(({ toast }) =>
+      toast.error("Some live data couldn’t load", {
+        // Shared id: several home regions may fail at once, but the user sees one toast.
+        id: "home-live-data",
+        description: "The page is still usable — live figures will return shortly.",
+      }),
+    );
   }, []);
   return null;
 }
 
 export function HomeWelcome({ data }: { data: HomeLoaderData }) {
+  useEffect(() => {
+    if (performance.getEntriesByName("atlas:primary-content-ready").length === 0) {
+      performance.mark("atlas:primary-content-ready");
+    }
+  }, []);
   return (
     <div className="flex flex-col gap-16">
       <div className="flex flex-col gap-8">
@@ -365,36 +367,9 @@ function IntentFocus() {
  * list) — the spec-sheet form used where it belongs, one bounded domain at a
  * time.
  *
- * Motion: AnimatePresence (mode="wait") cleanly swaps index ↔ detail. On the
- * detail, the label glides in from the left, then the service lines rise and
- * fade in a gentle stagger — physics-based easing, small travel, so it reads
- * calm rather than busy. reducedMotion="user" drops the transforms.
+ * The swap is immediate and native; a decorative animation is not worth
+ * putting Motion on the constrained home-page critical path.
  * ========================================================================== */
-
-/**
- * Click → switch transition ("push"): the index list slides out to the left as
- * the chosen domain's detail pushes in from the right, its service lines fading
- * in a quick light stagger. A drawer-style master→detail move.
- */
-const INDEX_VARIANTS: Variants = {
-  hidden: { opacity: 0, x: -28 },
-  show: { opacity: 1, x: 0, transition: { duration: 0.22, ease: "easeOut" } },
-  exit: { opacity: 0, x: -28, transition: { duration: 0.18, ease: "easeIn" } },
-};
-const DETAIL_VARIANTS: Variants = {
-  hidden: { opacity: 0, x: 32 },
-  show: {
-    opacity: 1,
-    x: 0,
-    transition: { duration: 0.28, ease: "easeOut", staggerChildren: 0.02 },
-  },
-  exit: { opacity: 0, transition: { duration: 0.12 } },
-};
-const LIST_VARIANTS: Variants = { hidden: {}, show: { transition: { staggerChildren: 0.02 } } };
-const LINE_VARIANTS: Variants = {
-  hidden: { opacity: 0 },
-  show: { opacity: 1, transition: { duration: 0.2 } },
-};
 
 /** Placeholder for the deferred domain index (book-index columns). */
 function CatalogIndexSkeleton() {
@@ -427,88 +402,66 @@ function CatalogIndex({
         description={`${serviceCount} services across ${domains.length} domains. Open one to see what's in it.`}
         action={{ to: "/catalog", label: "View all services" }}
       />
-      <LazyMotion features={loadDomAnimation}>
-        <MotionConfig reducedMotion="user">
-          <AnimatePresence mode="wait" initial={false}>
-            {domain ? (
-              <m.div
-                key={domain.domain}
-                variants={DETAIL_VARIANTS}
-                initial="hidden"
-                animate="show"
-                exit="exit"
-                className="grid gap-x-12 gap-y-4 lg:grid-cols-[220px_minmax(0,1fr)]"
+      {domain ? (
+        <div className="grid gap-x-12 gap-y-4 lg:grid-cols-[220px_minmax(0,1fr)]">
+          <div className="flex flex-col gap-2">
+            <button
+              type="button"
+              onClick={() => setSelected(null)}
+              className="group flex w-fit items-center gap-1.5 text-[12.5px] font-medium text-muted-foreground transition-colors hover:text-brand-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <IconArrowLeft
+                aria-hidden
+                className="size-3.5 transition-transform group-hover:-translate-x-0.5"
+              />
+              All domains
+            </button>
+            <h3 className="w-fit text-[1.25rem] font-bold tracking-[-0.02em] text-foreground">
+              {domain.domain}
+            </h3>
+            <span className="w-fit font-mono text-[11px] tabular-nums text-muted-foreground">
+              {domain.count} services
+            </span>
+            {domain.blurb ? (
+              <p className="w-fit max-w-[30ch] text-[12.5px] leading-[1.5] text-muted-foreground">
+                {domain.blurb}
+              </p>
+            ) : null}
+          </div>
+          <ul className="grid gap-x-10 sm:grid-cols-2">
+            {domain.services.map((service) => (
+              <ServiceLine key={service.id} service={service} />
+            ))}
+          </ul>
+        </div>
+      ) : (
+        <ul className="gap-x-12 sm:columns-2 lg:columns-3">
+          {domains.map((d) => (
+            <li key={d.domain} className="break-inside-avoid">
+              <button
+                type="button"
+                onClick={() => setSelected(d.domain)}
+                className="group flex w-full items-baseline justify-between gap-3 border-b border-border py-2.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                <div className="flex flex-col gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setSelected(null)}
-                    className="group flex w-fit items-center gap-1.5 text-[12.5px] font-medium text-muted-foreground transition-colors hover:text-brand-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  >
-                    <IconArrowLeft
-                      aria-hidden
-                      className="size-3.5 transition-transform group-hover:-translate-x-0.5"
-                    />
-                    All domains
-                  </button>
-                  <h3 className="w-fit text-[1.25rem] font-bold tracking-[-0.02em] text-foreground">
-                    {domain.domain}
-                  </h3>
-                  <span className="w-fit font-mono text-[11px] tabular-nums text-muted-foreground">
-                    {domain.count} services
+                <span className="flex min-w-0 flex-col">
+                  <span className="truncate text-[13.5px] font-semibold text-foreground group-hover:text-brand-ink">
+                    {d.domain}
                   </span>
-                  {domain.blurb ? (
-                    <p className="w-fit max-w-[30ch] text-[12.5px] leading-[1.5] text-muted-foreground">
-                      {domain.blurb}
-                    </p>
-                  ) : null}
-                </div>
-                <m.ul variants={LIST_VARIANTS} className="grid gap-x-10 sm:grid-cols-2">
-                  {domain.services.map((service) => (
-                    <ServiceLine key={service.id} service={service} variants={LINE_VARIANTS} />
-                  ))}
-                </m.ul>
-              </m.div>
-            ) : (
-              <m.ul
-                key="index"
-                variants={INDEX_VARIANTS}
-                initial="hidden"
-                animate="show"
-                exit="exit"
-                className="gap-x-12 sm:columns-2 lg:columns-3"
-              >
-                {domains.map((d) => (
-                  <li key={d.domain} className="break-inside-avoid">
-                    <button
-                      type="button"
-                      onClick={() => setSelected(d.domain)}
-                      className="group flex w-full items-baseline justify-between gap-3 border-b border-border py-2.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    >
-                      <span className="flex min-w-0 flex-col">
-                        <span className="truncate text-[13.5px] font-semibold text-foreground group-hover:text-brand-ink">
-                          {d.domain}
-                        </span>
-                        <span className="truncate text-[11.5px] text-muted-foreground">
-                          {d.preview}
-                        </span>
-                      </span>
-                      <span className="shrink-0 self-center text-[12px] tabular-nums text-muted-foreground">
-                        {d.count}
-                      </span>
-                    </button>
-                  </li>
-                ))}
-              </m.ul>
-            )}
-          </AnimatePresence>
-        </MotionConfig>
-      </LazyMotion>
+                  <span className="truncate text-[11.5px] text-muted-foreground">{d.preview}</span>
+                </span>
+                <span className="shrink-0 self-center text-[12px] tabular-nums text-muted-foreground">
+                  {d.count}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   );
 }
 
-function ServiceLine({ service, variants }: { service: DomainService; variants: Variants }) {
+function ServiceLine({ service }: { service: DomainService }) {
   const note =
     service.status === "ga"
       ? `${service.liveRegions} live${service.plannedRegions ? ` · ${service.plannedRegions} planned` : ""}`
@@ -516,7 +469,7 @@ function ServiceLine({ service, variants }: { service: DomainService; variants: 
         ? "planned"
         : "not offered";
   return (
-    <m.li variants={variants}>
+    <li>
       <Link
         to="/catalog"
         className="group flex items-baseline gap-2.5 border-b border-border/60 py-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -532,7 +485,7 @@ function ServiceLine({ service, variants }: { service: DomainService; variants: 
           {note}
         </span>
       </Link>
-    </m.li>
+    </li>
   );
 }
 

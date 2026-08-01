@@ -6,6 +6,14 @@ const portalRoot = fileURLToPath(new URL("..", import.meta.url));
 const outputRoot = resolve(portalRoot, ".output");
 const workspaceRoot = resolve(portalRoot, "..");
 
+const performanceBudgets = {
+  initialHomeRequests: 14,
+  initialHomeTransferBytes: 205_000,
+  javascriptFiles: 56,
+  javascriptTransferBytes: 500_000,
+  stylesheetTransferBytes: 22_000,
+};
+
 const textExtensions = new Set([
   ".cjs",
   ".css",
@@ -126,11 +134,37 @@ export function findProductionExclusionViolations({
   return [...new Set(violations)].sort();
 }
 
+export function findPerformanceBudgetViolations(performance, budgets = performanceBudgets) {
+  const checks = [
+    ["initial home JS requests", performance.initialHome.requestCount, budgets.initialHomeRequests],
+    [
+      "initial home JS transfer bytes",
+      performance.initialHome.transferBytes,
+      budgets.initialHomeTransferBytes,
+    ],
+    ["JavaScript files", performance.javascript.fileCount, budgets.javascriptFiles],
+    [
+      "all JavaScript transfer bytes",
+      performance.javascript.transferBytes,
+      budgets.javascriptTransferBytes,
+    ],
+    [
+      "stylesheet transfer bytes",
+      performance.stylesheets.transferBytes,
+      budgets.stylesheetTransferBytes,
+    ],
+  ];
+  return checks
+    .filter(([, actual, maximum]) => actual > maximum)
+    .map(([label, actual, maximum]) => `${label}: ${actual} exceeds budget ${maximum}`);
+}
+
 export async function verifyProductionOutput() {
   const packageJson = JSON.parse(await readFile(resolve(portalRoot, "package.json"), "utf8"));
-  const [entries, installedPackageNames] = await Promise.all([
+  const [entries, installedPackageNames, buildMetadata] = await Promise.all([
     collectOutputEntries(outputRoot),
     listDirectPackageNames(resolve(portalRoot, "node_modules")),
+    readFile(resolve(outputRoot, "BUILD_METADATA.json"), "utf8").then(JSON.parse),
   ]);
   const packageSections = Object.fromEntries(
     ["dependencies", "devDependencies", "optionalDependencies", "peerDependencies"].map(
@@ -150,6 +184,7 @@ export async function verifyProductionOutput() {
       resolve(workspaceRoot, "docs"),
     ],
   });
+  violations.push(...findPerformanceBudgetViolations(buildMetadata.performance));
 
   if (violations.length > 0) {
     throw new Error(
@@ -157,7 +192,9 @@ export async function verifyProductionOutput() {
     );
   }
 
-  console.log(`Verified ${entries.length} production output entries: no forbidden reachability.`);
+  console.log(
+    `Verified ${entries.length} production output entries: no forbidden reachability and performance budgets pass.`,
+  );
 }
 
 async function collectOutputEntries(root) {

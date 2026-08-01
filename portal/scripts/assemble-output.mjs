@@ -45,7 +45,10 @@ function invariant(condition, message) {
 
 function outputRelativePath(filePath) {
   const path = relative(publicRoot, filePath);
-  invariant(path !== "" && path !== ".." && !path.startsWith(`..${sep}`), "Asset escaped public root.");
+  invariant(
+    path !== "" && path !== ".." && !path.startsWith(`..${sep}`),
+    "Asset escaped public root.",
+  );
   return path.split(sep).join("/");
 }
 
@@ -71,6 +74,58 @@ function viteOwnedFiles(viteManifest) {
     for (const asset of entry.assets ?? []) files.add(asset);
   }
   return files;
+}
+
+function staticDependencyFiles(viteManifest, roots) {
+  const files = new Set();
+  const visited = new Set();
+  const visit = (key) => {
+    if (visited.has(key)) return;
+    visited.add(key);
+    const entry = viteManifest[key];
+    invariant(entry, `Missing Vite manifest entry: ${key}`);
+    if (entry.file.endsWith(".js")) files.add(entry.file);
+    for (const dependency of entry.imports ?? []) visit(dependency);
+  };
+  for (const root of roots) visit(root);
+  return [...files].sort();
+}
+
+function transferSize(entry) {
+  return entry.gzip?.size ?? entry.identity.size;
+}
+
+function performanceMetadata(viteManifest, assets) {
+  const entryKey = Object.keys(viteManifest).find((key) => viteManifest[key].isEntry);
+  const homeKey = Object.keys(viteManifest).find((key) =>
+    key.startsWith("src/routes/index.tsx?tsr-split=component"),
+  );
+  invariant(entryKey && homeKey, "Entry or home route is absent from the Vite manifest.");
+  const initialHomeFiles = staticDependencyFiles(viteManifest, [entryKey, homeKey]);
+  const initialHomeBytes = initialHomeFiles.reduce((sum, file) => {
+    const entry = assets[urlPath(file)];
+    invariant(entry, `Initial-home asset is absent from the static manifest: ${file}`);
+    return sum + transferSize(entry);
+  }, 0);
+  const javascript = Object.values(assets).filter((entry) =>
+    entry.mime.startsWith("text/javascript"),
+  );
+  const stylesheets = Object.values(assets).filter((entry) => entry.mime.startsWith("text/css"));
+  return {
+    initialHome: {
+      files: initialHomeFiles,
+      requestCount: initialHomeFiles.length,
+      transferBytes: initialHomeBytes,
+    },
+    javascript: {
+      fileCount: javascript.length,
+      transferBytes: javascript.reduce((sum, entry) => sum + transferSize(entry), 0),
+    },
+    stylesheets: {
+      fileCount: stylesheets.length,
+      transferBytes: stylesheets.reduce((sum, entry) => sum + transferSize(entry), 0),
+    },
+  };
 }
 
 function etag(bytes) {
@@ -146,6 +201,7 @@ async function main() {
         builtAt: new Date().toISOString(),
         node: process.versions.node,
         artifact: "atlas-hono-router-spa",
+        performance: performanceMetadata(viteManifest, assets),
       },
       null,
       2,

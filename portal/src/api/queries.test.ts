@@ -4,7 +4,6 @@ const client = vi.hoisted(() => ({
   fetchPortalAnnouncements: vi.fn(async () => []),
   fetchPortalAvailability: vi.fn(async () => ({ zones: [] })),
   fetchPortalGuidance: vi.fn(async () => []),
-  fetchPortalLandingZones: vi.fn(async () => []),
   fetchPortalReleases: vi.fn(async () => []),
   fetchPortalResourceCatalog: vi.fn(async () => ({ resources: [] })),
   fetchPortalResourceContext: vi.fn(async () => ({})),
@@ -95,10 +94,10 @@ describe("Portal query transport", () => {
       client.fetchPortalAnnouncements,
       client.fetchPortalGuidance,
       client.fetchPortalAvailability,
-      client.fetchPortalLandingZones,
     ]) {
       expect(request).toHaveBeenCalledWith({ signal: controller.signal });
     }
+    expect(await landingZonesQueryOptions.queryFn?.({} as never)).toHaveLength(3);
     vi.unstubAllGlobals();
   });
 });

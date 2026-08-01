@@ -15,7 +15,9 @@ export interface RouterContext {
 
 export const Route = createRootRouteWithContext<RouterContext>()({
   loader: async ({ abortController }) => ({
-    dataMode: await fetchPortalDataMode({ signal: abortController.signal }),
+    dataMode: import.meta.env.PROD
+      ? ("live" as const)
+      : await fetchPortalDataMode({ signal: abortController.signal }),
   }),
   component: RootComponent,
   notFoundComponent: NotFoundComponent,
@@ -56,10 +58,22 @@ function NotFoundComponent() {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const { dataMode } = Route.useLoaderData();
-  // Defer mounting the Toaster (and fetching the sonner chunk) until after the
-  // initial client render.
+  // Load the toast runtime only when a toast is requested or the user first
+  // interacts. Successful passive page loads never pay for Sonner.
   const [showToaster, setShowToaster] = useState(false);
-  useEffect(() => setShowToaster(true), []);
+  useEffect(() => {
+    markOnce("atlas:app-mounted");
+    markOnce("atlas:interaction-ready");
+    const show = () => setShowToaster(true);
+    window.addEventListener("atlas:toast-needed", show, { once: true });
+    window.addEventListener("pointerdown", show, { once: true });
+    window.addEventListener("keydown", show, { once: true });
+    return () => {
+      window.removeEventListener("atlas:toast-needed", show);
+      window.removeEventListener("pointerdown", show);
+      window.removeEventListener("keydown", show);
+    };
+  }, []);
   return (
     <QueryClientProvider client={queryClient}>
       <PortalShell dataMode={dataMode}>
@@ -72,4 +86,8 @@ function RootComponent() {
       ) : null}
     </QueryClientProvider>
   );
+}
+
+function markOnce(name: string) {
+  if (performance.getEntriesByName(name).length === 0) performance.mark(name);
 }

@@ -84,7 +84,10 @@ export function fetchPortalAvailability(options?: ContextApiRequestOptions) {
   return requestPortalJson<AvailabilityResponse>({
     url: "/api/portal/availability",
     init: withSignal({ method: "GET" }, options),
-    parseWithSchemas: (schemas, body) => schemas.AvailabilityResponseSchema.parse(body),
+    parse: (body) => {
+      if (isAvailabilityResponse(body)) return body;
+      throw new TypeError("Portal availability response is invalid.");
+    },
   });
 }
 
@@ -203,6 +206,39 @@ function isAnnouncement(value: unknown): value is Announcement {
   if (!hasOptionalStrings(value, ["postedAt", "month", "kind", "summary"])) return false;
   return (
     value.link === undefined || (isRecord(value.link) && hasStrings(value.link, ["label", "href"]))
+  );
+}
+
+function isAvailabilityResponse(value: unknown): value is AvailabilityResponse {
+  return (
+    isRecord(value) &&
+    Array.isArray(value.zones) &&
+    value.zones.every(
+      (zone) =>
+        isRecord(zone) &&
+        hasStrings(zone, ["id", "name", "cloud", "dataStatus"]) &&
+        Array.isArray(zone.locations) &&
+        zone.locations.every(
+          (location) =>
+            isRecord(location) &&
+            hasStrings(location, ["id", "label", "sub", "kind"]) &&
+            (location.coordinates === undefined ||
+              (Array.isArray(location.coordinates) &&
+                location.coordinates.length === 2 &&
+                location.coordinates.every((coordinate) => typeof coordinate === "number"))),
+        ) &&
+        Array.isArray(zone.services) &&
+        zone.services.every(
+          (service) =>
+            isRecord(service) &&
+            hasStrings(service, ["id", "name", "iconKey", "domain"]) &&
+            isRecord(service.availability) &&
+            Object.values(service.availability).every(
+              (entry) =>
+                isRecord(entry) && typeof entry.status === "string" && optionalString(entry.note),
+            ),
+        ),
+    )
   );
 }
 

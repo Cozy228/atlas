@@ -9,13 +9,13 @@ import type {
   SourceDiscoveryResponse,
 } from "@atlas/schema";
 import type { Announcement, Release } from "@atlas/context-layer";
+import { LANDING_ZONES } from "@atlas/context-layer/landingZones";
 
 import type { Guidance } from "@/lib/guidance";
 import {
   fetchPortalAnnouncements,
   fetchPortalAvailability,
   fetchPortalGuidance,
-  fetchPortalLandingZones,
   fetchPortalReleases,
   fetchPortalResourceCatalog,
   fetchPortalResourceContext,
@@ -51,7 +51,7 @@ export const availabilityQueryOptions = queryOptions<AvailabilityResponse>({
 
 export const landingZonesQueryOptions = queryOptions<LandingZone[]>({
   queryKey: ["landing-zones"] as const,
-  queryFn: ({ signal }) => fetchPortalLandingZones({ signal }),
+  queryFn: async () => LANDING_ZONES.map((zone) => ({ ...zone })),
   // The LZ topology is config (dev=prod), effectively static within a session.
   staleTime: Infinity,
 });
