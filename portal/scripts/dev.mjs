@@ -21,6 +21,10 @@ export function startDevCoordinator({
   cwd = portalRoot,
 } = {}) {
   const npmExecPath = runtime.env.npm_execpath;
+  console.error(
+    "[DEBUG-windows-dev] coordinator",
+    JSON.stringify({ execPath: runtime.execPath, npmExecPath }),
+  );
   if (!npmExecPath) {
     throw new Error("npm_execpath is required; start the portal with its pnpm dev script.");
   }
@@ -33,12 +37,22 @@ export function startDevCoordinator({
 
   try {
     for (const args of childCommands) {
-      children.push(
-        spawnChild(runtime.execPath, args, {
+      const child = spawnChild(runtime.execPath, args, {
           cwd,
           env: runtime.env,
           stdio: "inherit",
-        }),
+        });
+      child.once("spawn", () => {
+        console.error("[DEBUG-windows-dev] child spawned", JSON.stringify({ args }));
+      });
+      child.once("error", (error) => {
+        console.error(
+          "[DEBUG-windows-dev] child error",
+          JSON.stringify({ args, error: String(error) }),
+        );
+      });
+      children.push(
+        child,
       );
     }
   } catch (error) {
@@ -95,4 +109,13 @@ export function startDevCoordinator({
 }
 
 const invokedPath = process.argv[1] ? pathToFileURL(resolve(process.argv[1])).href : undefined;
+console.error(
+  "[DEBUG-windows-dev] entry",
+  JSON.stringify({
+    platform: process.platform,
+    moduleUrl: import.meta.url,
+    invokedPath,
+    isSame: invokedPath ? isSameModuleUrl(import.meta.url, invokedPath) : false,
+  }),
+);
 if (invokedPath && isSameModuleUrl(import.meta.url, invokedPath)) startDevCoordinator();
