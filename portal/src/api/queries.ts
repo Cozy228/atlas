@@ -1,7 +1,6 @@
 import { queryOptions } from "@tanstack/react-query";
 import type {
   AvailabilityResponse,
-  LandingZone,
   ResourceCatalogResponse,
   ResourceContextResponse,
   ResourceRecordResponse,
@@ -9,7 +8,6 @@ import type {
   SourceDiscoveryResponse,
 } from "@atlas/schema";
 import type { Announcement, Release } from "@atlas/context-layer";
-import { LANDING_ZONES } from "@atlas/context-layer/landingZones";
 
 import type { Guidance } from "@/lib/guidance";
 import {
@@ -46,13 +44,6 @@ export const availabilityQueryKey = ["availability"] as const;
 export const availabilityQueryOptions = queryOptions<AvailabilityResponse>({
   queryKey: availabilityQueryKey,
   queryFn: ({ signal }) => fetchPortalAvailability({ signal }),
-  staleTime: Infinity,
-});
-
-export const landingZonesQueryOptions = queryOptions<LandingZone[]>({
-  queryKey: ["landing-zones"] as const,
-  queryFn: async () => LANDING_ZONES.map((zone) => ({ ...zone })),
-  // The LZ topology is config (dev=prod), effectively static within a session.
   staleTime: Infinity,
 });
 

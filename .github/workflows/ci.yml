@@ -53,9 +53,6 @@ jobs:
       - name: Build portal (runs gen:agent-skills then vite build)
         run: pnpm --filter @atlas/portal build
 
-      - name: Build context-layer Lambda bundle
-        run: pnpm --filter @atlas/context-layer build:lambda
-
   e2e:
     name: e2e (${{ matrix.os }})
     needs: verify

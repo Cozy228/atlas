@@ -20,7 +20,6 @@
     }
   },
   "scripts": {
-    "build:lambda": "tsdown --config tsdown.lambda.config.ts",
     "lint": "oxlint",
     "typecheck": "tsc --noEmit --pretty false",
     "test": "vitest run --exclude \"scripts/*.debug.test.ts\"",
@@ -28,10 +27,10 @@
   },
   "dependencies": {
     "@atlas/schema": "workspace:*",
-    "@aws-crypto/sha256-js": "5.2.0",
     "@aws-sdk/client-dynamodb": "3.1075.0",
-    "@aws-sdk/credential-provider-node": "3.972.58",
     "@aws-sdk/lib-dynamodb": "3.1075.0",
+    "@aws-crypto/sha256-js": "5.2.0",
+    "@aws-sdk/credential-provider-node": "3.972.58",
     "@smithy/signature-v4": "5.5.2",
     "iovalkey": "0.4.0",
     "node-html-parser": "^8.0.3",
@@ -39,7 +38,6 @@
   },
   "devDependencies": {
     "@types/node": "26.0.0",
-    "tsdown": "0.22.3",
     "typescript": "6.0.3",
     "vite": "8.1.0",
     "vitest": "4.1.9"

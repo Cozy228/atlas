@@ -17,7 +17,6 @@ import {
   announcementsQueryOptions,
   availabilityQueryOptions,
   guidanceQueryOptions,
-  landingZonesQueryOptions,
   releaseNotesQueryOptions,
   resourceCatalogQueryOptions,
   resourceContextQueryOptions,
@@ -83,7 +82,6 @@ describe("Portal query transport", () => {
       announcementsQueryOptions,
       guidanceQueryOptions,
       availabilityQueryOptions,
-      landingZonesQueryOptions,
     ]) {
       const queryFn = options.queryFn as BrowserQueryFn;
       await queryFn({ signal: controller.signal });
@@ -97,7 +95,6 @@ describe("Portal query transport", () => {
     ]) {
       expect(request).toHaveBeenCalledWith({ signal: controller.signal });
     }
-    expect(await landingZonesQueryOptions.queryFn?.({} as never)).toHaveLength(3);
     vi.unstubAllGlobals();
   });
 });

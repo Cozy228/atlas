@@ -15,8 +15,9 @@ import {
 
 /**
  * The shape `FetchLike` yields, buffered so it can be replayed from cache.
- * `freshUntil` (epoch ms) marks the end of an OK entry's fresh window for
- * stale-while-revalidate; absent on negative entries (never served stale).
+ * `freshUntil` (epoch ms) is carried alongside an OK entry so a cache backend
+ * that outlives an older TTL cannot replay it during a rolling deployment.
+ * Expired entries are re-fetched; they are never served stale.
  */
 export type CachedResponse = { status: number; body: unknown; freshUntil?: number };
 
@@ -25,6 +26,9 @@ export interface SourceContentCache {
   set(key: string, value: CachedResponse, ttlSeconds: number): Promise<void>;
   close?(): void | Promise<void>;
 }
+
+/** Internal marker for source adapters that own a version-aware cache policy. */
+export const SOURCE_CACHE_BYPASS_HEADER = "x-atlas-source-cache-bypass";
 
 const DEFAULT_TTL_SECONDS = 300;
 const DEFAULT_NEGATIVE_TTL_SECONDS = 30;
@@ -79,19 +83,19 @@ export class InMemoryContentCache implements SourceContentCache {
  *    fetch (a per-closure in-flight map keyed on the full auth-scoped cacheKey);
  *  - negative caching: non-OK responses are cached for `negativeTtlSeconds` so a
  *    hot 404/403/5xx does not re-hit the source on every request;
- *  - stale-while-revalidate: an OK entry past its fresh window is served instantly
- *    while a background refresh runs (bounded by `staleTtlSeconds`). SWR applies
- *    to OK entries only — a negative entry is never served stale.
+ *  - fail-open storage: a cache read/write failure bypasses the cache and keeps
+ *    the live source as the authority.
  *
  * Transport exceptions (a thrown `fetch`) are NEVER cached — only HTTP responses
  * with a status are stored; a throw propagates and the in-flight entry clears.
+ * An OK entry is usable only until its hard TTL; stale source content is never
+ * returned as a successful resolution.
  */
 export function withCache(
   fetch: FetchLike,
   cache: SourceContentCache,
   ttlSeconds: number = DEFAULT_TTL_SECONDS,
   negativeTtlSeconds: number = DEFAULT_NEGATIVE_TTL_SECONDS,
-  staleTtlSeconds: number = ttlSeconds,
   now: () => number = Date.now,
 ): FetchLike {
   // Per-closure in-flight map. Keyed on the FULL cacheKey (which includes the
@@ -113,11 +117,11 @@ export function withCache(
         body,
         freshUntil: now() + ttlSeconds * 1000,
       };
-      await cache.set(key, value, ttlSeconds + staleTtlSeconds);
+      await setCache(cache, key, value, ttlSeconds);
       return value;
     }
     const value: CachedResponse = { status: response.status, body: undefined };
-    await cache.set(key, value, negativeTtlSeconds);
+    await setCache(cache, key, value, negativeTtlSeconds);
     return value;
   }
 
@@ -137,25 +141,17 @@ export function withCache(
 
   return async (input, init) => {
     init?.signal?.throwIfAborted();
-    const method = init?.method ?? "GET";
+    const method = (init?.method ?? "GET").toUpperCase();
+    if (hasCacheBypassMarker(init?.headers)) {
+      return fetch(input, withoutCacheMarker(init));
+    }
     if (method !== "GET") {
       return fetch(input, init);
     }
 
     const key = cacheKey(method, input, init?.headers);
-    const hit = await cache.get(key);
-    if (hit) {
-      // SWR applies to OK entries only: a negative entry (no freshUntil) is
-      // served as-is until it expires, never refreshed in the background.
-      const isOk = hit.status >= 200 && hit.status < 300;
-      const fresh = hit.freshUntil === undefined || now() < hit.freshUntil;
-      if (!isOk || fresh) {
-        return replay(hit);
-      }
-      // Stale OK entry: kick a non-awaited single-flight refresh and serve the
-      // last-good copy immediately. A rejected background fetch is swallowed so
-      // it cannot surface as an unhandled rejection on this hot path.
-      void startFetch(key, input, init).catch(() => {});
+    const hit = await getCache(cache, key);
+    if (hit && isFresh(hit, now)) {
       return replay(hit);
     }
 
@@ -169,6 +165,23 @@ function withoutSignal(init: Parameters<FetchLike>[1]): Parameters<FetchLike>[1]
   return sharedInit;
 }
 
+function hasCacheBypassMarker(headers: Record<string, string> | undefined): boolean {
+  if (!headers) return false;
+  return Object.entries(headers).some(
+    ([name, value]) => name.toLowerCase() === SOURCE_CACHE_BYPASS_HEADER && value === "true",
+  );
+}
+
+function withoutCacheMarker(init: Parameters<FetchLike>[1]): Parameters<FetchLike>[1] {
+  if (!init?.headers) return init;
+  const headers = Object.fromEntries(
+    Object.entries(init.headers).filter(
+      ([name]) => name.toLowerCase() !== SOURCE_CACHE_BYPASS_HEADER,
+    ),
+  );
+  return { ...init, headers };
+}
+
 function waitForCaller<T>(pending: Promise<T>, signal: AbortSignal | undefined): Promise<T> {
   if (!signal) return pending;
   if (signal.aborted) return Promise.reject(signal.reason);
@@ -177,6 +190,36 @@ function waitForCaller<T>(pending: Promise<T>, signal: AbortSignal | undefined):
     signal.addEventListener("abort", onAbort, { once: true });
     pending.then(resolve, reject).finally(() => signal.removeEventListener("abort", onAbort));
   });
+}
+
+/** A cache is an optimization; an unavailable backend must not block the source. */
+async function getCache(
+  cache: SourceContentCache,
+  key: string,
+): Promise<CachedResponse | undefined> {
+  try {
+    return await cache.get(key);
+  } catch {
+    return undefined;
+  }
+}
+
+/** Cache write failures are intentionally swallowed for the same fail-open contract. */
+async function setCache(
+  cache: SourceContentCache,
+  key: string,
+  value: CachedResponse,
+  ttlSeconds: number,
+): Promise<void> {
+  try {
+    await cache.set(key, value, ttlSeconds);
+  } catch {
+    // The live response remains authoritative even when the cache is degraded.
+  }
+}
+
+function isFresh(value: CachedResponse, now: () => number): boolean {
+  return value.freshUntil === undefined || now() < value.freshUntil;
 }
 
 /** Reconstruct a `FetchLike` result from a buffered body (replayable json()). */
@@ -205,8 +248,8 @@ function cacheKey(
 /**
  * Select the cache implementation from the environment, mirroring
  * `createFeedbackRepository`: a Valkey adapter when `CACHE_VALKEY_URL` is
- * set, otherwise the in-memory default. iovalkey is a hard production dependency
- * so the configured cluster path is present in the self-contained deployment artifact.
+ * set, otherwise the in-memory default. The adapter uses iovalkey's cluster
+ * client with a short-lived IAM token rotated before expiry.
  */
 export async function createSourceContentCache(
   env: Record<string, string | undefined>,
@@ -227,6 +270,18 @@ export async function createSourceContentCache(
 
 export function cacheTtlSeconds(env: Record<string, string | undefined>): number {
   return numberFromEnv(env.CACHE_TTL_SECONDS, DEFAULT_TTL_SECONDS);
+}
+
+export function cacheNegativeTtlSeconds(env: Record<string, string | undefined>): number {
+  return numberFromEnv(env.CACHE_NEGATIVE_TTL_SECONDS, DEFAULT_NEGATIVE_TTL_SECONDS);
+}
+
+export function cacheValidationTtlSeconds(env: Record<string, string | undefined>): number {
+  return numberFromEnv(env.CACHE_VALIDATION_TTL_SECONDS, DEFAULT_TTL_SECONDS);
+}
+
+export function cacheContentTtlSeconds(env: Record<string, string | undefined>): number {
+  return numberFromEnv(env.CACHE_CONTENT_TTL_SECONDS, 7 * 24 * 60 * 60);
 }
 
 // One shared cache across every entry point — it is useless if rebuilt per
@@ -259,7 +314,15 @@ export async function cachedResolutionContext(
 ): Promise<ResolutionContext> {
   return (sharedResolutionContextPromise ??= sharedCache(env).then((cache) => {
     const base = defaultResolutionContext();
-    return { ...base, fetch: withCache(base.fetch, cache, cacheTtlSeconds(env)) };
+    return {
+      ...base,
+      fetch: withCache(base.fetch, cache, cacheTtlSeconds(env), cacheNegativeTtlSeconds(env)),
+      sourceCache: cache,
+      sourceCachePolicy: {
+        validationTtlSeconds: cacheValidationTtlSeconds(env),
+        contentTtlSeconds: cacheContentTtlSeconds(env),
+      },
+    };
   }));
 }
 
@@ -272,7 +335,7 @@ function readProcessEnv(): Record<string, string | undefined> {
 
 function numberFromEnv(raw: string | undefined, fallback: number): number {
   const parsed = raw ? Number(raw) : NaN;
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+  return Number.isFinite(parsed) && parsed > 0 ? Math.max(1, Math.floor(parsed)) : fallback;
 }
 
 function requiredEnv(env: Record<string, string | undefined>, name: string): string {

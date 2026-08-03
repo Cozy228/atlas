@@ -39,6 +39,37 @@ describe("Hono portal host", () => {
     }).request("/health");
 
     expect(response.status).toBe(200);
+    await response.text();
+    expect(events).toEqual(["start", "finish"]);
+  });
+
+  it("keeps a streamed document active until its body closes", async () => {
+    const events: string[] = [];
+    let closeStream: (() => void) | undefined;
+    const app = createPortalApp({
+      onRequestStart: () => {
+        events.push("start");
+        return () => events.push("finish");
+      },
+      renderSpaDocument: () =>
+        new Response(
+          new ReadableStream({
+            start(controller) {
+              controller.enqueue(new TextEncoder().encode("<!doctype html>"));
+              closeStream = () => controller.close();
+            },
+          }),
+          { headers: { "content-type": "text/html; charset=utf-8" } },
+        ),
+    });
+
+    const response = await app.request("/", { headers: { accept: "text/html" } });
+    const reader = response.body!.getReader();
+    await reader.read();
+    expect(events).toEqual(["start"]);
+
+    closeStream?.();
+    await reader.read();
     expect(events).toEqual(["start", "finish"]);
   });
 
@@ -109,7 +140,7 @@ describe("Hono portal host", () => {
     expect(message.result.serverInfo.name).toBe("atlas");
   });
 
-  it("serves the live resource Markdown projection outside the SPA fallback", async () => {
+  it("serves the live resource Markdown projection outside the document fallback", async () => {
     const app = createPortalApp();
     const apiResponse = await app.request(
       "https://portal.example.com/api/resources/service/aws/textract",
@@ -324,7 +355,7 @@ describe("Hono portal host", () => {
     expect(response.status).toBe(404);
   });
 
-  it("keeps dotted client routes eligible for the SPA fallback", async () => {
+  it("keeps dotted client routes eligible for the Start fallback", async () => {
     const app = createPortalApp({
       renderSpaDocument: () => new Response("<!doctype html>"),
     });
@@ -336,7 +367,7 @@ describe("Hono portal host", () => {
     expect(response.status).toBe(200);
   });
 
-  it("does not send reserved server namespaces to the SPA fallback", async () => {
+  it("does not send reserved server namespaces to the Start fallback", async () => {
     const app = createPortalApp({
       renderSpaDocument: () => new Response("<!doctype html>"),
     });
@@ -356,7 +387,7 @@ describe("Hono portal host", () => {
     }
   });
 
-  it("serves SPA document headers for an unmatched HEAD request", async () => {
+  it("serves Start document headers for an unmatched HEAD request", async () => {
     const app = createPortalApp({
       renderSpaDocument: () =>
         new Response("<!doctype html>", {

@@ -9,6 +9,7 @@ allowBuilds:
   # (msw/node) for dev/integration source-system mocking, so the build is skipped.
   esbuild: true
   msw: false
+  protobufjs: false
 
 minimumReleaseAgeExclude:
   - vite@8.1.0

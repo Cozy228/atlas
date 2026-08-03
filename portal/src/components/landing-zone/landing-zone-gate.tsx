@@ -1,17 +1,15 @@
 import type { ReactNode } from "react";
-import { useQuery } from "@tanstack/react-query";
 
-import { landingZonesQueryOptions } from "@/api/queries";
+import { LANDING_ZONES } from "@atlas/context-layer/landingZones";
 
 import { useCurrentLandingZone } from "./context";
 import { DataNotAvailableForZone } from "./data-not-available";
 
 /** The current landing zone's topology record (name + `dataStatus`), or undefined
- *  while the (static, globally-prefetched) LZ list is still loading. */
+ *  when an unknown id is supplied. */
 export function useCurrentLandingZoneRecord() {
   const { currentLandingZoneId } = useCurrentLandingZone();
-  const { data: zones = [] } = useQuery(landingZonesQueryOptions);
-  return zones.find((zone) => zone.id === currentLandingZoneId);
+  return LANDING_ZONES.find((zone) => zone.id === currentLandingZoneId);
 }
 
 /**

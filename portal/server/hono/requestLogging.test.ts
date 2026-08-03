@@ -21,6 +21,7 @@ describe("Hono request logging", () => {
     });
 
     expect(response.status).toBe(200);
+    await response.text();
     expect(events).toEqual([
       {
         event: "request",
@@ -50,6 +51,7 @@ describe("Hono request logging", () => {
     }).fetch(request);
 
     expect(response.status).toBe(200);
+    await response.text();
     expect(events).toHaveLength(1);
     expect(events[0]).toMatchObject({ event: "request", path: "/health", aborted: true });
     expect(JSON.stringify(events)).not.toContain("private abort reason");

@@ -14,25 +14,241 @@
     <link rel="service-desc" type="application/openapi+json" href="/openapi.json" />
     <link rel="api-catalog" type="application/linkset+json" href="/.well-known/api-catalog" />
     <link rel="ai-catalog" type="application/json" href="/.well-known/ai-catalog.json" />
-    <link
-      rel="agent-skills"
-      type="application/json"
-      href="/.well-known/agent-skills/index.json"
-    />
+    <link rel="agent-skills" type="application/json" href="/.well-known/agent-skills/index.json" />
     <link rel="mcp-server" href="/mcp" />
     <link rel="sitemap" type="application/xml" href="/sitemap.xml" />
     <script>
       try {
         var m = localStorage.getItem("atlas-theme");
         var d =
-          m === "dark" ||
-          (m !== "light" && matchMedia("(prefers-color-scheme:dark)").matches);
+          m === "dark" || (m !== "light" && matchMedia("(prefers-color-scheme:dark)").matches);
         if (d) document.documentElement.classList.add("dark");
       } catch (e) {}
     </script>
+    <style>
+      .atlas-static-shell {
+        --shell-background: #f7f8fb;
+        --shell-card: #fdfdfe;
+        --shell-foreground: #252838;
+        --shell-muted: #687083;
+        --shell-border: #dce0e9;
+        --shell-brand: #001aff;
+        min-height: 100vh;
+        background: var(--shell-background);
+        color: var(--shell-foreground);
+        font-family:
+          Inter,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+      }
+      .dark .atlas-static-shell {
+        --shell-background: #171820;
+        --shell-card: #20212b;
+        --shell-foreground: #f0f1f5;
+        --shell-muted: #a5a9b7;
+        --shell-border: #30323e;
+        --shell-brand: #7785ff;
+      }
+      .atlas-static-topbar {
+        display: flex;
+        height: 55px;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+        border-bottom: 1px solid var(--shell-border);
+        padding: 0 32px;
+        background: var(--shell-background);
+      }
+      .atlas-static-brand,
+      .atlas-static-nav a,
+      .atlas-static-action,
+      .atlas-static-path {
+        color: inherit;
+        text-decoration: none;
+      }
+      .atlas-static-brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 16px;
+        font-weight: 700;
+        letter-spacing: -0.03em;
+        white-space: nowrap;
+      }
+      .atlas-static-mark {
+        width: 22px;
+        height: 22px;
+        border: 2px solid var(--shell-brand);
+        border-radius: 3px;
+        box-shadow: inset 6px -6px 0 var(--shell-brand);
+      }
+      .atlas-static-nav {
+        display: flex;
+        align-items: center;
+        gap: 22px;
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--shell-muted);
+      }
+      .atlas-static-nav a:hover,
+      .atlas-static-path:hover {
+        color: var(--shell-brand);
+      }
+      .atlas-static-main {
+        box-sizing: border-box;
+        width: 100%;
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 40px 32px 64px;
+      }
+      .atlas-static-hero {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 18px;
+        padding: 24px 0 36px;
+        text-align: center;
+      }
+      .atlas-static-eyebrow {
+        margin: 0;
+        color: var(--shell-brand);
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+      .atlas-static-hero h1 {
+        max-width: 18ch;
+        margin: 0;
+        font-size: clamp(36px, 5vw, 48px);
+        line-height: 1.05;
+        letter-spacing: -0.04em;
+      }
+      .atlas-static-hero > p:not(.atlas-static-eyebrow) {
+        max-width: 52ch;
+        margin: 0;
+        color: var(--shell-muted);
+        font-size: 17px;
+        line-height: 1.55;
+      }
+      .atlas-static-actions {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 10px;
+        padding-top: 4px;
+      }
+      .atlas-static-action {
+        border: 1px solid var(--shell-border);
+        border-radius: 4px;
+        padding: 10px 14px;
+        background: var(--shell-card);
+        font-size: 13px;
+        font-weight: 700;
+      }
+      .atlas-static-action:first-child {
+        border-color: var(--shell-brand);
+        background: var(--shell-brand);
+        color: #fff;
+      }
+      .atlas-static-path-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        border: 1px solid var(--shell-border);
+        border-radius: 4px;
+        background: var(--shell-card);
+      }
+      .atlas-static-path {
+        min-width: 0;
+        padding: 20px;
+      }
+      .atlas-static-path + .atlas-static-path {
+        border-left: 1px solid var(--shell-border);
+      }
+      .atlas-static-path strong {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 14px;
+      }
+      .atlas-static-path span {
+        color: var(--shell-muted);
+        font-size: 13px;
+        line-height: 1.5;
+      }
+      @media (max-width: 760px) {
+        .atlas-static-topbar {
+          padding: 0 20px;
+        }
+        .atlas-static-nav {
+          display: none;
+        }
+        .atlas-static-main {
+          padding: 32px 20px 48px;
+        }
+        .atlas-static-hero {
+          padding-top: 12px;
+        }
+        .atlas-static-path-grid {
+          grid-template-columns: 1fr;
+        }
+        .atlas-static-path + .atlas-static-path {
+          border-top: 1px solid var(--shell-border);
+          border-left: 0;
+        }
+      }
+    </style>
   </head>
   <body>
-    <div id="app"></div>
+    <div id="app">
+      <div class="atlas-static-shell" data-atlas-static-shell aria-busy="true">
+        <header class="atlas-static-topbar">
+          <a class="atlas-static-brand" href="/" aria-label="Cloud DevEx Portal home">
+            <span class="atlas-static-mark" aria-hidden="true"></span>
+            <span>Cloud DevEx Portal</span>
+          </a>
+          <nav class="atlas-static-nav" aria-label="Primary">
+            <a href="/availability">Availability</a>
+            <a href="/catalog">Catalog</a>
+            <a href="/guidance">Guidance</a>
+            <a href="/sources">Sources</a>
+            <a href="/support">Support</a>
+          </nav>
+        </header>
+        <main class="atlas-static-main">
+          <section class="atlas-static-hero" aria-labelledby="atlas-static-title">
+            <p class="atlas-static-eyebrow">Governed cloud platform context</p>
+            <h1 id="atlas-static-title">Welcome to the Cloud DevEx Portal</h1>
+            <p>
+              Find the right guidance, services, and evidence to build with confidence. Every claim
+              links back to its source.
+            </p>
+            <div class="atlas-static-actions">
+              <a class="atlas-static-action" href="/catalog">Browse the catalog</a>
+              <a class="atlas-static-action" href="/guidance">Find guidance</a>
+            </div>
+          </section>
+          <section class="atlas-static-path-grid" aria-label="Quick paths">
+            <a class="atlas-static-path" href="/catalog">
+              <strong>Discover services</strong>
+              <span>Explore available platform capabilities and their evidence.</span>
+            </a>
+            <a class="atlas-static-path" href="/availability">
+              <strong>Check availability</strong>
+              <span>See where services are available, interim, or planned.</span>
+            </a>
+            <a class="atlas-static-path" href="/sources">
+              <strong>Trace the source</strong>
+              <span>Review the source records behind published guidance.</span>
+            </a>
+          </section>
+        </main>
+      </div>
+      <noscript>
+        <p>JavaScript is required for live data and in-page navigation.</p>
+      </noscript>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

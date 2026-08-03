@@ -42,6 +42,16 @@ describe("Atlas Terraform deployment", () => {
     );
   });
 
+  it("makes the source-cache freshness policy explicit in ECS", () => {
+    expect(mainTerraform).toContain('{ name = "CACHE_TTL_SECONDS", value = "300" }');
+    expect(mainTerraform).toContain('{ name = "CACHE_NEGATIVE_TTL_SECONDS", value = "30" }');
+    expect(mainTerraform).toContain('{ name = "CACHE_VALIDATION_TTL_SECONDS", value = "300" }');
+    expect(mainTerraform).toContain('{ name = "CACHE_CONTENT_TTL_SECONDS", value = "604800" }');
+    expect(mainTerraform).toContain(
+      '{ name = "CACHE_VALKEY_URL", value = "rediss://${aws_elasticache_replication_group.content_cache.configuration_endpoint_address}:6379" }',
+    );
+  });
+
   it("aligns ALB and ECS lifecycle with the Hono runtime", () => {
     expect(mainTerraform).toContain('path                = "/health"');
     expect(mainTerraform).toContain("deregistration_delay = 30");

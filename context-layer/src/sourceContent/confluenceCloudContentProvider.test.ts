@@ -1,7 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 import type { Source } from "@atlas/schema";
 import { resolveConfluencePageLive } from "./confluenceCloudContentProvider";
+import { fetchConfluenceStorageHtml } from "./confluenceCloudContentProvider";
 import type { FetchLike } from "../resolvers/resolverTypes";
+import { InMemoryContentCache } from "./sourceContentCache";
 
 const source: Source = {
   id: "central-lz-confluence",
@@ -283,5 +285,130 @@ describe("resolveConfluencePageLive", () => {
 
     const expected = `Basic ${Buffer.from("dev@example.com:api-token").toString("base64")}`;
     expect(calls[0]).toBe(expected);
+  });
+});
+
+describe("Confluence head/content cache", () => {
+  it("checks the lightweight head once, then reuses the matching revision body", async () => {
+    let headCalls = 0;
+    let contentCalls = 0;
+    const fetch: FetchLike = vi.fn(async (url: string) => {
+      if (url.includes("body-format=storage")) {
+        contentCalls += 1;
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            version: { number: 7, createdAt: "2026-05-05T00:00:00.000Z" },
+            body: { storage: { value: pageHtml } },
+            _links: { webui: "/spaces/CLOUD/pages/123456/Central" },
+          }),
+        };
+      }
+      headCalls += 1;
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ version: { number: 7, createdAt: "2026-05-05T00:00:00.000Z" } }),
+      };
+    });
+    const cache = new InMemoryContentCache();
+    const ctx = {
+      fetch,
+      sourceCache: cache,
+      sourceCachePolicy: { validationTtlSeconds: 300, contentTtlSeconds: 7 * 24 * 60 * 60 },
+    };
+
+    const [first, second] = await Promise.all([
+      fetchConfluenceStorageHtml(ctx, config, source.location),
+      fetchConfluenceStorageHtml(ctx, config, source.location),
+    ]);
+
+    expect(first).toMatchObject({ ok: true, version: 7, html: pageHtml });
+    expect(second).toMatchObject({ ok: true, version: 7, html: pageHtml });
+    expect(headCalls).toBe(1);
+    expect(contentCalls).toBe(1);
+  });
+
+  it("fetches the body again only after the head revision changes", async () => {
+    let clock = 1_000;
+    let version = 7;
+    let headCalls = 0;
+    let contentCalls = 0;
+    const fetch: FetchLike = vi.fn(async (url: string) => {
+      if (url.includes("body-format=storage")) {
+        contentCalls += 1;
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            version: { number: version },
+            body: { storage: { value: `<h2>Environment matrix</h2><p>v${version}</p>` } },
+          }),
+        };
+      }
+      headCalls += 1;
+      return { ok: true, status: 200, json: async () => ({ version: { number: version } }) };
+    });
+    const cache = new InMemoryContentCache({ now: () => clock });
+    const ctx = {
+      fetch,
+      sourceCache: cache,
+      sourceCachePolicy: {
+        validationTtlSeconds: 10,
+        contentTtlSeconds: 7 * 24 * 60 * 60,
+        now: () => clock,
+      },
+    };
+
+    await fetchConfluenceStorageHtml(ctx, config, source.location);
+    version = 8;
+    clock += 10_001;
+    const changed = await fetchConfluenceStorageHtml(ctx, config, source.location);
+
+    expect(changed).toMatchObject({ ok: true, version: 8, html: expect.stringContaining("v8") });
+    expect(headCalls).toBe(2);
+    expect(contentCalls).toBe(2);
+  });
+
+  it("does not serve the previous body when head validation is unavailable", async () => {
+    let clock = 1_000;
+    let available = true;
+    const fetch: FetchLike = vi.fn(async (url: string) => {
+      if (!available && !url.includes("body-format=storage")) {
+        return { ok: false, status: 503, json: async () => ({}) };
+      }
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          version: { number: 7 },
+          ...(url.includes("body-format=storage")
+            ? { body: { storage: { value: pageHtml } } }
+            : {}),
+        }),
+      };
+    });
+    const cache = new InMemoryContentCache({ now: () => clock });
+    const ctx = {
+      fetch,
+      sourceCache: cache,
+      sourceCachePolicy: {
+        validationTtlSeconds: 10,
+        contentTtlSeconds: 7 * 24 * 60 * 60,
+        now: () => clock,
+      },
+    };
+
+    await fetchConfluenceStorageHtml(ctx, config, source.location);
+    available = false;
+    clock += 10_001;
+    const unavailable = await fetchConfluenceStorageHtml(ctx, config, source.location);
+
+    expect(unavailable).toEqual({
+      ok: false,
+      code: "source_unavailable",
+      message: "Confluence page could not be resolved at request time.",
+    });
   });
 });

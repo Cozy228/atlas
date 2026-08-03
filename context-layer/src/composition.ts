@@ -66,8 +66,9 @@ function discoveryKey(env: Record<string, string | undefined>): string {
 async function runDiscovery(
   env: Record<string, string | undefined>,
   availabilityProvider: AvailabilityProvider,
+  resolutionContext = defaultResolutionContext(),
 ): Promise<Discovered> {
-  const ctx = defaultResolutionContext(); // late-bound fetch → MSW/prod
+  const ctx = resolutionContext; // late-bound fetch → MSW/prod
   const services = await discoverServiceSources({
     availabilityProvider,
     ctx,
@@ -98,13 +99,17 @@ function discoverAll(
   env: Record<string, string | undefined>,
   availabilityProvider: AvailabilityProvider,
   useCache: boolean,
+  resolutionContext?: ReturnType<typeof defaultResolutionContext>,
 ): Promise<Discovered> {
   if (!useCache) {
-    return runDiscovery(env, availabilityProvider);
+    return runDiscovery(env, availabilityProvider, resolutionContext);
   }
   const key = discoveryKey(env);
   if (discoveryCache?.key !== key) {
-    discoveryCache = { key, promise: runDiscovery(env, availabilityProvider) };
+    discoveryCache = {
+      key,
+      promise: runDiscovery(env, availabilityProvider, resolutionContext),
+    };
   }
   return discoveryCache.promise;
 }
@@ -173,17 +178,23 @@ export async function createDefaultContextService(
   options: ContextServiceOptions = {},
 ): Promise<ContextService> {
   const env = options.env ?? readProcessEnv();
+  const resolutionContext = options.availabilityProvider
+    ? defaultResolutionContext()
+    : await cachedResolutionContext(env);
   const availabilityProvider =
     options.availabilityProvider ??
     createConfluenceAvailabilityProvider({
-      fetch: (await cachedResolutionContext(env)).fetch,
+      fetch: resolutionContext.fetch,
       env,
+      sourceCache: resolutionContext.sourceCache,
+      sourceCachePolicy: resolutionContext.sourceCachePolicy,
     });
 
   const { services, guardrails } = await discoverAll(
     env,
     availabilityProvider,
     !options.availabilityProvider,
+    resolutionContext,
   );
 
   const registry: Registry =

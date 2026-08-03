@@ -80,6 +80,16 @@ context-layer suite 125 passed / 2 skipped; only `sourceContentCache.ts` + its t
 changed. The bundle wall-time (108 ms) and RAW fetch count (5) are unchanged, as
 expected — 008 hardens amplification, 009 moves the wall-time.
 
+### Freshness contract correction — 2026-08-02
+
+The original 008 implementation used bounded stale-while-revalidate for the source-content
+decorator. That behavior is superseded by the governed freshness contract: source content and
+availability evidence must never be served after the hard TTL, even while a refresh is in flight.
+The current implementation retains the 008 wins that do not weaken freshness — auth-scoped
+single-flight, short negative caching, and transport-error non-caching — and adds fail-open cache
+storage. Reference discovery has a separate ADR-0016 contract for bounded stale state and is not
+covered by this correction.
+
 ### Iteration 2 — 009 parallel anchor resolution ✅ landed + verified
 Inner anchor loop → ordered `Promise.all`; outer sources → bounded
 `mapWithConcurrency(_, 5, _)`; `authorityConflictWarnings` pushed after all settle.
@@ -125,7 +135,7 @@ a correctness dependency). Critic C2 held (service test byte-untouched 12/12);
 **live-extraction correctness gated by the 4 provider/resolver tests (28/28
 unchanged)** since the service test only exercises the offline path. **Honest note:**
 008+009 already delivered production fetch-once; D-6's realised increment is
-**parse-once (server/Lambda CPU)** + RAW/cold-path fetch-once (defense-in-depth) —
+**parse-once (ECS server CPU)** + RAW/cold-path fetch-once (defense-in-depth) —
 the harness's RAW 5→1 makes it visible. Only 4 files changed.
 
 ### Iteration 5 — bundle size (A-1 react-table split + F-3′ lazy AWS icons) ✅ landed + verified

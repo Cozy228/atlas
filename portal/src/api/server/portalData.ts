@@ -37,15 +37,15 @@ let availabilityInFlight: Promise<AvailabilityResponse> | undefined;
 
 export async function loadPortalAvailability(
   client: Pick<ContextApiClient, "getAvailability">,
-  options: { coalesce?: boolean } = {},
+  options: { coalesce?: boolean; signal?: AbortSignal } = {},
 ): Promise<AvailabilityResponse> {
   const coalesce = options.coalesce !== false;
   if (!coalesce) {
-    const { zones } = await client.getAvailability();
+    const { zones } = await client.getAvailability({ signal: options.signal });
     return { zones };
   }
   return (availabilityInFlight ??= client
-    .getAvailability()
+    .getAvailability({ signal: options.signal })
     .then(({ zones }) => {
       return { zones };
     })

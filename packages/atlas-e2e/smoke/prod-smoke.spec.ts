@@ -28,16 +28,41 @@ test.describe("production smoke (mock-free)", () => {
     await expect(response.json()).resolves.toEqual({ dataMode: "live" });
   });
 
-  test("deep links return the static SPA document before client boot", async ({ request }) => {
+  test("deep links return a meaningful static SPA shell before client boot", async ({
+    request,
+  }) => {
     const response = await request.get("/catalog", {
       headers: { accept: "text/html" },
     });
     const html = await response.text();
 
     expect(response.status()).toBe(200);
-    expect(html).toContain('<div id="app"></div>');
+    expect(html).toContain("data-atlas-static-shell");
+    expect(html).toContain("Welcome to the Cloud DevEx Portal");
+    expect(html).toContain('aria-label="Primary"');
     expect(html).toContain('type="module"');
-    expect(html).not.toContain('aria-label="Primary"');
+    expect(html).not.toContain("__TSR_SSR__");
+  });
+
+  test("home remains useful when JavaScript has not started", async ({ browser }) => {
+    const context = await browser.newContext({ javaScriptEnabled: false });
+    const page = await context.newPage();
+
+    try {
+      const response = await page.goto("/");
+
+      expect(response?.status()).toBe(200);
+      await expect(
+        page.getByRole("heading", { name: "Welcome to the Cloud DevEx Portal" }),
+      ).toBeVisible();
+      await expect(page.getByRole("link", { name: "Browse the catalog" })).toHaveAttribute(
+        "href",
+        "/catalog",
+      );
+      await expect(page.getByRole("navigation", { name: "Primary" })).toBeVisible();
+    } finally {
+      await context.close();
+    }
   });
 
   test("cold home stays within the browser request budget", async ({ page }) => {
@@ -47,7 +72,7 @@ test.describe("production smoke (mock-free)", () => {
     await page.goto("/");
     await page.waitForLoadState("networkidle");
 
-    expect(responses.filter((path) => path.endsWith(".js"))).toHaveLength(14);
+    expect(responses.filter((path) => path.endsWith(".js")).length).toBeLessThanOrEqual(14);
     expect(responses.filter((path) => path.startsWith("/api/portal/")).sort()).toEqual([
       "/api/portal/announcements",
       "/api/portal/availability",
@@ -61,6 +86,7 @@ test.describe("production smoke (mock-free)", () => {
       page.on("pageerror", (error) => pageErrors.push(error.message));
       const response = await page.goto(path);
       expect(response?.status(), `${path} HTTP status`).toBeLessThan(400);
+      await expect(page.locator("[data-atlas-static-shell]")).toHaveCount(0);
       await expect(page.getByRole("link", { name: "Cloud DevEx Portal home" })).toBeVisible();
       // Badge ABSENT in prod — by stable testid, not copy, so a label rename can't
       // make this seam-contract check pass vacuously.
@@ -68,4 +94,25 @@ test.describe("production smoke (mock-free)", () => {
       expect(pageErrors, `pageerror on ${path}`).toEqual([]);
     });
   }
+
+  test("native landing-zone selection updates the client state", async ({ page }) => {
+    await page.goto("/");
+    const selector = page.getByRole("combobox", { name: "Current landing zone" });
+
+    await expect(selector.locator("option")).toHaveCount(3);
+    await selector.selectOption("azure");
+
+    await expect(selector).toHaveValue("azure");
+    await expect(page.locator("[data-current-landing-zone=azure]")).toBeVisible();
+  });
+
+  test("native mobile navigation opens on the first client interaction", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/");
+
+    await page.getByRole("button", { name: "Open navigation menu" }).click();
+    await expect(page.getByRole("dialog", { name: "Mobile navigation" })).toBeVisible();
+    await page.getByRole("button", { name: "Close navigation menu" }).click();
+    await expect(page.getByRole("dialog", { name: "Mobile navigation" })).toBeHidden();
+  });
 });

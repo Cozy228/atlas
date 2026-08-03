@@ -33,6 +33,7 @@ import {
   type RequestContextOptions,
 } from "./requestContext";
 import { createRequestLogEvent, type RequestLogEvent } from "./requestLogging";
+import { trackResponseCompletion } from "./responseCompletion";
 
 const SERVER_PATH_PREFIXES = ["/api", "/health", "/mcp", "/.well-known", "/resources"];
 const STATIC_FILE_EXTENSION =
@@ -59,15 +60,10 @@ export function createPortalApp(options: PortalAppOptions = {}): Hono<PortalEnv>
     const requestContext = createRequestContext(context.req.raw, options);
     context.set("requestContext", requestContext);
     const finishRequest = options.onRequestStart?.(requestContext);
-    let status = 500;
-    try {
-      await next();
-      context.header("X-Request-Id", requestContext.requestId);
-      if (context.req.path === "/") {
-        context.header("Link", buildHomeLinkHeader(requestContext.publicOrigin));
-      }
-      status = context.res.status;
-    } finally {
+    let completed = false;
+    const completeRequest = (status: number) => {
+      if (completed) return;
+      completed = true;
       try {
         options.onRequestComplete?.(
           createRequestLogEvent({
@@ -81,6 +77,18 @@ export function createPortalApp(options: PortalAppOptions = {}): Hono<PortalEnv>
       } finally {
         finishRequest?.();
       }
+    };
+    try {
+      await next();
+      context.header("X-Request-Id", requestContext.requestId);
+      if (context.req.path === "/") {
+        context.header("Link", buildHomeLinkHeader(requestContext.publicOrigin));
+      }
+      const status = context.res.status;
+      context.res = trackResponseCompletion(context.res, () => completeRequest(status));
+    } catch (error) {
+      completeRequest(500);
+      throw error;
     }
   });
 
@@ -96,6 +104,7 @@ export function createPortalApp(options: PortalAppOptions = {}): Hono<PortalEnv>
     return context.json(
       await loadPortalAvailability(createServerContextApiClient({ token }), {
         coalesce: !token,
+        signal: context.req.raw.signal,
       }),
     );
   });

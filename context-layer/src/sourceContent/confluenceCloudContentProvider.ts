@@ -1,6 +1,9 @@
+import { createHash } from "node:crypto";
+
 import type { Source } from "@atlas/schema";
 import { parse, type HTMLElement } from "node-html-parser";
 import type { ResolutionContext, ResolveResult, ResolverWarning } from "../resolvers/resolverTypes";
+import { SOURCE_CACHE_BYPASS_HEADER, type CachedResponse } from "./sourceContentCache";
 
 /**
  * Live, ACL-aware Confluence Cloud excerpt resolution.
@@ -11,8 +14,12 @@ import type { ResolutionContext, ResolveResult, ResolverWarning } from "../resol
  * opaque Bearer token so Confluence's own ACL governs what comes back. Nothing is
  * persisted; the excerpt is ephemeral.
  *
- * Server / Data Center is out of scope — this is a Cloud-only adapter. A
- * Server adapter would implement the same `(request, config) => ResolveResult`
+ * The derived excerpt is request-scoped and is not persisted. The shared source
+ * cache may retain the ACL-scoped storage body under a revisioned key after a
+ * fresh page-version check; Confluence remains the source of truth.
+ *
+ * Server / Data Center is out of scope — this is a Cloud-only adapter. A Server
+ * adapter would implement the same `(request, config) => ResolveResult`
  * boundary against its own REST surface.
  * TODO(confluence-server): add a Server/Data Center adapter behind this seam.
  */
@@ -37,7 +44,7 @@ type ConfluenceLiveRequest = {
 
 type ConfluencePageResponse = {
   title?: string;
-  version?: { number?: number };
+  version?: { number?: number; createdAt?: string };
   body?: { storage?: { value?: string } };
   _links?: { webui?: string };
 };
@@ -173,13 +180,198 @@ function confluencePageUrl(config: ConfluenceLiveConfig, pageId: string): string
  * runtime. Maps HTTP status to the warning code/message the callers surface.
  */
 export type ConfluenceFetchResult =
-  | { ok: true; html: string; version: number | undefined; webui: string | undefined }
+  | {
+      ok: true;
+      html: string;
+      version: number | undefined;
+      sourceUpdatedAt?: string;
+      webui: string | undefined;
+    }
   | { ok: false; code: "restricted_source" | "source_unavailable"; message: string };
 
 export async function fetchConfluenceStorageHtml(
   ctx: ResolutionContext,
   config: ConfluenceLiveConfig,
   pageId: string,
+): Promise<ConfluenceFetchResult> {
+  if (ctx.sourceCache) {
+    const identity = confluenceCacheIdentity(config, pageId);
+    let inFlight = versionedInFlight.get(ctx.sourceCache);
+    if (!inFlight) {
+      inFlight = new Map();
+      versionedInFlight.set(ctx.sourceCache, inFlight);
+    }
+    const existing = inFlight.get(identity);
+    if (existing) return existing;
+    const pending = loadVersionedConfluenceStorageHtml(ctx, config, pageId).finally(() => {
+      inFlight?.delete(identity);
+    });
+    inFlight.set(identity, pending);
+    return pending;
+  }
+  return fetchConfluenceStorageHtmlLive(ctx, config, pageId, false);
+}
+
+type ConfluenceHeadCacheBody = {
+  version: number | undefined;
+  sourceUpdatedAt?: string;
+  revision: string;
+  checkedAt: number;
+};
+
+type ConfluenceContentCacheBody = {
+  html: string;
+  version: number | undefined;
+  sourceUpdatedAt?: string;
+  webui: string | undefined;
+  revision: string;
+  materializedAt: string;
+};
+
+const CONFLUENCE_MATERIALIZER_REVISION = "confluence-storage-v1";
+const versionedInFlight = new WeakMap<object, Map<string, Promise<ConfluenceFetchResult>>>();
+
+async function loadVersionedConfluenceStorageHtml(
+  ctx: ResolutionContext,
+  config: ConfluenceLiveConfig,
+  pageId: string,
+): Promise<ConfluenceFetchResult> {
+  const cache = ctx.sourceCache;
+  if (!cache) return fetchConfluenceStorageHtmlLive(ctx, config, pageId, false);
+
+  const identity = confluenceCacheIdentity(config, pageId);
+  const headKey = `${identity}:head`;
+  const cachedHead = await readVersionedCache<ConfluenceHeadCacheBody>(cache, headKey);
+  const now = sourceCacheNow(ctx);
+
+  if (cachedHead && isFreshAt(cachedHead, now)) {
+    const content = await readVersionedCache<ConfluenceContentCacheBody>(
+      cache,
+      `${identity}:revision:${cachedHead.body.revision}`,
+    );
+    if (content && content.body.revision === cachedHead.body.revision) {
+      return contentResult(content.body);
+    }
+  }
+
+  // Head is the cheap source validation request. A failure is an honest source
+  // outage; cached content is not silently promoted to current content.
+  const liveHead = await fetchConfluencePageHead(ctx, config, pageId);
+  if (!liveHead.ok) return liveHead;
+
+  if (
+    liveHead.version !== undefined &&
+    cachedHead?.body.version === liveHead.version &&
+    cachedHead.body.revision
+  ) {
+    const content = await readVersionedCache<ConfluenceContentCacheBody>(
+      cache,
+      `${identity}:revision:${cachedHead.body.revision}`,
+    );
+    if (content && content.body.revision === cachedHead.body.revision) {
+      await writeVersionedCache(
+        cache,
+        headKey,
+        {
+          status: 200,
+          body: { ...cachedHead.body, checkedAt: now },
+          freshUntil: now + validationTtl(ctx) * 1000,
+        },
+        validationTtl(ctx),
+      );
+      return contentResult(content.body);
+    }
+  }
+
+  // The revision changed (or the cache lost the materialized body), so fetch
+  // the larger storage payload only now and materialize it under a revisioned key.
+  const liveContent = await fetchConfluenceStorageHtmlLive(ctx, config, pageId, true);
+  if (!liveContent.ok) return liveContent;
+
+  const revision = confluenceRevision(liveContent.version, liveContent.html);
+  const materialized: ConfluenceContentCacheBody = {
+    html: liveContent.html,
+    version: liveContent.version,
+    ...(liveContent.sourceUpdatedAt ? { sourceUpdatedAt: liveContent.sourceUpdatedAt } : {}),
+    webui: liveContent.webui,
+    revision,
+    materializedAt: new Date(now).toISOString(),
+  };
+  const contentKey = `${identity}:revision:${revision}`;
+  await writeVersionedCache(
+    cache,
+    contentKey,
+    { status: 200, body: materialized },
+    contentTtl(ctx),
+  );
+  await writeVersionedCache(
+    cache,
+    headKey,
+    {
+      status: 200,
+      body: {
+        version: liveContent.version,
+        ...(liveContent.sourceUpdatedAt ? { sourceUpdatedAt: liveContent.sourceUpdatedAt } : {}),
+        revision,
+        checkedAt: now,
+      },
+      freshUntil: now + validationTtl(ctx) * 1000,
+    },
+    validationTtl(ctx),
+  );
+  return liveContent;
+}
+
+async function fetchConfluencePageHead(
+  ctx: ResolutionContext,
+  config: ConfluenceLiveConfig,
+  pageId: string,
+): Promise<
+  | { ok: true; version: number | undefined; sourceUpdatedAt?: string }
+  | { ok: false; code: "restricted_source" | "source_unavailable"; message: string }
+> {
+  const url = confluencePageHeadUrl(config, pageId);
+  let response: Awaited<ReturnType<typeof ctx.fetch>>;
+  try {
+    response = await ctx.fetch(url, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+        Authorization: confluenceAuthorization(config),
+        [SOURCE_CACHE_BYPASS_HEADER]: "true",
+      },
+    });
+  } catch {
+    return {
+      ok: false,
+      code: "source_unavailable",
+      message: "Confluence could not be reached at request time.",
+    };
+  }
+  const statusFailure = confluenceStatusFailure(response.status, response.ok);
+  if (statusFailure) return statusFailure;
+
+  try {
+    const page = (await response.json()) as ConfluencePageResponse;
+    return {
+      ok: true,
+      version: page.version?.number,
+      ...(page.version?.createdAt ? { sourceUpdatedAt: page.version.createdAt } : {}),
+    };
+  } catch {
+    return {
+      ok: false,
+      code: "source_unavailable",
+      message: "Confluence returned an unreadable response.",
+    };
+  }
+}
+
+async function fetchConfluenceStorageHtmlLive(
+  ctx: ResolutionContext,
+  config: ConfluenceLiveConfig,
+  pageId: string,
+  bypassGenericCache: boolean,
 ): Promise<ConfluenceFetchResult> {
   const baseUrl = config.baseUrl.replace(/\/+$/, "");
   const url = `${baseUrl}/wiki/api/v2/pages/${encodeURIComponent(pageId)}?body-format=storage`;
@@ -191,6 +383,7 @@ export async function fetchConfluenceStorageHtml(
       headers: {
         Authorization: confluenceAuthorization(config),
         Accept: "application/json",
+        ...(bypassGenericCache ? { [SOURCE_CACHE_BYPASS_HEADER]: "true" } : {}),
       },
     });
   } catch {
@@ -203,27 +396,8 @@ export async function fetchConfluenceStorageHtml(
     };
   }
 
-  if (response.status === 401 || response.status === 403) {
-    return {
-      ok: false,
-      code: "restricted_source",
-      message: "Confluence denied access to this source for the supplied identity.",
-    };
-  }
-  if (response.status === 404) {
-    return {
-      ok: false,
-      code: "source_unavailable",
-      message: "Confluence page was not found at request time.",
-    };
-  }
-  if (!response.ok) {
-    return {
-      ok: false,
-      code: "source_unavailable",
-      message: "Confluence page could not be resolved at request time.",
-    };
-  }
+  const statusFailure = confluenceStatusFailure(response.status, response.ok);
+  if (statusFailure) return statusFailure;
 
   let page: ConfluencePageResponse;
   try {
@@ -240,8 +414,109 @@ export async function fetchConfluenceStorageHtml(
     ok: true,
     html: page.body?.storage?.value ?? "",
     version: page.version?.number,
+    ...(page.version?.createdAt ? { sourceUpdatedAt: page.version.createdAt } : {}),
     webui: page._links?.webui,
   };
+}
+
+function confluenceStatusFailure(
+  status: number,
+  ok: boolean,
+): { ok: false; code: "restricted_source" | "source_unavailable"; message: string } | undefined {
+  if (status === 401 || status === 403) {
+    return {
+      ok: false,
+      code: "restricted_source",
+      message: "Confluence denied access to this source for the supplied identity.",
+    };
+  }
+  if (status === 404) {
+    return {
+      ok: false,
+      code: "source_unavailable",
+      message: "Confluence page was not found at request time.",
+    };
+  }
+  if (!ok) {
+    return {
+      ok: false,
+      code: "source_unavailable",
+      message: "Confluence page could not be resolved at request time.",
+    };
+  }
+  return undefined;
+}
+
+function confluencePageHeadUrl(config: ConfluenceLiveConfig, pageId: string): string {
+  const baseUrl = config.baseUrl.replace(/\/+$/, "");
+  return `${baseUrl}/wiki/api/v2/pages/${encodeURIComponent(pageId)}`;
+}
+
+function confluenceCacheIdentity(config: ConfluenceLiveConfig, pageId: string): string {
+  const authScope = confluenceAuthorization(config);
+  const digest = createHash("sha256")
+    .update(`${confluencePageUrl(config, pageId)}\n${authScope}`)
+    .digest("hex");
+  // The hash tag keeps head and revision keys in one Valkey cluster slot.
+  return `atlas:source-content:{${digest}}`;
+}
+
+function confluenceRevision(version: number | undefined, html: string): string {
+  if (version !== undefined) return `v${version}-${CONFLUENCE_MATERIALIZER_REVISION}`;
+  const digest = createHash("sha256").update(html).digest("hex").slice(0, 32);
+  return `h${digest}-${CONFLUENCE_MATERIALIZER_REVISION}`;
+}
+
+function contentResult(content: ConfluenceContentCacheBody): ConfluenceFetchResult {
+  return {
+    ok: true,
+    html: content.html,
+    version: content.version,
+    ...(content.sourceUpdatedAt ? { sourceUpdatedAt: content.sourceUpdatedAt } : {}),
+    webui: content.webui,
+  };
+}
+
+async function readVersionedCache<T>(
+  cache: NonNullable<ResolutionContext["sourceCache"]>,
+  key: string,
+): Promise<{ body: T; freshUntil?: number } | undefined> {
+  try {
+    const value = await cache.get(key);
+    if (!value || value.status < 200 || value.status >= 300) return undefined;
+    return { body: value.body as T, freshUntil: value.freshUntil };
+  } catch {
+    return undefined;
+  }
+}
+
+async function writeVersionedCache(
+  cache: NonNullable<ResolutionContext["sourceCache"]>,
+  key: string,
+  value: CachedResponse,
+  ttlSeconds: number,
+): Promise<void> {
+  try {
+    await cache.set(key, value, ttlSeconds);
+  } catch {
+    // Source availability remains authoritative if the performance cache fails.
+  }
+}
+
+function sourceCacheNow(ctx: ResolutionContext): number {
+  return ctx.sourceCachePolicy?.now?.() ?? Date.now();
+}
+
+function validationTtl(ctx: ResolutionContext): number {
+  return ctx.sourceCachePolicy?.validationTtlSeconds ?? 300;
+}
+
+function contentTtl(ctx: ResolutionContext): number {
+  return ctx.sourceCachePolicy?.contentTtlSeconds ?? 7 * 24 * 60 * 60;
+}
+
+function isFreshAt(value: { freshUntil?: number }, now: number): boolean {
+  return value.freshUntil === undefined || now < value.freshUntil;
 }
 
 /**
