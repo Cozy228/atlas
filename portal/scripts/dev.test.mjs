@@ -2,10 +2,10 @@ import { EventEmitter } from "node:events";
 
 import { describe, expect, it, vi } from "vitest";
 
-import { isSameModuleUrl, startDevCoordinator } from "./dev.mjs";
+import { startDevCoordinator } from "./dev.mjs";
 
 class FakeRuntime extends EventEmitter {
-  env = { npm_execpath: "/tools/pnpm.cjs" };
+  env = {};
   execPath = "/tools/node";
   exitCode = undefined;
 }
@@ -25,33 +25,28 @@ function exitChild(child, code, signal = null) {
 }
 
 describe("portal dev coordinator", () => {
-  it("recognizes the invoked module when Windows drive-letter casing differs", () => {
-    expect(
-      isSameModuleUrl(
-        "file:///D:/a/atlas/atlas/portal/scripts/dev.mjs",
-        "file:///d:/a/atlas/atlas/portal/scripts/dev.mjs",
-        "win32",
-      ),
-    ).toBe(true);
-  });
-
-  it("spawns Vite and the watched Hono entry through the active pnpm CLI", () => {
+  it("spawns Vite and tsx directly through the active Node runtime", () => {
     const runtime = new FakeRuntime();
     const children = [createChild(), createChild()];
     const spawnChild = vi.fn().mockReturnValueOnce(children[0]).mockReturnValueOnce(children[1]);
 
-    startDevCoordinator({ runtime, spawnChild, cwd: "/portal" });
+    startDevCoordinator({
+      runtime,
+      spawnChild,
+      cwd: "/portal",
+      cliPaths: { vite: "/tools/vite.js", tsx: "/tools/tsx.mjs" },
+    });
 
     expect(spawnChild).toHaveBeenNthCalledWith(
       1,
       "/tools/node",
-      ["/tools/pnpm.cjs", "exec", "vite", "dev"],
+      ["/tools/vite.js", "dev"],
       expect.objectContaining({ cwd: "/portal", stdio: "inherit" }),
     );
     expect(spawnChild).toHaveBeenNthCalledWith(
       2,
       "/tools/node",
-      ["/tools/pnpm.cjs", "exec", "tsx", "watch", "server/hono/dev.ts"],
+      ["/tools/tsx.mjs", "watch", "server/hono/dev.ts"],
       expect.objectContaining({ cwd: "/portal", stdio: "inherit" }),
     );
   });
