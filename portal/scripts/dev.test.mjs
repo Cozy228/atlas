@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 import { startDevCoordinator } from "./dev.mjs";
 
 class FakeRuntime extends EventEmitter {
-  env = {};
+  env = { npm_execpath: "/tools/pnpm.cjs" };
   execPath = "/tools/node";
   exitCode = undefined;
 }
@@ -25,28 +25,23 @@ function exitChild(child, code, signal = null) {
 }
 
 describe("portal dev coordinator", () => {
-  it("spawns Vite and tsx directly through the active Node runtime", () => {
+  it("spawns Vite and the watched Hono entry through the active pnpm CLI", () => {
     const runtime = new FakeRuntime();
     const children = [createChild(), createChild()];
     const spawnChild = vi.fn().mockReturnValueOnce(children[0]).mockReturnValueOnce(children[1]);
 
-    startDevCoordinator({
-      runtime,
-      spawnChild,
-      cwd: "/portal",
-      cliPaths: { vite: "/tools/vite.js", tsx: "/tools/tsx.mjs" },
-    });
+    startDevCoordinator({ runtime, spawnChild, cwd: "/portal" });
 
     expect(spawnChild).toHaveBeenNthCalledWith(
       1,
       "/tools/node",
-      ["/tools/vite.js", "dev"],
+      ["/tools/pnpm.cjs", "exec", "vite", "dev"],
       expect.objectContaining({ cwd: "/portal", stdio: "inherit" }),
     );
     expect(spawnChild).toHaveBeenNthCalledWith(
       2,
       "/tools/node",
-      ["/tools/tsx.mjs", "watch", "server/hono/dev.ts"],
+      ["/tools/pnpm.cjs", "exec", "tsx", "watch", "server/hono/dev.ts"],
       expect.objectContaining({ cwd: "/portal", stdio: "inherit" }),
     );
   });

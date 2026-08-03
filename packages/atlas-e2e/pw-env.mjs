@@ -14,12 +14,11 @@
 export const channel = process.env.PW_CHANNEL ?? (process.platform === "darwin" ? "chrome" : "msedge");
 
 /**
- * One base URL for both the readiness probe and in-test navigation, so they never
- * drift. `localhost` (not 127.0.0.1) on purpose: the dev server binds whichever
- * loopback stack it prefers (IPv6 `::1` locally), which a hard-coded IPv4 probe
- * would miss; `localhost` resolves to whatever the server actually bound.
+ * One explicit IPv4 base URL for both the readiness probe and in-test navigation,
+ * matching the Vite and Hono loopback bindings. This avoids Windows resolving
+ * `localhost` to a different loopback family than the dev server uses.
  */
-export const baseURL = process.env.PW_BASE_URL ?? "http://localhost:3000";
+export const baseURL = process.env.PW_BASE_URL ?? "http://127.0.0.1:3000";
 
 /**
  * Routes whose client chunks are heavy + lazily code-split (the availability

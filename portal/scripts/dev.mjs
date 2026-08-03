@@ -4,20 +4,20 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 const portalRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const signalExitCodes = { SIGINT: 130, SIGTERM: 143 };
-const defaultCliPaths = {
-  vite: fileURLToPath(new URL("../../bin/vite.js", import.meta.resolve("vite"))),
-  tsx: fileURLToPath(import.meta.resolve("tsx/cli")),
-};
 
 export function startDevCoordinator({
   runtime = process,
   spawnChild = spawn,
   cwd = portalRoot,
-  cliPaths = defaultCliPaths,
 } = {}) {
+  const npmExecPath = runtime.env.npm_execpath;
+  if (!npmExecPath) {
+    throw new Error("npm_execpath is required; start the portal with its pnpm dev script.");
+  }
+
   const childCommands = [
-    [cliPaths.vite, "dev"],
-    [cliPaths.tsx, "watch", "server/hono/dev.ts"],
+    [npmExecPath, "exec", "vite", "dev"],
+    [npmExecPath, "exec", "tsx", "watch", "server/hono/dev.ts"],
   ];
   const children = [];
 
