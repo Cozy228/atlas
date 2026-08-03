@@ -1,3 +1,4 @@
+import { gunzipSync } from "node:zlib";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { server, setDevDiscoveryEnv } from "@atlas/context-layer/devMocks";
 
@@ -99,6 +100,20 @@ describe("Hono portal host", () => {
     };
     expect(document.openapi).toBe("3.1.0");
     expect(document.servers[0]?.url).toBe("https://portal.example.com/api");
+  });
+
+  it("compresses large JSON contracts and varies them by content encoding", async () => {
+    const response = await createPortalApp().request("https://portal.example.com/openapi.json", {
+      headers: { "accept-encoding": "gzip" },
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-encoding")).toBe("gzip");
+    expect(response.headers.get("vary")).toContain("Accept-Encoding");
+    const document = JSON.parse(
+      gunzipSync(Buffer.from(await response.arrayBuffer())).toString("utf8"),
+    ) as { openapi: string };
+    expect(document.openapi).toBe("3.1.0");
   });
 
   it.each([

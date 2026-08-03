@@ -1,5 +1,7 @@
-import { readFile, stat } from "node:fs/promises";
+import { createReadStream } from "node:fs";
+import { stat } from "node:fs/promises";
 import { resolve, sep } from "node:path";
+import { Readable } from "node:stream";
 
 export type StaticAssetRepresentation = {
   file: string;
@@ -90,17 +92,27 @@ export async function loadStaticAssetService(options: {
           headers.set("content-length", "0");
           return new Response(null, { status: 416, headers });
         }
-        const bytes = await readFile(representation.absoluteFile);
-        const body = bytes.subarray(range.start, range.end + 1);
         headers.set("content-range", `bytes ${range.start}-${range.end}/${representation.size}`);
-        headers.set("content-length", String(body.byteLength));
-        return new Response(request.method === "HEAD" ? null : body, { status: 206, headers });
+        headers.set("content-length", String(range.end - range.start + 1));
+        return new Response(
+          request.method === "HEAD"
+            ? null
+            : fileStream(representation.absoluteFile, { start: range.start, end: range.end }),
+          { status: 206, headers },
+        );
       }
 
       if (request.method === "HEAD") return new Response(null, { headers });
-      return new Response(await readFile(representation.absoluteFile), { headers });
+      return new Response(fileStream(representation.absoluteFile), { headers });
     },
   };
+}
+
+function fileStream(
+  absoluteFile: string,
+  range?: { start: number; end: number },
+): ReadableStream<Uint8Array> {
+  return Readable.toWeb(createReadStream(absoluteFile, range)) as ReadableStream<Uint8Array>;
 }
 
 async function validateRepresentation(

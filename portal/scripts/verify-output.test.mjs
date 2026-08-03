@@ -86,7 +86,8 @@ describe("performance budgets", () => {
     };
 
     expect(findPerformanceBudgetViolations(performance)).toEqual([
-      "initial home JS requests: 15 exceeds budget 14",
+      "initial home JS requests: 15 exceeds budget 11",
+      "initial home JS transfer bytes: 200000 exceeds budget 170000",
     ]);
   });
 });

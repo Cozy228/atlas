@@ -7,8 +7,8 @@ const outputRoot = resolve(portalRoot, ".output");
 const workspaceRoot = resolve(portalRoot, "..");
 
 const performanceBudgets = {
-  initialHomeRequests: 14,
-  initialHomeTransferBytes: 205_000,
+  initialHomeRequests: 11,
+  initialHomeTransferBytes: 170_000,
   // Route-level splitting can add lazy files while reducing the cold-home closure.
   // Keep a fragmentation guard, but judge the user-visible path by its own request
   // and transfer budgets instead of forcing unrelated routes into eager chunks.

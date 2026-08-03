@@ -254,6 +254,12 @@ additionally uses short-lived head/version keys and long-lived revision content 
 and writes fail open to the live source, and a failed head validation never promotes old content to
 current.
 
+The final hardening pass bounds optional-cache connection and command waits at two seconds and one
+second respectively, disconnects a client after a command failure so the next operation reconnects,
+and treats malformed serialized values as misses. Derived service and guardrail discovery now starts
+its independent passes concurrently, expires on the same short validation window, and removes failed
+promises so source recovery no longer requires an ECS restart.
+
 Unit tests cover TLS enforcement, iovalkey adapter lifecycle/token rotation, cache isolation,
 head/content cold and warm paths, revision changes, hard expiry, fail-open behavior, negative caching,
 and single-flight;

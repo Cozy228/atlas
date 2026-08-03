@@ -1,5 +1,6 @@
 import { Hono, type Context } from "hono";
 import { accepts } from "hono/accepts";
+import { compress } from "hono/compress";
 import { atlasMcpHandler } from "@atlas/context-layer/mcp";
 import { runWithLogContext } from "@atlas/logging";
 
@@ -39,6 +40,9 @@ import { trackResponseCompletion } from "./responseCompletion";
 const SERVER_PATH_PREFIXES = ["/api", "/health", "/mcp", "/.well-known", "/resources"];
 const STATIC_FILE_EXTENSION =
   /\.(?:avif|br|css|gif|gz|html?|ico|jpe?g|js|json|map|md|mjs|otf|png|svg|ttf|txt|webmanifest|webp|woff2?|xml)$/i;
+const compressJson = compress({
+  contentTypeFilter: /^application\/(?:[a-z0-9.-]+\+)?json\b/i,
+});
 
 type PortalEnv = {
   Variables: {
@@ -94,6 +98,15 @@ export function createPortalApp(options: PortalAppOptions = {}): Hono<PortalEnv>
       throw error;
     }
   });
+
+  for (const path of ["/api", "/api/*", "/.well-known/*", "/openapi.json"] as const) {
+    app.use(path, async (context, next) => {
+      await compressJson(context, next);
+      if (context.res.headers.has("content-encoding")) {
+        appendVary(context.res.headers, "Accept-Encoding");
+      }
+    });
+  }
 
   app.all("/health", (context) =>
     options.isReady?.() === false ? context.json({ status: "draining" }, 503) : handleHealth(),
@@ -213,4 +226,16 @@ function acceptsHtml(context: Context<PortalEnv>): boolean {
 function bearerToken(request: Request): string | undefined {
   const match = request.headers.get("authorization")?.match(/^Bearer\s+(.+)$/i);
   return match ? match[1].trim() : undefined;
+}
+
+function appendVary(headers: Headers, value: string): void {
+  const existing = headers.get("vary");
+  const values = existing
+    ? existing
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean)
+    : [];
+  if (!values.some((item) => item.toLowerCase() === value.toLowerCase())) values.push(value);
+  headers.set("vary", values.join(", "));
 }

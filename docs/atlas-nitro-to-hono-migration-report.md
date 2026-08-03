@@ -140,32 +140,35 @@ ALB
 
 这些数字使用同一套 build effective-transfer 口径，可直接比较：
 
-| 冷首页/客户端产物 | 早期 Hono SPA | 优化后 SPA | 最终 static-shell SPA |
-| --- | ---: | ---: | ---: |
-| 冷首页 JS requests | 21 | 14 | 11 |
-| 冷首页 JS transfer | 未保留同口径数据 | 202,476 B | 151,335 B |
-| Portal JSON requests | 4 | 2 | 2 |
-| 全部 client JS files | 58 | 55 | 59 |
-| 全部 client JS transfer | 未保留同口径数据 | 483,917 B | 477,013 B |
+| 冷首页/客户端产物       |    早期 Hono SPA | 优化后 SPA | 最终 static-shell SPA |
+| ----------------------- | ---------------: | ---------: | --------------------: |
+| 冷首页 JS requests      |               21 |         14 |                     9 |
+| 冷首页 JS transfer      | 未保留同口径数据 |  202,476 B |             151,203 B |
+| Portal JSON requests    |                4 |          2 |                     2 |
+| 全部 client JS files    |               58 |         55 |                    57 |
+| 全部 client JS transfer | 未保留同口径数据 |  483,917 B |             476,674 B |
 
 最终版本相对优化后 SPA：
 
-- 冷首页少 3 个 JS 请求。
-- 冷首页 JS 少 51,141 B，下降约 25.3%。
+- 冷首页少 5 个 JS 请求。
+- 冷首页 JS 少 51,273 B，下降约 25.3%。
 - 全部 client JS transfer 仍低于 500 KB gate。
-- 总文件数从 55 增至 59，是 route lazy splitting 产生更多小 chunk；冷首页请求和传输量反而下降，因此不算用户路径回退。
+- 总文件数从 55 增至 57，是 route lazy splitting 产生更多小 chunk；冷首页请求和传输量反而下降，因此不算用户路径回退。
+- Production gate 已收紧到冷首页最多 11 个 JS 请求、170,000 B effective transfer，避免以后悄悄吃回这次收益。
+
+Hono 现在只对 JSON API/discovery contract 做动态 gzip，不压缩 MCP event stream、health 或已预压缩的静态文件。实测 production `/openapi.json` 从 21,557 B 降到 4,635 B，下降 78.5%，并正确返回 `Vary: Accept-Encoding`。静态文件和 byte range 改为文件流，不再为每个请求先把整份 asset 读入 Node heap；这项主要改善并发内存与首字节路径，不在没有负载测试的情况下声称 LCP 数字提升。
 
 ### 4.2 构建产物对照
 
-| 方案 | `.output` 大小 | 说明 |
-| --- | ---: | --- |
-| fresh `origin/main` Start/Nitro SSR control | 10,644 KiB | 292 个 output files |
-| 优化后的 Hybrid SSR prototype | 8,952 KiB | 仍包含 Start SSR client/server runtime |
-| 最终 Hono + static-shell SPA | 5,444 KiB | 209 entries；public 3,068 KiB，server 2,372 KiB |
+| 方案                                                  | `.output` 大小 | 说明                                          |
+| ----------------------------------------------------- | -------------: | --------------------------------------------- |
+| fresh `origin/main` Start/Nitro SSR control           |     10,644 KiB | 292 个 output files                           |
+| 优化后的 Hybrid SSR prototype                         |      8,952 KiB | 仍包含 Start SSR client/server runtime        |
+| 最终 Hono + static-shell SPA（当前依赖与 MCP 合并后） |      6,276 KiB | 214 files；public 3,076 KiB，server 3,196 KiB |
 
-最终产物相对 fresh Start/Nitro control 小约 48.9%，相对 Hybrid prototype 小约 39.2%。
+当前产物相对 fresh Start/Nitro control 小约 41.0%，相对 Hybrid prototype 小约 29.9%。它比最初的 5,444 KiB final snapshot 增大，主要来自随后合并的 MCP/logging server surface 与依赖更新；客户端首屏 closure 没有回退。
 
-最终 Linux/amd64 容器镜像为 231,773,443 bytes（约 221 MiB）。镜像以非 root `node` 用户运行，Docker healthcheck 能达到 `healthy`。
+当前 Linux/amd64 容器镜像为 232,614,241 bytes（约 221.8 MiB）。合并后曾短暂丢失的 `USER node`、artifact ownership 和 Docker `HEALTHCHECK` 已恢复并加入 contract test；实际容器以非 root `node` 用户运行，healthcheck 达到 `healthy`。
 
 ## 5. 500 ms live fetch 与缓存
 
@@ -193,21 +196,25 @@ Confluence 不使用 HTTP `HEAD`。这里的 “head query” 是较轻的 metad
 
 缓存还覆盖 single-flight、negative caching、hard expiry 和 token lifecycle。Valkey 是加速层，不是内容的持久化 source of truth；Confluence 仍是权威数据源，ECS 本地磁盘也不承载内容持久化。
 
+派生 resource/guardrail discovery 也不再永久冻结到进程重启：service discovery 与 guardrail discovery 冷启动并行执行；结果复用同一个 300 秒 validation window，过期后单飞重发现；失败的 Promise 会立即从 memo 中移除，下一请求可以自愈。这样新服务/guardrail 最迟在 validation window 后出现，同时不引入 scheduler、第二进程或新部署单元。
+
 生产客户端选择 **iovalkey Cluster**：
 
 - TLS 强制开启。
 - ElastiCache IAM token 自动签名，并每 14 分钟刷新连接凭证。
 - Cluster topology 由客户端管理。
+- connect 最多等待 2 秒、command 最多等待 1 秒且只做一次 request retry；坏连接立即断开，下一 cache 操作重新建连。cache 故障因此保持有界并 fail open 到 source，而不是占满 14 分钟 token window。
+- 反序列化后的 cache value 做运行时结构校验；损坏或旧格式值按 miss 处理，不进入 resolver。
 - token 刷新逻辑很小、可测；仅为了隐藏这段刷新而换 GLIDE，不足以抵消其 native packaging/runtime 风险。
 
 ## 6. SPA、SSR、Hybrid 的最终判断
 
-| 方案 | 首屏 | 最终交互/数据 | Bundle/产物 | 维护与部署 | 结论 |
-| --- | --- | --- | --- | --- | --- |
-| 纯 Start SSR | route HTML 最早 | 仍等 hydration/live data | 最大 | 保留 Start + Nitro 双运行时 | 不选 |
-| 纯空白/骨架 SPA | 首屏最慢 | 暖 cache 可很好 | 最小/简单 | 最简单 | 单独使用不够好 |
-| Hybrid SSR | LCP 最强 | 优化后与 SPA 接近 | 8,952 KiB | 双构建、SSR、序列化/水合、custom dev host | 性能冠军，但整体不最佳 |
-| Static-shell SPA + Hono | 静态内容很早，动态内容后到 | cache 命中后接近最优 | 5,444 KiB | 单进程、单 client build | **最终选择** |
+| 方案                    | 首屏                       | 最终交互/数据            | Bundle/产物 | 维护与部署                                | 结论                   |
+| ----------------------- | -------------------------- | ------------------------ | ----------- | ----------------------------------------- | ---------------------- |
+| 纯 Start SSR            | route HTML 最早            | 仍等 hydration/live data | 最大        | 保留 Start + Nitro 双运行时               | 不选                   |
+| 纯空白/骨架 SPA         | 首屏最慢                   | 暖 cache 可很好          | 最小/简单   | 最简单                                    | 单独使用不够好         |
+| Hybrid SSR              | LCP 最强                   | 优化后与 SPA 接近        | 8,952 KiB   | 双构建、SSR、序列化/水合、custom dev host | 性能冠军，但整体不最佳 |
+| Static-shell SPA + Hono | 静态内容很早，动态内容后到 | cache 命中后接近最优     | 6,276 KiB   | 单进程、单 client build                   | **最终选择**           |
 
 优化 Hybrid 在 0 ms source 下的 LCP 为 3,060 ms、Data ready 为 6,414 ms；暖 500 ms cache 下分别为 3,260 ms 和 6,097 ms。它确实比普通 SPA 更漂亮，但代价是：
 
@@ -251,10 +258,10 @@ Confluence 不使用 HTTP `HEAD`。这里的 “head query” 是较轻的 metad
 
 - `pnpm lint`：通过。
 - `pnpm typecheck`：通过。
-- `pnpm test`：通过，共 446 tests。
-  - Context Layer：179。
-  - Portal：231。
-  - 其余 workspace/acceptance：36。
+- `pnpm test`：通过，共 461 tests。
+  - Context Layer：194。
+  - Portal：223。
+  - 其余 workspace/acceptance：44。
 - Primary Playwright：31/31。
 - Production smoke：13/13。
 - JavaScript disabled 时 meaningful shell 可见，heading/nav/catalog link 可用。

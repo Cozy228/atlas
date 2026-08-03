@@ -105,6 +105,44 @@ describe("ValkeyContentCache", () => {
     expect(firstClient.quit).toHaveBeenCalledTimes(1);
   });
 
+  it("drops a failed cluster connection so the next operation reconnects", async () => {
+    const failedClient = fakeClusterClient();
+    failedClient.get.mockRejectedValue(new Error("connection closed"));
+    const recoveredClient = fakeClusterClient();
+    recoveredClient.get.mockResolvedValue(JSON.stringify(VALUE));
+    const clients = [failedClient, recoveredClient];
+    const clientFactory = vi.fn(async () => clients.shift() ?? recoveredClient);
+    const cache = new ValkeyContentCache({
+      cacheName: "atlas-production-content-cache",
+      region: "us-east-1",
+      url: "rediss://configuration.example.com:6379",
+      userId: "atlas-portal",
+      clientFactory,
+      tokenProvider: async () => "iam-token",
+    });
+
+    await expect(cache.get("first")).rejects.toThrow("connection closed");
+    await expect(cache.get("second")).resolves.toEqual(VALUE);
+
+    expect(clientFactory).toHaveBeenCalledTimes(2);
+    expect(failedClient.disconnect).toHaveBeenCalledTimes(1);
+  });
+
+  it("treats structurally invalid cache values as misses", async () => {
+    const client = fakeClusterClient();
+    client.get.mockResolvedValue(JSON.stringify({ status: "200", body: { unsafe: true } }));
+    const cache = new ValkeyContentCache({
+      cacheName: "atlas-production-content-cache",
+      region: "us-east-1",
+      url: "rediss://configuration.example.com:6379",
+      userId: "atlas-portal",
+      clientFactory: async () => client,
+      tokenProvider: async () => "iam-token",
+    });
+
+    await expect(cache.get("invalid")).resolves.toBeUndefined();
+  });
+
   it("requires TLS for IAM authentication", () => {
     expect(
       () =>

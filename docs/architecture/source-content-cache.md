@@ -20,8 +20,9 @@ freshness boundary and caller-ACL isolation.
   current.
 - Not durable persistence. Valkey is shared cache capacity only; the source
   remains Confluence/Terraform.
-- Not a bundle-level cache. Registry and request-local parse memoization remain
-  separate concerns.
+- Not a bundle-level cache. Derived discovery and request-local parse
+  memoization remain separate concerns. Derived discovery uses the same short
+  validation window, but stores no source body.
 
 ## Where it sits
 
@@ -100,6 +101,10 @@ header is stripped before the request leaves Atlas.
    loops without hiding a later recovery.
 6. **Drift remains visible.** `stale_source` is computed from Source review
    metadata and live version information; the cache does not rewrite that signal.
+7. **Derived discovery refreshes.** Service and guardrail discovery start in
+   parallel, share one in-process single-flight result for the validation window,
+   and retry on the next request after a failed pass. New derived catalog records
+   therefore do not require an ECS restart.
 
 ## Adapter: ElastiCache Valkey
 
@@ -108,10 +113,18 @@ header is stripped before the request leaves Atlas.
 
 iovalkey receives the ElastiCache configuration endpoint as a seed address,
 discovers the cluster topology, routes commands by slot, handles MOVED/ASK
-redirects and failover retries, and enables TLS. The adapter generates a new
+redirects, and enables TLS. The adapter generates a new
 15-minute IAM token every 14 minutes, opens the replacement cluster before the
 old token expires, then closes the previous connection. This keeps the token
 rotation explicit without requiring a platform-specific native module.
+
+Because the cache is optional, its waits are deliberately shorter than source
+waits: initial connection is bounded at two seconds, commands at one second, and
+one request retry is allowed. A command failure disconnects that client so the
+next operation creates a fresh IAM-authenticated cluster connection. Invalid
+serialized values are treated as misses. These choices keep the fail-open
+contract real during cluster/network degradation rather than letting iovalkey's
+default retry queue become request latency.
 
 This is intentionally a connection rotation rather than an in-place AUTH
 refresh. The cache is an optimization, the ECS process is short-lived, and the
@@ -152,6 +165,7 @@ replication-group id rather than the DNS endpoint. Values are JSON-serialized
 4. `ValkeyContentCache` using iovalkey Cluster + SigV4 IAM token rotation,
    gated by `CACHE_VALKEY_URL`, plus Terraform env wiring.
 5. Tests for cold fetch, same-revision hit, version change, head outage,
-   generic hard expiry/single-flight, cache-backend failure, and the iovalkey
-   adapter lifecycle/token rotation using an injected fake client. A real
+   generic hard expiry/single-flight, cache-backend failure, expiring/retryable
+   derived discovery, bounded iovalkey options, bad-connection recovery,
+   serialized-value validation, and adapter lifecycle/token rotation. A real
    Valkey integration test still needs deployment credentials and VPC access.

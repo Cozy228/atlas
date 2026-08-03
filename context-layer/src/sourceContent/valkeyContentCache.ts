@@ -61,17 +61,17 @@ export class ValkeyContentCache implements SourceContentCache {
   }
 
   async get(key: string): Promise<CachedResponse | undefined> {
-    const raw = await (await this.connect()).get(key);
+    const raw = await this.execute((client) => client.get(key));
     if (raw === null) return undefined;
     try {
-      return JSON.parse(raw) as CachedResponse;
+      return parseCachedResponse(JSON.parse(raw));
     } catch {
       return undefined;
     }
   }
 
   async set(key: string, value: CachedResponse, ttlSeconds: number): Promise<void> {
-    await (await this.connect()).set(key, JSON.stringify(value), "EX", ttlSeconds);
+    await this.execute((client) => client.set(key, JSON.stringify(value), "EX", ttlSeconds));
   }
 
   async close(): Promise<void> {
@@ -96,6 +96,19 @@ export class ValkeyContentCache implements SourceContentCache {
     return this.connectionPromise;
   }
 
+  private async execute<T>(command: (client: ClusterClient) => Promise<T>): Promise<T> {
+    const client = await this.connect();
+    try {
+      return await command(client);
+    } catch (error) {
+      if (this.connection?.client === client) {
+        this.connection = undefined;
+        client.disconnect();
+      }
+      throw error;
+    }
+  }
+
   private async rotate(): Promise<ClusterClient> {
     const password = await this.tokenProvider();
     const client = await this.clientFactory({
@@ -111,11 +124,39 @@ export class ValkeyContentCache implements SourceContentCache {
   }
 }
 
+function parseCachedResponse(value: unknown): CachedResponse | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const candidate = value as { body?: unknown; freshUntil?: unknown; status?: unknown };
+  if (
+    !Number.isSafeInteger(candidate.status) ||
+    (candidate.status as number) < 100 ||
+    (candidate.status as number) > 599
+  ) {
+    return undefined;
+  }
+  if (
+    candidate.freshUntil !== undefined &&
+    (typeof candidate.freshUntil !== "number" || !Number.isFinite(candidate.freshUntil))
+  ) {
+    return undefined;
+  }
+  return {
+    status: candidate.status as number,
+    body: candidate.body,
+    ...(candidate.freshUntil === undefined ? {} : { freshUntil: candidate.freshUntil }),
+  };
+}
+
 async function createClusterClient(input: ClusterClientFactoryInput): Promise<ClusterClient> {
   const client = new Cluster([{ host: input.host, port: input.port }], {
+    clusterRetryStrategy: () => null,
     dnsLookup: (address, callback) => callback(null, address),
+    enableOfflineQueue: false,
     lazyConnect: true,
     redisOptions: {
+      commandTimeout: 1_000,
+      connectTimeout: 2_000,
+      maxRetriesPerRequest: 1,
       password: input.password,
       tls: {},
       username: input.username,
