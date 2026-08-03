@@ -90,3 +90,23 @@ variable "portal_origin" {
   default     = ""
   description = "Canonical Portal origin. Leave empty to derive it from load-balancer headers."
 }
+
+variable "http_proxy" {
+  type        = string
+  default     = ""
+  description = "Optional HTTP proxy URL for server-side outbound fetches."
+  sensitive   = true
+}
+
+variable "https_proxy" {
+  type        = string
+  default     = ""
+  description = "Optional HTTPS proxy URL for server-side outbound fetches."
+  sensitive   = true
+}
+
+variable "no_proxy" {
+  type        = string
+  default     = ""
+  description = "Optional comma-separated hosts that bypass the scoped outbound HTTP proxy."
+}

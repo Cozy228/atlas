@@ -52,6 +52,21 @@ describe("Atlas Terraform deployment", () => {
     );
   });
 
+  it("wires optional standard proxy variables into the portal task", () => {
+    expect(mainTerraform).toContain(
+      'var.http_proxy != "" ? [{ name = "HTTP_PROXY", value = var.http_proxy }] : []',
+    );
+    expect(mainTerraform).toContain(
+      'var.https_proxy != "" ? [{ name = "HTTPS_PROXY", value = var.https_proxy }] : []',
+    );
+    expect(mainTerraform).toContain(
+      'var.no_proxy != "" ? [{ name = "NO_PROXY", value = var.no_proxy }] : []',
+    );
+    expect(variablesTerraform).toContain('variable "http_proxy"');
+    expect(variablesTerraform).toContain('variable "https_proxy"');
+    expect(variablesTerraform).toContain('variable "no_proxy"');
+  });
+
   it("aligns ALB and ECS lifecycle with the Hono runtime", () => {
     expect(mainTerraform).toContain('path                = "/health"');
     expect(mainTerraform).toContain("deregistration_delay = 30");

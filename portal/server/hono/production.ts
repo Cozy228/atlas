@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
-import { closeSourceContentCache } from "@atlas/context-layer";
+import { closeSourceContentCache, configureOutboundProxy } from "@atlas/context-layer";
 import { logger, safeError } from "@atlas/logging";
 
 import { createGracefulShutdown, type GracefulShutdown } from "./gracefulShutdown";
@@ -22,6 +22,7 @@ export async function startProductionPortal(options: {
 }): Promise<ProductionPortalRuntime> {
   const env = options.env ?? process.env;
   const config = productionConfig(env);
+  const outboundProxy = configureOutboundProxy(env);
   const outputRoot = resolve(options.serverRoot, "..");
   const publicRoot = resolve(outputRoot, "public");
   const manifest = JSON.parse(
@@ -74,7 +75,7 @@ export async function startProductionPortal(options: {
   const shutdown = createGracefulShutdown({
     server,
     deadlineMs: config.shutdownDeadlineMs,
-    closeHooks: [closeSourceContentCache],
+    closeHooks: [closeSourceContentCache, ...(outboundProxy ? [outboundProxy.close] : [])],
     markDraining: () => {
       ready = false;
     },

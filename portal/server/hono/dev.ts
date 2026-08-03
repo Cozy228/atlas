@@ -1,9 +1,11 @@
 import { loadEnv } from "vite";
-import { closeSourceContentCache } from "@atlas/context-layer";
+import { closeSourceContentCache, configureOutboundProxy } from "@atlas/context-layer";
 
 for (const [key, value] of Object.entries(loadEnv("development", process.cwd(), ""))) {
   if (process.env[key] === undefined) process.env[key] = value;
 }
+
+const outboundProxy = configureOutboundProxy(process.env);
 
 const { initializeDevMocks } = await import("../devMocks/start");
 const cleanupDevMocks = initializeDevMocks();
@@ -44,6 +46,7 @@ function stop(signal: NodeJS.Signals): void {
 async function closeDevResources(): Promise<void> {
   cleanupDevMocks();
   await closeSourceContentCache();
+  await outboundProxy?.close();
 }
 
 process.once("SIGINT", () => stop("SIGINT"));

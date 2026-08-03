@@ -418,21 +418,26 @@ resource "aws_ecs_task_definition" "portal" {
         }
       ]
 
-      environment = [
-        { name = "NODE_ENV", value = "production" },
-        { name = "PORT", value = tostring(var.container_port) },
-        { name = "PORTAL_ORIGIN", value = var.portal_origin },
-        { name = "FEEDBACK_TABLE", value = aws_dynamodb_table.feedback.name },
-        { name = "CACHE_VALKEY_URL", value = "rediss://${aws_elasticache_replication_group.content_cache.configuration_endpoint_address}:6379" },
-        { name = "CACHE_VALKEY_CACHE_NAME", value = aws_elasticache_replication_group.content_cache.replication_group_id },
-        { name = "CACHE_VALKEY_REGION", value = var.aws_region },
-        { name = "CACHE_VALKEY_USER_ID", value = aws_elasticache_user.content_cache.user_id },
-        { name = "CACHE_TTL_SECONDS", value = "300" },
-        { name = "CACHE_NEGATIVE_TTL_SECONDS", value = "30" },
-        { name = "CACHE_VALIDATION_TTL_SECONDS", value = "300" },
-        { name = "CACHE_CONTENT_TTL_SECONDS", value = "604800" },
-        { name = "RUNTIME_SECRET", value = aws_secretsmanager_secret.runtime.name }
-      ]
+      environment = concat(
+        [
+          { name = "NODE_ENV", value = "production" },
+          { name = "PORT", value = tostring(var.container_port) },
+          { name = "PORTAL_ORIGIN", value = var.portal_origin },
+          { name = "FEEDBACK_TABLE", value = aws_dynamodb_table.feedback.name },
+          { name = "CACHE_VALKEY_URL", value = "rediss://${aws_elasticache_replication_group.content_cache.configuration_endpoint_address}:6379" },
+          { name = "CACHE_VALKEY_CACHE_NAME", value = aws_elasticache_replication_group.content_cache.replication_group_id },
+          { name = "CACHE_VALKEY_REGION", value = var.aws_region },
+          { name = "CACHE_VALKEY_USER_ID", value = aws_elasticache_user.content_cache.user_id },
+          { name = "CACHE_TTL_SECONDS", value = "300" },
+          { name = "CACHE_NEGATIVE_TTL_SECONDS", value = "30" },
+          { name = "CACHE_VALIDATION_TTL_SECONDS", value = "300" },
+          { name = "CACHE_CONTENT_TTL_SECONDS", value = "604800" },
+          { name = "RUNTIME_SECRET", value = aws_secretsmanager_secret.runtime.name }
+        ],
+        var.http_proxy != "" ? [{ name = "HTTP_PROXY", value = var.http_proxy }] : [],
+        var.https_proxy != "" ? [{ name = "HTTPS_PROXY", value = var.https_proxy }] : [],
+        var.no_proxy != "" ? [{ name = "NO_PROXY", value = var.no_proxy }] : []
+      )
 
       logConfiguration = {
         logDriver = "awslogs"
