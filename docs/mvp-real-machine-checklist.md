@@ -139,7 +139,7 @@ what they point to.
 | llms.txt | `/llms.txt` | DevEx signpost → OpenAPI, api-catalog, MCP, agent-skills, pages |
 | API catalog | `/.well-known/api-catalog` | RFC 9264 linkset → OpenAPI (service-desc), llms.txt, health |
 | OpenAPI 3.1 | `/openapi.json` | full contract; derived from `@atlas/schema`; inlines vocabulary + warning glossary + Bearer pipe |
-| MCP | `POST /mcp` | stateless JSON-RPC; 4 read-only tools; server card at `/.well-known/mcp/server-card.json` |
+| MCP | `POST /mcp` | official SDK Streamable HTTP; 3 read-only task-shaped tools; server card at `/.well-known/mcp/server-card.json` |
 | Agent skills | `/.well-known/agent-skills/index.json` + `…/atlas-context-consumer/SKILL.md` | RFC v0.2.0; SHA-256 digest verified from bytes |
 | Sitemap / robots | `/sitemap.xml`, `/robots.txt` | canonical pages; `robots` disallows `/api` (crawler boundary, not an access boundary) |
 
@@ -149,7 +149,7 @@ what they point to.
 |---|---|---|
 | Discover with zero prior knowledge | `Link` header → llms.txt / api-catalog / sitemap | the agent learns everything from the wire; no UI scraping |
 | Self-installing skill | agent-skills index + `npx skills add` | SHA-256 digest recomputed from bytes and **verified before trust** |
-| Structured, token-bounded reads | MCP 4 tools, CONCISE/DETAILED + pagination | semantic ids not UUIDs; read-only; <25K tokens |
+| Structured, token-bounded reads | MCP keyword search + exact read + availability | semantic ids not UUIDs; bounded cited excerpts; read-only |
 | **Governed honesty propagates to the agent** | every Excerpt carries a Citation; `warnings[]` relayed verbatim | the agent **cannot lie** — cited, freshness-stamped excerpts; no synthesis ⇒ no hallucination |
 | One contract, many consumers | Portal and Skill consume the same bundle (ADR-0011) | reskin / new consumer ⇒ no contract change |
 | OpenAPI self-sufficient | spec `description`s carry the conduct rules | the skill is convenience, not a dependency |
@@ -195,16 +195,23 @@ curl -s localhost:3201/.well-known/api-catalog | jq .
 # 4. the skill + digest, then VERIFY the digest from bytes
 curl -s localhost:3201/.well-known/agent-skills/index.json | jq '.skills[]|{name,digest}'
 curl -s localhost:3201/.well-known/agent-skills/atlas-context-consumer/SKILL.md | shasum -a 256
-#   → must equal sha256:9bfeca68085cffbdbcf5042d81842fe597fd615e913dee486a603907fc665b1e
+#   → must equal sha256:ba736103dc59852b51e4855807b139fd44b2c2d74bf74138801b1943935c7f1b
 # 5. the machine contract
 curl -s localhost:3201/openapi.json | jq '{openapi, paths:(.paths|keys)}'
-# 6. MCP — list the 4 read tools, then call one
-curl -s -X POST localhost:3201/mcp -H 'content-type: application/json' \
-  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' | jq '.result.tools[].name'
-curl -s -X POST localhost:3201/mcp -H 'content-type: application/json' \
-  -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"atlas_get_availability","arguments":{"zone":"aws","service_query":"textract"}}}' \
-  | jq '.result.structuredContent.services'
-#   → Amazon Textract: us-east-1 available, ca-central-1 available
+# 6. MCP legacy-stateless smoke — list the 3 read tools, then call keyword search.
+# Official MCP clients should use protocol discovery instead of raw JSON-RPC.
+curl -sN -X POST localhost:3201/mcp \
+  -H 'content-type: application/json' \
+  -H 'accept: application/json, text/event-stream' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' \
+  | sed -n 's/^data: //p' | jq '.result.tools[].name'
+curl -sN -X POST localhost:3201/mcp \
+  -H 'content-type: application/json' \
+  -H 'accept: application/json, text/event-stream' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"atlas_search_context","arguments":{"query":"textract private subnet requirements"}}}' \
+  | sed -n 's/^data: //p' | jq '.result.structuredContent.matches'
+#   → a Textract match with cited network excerpts when discovery is configured;
+#     an honest empty list when the source is unavailable
 ```
 
 ### Blind-agent replay (the climax)

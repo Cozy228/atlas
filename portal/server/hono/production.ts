@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 import { closeSourceContentCache } from "@atlas/context-layer";
+import { logger, safeError } from "@atlas/logging";
 
 import { createGracefulShutdown, type GracefulShutdown } from "./gracefulShutdown";
 import { startPortalServer, type PortalNodeServer } from "./server";
@@ -11,6 +12,9 @@ export type ProductionPortalRuntime = {
   server: PortalNodeServer;
   shutdown: GracefulShutdown;
 };
+
+const runtimeLog = logger("portal.runtime");
+const requestLog = logger("portal.http");
 
 export async function startProductionPortal(options: {
   serverRoot: string;
@@ -26,7 +30,9 @@ export async function startProductionPortal(options: {
   const staticAssets = await loadStaticAssetService({ publicRoot, manifest });
   let ready = false;
   let activeRequests = 0;
-  const log = (event: Record<string, unknown>) => console.log(JSON.stringify(event));
+  const logLifecycleEvent = (event: Record<string, unknown>) => {
+    runtimeLog.info(event, "Portal lifecycle event");
+  };
 
   const server = startPortalServer({
     port: config.port,
@@ -40,7 +46,15 @@ export async function startProductionPortal(options: {
         activeRequests -= 1;
       };
     },
-    onRequestComplete: (event) => log(event),
+    onRequestComplete: (event) => {
+      if (event.status >= 500) {
+        requestLog.error(event, "HTTP request completed with server error");
+      } else if (event.status >= 400 || event.aborted) {
+        requestLog.warn(event, "HTTP request completed with degraded outcome");
+      } else {
+        requestLog.info(event, "HTTP request completed");
+      }
+    },
     serveStaticAsset: (request) => staticAssets.serve(request),
     renderSpaDocument: async (request) => {
       const response = await staticAssets.serve(request, "/index.html");
@@ -51,7 +65,10 @@ export async function startProductionPortal(options: {
 
   server.once("listening", () => {
     ready = true;
-    log({ event: "ready", port: config.port, artifact: "atlas-hono-router-spa" });
+    runtimeLog.info(
+      { event: "ready", port: config.port, artifact: "atlas-hono-router-spa" },
+      "Portal runtime ready",
+    );
   });
 
   const shutdown = createGracefulShutdown({
@@ -62,7 +79,7 @@ export async function startProductionPortal(options: {
       ready = false;
     },
     activeRequests: () => activeRequests,
-    onEvent: log,
+    onEvent: logLifecycleEvent,
   });
 
   for (const signal of ["SIGINT", "SIGTERM"] as const) {
@@ -74,7 +91,10 @@ export async function startProductionPortal(options: {
           process.exitCode = 0;
         })
         .catch((error: unknown) => {
-          console.error(JSON.stringify({ event: "drain-failed", message: errorMessage(error) }));
+          runtimeLog.error(
+            { event: "drain-failed", err: safeError(error, "Portal drain failed") },
+            "Portal drain failed",
+          );
           process.exit(1);
         });
     });
@@ -103,8 +123,4 @@ function positiveInteger(name: string, rawValue: string, maximum: number): numbe
     throw new Error(`${name} must be a positive integer no greater than ${maximum}.`);
   }
   return value;
-}
-
-function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
 }

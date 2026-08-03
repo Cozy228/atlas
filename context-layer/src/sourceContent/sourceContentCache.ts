@@ -1,10 +1,13 @@
 import { createHash } from "node:crypto";
+import { logger, safeError } from "@atlas/logging";
 
 import {
   defaultResolutionContext,
   type FetchLike,
   type ResolutionContext,
 } from "../resolvers/resolverTypes";
+
+const log = logger("context-layer.source-cache");
 
 /**
  * Source-content cache (docs/architecture/source-content-cache.md). Removes the
@@ -107,22 +110,53 @@ export function withCache(
     input: string,
     init: Parameters<FetchLike>[1],
   ): Promise<CachedResponse> {
-    const response = await fetch(input, init);
-    // Only OK responses carry a body and a fresh window; negatives are stored
-    // bodiless with the short negative TTL and never marked fresh-bounded.
-    if (response.ok) {
-      const body = await response.json();
-      const value: CachedResponse = {
-        status: response.status,
-        body,
-        freshUntil: now() + ttlSeconds * 1000,
-      };
-      await setCache(cache, key, value, ttlSeconds);
+    const startedAt = Date.now();
+    try {
+      const response = await fetch(input, init);
+      // Only OK responses carry a body and a fresh window; negatives are stored
+      // bodiless with the short negative TTL and never marked fresh-bounded.
+      if (response.ok) {
+        const body = await response.json();
+        const value: CachedResponse = {
+          status: response.status,
+          body,
+          freshUntil: now() + ttlSeconds * 1000,
+        };
+        await setCache(cache, key, value, ttlSeconds);
+        log.info(
+          {
+            event: "source.request.completed",
+            statusCode: response.status,
+            outcome: "success",
+            durationMs: Date.now() - startedAt,
+          },
+          "Source request completed",
+        );
+        return value;
+      }
+      const value: CachedResponse = { status: response.status, body: undefined };
+      await setCache(cache, key, value, negativeTtlSeconds);
+      log.warn(
+        {
+          event: "source.request.completed",
+          statusCode: response.status,
+          outcome: "error",
+          durationMs: Date.now() - startedAt,
+        },
+        "Source request returned a non-success status",
+      );
       return value;
+    } catch (error) {
+      log.error(
+        {
+          event: "source.request.failed",
+          durationMs: Date.now() - startedAt,
+          err: safeError(error, "Source request failed"),
+        },
+        "Source request failed",
+      );
+      throw error;
     }
-    const value: CachedResponse = { status: response.status, body: undefined };
-    await setCache(cache, key, value, negativeTtlSeconds);
-    return value;
   }
 
   /** Start a single-flight fetch for `key`, deleting the entry when it settles. */
@@ -143,6 +177,7 @@ export function withCache(
     init?.signal?.throwIfAborted();
     const method = (init?.method ?? "GET").toUpperCase();
     if (hasCacheBypassMarker(init?.headers)) {
+      log.debug({ event: "source.cache.bypassed" }, "Source cache bypassed");
       return fetch(input, withoutCacheMarker(init));
     }
     if (method !== "GET") {
@@ -152,9 +187,11 @@ export function withCache(
     const key = cacheKey(method, input, init?.headers);
     const hit = await getCache(cache, key);
     if (hit && isFresh(hit, now)) {
+      log.debug({ event: "source.cache.hit" }, "Source cache hit");
       return replay(hit);
     }
 
+    log.debug({ event: "source.cache.miss" }, "Source cache miss");
     return replay(await waitForCaller(startFetch(key, input, init), init?.signal));
   };
 }
@@ -199,7 +236,11 @@ async function getCache(
 ): Promise<CachedResponse | undefined> {
   try {
     return await cache.get(key);
-  } catch {
+  } catch (error) {
+    log.warn(
+      { event: "source.cache.read.failed", err: safeError(error, "Source cache read failed") },
+      "Source cache read failed open",
+    );
     return undefined;
   }
 }
@@ -213,7 +254,11 @@ async function setCache(
 ): Promise<void> {
   try {
     await cache.set(key, value, ttlSeconds);
-  } catch {
+  } catch (error) {
+    log.warn(
+      { event: "source.cache.write.failed", err: safeError(error, "Source cache write failed") },
+      "Source cache write failed open",
+    );
     // The live response remains authoritative even when the cache is degraded.
   }
 }
@@ -257,6 +302,7 @@ export async function createSourceContentCache(
   const valkeyUrl = env.CACHE_VALKEY_URL;
   if (valkeyUrl) {
     const { ValkeyContentCache } = await import("./valkeyContentCache");
+    log.info({ event: "source.cache.configured", adapter: "valkey" }, "Source cache configured");
     return new ValkeyContentCache({
       cacheName: requiredEnv(env, "CACHE_VALKEY_CACHE_NAME"),
       region: requiredEnv(env, "CACHE_VALKEY_REGION"),
@@ -265,6 +311,10 @@ export async function createSourceContentCache(
     });
   }
   const maxEntries = numberFromEnv(env.CACHE_MAX_ENTRIES, DEFAULT_MAX_ENTRIES);
+  log.info(
+    { event: "source.cache.configured", adapter: "memory", maxEntries },
+    "Source cache configured",
+  );
   return new InMemoryContentCache({ maxEntries });
 }
 

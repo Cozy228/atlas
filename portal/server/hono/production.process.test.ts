@@ -284,6 +284,7 @@ function beginPartialJsonRequest(
     path,
     method: "POST",
     headers: {
+      accept: "application/json, text/event-stream",
       connection: "keep-alive",
       "content-length": Buffer.byteLength(body),
       "content-type": "application/json",

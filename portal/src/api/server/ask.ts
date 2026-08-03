@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { logger, safeError } from "@atlas/logging";
 import type { ResourceContextResponse } from "@atlas/schema";
 
 import type { ContextApiClient } from "@/api/contextApiClient";
@@ -22,6 +23,7 @@ type AskInput = z.infer<typeof askInputSchema>;
 export type { AskAtlasResponse } from "@/api/portalContracts";
 
 const rateLimiter = createDailyRateLimiter(100);
+const log = logger("portal.ask");
 
 export function parseAskAtlasRequest(input: unknown): AskAtlasRequest {
   return askInputSchema.parse(input);
@@ -36,6 +38,7 @@ export async function answerAskAtlas(input: {
   const client = createServerContextApiClient({ token: input.token });
   const projection = await resolveProjection(input.request, client, input.signal);
   if (!projection) {
+    log.info({ event: "ask.completed", outcome: "no_evidence" }, "Ask completed without evidence");
     return { answer: "", sources: [], warnings: ["no governed evidence found"] };
   }
 
@@ -65,8 +68,12 @@ async function resolveProjection(
   if (!ref) return null;
   try {
     return await client.getResourceContext(ref.kind, ref.slug, { signal });
-  } catch {
+  } catch (error) {
     if (signal?.aborted) throw signal.reason;
+    log.warn(
+      { event: "ask.projection.failed", err: safeError(error, "Ask projection failed") },
+      "Ask projection failed",
+    );
     return null;
   }
 }
@@ -108,15 +115,30 @@ export async function createAskAtlasResponse(input: {
 
     if (result.rejected_claims.length > 0) {
       warnings.push("uncited-claims-rejected");
+      log.warn(
+        { event: "ask.claims.rejected", rejectedClaimCount: result.rejected_claims.length },
+        "Uncited claims rejected",
+      );
     }
 
+    const sources = sourceRefs(input.projection);
+    log.info(
+      {
+        event: "ask.completed",
+        outcome: "success",
+        acceptedClaimCount: result.claims.length,
+        sourceCount: sources.length,
+      },
+      "Ask completed",
+    );
     return {
       answer: formatClaims(result.claims),
-      sources: sourceRefs(input.projection),
+      sources,
       warnings,
     };
   } catch (error) {
     if (error instanceof Error && error.message === "Ask Atlas daily limit exceeded.") {
+      log.warn({ event: "ask.completed", outcome: "rate_limited" }, "Ask rate limited");
       return { answer: "", sources: [], warnings: ["rate-limit-exceeded"] };
     }
     throw error;

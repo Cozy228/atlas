@@ -1,11 +1,12 @@
 import { Hono, type Context } from "hono";
 import { accepts } from "hono/accepts";
+import { atlasMcpHandler } from "@atlas/context-layer/mcp";
+import { runWithLogContext } from "@atlas/logging";
 
 import { buildHomeLinkHeader } from "@/api/server/agentDiscovery";
 import { answerAskAtlas, parseAskAtlasRequest } from "@/api/server/ask";
 import { bridgeContextApiRequest } from "@/api/server/contextApiBridge";
 import { createServerContextApiClient } from "@/api/server/httpContextApiClient";
-import { handleMcpRequest } from "@/api/server/mcp/handler";
 import {
   loadPortalAnnouncements,
   loadPortalAvailability,
@@ -79,13 +80,15 @@ export function createPortalApp(options: PortalAppOptions = {}): Hono<PortalEnv>
       }
     };
     try {
-      await next();
+      await runWithLogContext({ requestId: requestContext.requestId }, next);
       context.header("X-Request-Id", requestContext.requestId);
       if (context.req.path === "/") {
         context.header("Link", buildHomeLinkHeader(requestContext.publicOrigin));
       }
       const status = context.res.status;
-      context.res = trackResponseCompletion(context.res, () => completeRequest(status));
+      context.res = trackResponseCompletion(context.res, () =>
+        runWithLogContext({ requestId: requestContext.requestId }, () => completeRequest(status)),
+      );
     } catch (error) {
       completeRequest(500);
       throw error;
@@ -153,7 +156,7 @@ export function createPortalApp(options: PortalAppOptions = {}): Hono<PortalEnv>
   app.all("/openapi.json", (context) => handleAgentOpenApi(context.req.raw));
   app.all("/robots.txt", (context) => handleRobotsTxt(context.req.raw));
   app.all("/sitemap.xml", (context) => handleSitemap(context.req.raw));
-  app.all("/mcp", (context) => handleMcpRequest(context.req.raw));
+  app.all("/mcp", (context) => atlasMcpHandler.fetch(context.req.raw));
   app.all("/resources", (context) => handleResourceMarkdown(context.req.raw));
   app.all("/resources/*", (context) => handleResourceMarkdown(context.req.raw));
   app.notFound(async (context) => {

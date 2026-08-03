@@ -12,6 +12,7 @@
  * an honest-empty catalog, never a fabricated in-code fixture.
  */
 import type { Guidance, ResourceContextRecord } from "@atlas/schema";
+import { logger, safeError } from "@atlas/logging";
 import { deriveGuardrailResources } from "./discovery/deriveGuardrails";
 import { deriveRegistry } from "./discovery/deriveRegistry";
 import { deriveServiceResources } from "./discovery/deriveResources";
@@ -32,6 +33,8 @@ import { cachedResolutionContext } from "./sourceContent/sourceContentCache";
 import type { AvailabilityProvider } from "./services/availabilityProvider";
 import type { ResourceReferenceDiscovery } from "./services/resourceReferenceDiscovery";
 import type { ContextService, ContextServiceOptions } from "./services/contextService";
+
+const log = logger("context-layer.discovery");
 
 /** Late-bound fetch (re-reads `globalThis.fetch` per call) so the dev/integration
  *  MSW interceptor is always picked up, and prod uses the real fetch (plan 018). */
@@ -68,27 +71,47 @@ async function runDiscovery(
   availabilityProvider: AvailabilityProvider,
   resolutionContext = defaultResolutionContext(),
 ): Promise<Discovered> {
-  const ctx = resolutionContext; // late-bound fetch → MSW/prod
-  const services = await discoverServiceSources({
-    availabilityProvider,
-    ctx,
-    terraform: {
-      baseUrl: env.TERRAFORM_BASE_URL ?? "",
-      token: env.TERRAFORM_TOKEN ?? "",
-    },
-  });
-  const guardrails = await discoverGuardrails({
-    ctx,
-    confluence: {
-      // Security policies may live in a separate Confluence instance — allow a
-      // dedicated base URL / token / email, each falling back to the main channel.
-      baseUrl: env.CONFLUENCE_SECURITY_BASE_URL ?? env.CONFLUENCE_BASE_URL ?? "",
-      token: env.CONFLUENCE_SECURITY_TOKEN ?? env.CONFLUENCE_TOKEN ?? "",
-      email: env.CONFLUENCE_SECURITY_EMAIL ?? env.CONFLUENCE_EMAIL,
-      spaceKey: env.CONFLUENCE_SECURITY_SPACE_KEY ?? "",
-    },
-  });
-  return { services, guardrails };
+  const startedAt = Date.now();
+  try {
+    const ctx = resolutionContext;
+    const services = await discoverServiceSources({
+      availabilityProvider,
+      ctx,
+      terraform: {
+        baseUrl: env.TERRAFORM_BASE_URL ?? "",
+        token: env.TERRAFORM_TOKEN ?? "",
+      },
+    });
+    const guardrails = await discoverGuardrails({
+      ctx,
+      confluence: {
+        baseUrl: env.CONFLUENCE_SECURITY_BASE_URL ?? env.CONFLUENCE_BASE_URL ?? "",
+        token: env.CONFLUENCE_SECURITY_TOKEN ?? env.CONFLUENCE_TOKEN ?? "",
+        email: env.CONFLUENCE_SECURITY_EMAIL ?? env.CONFLUENCE_EMAIL,
+        spaceKey: env.CONFLUENCE_SECURITY_SPACE_KEY ?? "",
+      },
+    });
+    log.info(
+      {
+        event: "discovery.completed",
+        durationMs: Date.now() - startedAt,
+        serviceCount: services.length,
+        guardrailCount: guardrails.length,
+      },
+      "Context discovery completed",
+    );
+    return { services, guardrails };
+  } catch (error) {
+    log.error(
+      {
+        event: "discovery.failed",
+        durationMs: Date.now() - startedAt,
+        err: safeError(error, "Context discovery failed"),
+      },
+      "Context discovery failed",
+    );
+    throw error;
+  }
 }
 
 /**
@@ -102,15 +125,17 @@ function discoverAll(
   resolutionContext?: ReturnType<typeof defaultResolutionContext>,
 ): Promise<Discovered> {
   if (!useCache) {
+    log.debug({ event: "discovery.cache.bypassed" }, "Discovery cache bypassed");
     return runDiscovery(env, availabilityProvider, resolutionContext);
   }
   const key = discoveryKey(env);
   if (discoveryCache?.key !== key) {
+    log.debug({ event: "discovery.cache.miss" }, "Discovery cache miss");
     discoveryCache = {
       key,
       promise: runDiscovery(env, availabilityProvider, resolutionContext),
     };
-  }
+  } else log.debug({ event: "discovery.cache.hit" }, "Discovery cache hit");
   return discoveryCache.promise;
 }
 
@@ -152,12 +177,35 @@ export async function loadConfluenceGuidance(
   const token = env.CONFLUENCE_TOKEN;
   const pageIds = [env.CONFLUENCE_GUIDANCE_ONBOARDING_PAGE_ID].filter((id): id is string => !!id);
   if (!baseUrl || !token || pageIds.length === 0) {
+    log.debug({ event: "guidance.load.skipped", reason: "unconfigured" }, "Guidance load skipped");
     return [];
   }
-  return createConfluenceGuidanceSource(
-    { baseUrl, token, email: env.CONFLUENCE_EMAIL, pageIds },
-    { fetch: liveFetch },
-  ).load();
+  const startedAt = Date.now();
+  try {
+    const guidance = await createConfluenceGuidanceSource(
+      { baseUrl, token, email: env.CONFLUENCE_EMAIL, pageIds },
+      { fetch: liveFetch },
+    ).load();
+    log.info(
+      {
+        event: "guidance.load.completed",
+        durationMs: Date.now() - startedAt,
+        guidanceCount: guidance.length,
+      },
+      "Guidance load completed",
+    );
+    return guidance;
+  } catch (error) {
+    log.error(
+      {
+        event: "guidance.load.failed",
+        durationMs: Date.now() - startedAt,
+        err: safeError(error, "Guidance load failed"),
+      },
+      "Guidance load failed",
+    );
+    throw error;
+  }
 }
 
 function readProcessEnv(): Record<string, string | undefined> {

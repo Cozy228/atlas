@@ -45,6 +45,13 @@ const portalCodeSplittingGroups = [
   },
   // Consolidates `@tabler/icons-react` shared modules instead of dozens of sub‑KB icon chunks.
   { name: "tabler-icons", test: /node_modules[\\/]@tabler[\\/]icons-react[\\/]/, priority: 21 },
+  // These small modules are all required by the home route. Keeping them in one
+  // chunk avoids paying a separate request for each after dependency upgrades.
+  {
+    name: "home-shared",
+    test: /portal[\\/]src[\\/](?:api[\\/]queries\.ts|components[\\/](?:client-only\.tsx|home[\\/]recently-viewed\.tsx|landing-zone[\\/]context\.tsx|ui[\\/]skeleton\.tsx)|lib[\\/](?:availability-service|deferred-cache|guidance|utils)\.ts)/,
+    priority: 20,
+  },
 ];
 
 export default defineConfig(({ command }) => ({

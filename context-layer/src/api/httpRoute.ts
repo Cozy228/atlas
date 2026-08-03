@@ -10,8 +10,7 @@ import {
 import { handleSourceDiscoveryRequest } from "./sourceDiscoveryRoute";
 import { handleSourceRequest } from "./sourceRoute";
 import { renderResourceMarkdown } from "../resources/renderResourceMarkdown";
-import type { ResolutionContext } from "../resolvers/resolverTypes";
-import { cachedResolutionContext } from "../sourceContent/sourceContentCache";
+import { resolutionContextFromHeaders } from "./requestResolutionContext";
 
 export type HttpRequest = {
   method: string;
@@ -107,40 +106,6 @@ export async function handleHttpRequest(request: HttpRequest): Promise<HttpRespo
       },
     } satisfies ApiErrorResponse,
   });
-}
-
-/**
- * Read the opaque caller Bearer from the `Authorization` header and build the
- * request-scoped resolution context over the shared cached fetch. The token is
- * threaded unparsed and unpersisted; Confluence enforces ACL against whatever
- * identity it represents.
- */
-async function resolutionContextFromHeaders(
-  headers: HttpRequest["headers"],
-  signal: AbortSignal | undefined,
-): Promise<ResolutionContext> {
-  const base = await cachedResolutionContext();
-  const token = bearerToken(headers);
-  const fetch = signal
-    ? (input: string, init?: Parameters<typeof base.fetch>[1]) =>
-        base.fetch(input, { ...init, signal: init?.signal ?? signal })
-    : base.fetch;
-  return { ...base, fetch, ...(token ? { token } : {}) };
-}
-
-function bearerToken(headers: HttpRequest["headers"]): string | undefined {
-  if (!headers) {
-    return undefined;
-  }
-  for (const [key, value] of Object.entries(headers)) {
-    if (key.toLowerCase() === "authorization" && value) {
-      const match = value.match(/^Bearer\s+(.+)$/i);
-      if (match) {
-        return match[1].trim();
-      }
-    }
-  }
-  return undefined;
 }
 
 function normalizePath(path: string): string {

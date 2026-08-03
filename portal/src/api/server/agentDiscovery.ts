@@ -58,7 +58,7 @@ export function buildApiCatalog(origin: string = DEFAULT_PORTAL_ORIGIN) {
         "service-desc": [{ href: `${origin}/openapi.json`, type: "application/openapi+json" }],
         "service-doc": [{ href: `${origin}/llms.txt`, type: "text/plain" }],
         // Same governed contract, other renderings: MCP tools (incl.
-        // `atlas_get_availability`) and the self-installing skill.
+        // `atlas_check_availability`) and the self-installing skill.
         "service-meta": [
           { href: `${origin}/mcp`, rel: "mcp-server" },
           {

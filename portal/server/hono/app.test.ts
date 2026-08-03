@@ -123,18 +123,28 @@ describe("Hono portal host", () => {
     const getResponse = await app.request("/mcp");
     const initializeResponse = await app.request("/mcp", {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: {
+        accept: "application/json, text/event-stream",
+        "content-type": "application/json",
+      },
       body: JSON.stringify({
         jsonrpc: "2.0",
         id: 1,
         method: "initialize",
-        params: {},
+        params: {
+          protocolVersion: "2025-06-18",
+          capabilities: {},
+          clientInfo: { name: "atlas-hono-test", version: "1.0.0" },
+        },
       }),
     });
 
     expect(getResponse.status).toBe(405);
     expect(initializeResponse.status).toBe(200);
-    const message = (await initializeResponse.json()) as {
+    const event = (await initializeResponse.text())
+      .split("\n")
+      .find((line) => line.startsWith("data: "));
+    const message = JSON.parse(event?.slice("data: ".length) ?? "{}") as {
       result: { serverInfo: { name: string } };
     };
     expect(message.result.serverInfo.name).toBe("atlas");

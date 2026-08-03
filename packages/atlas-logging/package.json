@@ -1,5 +1,5 @@
 {
-  "name": "@atlas/schema",
+  "name": "@atlas/logging",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -17,13 +17,12 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "zod": "4.4.3"
+    "pino": "10.3.1"
   },
   "devDependencies": {
     "@types/node": "26.1.2",
     "typescript": "7.0.2",
     "vite": "8.2.0",
-    "vitest": "4.1.10",
-    "yaml": "2.9.0"
+    "vitest": "4.1.10"
   }
 }

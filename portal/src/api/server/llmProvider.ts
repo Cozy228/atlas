@@ -1,8 +1,11 @@
 import type { ResourceContextResponse } from "@atlas/schema";
+import { logger } from "@atlas/logging";
 import type { LlmAdapter } from "@/ask/askAtlas";
 import { createBedrockClaimsAdapter } from "./bedrockClaimsProvider";
 import { type ClaimsAdapterFetch, createSimulatedClaimsAdapter } from "./claimsLlmShared";
 import { createRaiClaimsAdapter } from "./raiClaimsProvider";
+
+const log = logger("portal.llm");
 
 export type ConfiguredClaimsAdapterInput = {
   projection: ResourceContextResponse;
@@ -15,6 +18,7 @@ export function createConfiguredClaimsAdapter(input: ConfiguredClaimsAdapterInpu
   const provider = env.LLM_PROVIDER?.toLowerCase();
 
   if (provider === "bedrock" || (!provider && env.BEDROCK_MODEL_ID)) {
+    log.debug({ event: "llm.provider.selected", provider: "bedrock" }, "LLM provider selected");
     const modelId = requiredEnv(env, "BEDROCK_MODEL_ID");
     return createBedrockClaimsAdapter({
       modelId,
@@ -24,6 +28,7 @@ export function createConfiguredClaimsAdapter(input: ConfiguredClaimsAdapterInpu
   }
 
   if (provider === "rai" || (!provider && env.RAI_MODEL_ID)) {
+    log.debug({ event: "llm.provider.selected", provider: "rai" }, "LLM provider selected");
     return createRaiClaimsAdapter({
       baseUrl: requiredEnv(env, "RAI_BASE_URL"),
       tokenUrl: requiredEnv(env, "RAI_TOKEN_URL"),
@@ -34,6 +39,7 @@ export function createConfiguredClaimsAdapter(input: ConfiguredClaimsAdapterInpu
     });
   }
 
+  log.debug({ event: "llm.provider.selected", provider: "simulated" }, "LLM provider selected");
   return createSimulatedClaimsAdapter(input.projection);
 }
 

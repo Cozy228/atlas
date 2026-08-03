@@ -14,7 +14,7 @@ distillation of the plan.
 
 Expose the Context Layer's already-real, already-tested HTTP contract to agents
 through four surfaces — a published **Agent Skill**, a machine-readable **API
-description**, a read-only **MCP facade**, and the baseline **web-crawler
+description**, a read-only **MCP adapter**, and the baseline **web-crawler
 metadata** — all served from the Portal origin, all reusing one bundle contract.
 
 ```text
@@ -26,10 +26,11 @@ all three are just consumers of one governed, citation-backed bundle ─┘
 
 ## Locked decisions (do not re-litigate)
 
-1. **Serving layer = the Portal origin (TanStack Start / Nitro).** Static
+1. **Serving origin = the Portal origin (TanStack Start / Nitro).** Static
    artifacts live in `portal/public/`; data-derived artifacts (`/openapi.json`,
    `/sitemap.xml`, `/llms.txt`, `/.well-known/api-catalog`, `/mcp`) are Nitro server
-   routes that call the existing Context API client. Agents hit the Portal host.
+   routes. MCP implementation ownership remains in `context-layer/src/mcp`; the
+   Portal `/mcp` route only hosts its Web-standard handler. Agents hit the Portal host.
 2. **Single publication source of truth = `portal/public/.well-known/...`.** Do
    **not** also ship a root `.well-known`; the handoff's digest-drift failure came
    from two copies. One tree, generated at build.
@@ -38,10 +39,12 @@ all three are just consumers of one governed, citation-backed bundle ─┘
    `httpRoute.ts` actually dispatches. A test asserts parity (every dispatched
    route has a path; every warning code is documented). One contract, two
    renderings.
-4. **MCP is read-only, namespaced, curated.** A small tool set —
-   `atlas_search_capability`, `atlas_get_source`, `atlas_get_availability`,
-   `atlas_get_context_bundle` — over the same Context API client. No write tools.
-   Streamable-HTTP at `/mcp`. Tools mirror reads, not one-per-endpoint.
+4. **MCP is read-only, namespaced, curated.** The official TypeScript SDK exposes
+   `atlas_search_context`, `atlas_read_context`, and `atlas_check_availability`.
+   The primary tool accepts keywords over registered Resource, Source, and Anchor
+   metadata, then returns bounded, live-resolved excerpts with Citations. No write
+   tools. Streamable HTTP at `/mcp`; tools model agent tasks, not one tool per
+   endpoint.
 5. **Skill Discovery follows Cloudflare RFC v0.2.0 exactly**, and the SKILL.md is
    authored per Anthropic best practices. `index.json` + every `digest` are
    generated from file bytes at build time, never by hand.
@@ -118,17 +121,17 @@ resolves and validates the digest.
 every warning code documented); `openapi.json` parses and is a valid 3.x document;
 `api-catalog` is valid linkset JSON pointing at real routes only.
 
-### Batch 3 — MCP read-only facade
+### Batch 3 — MCP read-only adapter
 
-- `/mcp` Nitro server route (streamable-HTTP) exposing the four `atlas_*` read tools
-  over the existing Context API client. Responses carry semantic ids + Citation;
-  support a `response_format` (`CONCISE` | `DETAILED`) and pagination/truncation
-  (default well under ~25K tokens); concise tool descriptions; actionable errors.
-- `portal/public/.well-known/mcp/server-card.json` describing transport + the tools.
+- Official `@modelcontextprotocol/server` Web-standard handler owned by the Context
+  Layer and hosted by the `/mcp` Nitro route. It exposes the three task-shaped read
+  tools, validates Zod input/output schemas, and returns structured content plus a
+  text fallback. Search resolves a bounded candidate set and truncates excerpts.
+- `/.well-known/mcp/server-card.json` describing transport + the same tool metadata.
 
-**Verify (committed):** each tool returns the expected bundle shape against fixtures;
+**Verify (committed):** the official client lists/calls each tool against fixtures;
 no write tool exists; the server card lists exactly the implemented tools (no
-phantom tools).
+phantom tools); opaque Bearer headers reach the request resolution context.
 
 ### Batch 4 — Web-crawler baseline
 

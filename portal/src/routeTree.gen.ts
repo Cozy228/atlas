@@ -9,53 +9,28 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as WhatsnewRouteImport } from './routes/whatsnew'
-import { Route as SupportRouteImport } from './routes/support'
-import { Route as SourcesRouteImport } from './routes/sources'
-import { Route as OverviewRouteImport } from './routes/overview'
-import { Route as GuidanceRouteImport } from './routes/guidance'
-import { Route as CatalogRouteImport } from './routes/catalog'
-import { Route as AvailabilityRouteImport } from './routes/availability'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as SourcesIndexRouteImport } from './routes/sources.index'
-import { Route as SkillsIndexRouteImport } from './routes/skills.index'
-import { Route as GuidanceIndexRouteImport } from './routes/guidance.index'
-import { Route as CatalogIndexRouteImport } from './routes/catalog.index'
+import { Route as AvailabilityRouteImport } from './routes/availability'
+import { Route as CatalogRouteImport } from './routes/catalog'
+import { Route as GuidanceRouteImport } from './routes/guidance'
+import { Route as OverviewRouteImport } from './routes/overview'
+import { Route as SourcesRouteImport } from './routes/sources'
+import { Route as SupportRouteImport } from './routes/support'
+import { Route as WhatsnewRouteImport } from './routes/whatsnew'
 import { Route as AvailabilityIndexRouteImport } from './routes/availability.index'
-import { Route as SourcesSourceIdRouteImport } from './routes/sources.$sourceId'
-import { Route as ReleasesReleaseIdRouteImport } from './routes/releases.$releaseId'
-import { Route as PoliciesPolicyIdRouteImport } from './routes/policies.$policyId'
+import { Route as CatalogIndexRouteImport } from './routes/catalog.index'
+import { Route as GuidanceIndexRouteImport } from './routes/guidance.index'
 import { Route as GuidanceGuidanceIdRouteImport } from './routes/guidance.$guidanceId'
+import { Route as PoliciesPolicyIdRouteImport } from './routes/policies.$policyId'
+import { Route as ReleasesReleaseIdRouteImport } from './routes/releases.$releaseId'
+import { Route as SkillsIndexRouteImport } from './routes/skills.index'
+import { Route as SourcesIndexRouteImport } from './routes/sources.index'
+import { Route as SourcesSourceIdRouteImport } from './routes/sources.$sourceId'
 import { Route as ServiceProviderIdRouteImport } from './routes/service.$provider.$id'
 
-const WhatsnewRoute = WhatsnewRouteImport.update({
-  id: '/whatsnew',
-  path: '/whatsnew',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SupportRoute = SupportRouteImport.update({
-  id: '/support',
-  path: '/support',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SourcesRoute = SourcesRouteImport.update({
-  id: '/sources',
-  path: '/sources',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const OverviewRoute = OverviewRouteImport.update({
-  id: '/overview',
-  path: '/overview',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const GuidanceRoute = GuidanceRouteImport.update({
-  id: '/guidance',
-  path: '/guidance',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CatalogRoute = CatalogRouteImport.update({
-  id: '/catalog',
-  path: '/catalog',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AvailabilityRoute = AvailabilityRouteImport.update({
@@ -63,9 +38,69 @@ const AvailabilityRoute = AvailabilityRouteImport.update({
   path: '/availability',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
+const CatalogRoute = CatalogRouteImport.update({
+  id: '/catalog',
+  path: '/catalog',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GuidanceRoute = GuidanceRouteImport.update({
+  id: '/guidance',
+  path: '/guidance',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OverviewRoute = OverviewRouteImport.update({
+  id: '/overview',
+  path: '/overview',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SourcesRoute = SourcesRouteImport.update({
+  id: '/sources',
+  path: '/sources',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SupportRoute = SupportRouteImport.update({
+  id: '/support',
+  path: '/support',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WhatsnewRoute = WhatsnewRouteImport.update({
+  id: '/whatsnew',
+  path: '/whatsnew',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AvailabilityIndexRoute = AvailabilityIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => AvailabilityRoute,
+} as any)
+const CatalogIndexRoute = CatalogIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => CatalogRoute,
+} as any)
+const GuidanceIndexRoute = GuidanceIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => GuidanceRoute,
+} as any)
+const GuidanceGuidanceIdRoute = GuidanceGuidanceIdRouteImport.update({
+  id: '/$guidanceId',
+  path: '/$guidanceId',
+  getParentRoute: () => GuidanceRoute,
+} as any)
+const PoliciesPolicyIdRoute = PoliciesPolicyIdRouteImport.update({
+  id: '/policies/$policyId',
+  path: '/policies/$policyId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReleasesReleaseIdRoute = ReleasesReleaseIdRouteImport.update({
+  id: '/releases/$releaseId',
+  path: '/releases/$releaseId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SkillsIndexRoute = SkillsIndexRouteImport.update({
+  id: '/skills/',
+  path: '/skills/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SourcesIndexRoute = SourcesIndexRouteImport.update({
@@ -73,45 +108,10 @@ const SourcesIndexRoute = SourcesIndexRouteImport.update({
   path: '/',
   getParentRoute: () => SourcesRoute,
 } as any)
-const SkillsIndexRoute = SkillsIndexRouteImport.update({
-  id: '/skills/',
-  path: '/skills/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const GuidanceIndexRoute = GuidanceIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => GuidanceRoute,
-} as any)
-const CatalogIndexRoute = CatalogIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => CatalogRoute,
-} as any)
-const AvailabilityIndexRoute = AvailabilityIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AvailabilityRoute,
-} as any)
 const SourcesSourceIdRoute = SourcesSourceIdRouteImport.update({
   id: '/$sourceId',
   path: '/$sourceId',
   getParentRoute: () => SourcesRoute,
-} as any)
-const ReleasesReleaseIdRoute = ReleasesReleaseIdRouteImport.update({
-  id: '/releases/$releaseId',
-  path: '/releases/$releaseId',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PoliciesPolicyIdRoute = PoliciesPolicyIdRouteImport.update({
-  id: '/policies/$policyId',
-  path: '/policies/$policyId',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const GuidanceGuidanceIdRoute = GuidanceGuidanceIdRouteImport.update({
-  id: '/$guidanceId',
-  path: '/$guidanceId',
-  getParentRoute: () => GuidanceRoute,
 } as any)
 const ServiceProviderIdRoute = ServiceProviderIdRouteImport.update({
   id: '/service/$provider/$id',
@@ -252,46 +252,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/whatsnew': {
-      id: '/whatsnew'
-      path: '/whatsnew'
-      fullPath: '/whatsnew'
-      preLoaderRoute: typeof WhatsnewRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/support': {
-      id: '/support'
-      path: '/support'
-      fullPath: '/support'
-      preLoaderRoute: typeof SupportRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/sources': {
-      id: '/sources'
-      path: '/sources'
-      fullPath: '/sources'
-      preLoaderRoute: typeof SourcesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/overview': {
-      id: '/overview'
-      path: '/overview'
-      fullPath: '/overview'
-      preLoaderRoute: typeof OverviewRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/guidance': {
-      id: '/guidance'
-      path: '/guidance'
-      fullPath: '/guidance'
-      preLoaderRoute: typeof GuidanceRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/catalog': {
-      id: '/catalog'
-      path: '/catalog'
-      fullPath: '/catalog'
-      preLoaderRoute: typeof CatalogRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/availability': {
@@ -301,11 +266,95 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AvailabilityRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
+    '/catalog': {
+      id: '/catalog'
+      path: '/catalog'
+      fullPath: '/catalog'
+      preLoaderRoute: typeof CatalogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/guidance': {
+      id: '/guidance'
+      path: '/guidance'
+      fullPath: '/guidance'
+      preLoaderRoute: typeof GuidanceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/overview': {
+      id: '/overview'
+      path: '/overview'
+      fullPath: '/overview'
+      preLoaderRoute: typeof OverviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sources': {
+      id: '/sources'
+      path: '/sources'
+      fullPath: '/sources'
+      preLoaderRoute: typeof SourcesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/support': {
+      id: '/support'
+      path: '/support'
+      fullPath: '/support'
+      preLoaderRoute: typeof SupportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/whatsnew': {
+      id: '/whatsnew'
+      path: '/whatsnew'
+      fullPath: '/whatsnew'
+      preLoaderRoute: typeof WhatsnewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/availability/': {
+      id: '/availability/'
       path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+      fullPath: '/availability/'
+      preLoaderRoute: typeof AvailabilityIndexRouteImport
+      parentRoute: typeof AvailabilityRoute
+    }
+    '/catalog/': {
+      id: '/catalog/'
+      path: '/'
+      fullPath: '/catalog/'
+      preLoaderRoute: typeof CatalogIndexRouteImport
+      parentRoute: typeof CatalogRoute
+    }
+    '/guidance/': {
+      id: '/guidance/'
+      path: '/'
+      fullPath: '/guidance/'
+      preLoaderRoute: typeof GuidanceIndexRouteImport
+      parentRoute: typeof GuidanceRoute
+    }
+    '/guidance/$guidanceId': {
+      id: '/guidance/$guidanceId'
+      path: '/$guidanceId'
+      fullPath: '/guidance/$guidanceId'
+      preLoaderRoute: typeof GuidanceGuidanceIdRouteImport
+      parentRoute: typeof GuidanceRoute
+    }
+    '/policies/$policyId': {
+      id: '/policies/$policyId'
+      path: '/policies/$policyId'
+      fullPath: '/policies/$policyId'
+      preLoaderRoute: typeof PoliciesPolicyIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/releases/$releaseId': {
+      id: '/releases/$releaseId'
+      path: '/releases/$releaseId'
+      fullPath: '/releases/$releaseId'
+      preLoaderRoute: typeof ReleasesReleaseIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/skills/': {
+      id: '/skills/'
+      path: '/skills'
+      fullPath: '/skills/'
+      preLoaderRoute: typeof SkillsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sources/': {
@@ -315,61 +364,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SourcesIndexRouteImport
       parentRoute: typeof SourcesRoute
     }
-    '/skills/': {
-      id: '/skills/'
-      path: '/skills'
-      fullPath: '/skills/'
-      preLoaderRoute: typeof SkillsIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/guidance/': {
-      id: '/guidance/'
-      path: '/'
-      fullPath: '/guidance/'
-      preLoaderRoute: typeof GuidanceIndexRouteImport
-      parentRoute: typeof GuidanceRoute
-    }
-    '/catalog/': {
-      id: '/catalog/'
-      path: '/'
-      fullPath: '/catalog/'
-      preLoaderRoute: typeof CatalogIndexRouteImport
-      parentRoute: typeof CatalogRoute
-    }
-    '/availability/': {
-      id: '/availability/'
-      path: '/'
-      fullPath: '/availability/'
-      preLoaderRoute: typeof AvailabilityIndexRouteImport
-      parentRoute: typeof AvailabilityRoute
-    }
     '/sources/$sourceId': {
       id: '/sources/$sourceId'
       path: '/$sourceId'
       fullPath: '/sources/$sourceId'
       preLoaderRoute: typeof SourcesSourceIdRouteImport
       parentRoute: typeof SourcesRoute
-    }
-    '/releases/$releaseId': {
-      id: '/releases/$releaseId'
-      path: '/releases/$releaseId'
-      fullPath: '/releases/$releaseId'
-      preLoaderRoute: typeof ReleasesReleaseIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/policies/$policyId': {
-      id: '/policies/$policyId'
-      path: '/policies/$policyId'
-      fullPath: '/policies/$policyId'
-      preLoaderRoute: typeof PoliciesPolicyIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/guidance/$guidanceId': {
-      id: '/guidance/$guidanceId'
-      path: '/$guidanceId'
-      fullPath: '/guidance/$guidanceId'
-      preLoaderRoute: typeof GuidanceGuidanceIdRouteImport
-      parentRoute: typeof GuidanceRoute
     }
     '/service/$provider/$id': {
       id: '/service/$provider/$id'

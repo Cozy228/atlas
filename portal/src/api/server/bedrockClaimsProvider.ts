@@ -15,10 +15,9 @@ export type BedrockClaimsAdapterInput = {
   generateObject?: GenerateClaimsObject;
 };
 
-export function createBedrockClaimsAdapter(
-  input: BedrockClaimsAdapterInput,
-): LlmAdapter {
+export function createBedrockClaimsAdapter(input: BedrockClaimsAdapterInput): LlmAdapter {
   return createGeneratedClaimsAdapter({
+    provider: "bedrock",
     resolveModel: async () =>
       input.model ??
       createBedrockModel({

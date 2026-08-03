@@ -5,7 +5,7 @@ import {
   buildOauthProtectedResource,
   buildRobotsTxt,
 } from "@/api/server/agentDiscovery";
-import { buildMcpServerCard } from "@/api/server/mcp/handler";
+import { buildMcpServerCard } from "@atlas/context-layer/mcp";
 import {
   buildAgentOpenApiDocument,
   buildInternalOpenApiDocument,

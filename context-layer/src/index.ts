@@ -3,6 +3,7 @@ export { handleFeedbackRequest } from "./api/feedbackRoute";
 export { handleHttpRequest } from "./api/httpRoute";
 export { handleSourceDiscoveryRequest } from "./api/sourceDiscoveryRoute";
 export { handleSourceRequest } from "./api/sourceRoute";
+export { searchContext } from "./search/searchContext";
 export {
   handleResourceCatalogRequest,
   handleResourceContextRequest,
