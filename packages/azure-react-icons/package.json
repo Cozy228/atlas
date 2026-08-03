@@ -23,7 +23,7 @@
     "test": "vitest run"
   },
   "devDependencies": {
-    "@types/react": "19.2.17",
+    "@types/react": "19.2.18",
     "react": "^19.2.8",
     "typescript": "7.0.2",
     "vite": "8.2.0",
