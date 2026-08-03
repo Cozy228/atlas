@@ -2,7 +2,7 @@ import { EventEmitter } from "node:events";
 
 import { describe, expect, it, vi } from "vitest";
 
-import { startDevCoordinator } from "./dev.mjs";
+import { isSameModuleUrl, startDevCoordinator } from "./dev.mjs";
 
 class FakeRuntime extends EventEmitter {
   env = { npm_execpath: "/tools/pnpm.cjs" };
@@ -25,6 +25,16 @@ function exitChild(child, code, signal = null) {
 }
 
 describe("portal dev coordinator", () => {
+  it("recognizes the invoked module when Windows drive-letter casing differs", () => {
+    expect(
+      isSameModuleUrl(
+        "file:///D:/a/atlas/atlas/portal/scripts/dev.mjs",
+        "file:///d:/a/atlas/atlas/portal/scripts/dev.mjs",
+        "win32",
+      ),
+    ).toBe(true);
+  });
+
   it("spawns Vite and the watched Hono entry through the active pnpm CLI", () => {
     const runtime = new FakeRuntime();
     const children = [createChild(), createChild()];

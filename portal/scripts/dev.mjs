@@ -5,6 +5,16 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 const portalRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const signalExitCodes = { SIGINT: 130, SIGTERM: 143 };
 
+export function isSameModuleUrl(moduleUrl, invokedUrl, platform = process.platform) {
+  if (platform !== "win32") return moduleUrl === invokedUrl;
+
+  const normalizeDriveLetter = (url) =>
+    url.replace(/^file:\/\/\/([A-Z]):/, (_, driveLetter) =>
+      `file:///${driveLetter.toLowerCase()}:`,
+    );
+  return normalizeDriveLetter(moduleUrl) === normalizeDriveLetter(invokedUrl);
+}
+
 export function startDevCoordinator({
   runtime = process,
   spawnChild = spawn,
@@ -85,4 +95,4 @@ export function startDevCoordinator({
 }
 
 const invokedPath = process.argv[1] ? pathToFileURL(resolve(process.argv[1])).href : undefined;
-if (invokedPath === import.meta.url) startDevCoordinator();
+if (invokedPath && isSameModuleUrl(import.meta.url, invokedPath)) startDevCoordinator();
