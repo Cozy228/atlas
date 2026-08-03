@@ -23,13 +23,24 @@ export function startDevCoordinator({
 
   try {
     for (const args of childCommands) {
-      children.push(
-        spawnChild(runtime.execPath, args, {
+      const child = spawnChild(runtime.execPath, args, {
           cwd,
           env: runtime.env,
           stdio: "inherit",
-        }),
-      );
+        });
+      child.once("exit", (code, signal) => {
+        console.error(
+          "[DEBUG-windows-dev] early child exit",
+          JSON.stringify({ command: args.slice(1, 3), code, signal }),
+        );
+      });
+      child.once("error", (error) => {
+        console.error(
+          "[DEBUG-windows-dev] child error",
+          JSON.stringify({ command: args.slice(1, 3), error: String(error) }),
+        );
+      });
+      children.push(child);
     }
   } catch (error) {
     for (const child of children) child.kill("SIGTERM");
@@ -80,6 +91,34 @@ export function startDevCoordinator({
     child.once("exit", (code, signal) => settleChild(child, code, signal));
     child.once("error", () => settleChild(child, 1, null));
   }
+
+  setTimeout(() => {
+    console.error(
+      "[DEBUG-windows-dev] child states after 5s",
+      JSON.stringify(
+        children.map((child, index) => ({
+          command: childCommands[index].slice(1, 3),
+          pid: child.pid,
+          exitCode: child.exitCode,
+          signalCode: child.signalCode,
+        })),
+      ),
+    );
+    for (const url of ["http://127.0.0.1:3000/", "http://localhost:3000/"]) {
+      void fetch(url).then(
+        (response) =>
+          console.error(
+            "[DEBUG-windows-dev] probe",
+            JSON.stringify({ url, status: response.status }),
+          ),
+        (error) =>
+          console.error(
+            "[DEBUG-windows-dev] probe",
+            JSON.stringify({ url, error: String(error) }),
+          ),
+      );
+    }
+  }, 5_000).unref();
 
   return { children, stop: stopChildren };
 }
