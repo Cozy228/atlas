@@ -1,4 +1,5 @@
 import type { Source, SourceClass } from "@atlas/schema";
+import type { SourceContentCache } from "../sourceContent/sourceContentCache";
 
 export type ResolvedExcerpt = {
   anchor_id?: string;
@@ -38,7 +39,7 @@ export type ResolverWarning = {
  */
 export type FetchLike = (
   input: string,
-  init?: { method?: string; headers?: Record<string, string> },
+  init?: { method?: string; headers?: Record<string, string>; signal?: AbortSignal },
 ) => Promise<{
   ok: boolean;
   status: number;
@@ -61,6 +62,14 @@ export type ResolutionContext = {
    * (the memo is a pure optimisation, never a correctness dependency).
    */
   pageCache?: Map<string, Promise<unknown>>;
+  /** Shared performance cache for source-specific head/content policies. */
+  sourceCache?: SourceContentCache;
+  /** Source-cache windows are explicit so head and revision TTLs stay separate. */
+  sourceCachePolicy?: {
+    validationTtlSeconds: number;
+    contentTtlSeconds: number;
+    now?: () => number;
+  };
   /**
    * The visibility/scope seam reserved by ADR-0015 §5, first *filled* by ADR-0017.
    * A no-op by default: absent ⇒ today's full, global-visible return, so every

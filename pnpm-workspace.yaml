@@ -7,11 +7,15 @@ packages:
 allowBuilds:
   # MSW's postinstall only copies the browser Service Worker; we use Node mode
   # (msw/node) for dev/integration source-system mocking, so the build is skipped.
+  esbuild: true
   msw: false
+  protobufjs: false
 
 minimumReleaseAgeExclude:
   - vite@8.1.0
+  - hono@4.12.34
 
 overrides:
-  "@types/react": "19.2.15"
-  "@types/react-dom": "19.2.3"
+  "@types/react": "19.2.18"
+  "@types/react-dom": "19.2.4"
+  "hono@>=4.12.32 <5.0.0-0": "4.12.34"

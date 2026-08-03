@@ -47,7 +47,7 @@ test.describe("full-route smoke (mock-forced)", () => {
 
     // service ← /catalog (default Services tab).
     await page.goto("/catalog");
-    await page.waitForLoadState("networkidle"); // let the client hydrate before the tab click
+    await page.waitForLoadState("networkidle"); // let the client mount before the tab click
     const serviceHref = await firstHref(page, "/service/");
 
     // policy ← the "Security policies" catalog tab (services is the default tab).

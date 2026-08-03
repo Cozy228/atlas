@@ -1,20 +1,12 @@
-import {
-  ApiErrorResponseSchema,
-  AvailabilityReadResponseSchema,
-  FeedbackResponseSchema,
-  ResourceCatalogResponseSchema,
-  ResourceContextResponseSchema,
-  ResourceRecordResponseSchema,
-  ResourceSearchResponseSchema,
-  SourceDiscoveryResponseSchema,
-  SourceResponseSchema,
-  type FeedbackSubmission,
-  type SourceDiscoveryRequest,
-} from "@atlas/schema";
-
 import type { ContextApiClient } from "../contextApiClient";
 import { ContextApiError } from "../contextApiError";
+import { createFetchContextApiClient } from "../fetchContextApiClient";
 import { serverContextApiClient as inProcessContextApiClient } from "./inProcessContextApi";
+import { logger, safeError } from "@atlas/logging";
+
+export { createFetchContextApiClient } from "../fetchContextApiClient";
+
+const log = logger("portal.context-api");
 
 type FetchLike = (input: string, init?: RequestInit) => Promise<Response>;
 
@@ -31,8 +23,11 @@ export function createServerContextApiClient(
 ): ServerContextApiClient {
   const baseUrl = input.env?.CONTEXT_API_BASE_URL ?? process.env.CONTEXT_API_BASE_URL;
   if (baseUrl) {
+    const client = instrumentHttpClient(
+      createFetchContextApiClient({ baseUrl, fetch: input.fetch, token: input.token }),
+    );
     return {
-      ...createFetchContextApiClient({ baseUrl, fetch: input.fetch, token: input.token }),
+      ...client,
       kind: "http",
     };
   }
@@ -43,137 +38,63 @@ export function createServerContextApiClient(
   };
 }
 
-export function createFetchContextApiClient(input: {
-  baseUrl: string;
-  fetch?: FetchLike;
-  token?: string;
-}): ContextApiClient {
-  const rawFetch = input.fetch ?? fetch;
-  const baseUrl = input.baseUrl.replace(/\/+$/, "");
-  // The opaque caller Bearer, attached to every outbound call when present.
-  // It is threaded unparsed and never serialized into any browser-facing body.
-  const authHeaders: Record<string, string> = input.token
-    ? { authorization: `Bearer ${input.token}` }
-    : {};
-  const fetchImpl: FetchLike = (url, init) =>
-    rawFetch(url, {
-      ...init,
-      headers: { ...authHeaders, ...(init?.headers as Record<string, string> | undefined) },
-    });
-
+function instrumentHttpClient(client: ContextApiClient): ContextApiClient {
   return {
-    async getSource(id: string) {
-      return requestJson({
-        fetch: fetchImpl,
-        schema: SourceResponseSchema,
-        url: `${baseUrl}/sources/${encodeURIComponent(id)}`,
-      });
-    },
-    async getAvailability() {
-      return requestJson({
-        fetch: fetchImpl,
-        schema: AvailabilityReadResponseSchema,
-        url: `${baseUrl}/availability`,
-      });
-    },
-    async getResourceContext(kind: string, slug: string) {
-      // slug may carry path separators (service slug = "{provider}/{id}"): encode
-      // each segment but keep the separators as real path segments.
-      const slugPath = slug
-        .split("/")
-        .map((segment) => encodeURIComponent(segment))
-        .join("/");
-      return requestJson({
-        fetch: fetchImpl,
-        schema: ResourceContextResponseSchema,
-        url: `${baseUrl}/resources/${encodeURIComponent(kind)}/${slugPath}`,
-      });
-    },
-    async getResourceRecord(kind: string, slug: string) {
-      const slugPath = slug
-        .split("/")
-        .map((segment) => encodeURIComponent(segment))
-        .join("/");
-      return requestJson({
-        fetch: fetchImpl,
-        schema: ResourceRecordResponseSchema,
-        url: `${baseUrl}/resources/${encodeURIComponent(kind)}/${slugPath}/record`,
-      });
-    },
-    async searchResources(query: string) {
-      return requestJson({
-        fetch: fetchImpl,
-        schema: ResourceSearchResponseSchema,
-        url: withQuery(`${baseUrl}/resources`, { query }),
-      });
-    },
-    async discoverSources(request: SourceDiscoveryRequest = {}) {
-      return requestJson({
-        fetch: fetchImpl,
-        schema: SourceDiscoveryResponseSchema,
-        url: withQuery(`${baseUrl}/sources`, request),
-      });
-    },
-    async discoverResources() {
-      return requestJson({
-        fetch: fetchImpl,
-        schema: ResourceCatalogResponseSchema,
-        url: `${baseUrl}/resources/catalog`,
-      });
-    },
-    async submitFeedback(request: FeedbackSubmission) {
-      return requestJson({
-        fetch: fetchImpl,
-        schema: FeedbackResponseSchema,
-        url: `${baseUrl}/feedback`,
-        init: jsonPost(request),
-      });
-    },
+    getSource: (id, options) => loggedRequest("get_source", () => client.getSource(id, options)),
+    getAvailability: (options) =>
+      loggedRequest("get_availability", () => client.getAvailability(options)),
+    getResourceContext: (kind, slug, options) =>
+      loggedRequest("get_resource_context", () => client.getResourceContext(kind, slug, options)),
+    getResourceRecord: (kind, slug, options) =>
+      loggedRequest("get_resource_record", () => client.getResourceRecord(kind, slug, options)),
+    searchResources: (query, options) =>
+      loggedRequest("search_resources", () => client.searchResources(query, options)),
+    discoverSources: (request, options) =>
+      loggedRequest("discover_sources", () => client.discoverSources(request, options)),
+    discoverResources: (options) =>
+      loggedRequest("discover_resources", () => client.discoverResources(options)),
+    submitFeedback: (request, options) =>
+      loggedRequest("submit_feedback", () => client.submitFeedback(request, options)),
   };
 }
 
-async function requestJson<TBody>(input: {
-  fetch: FetchLike;
-  schema: { parse(input: unknown): TBody };
-  url: string;
-  init?: RequestInit;
-}): Promise<TBody> {
-  const response = await input.fetch(input.url, input.init ?? { method: "GET" });
-  const body: unknown = await response.json().catch(() => ({}));
-
-  if (!response.ok) {
-    const parsedError = ApiErrorResponseSchema.safeParse(body);
-    if (parsedError.success) {
-      throw ContextApiError.fromResponse({
-        status: response.status,
-        body: parsedError.data,
-      });
+async function loggedRequest<T>(operation: string, run: () => Promise<T>): Promise<T> {
+  const startedAt = Date.now();
+  try {
+    const result = await run();
+    log.info(
+      {
+        event: "context_api.request.completed",
+        operation,
+        outcome: "success",
+        durationMs: Date.now() - startedAt,
+      },
+      "Context API request completed",
+    );
+    return result;
+  } catch (error) {
+    if (error instanceof ContextApiError) {
+      log.warn(
+        {
+          event: "context_api.request.completed",
+          operation,
+          outcome: "error",
+          statusCode: error.status,
+          durationMs: Date.now() - startedAt,
+        },
+        "Context API request returned a non-success status",
+      );
+      throw error;
     }
-    throw new ContextApiError({
-      code: "invalid_request",
-      message: `Context API returned status ${response.status} with no structured error body.`,
-      status: response.status,
-    });
+    log.error(
+      {
+        event: "context_api.request.failed",
+        operation,
+        durationMs: Date.now() - startedAt,
+        err: safeError(error, "Context API request failed"),
+      },
+      "Context API request failed",
+    );
+    throw error;
   }
-
-  return input.schema.parse(body);
-}
-
-function jsonPost(body: unknown): RequestInit {
-  return {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(body),
-  };
-}
-
-function withQuery(url: string, query: Record<string, string | undefined>): string {
-  const params = new URLSearchParams();
-  for (const [key, value] of Object.entries(query)) {
-    if (value) {
-      params.set(key, value);
-    }
-  }
-  const search = params.toString();
-  return search ? `${url}?${search}` : url;
 }

@@ -7,7 +7,7 @@ import type {
   LandingZoneAvailability,
   Location,
   LocationStatus,
-} from "@/api/server/availability";
+} from "@atlas/schema";
 import { MatrixView } from "@/components/explore/matrix-view";
 import { StatusDot } from "@/components/explore/status-dot";
 import { buildAvailabilityRowModel } from "@/lib/availability-row-model";

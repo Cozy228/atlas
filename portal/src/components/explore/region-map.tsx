@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { IconMinus, IconPlus } from "@tabler/icons-react";
 
-import type { Location } from "@/api/server/availability";
+import type { Location } from "@atlas/schema";
 import { cn } from "@/lib/utils";
 import { WORLD_MAP, projectWorld } from "./world-geo";
 
@@ -47,17 +47,16 @@ export function RegionMap({
     ? projectWorld(selected.coordinates[0], selected.coordinates[1])
     : [WORLD_MAP.width / 2, WORLD_MAP.height / 2];
   const sceneTransform =
-    zoom === 1 ? undefined : `translate(${focusX} ${focusY}) scale(${zoom}) translate(${-focusX} ${-focusY})`;
+    zoom === 1
+      ? undefined
+      : `translate(${focusX} ${focusY}) scale(${zoom}) translate(${-focusX} ${-focusY})`;
 
   // Draw the selected marker last so its halo and label sit above the others.
   const ordered = selected ? [...pinned.filter((l) => l.id !== selected.id), selected] : pinned;
 
   return (
     <section
-      className={cn(
-        "relative overflow-hidden rounded-xl border border-border bg-card",
-        className,
-      )}
+      className={cn("relative overflow-hidden rounded-xl border border-border bg-card", className)}
     >
       <svg
         viewBox={`0 0 ${WORLD_MAP.width} ${WORLD_MAP.height}`}
@@ -75,7 +74,13 @@ export function RegionMap({
           </radialGradient>
         </defs>
 
-        <rect x="0" y="0" width={WORLD_MAP.width} height={WORLD_MAP.height} fill="url(#region-ocean)" />
+        <rect
+          x="0"
+          y="0"
+          width={WORLD_MAP.width}
+          height={WORLD_MAP.height}
+          fill="url(#region-ocean)"
+        />
 
         <g transform={sceneTransform}>
           <path
@@ -110,7 +115,9 @@ export function RegionMap({
         <p className="font-mono text-[9px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
           Active network
         </p>
-        <p className="mt-0.5 text-[13px] font-bold tracking-[-0.01em] text-foreground">{zoneName}</p>
+        <p className="mt-0.5 text-[13px] font-bold tracking-[-0.01em] text-foreground">
+          {zoneName}
+        </p>
       </div>
 
       <div className="absolute bottom-3 right-3 flex flex-col overflow-hidden rounded-lg border border-border bg-card/90 shadow-sm backdrop-blur">

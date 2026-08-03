@@ -28,7 +28,7 @@ import { parse, type HTMLElement } from "node-html-parser";
 import { LANDING_ZONES, resolveLandingZoneSource } from "../landingZones";
 import type { AvailabilityProvider } from "../services/availabilityProvider";
 import { normalizeServiceIdentity } from "../services/serviceIdentityNormalizer";
-import type { FetchLike } from "../resolvers/resolverTypes";
+import type { FetchLike, ResolutionContext } from "../resolvers/resolverTypes";
 import { fetchConfluenceStorageHtml } from "./confluenceCloudContentProvider";
 
 /** A parsed service row: presentation + per-location availability. */
@@ -146,6 +146,9 @@ function decodeCell(value: string | undefined): LocationAvailability | undefined
 export type ConfluenceAvailabilityProviderDeps = {
   /** Late-bound fetch (dev MSW / prod real). */
   fetch: FetchLike;
+  /** Shared source cache used by the Confluence head/content policy. */
+  sourceCache?: ResolutionContext["sourceCache"];
+  sourceCachePolicy?: ResolutionContext["sourceCachePolicy"];
   /** Process env supplying the per-LZ availability-source locators. */
   env?: Record<string, string | undefined>;
   /** The LZ list to iterate (defaults to the topology root). */
@@ -198,7 +201,11 @@ async function loadZone(
   }
 
   const fetched = await fetchConfluenceStorageHtml(
-    { fetch: deps.fetch },
+    {
+      fetch: deps.fetch,
+      sourceCache: deps.sourceCache,
+      sourceCachePolicy: deps.sourceCachePolicy,
+    },
     { token: source.token, baseUrl: source.baseUrl, email: source.email },
     source.pageId,
   );

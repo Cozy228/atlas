@@ -11,7 +11,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import type { ResourceCatalogResponse, ResourceRecordResponse } from "@atlas/schema";
 
 import { availabilityQueryOptions, resourceCatalogQueryOptions } from "@/api/queries";
-import type { LandingZoneAvailability } from "@/api/server/availability";
+import type { LandingZoneAvailability } from "@atlas/schema";
 import { CatalogAdopted } from "@/components/catalog/adopted";
 import { DEFAULT_LANDING_ZONE_ID } from "@/components/landing-zone/context";
 import { LandingZoneGate } from "@/components/landing-zone/landing-zone-gate";

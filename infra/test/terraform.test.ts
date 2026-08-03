@@ -41,4 +41,37 @@ describe("Atlas Terraform deployment", () => {
       '{ name = "FEEDBACK_TABLE", value = aws_dynamodb_table.feedback.name }',
     );
   });
+
+  it("makes the source-cache freshness policy explicit in ECS", () => {
+    expect(mainTerraform).toContain('{ name = "CACHE_TTL_SECONDS", value = "300" }');
+    expect(mainTerraform).toContain('{ name = "CACHE_NEGATIVE_TTL_SECONDS", value = "30" }');
+    expect(mainTerraform).toContain('{ name = "CACHE_VALIDATION_TTL_SECONDS", value = "300" }');
+    expect(mainTerraform).toContain('{ name = "CACHE_CONTENT_TTL_SECONDS", value = "604800" }');
+    expect(mainTerraform).toContain(
+      '{ name = "CACHE_VALKEY_URL", value = "rediss://${aws_elasticache_replication_group.content_cache.configuration_endpoint_address}:6379" }',
+    );
+  });
+
+  it("wires optional standard proxy variables into the portal task", () => {
+    expect(mainTerraform).toContain(
+      'var.http_proxy != "" ? [{ name = "HTTP_PROXY", value = var.http_proxy }] : []',
+    );
+    expect(mainTerraform).toContain(
+      'var.https_proxy != "" ? [{ name = "HTTPS_PROXY", value = var.https_proxy }] : []',
+    );
+    expect(mainTerraform).toContain(
+      'var.no_proxy != "" ? [{ name = "NO_PROXY", value = var.no_proxy }] : []',
+    );
+    expect(variablesTerraform).toContain('variable "http_proxy"');
+    expect(variablesTerraform).toContain('variable "https_proxy"');
+    expect(variablesTerraform).toContain('variable "no_proxy"');
+  });
+
+  it("aligns ALB and ECS lifecycle with the Hono runtime", () => {
+    expect(mainTerraform).toContain('path                = "/health"');
+    expect(mainTerraform).toContain("deregistration_delay = 30");
+    expect(mainTerraform).toContain("stopTimeout = 30");
+    expect(mainTerraform).toContain('operating_system_family = "LINUX"');
+    expect(mainTerraform).toContain('cpu_architecture        = "X86_64"');
+  });
 });

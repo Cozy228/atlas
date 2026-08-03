@@ -44,6 +44,17 @@ A Terraform Source's `location` must be the module repo, e.g.
 heading slug prefixed with `#`, e.g. `#terraform-starter`. Private Terraform
 Cloud / Enterprise registries are a future adapter behind the same seam (TODO).
 
+### Outbound HTTP proxy
+
+Set `HTTP_PROXY` and/or `HTTPS_PROXY` to proxy only the hosts configured by
+`CONFLUENCE_BASE_URL`, `CONFLUENCE_SECURITY_BASE_URL`, and
+`TERRAFORM_BASE_URL`. The default Terraform host is `registry.terraform.io`.
+Every other server-side fetch remains direct by default. `NO_PROXY` can bypass
+one of those selected hosts. Lowercase `http_proxy`, `https_proxy`, and
+`no_proxy` aliases are also supported and take precedence when both forms are
+present. When no proxy URL is configured, Atlas keeps the normal direct-fetch
+behavior.
+
 ## Run a real test
 
 1. Register a Source whose `location` is a real page id / repo, with an anchor

@@ -5,6 +5,7 @@ import {
   type SearchContextInput,
   type SearchContextResponse,
 } from "@atlas/schema";
+import { logger } from "@atlas/logging";
 
 import type { ContextService } from "../services/contextService";
 import {
@@ -14,6 +15,8 @@ import {
   searchResources,
 } from "../resources/resourceContextService";
 import type { ResolutionContext } from "../resolvers/resolverTypes";
+
+const log = logger("context-layer.search");
 
 const EXCERPT_CHAR_LIMIT = 1_500;
 const EXCERPT_LEAD_CHARS = 240;
@@ -92,7 +95,16 @@ export async function searchContext(
     });
   }
 
-  return SearchContextResponseSchema.parse({ query: input.query, matches });
+  const result = SearchContextResponseSchema.parse({ query: input.query, matches });
+  log.info(
+    {
+      event: "context.search.completed",
+      candidateCount: candidates.length,
+      matchCount: result.matches.length,
+    },
+    "Context search completed",
+  );
+  return result;
 }
 
 function withoutMatchReason(

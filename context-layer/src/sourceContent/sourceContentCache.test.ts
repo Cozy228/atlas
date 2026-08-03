@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import type { FetchLike } from "../resolvers/resolverTypes";
-import { InMemoryContentCache, createSourceContentCache, withCache } from "./sourceContentCache";
+import {
+  InMemoryContentCache,
+  createSourceContentCache,
+  type SourceContentCache,
+  withCache,
+} from "./sourceContentCache";
 
 function jsonResponse(body: unknown, status = 200): Awaited<ReturnType<FetchLike>> {
   return { ok: status >= 200 && status < 300, status, json: async () => body };
@@ -80,6 +85,32 @@ describe("withCache", () => {
     }
   });
 
+  it("cancels one waiter without aborting shared single-flight work", async () => {
+    let resolveFetch!: (response: Awaited<ReturnType<FetchLike>>) => void;
+    let calls = 0;
+    let underlyingSignal: AbortSignal | undefined;
+    const fetch: FetchLike = async (_url, init) => {
+      calls += 1;
+      underlyingSignal = init?.signal;
+      return new Promise((resolve) => {
+        resolveFetch = resolve;
+      });
+    };
+    const cached = withCache(fetch, new InMemoryContentCache(), 60);
+    const firstController = new AbortController();
+    const secondController = new AbortController();
+
+    const first = cached("https://x/page", { signal: firstController.signal });
+    const second = cached("https://x/page", { signal: secondController.signal });
+    firstController.abort(new DOMException("Navigation superseded", "AbortError"));
+
+    await expect(first).rejects.toMatchObject({ name: "AbortError" });
+    resolveFetch(jsonResponse({ ok: true }));
+    await expect(second).resolves.toMatchObject({ status: 200 });
+    expect(calls).toBe(1);
+    expect(underlyingSignal).toBeUndefined();
+  });
+
   it("caches non-OK responses briefly so repeated calls do not re-hit the source", async () => {
     let calls = 0;
     const fetch: FetchLike = async () => {
@@ -105,9 +136,9 @@ describe("withCache", () => {
       calls += 1;
       return jsonResponse({ err: true }, 404);
     };
-    // 1s positive TTL, 1s negative TTL, clock-controlled cache + withCache clock.
+    // 1s negative TTL, clock-controlled cache + withCache clock.
     const cache = new InMemoryContentCache({ now: () => clock });
-    const cached = withCache(fetch, cache, 60, 1, 60, () => clock);
+    const cached = withCache(fetch, cache, 60, 1, () => clock);
 
     await cached("https://x/page");
     expect(calls).toBe(1);
@@ -117,32 +148,54 @@ describe("withCache", () => {
     expect(calls).toBe(2); // re-fetched
   });
 
-  it("serves a stale OK entry synchronously and refreshes once in the background", async () => {
+  it("waits for a fresh source response after an OK entry expires", async () => {
     let clock = 1_000;
     let calls = 0;
     const fetch: FetchLike = async () => {
       calls += 1;
       return jsonResponse({ n: calls });
     };
-    // ttl=10s fresh, +10s stale window; shared clock for cache and withCache.
+    // The hard TTL is shared by the storage adapter and the decorator.
     const cache = new InMemoryContentCache({ now: () => clock });
-    const cached = withCache(fetch, cache, 10, 30, 10, () => clock);
+    const cached = withCache(fetch, cache, 10, 30, () => clock);
 
     const first = await (await cached("https://x/page")).json();
     expect(first).toEqual({ n: 1 });
     expect(calls).toBe(1);
 
-    clock += 11_000; // past freshUntil (10s) but within fresh+stale (20s)
-    // Stale read returns the LAST-GOOD body synchronously (before refresh runs).
-    const stale = await (await cached("https://x/page")).json();
-    expect(stale).toEqual({ n: 1 }); // served stale, not the refreshed value
-    expect(calls).toBe(2); // exactly one background refresh fired
-
-    // Let the background refresh settle, then a fresh read sees the new value.
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    clock += 10_001; // past the hard TTL
     const refreshed = await (await cached("https://x/page")).json();
     expect(refreshed).toEqual({ n: 2 });
-    expect(calls).toBe(2); // still fresh after refresh → no extra fetch
+    expect(calls).toBe(2); // expired content was not replayed
+  });
+
+  it("bypasses a failing cache backend without failing the live request", async () => {
+    let calls = 0;
+    const cache: SourceContentCache = {
+      get: async () => {
+        throw new Error("cache unavailable");
+      },
+      set: async () => {
+        throw new Error("cache unavailable");
+      },
+    };
+    const fetch: FetchLike = async () => jsonResponse({ n: ++calls });
+    const cached = withCache(fetch, cache, 60);
+
+    expect(await (await cached("https://x/page")).json()).toEqual({ n: 1 });
+    expect(await (await cached("https://x/page")).json()).toEqual({ n: 2 });
+    expect(calls).toBe(2); // cache failure never changes source authority
+  });
+
+  it("normalizes a lower-case GET before applying the cache policy", async () => {
+    let calls = 0;
+    const fetch: FetchLike = async () => jsonResponse({ n: ++calls });
+    const cached = withCache(fetch, new InMemoryContentCache(), 60);
+
+    await cached("https://x/page", { method: "get" });
+    await cached("https://x/page", { method: "GET" });
+
+    expect(calls).toBe(1);
   });
 
   it("does not cache non-GET methods", async () => {
@@ -156,6 +209,32 @@ describe("withCache", () => {
     await cached("https://x/page", { method: "POST" });
     await cached("https://x/page", { method: "POST" });
     expect(calls).toBe(2);
+  });
+
+  it("lets a version-aware source bypass the generic cache without leaking the marker", async () => {
+    let calls = 0;
+    const seenHeaders: Record<string, string>[] = [];
+    const fetch: FetchLike = async (_url, init) => {
+      calls += 1;
+      seenHeaders.push(init?.headers ?? {});
+      return jsonResponse({ n: calls });
+    };
+    const cached = withCache(fetch, new InMemoryContentCache(), 60);
+    const init = {
+      headers: {
+        Authorization: "Bearer source-token",
+        "x-atlas-source-cache-bypass": "true",
+      },
+    };
+
+    await cached("https://x/page", init);
+    await cached("https://x/page", init);
+
+    expect(calls).toBe(2);
+    expect(seenHeaders).toEqual([
+      { Authorization: "Bearer source-token" },
+      { Authorization: "Bearer source-token" },
+    ]);
   });
 });
 

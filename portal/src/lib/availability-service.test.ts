@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { ResourceRecordResponse } from "@atlas/schema";
 
-import type { AvailabilityRecord } from "@/api/server/availability";
+import type { AvailabilityRecord } from "@atlas/schema";
 import { findAvailabilityServiceForResource } from "./availability-service";
 
 const services = [

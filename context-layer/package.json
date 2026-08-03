@@ -10,6 +10,10 @@
       "types": "./src/index.ts",
       "import": "./src/index.ts"
     },
+    "./landingZones": {
+      "types": "./src/landingZones/landingZones.ts",
+      "import": "./src/landingZones/landingZones.ts"
+    },
     "./mcp": {
       "types": "./src/mcp/server.ts",
       "import": "./src/mcp/server.ts"
@@ -20,27 +24,31 @@
     }
   },
   "scripts": {
-    "build:lambda": "tsdown --config tsdown.lambda.config.ts",
     "lint": "oxlint",
     "typecheck": "tsc --noEmit --pretty false",
     "test": "vitest run --exclude \"scripts/*.debug.test.ts\"",
     "validate:guidance": "vitest run guidanceFixture"
   },
   "dependencies": {
+    "@atlas/logging": "workspace:*",
     "@atlas/schema": "workspace:*",
-    "@aws-sdk/client-dynamodb": "3.1075.0",
-    "@aws-sdk/lib-dynamodb": "3.1075.0",
+    "@aws-crypto/sha256-js": "5.2.0",
+    "@aws-sdk/client-dynamodb": "3.1101.0",
+    "@aws-sdk/credential-provider-node": "3.972.76",
+    "@aws-sdk/lib-dynamodb": "3.1101.0",
     "@modelcontextprotocol/server": "2.0.0",
-    "node-html-parser": "^8.0.3",
+    "@smithy/signature-v4": "5.6.12",
+    "iovalkey": "0.4.0",
+    "node-html-parser": "^9.0.1",
+    "undici": "7.29.0",
     "yaml": "2.9.0",
     "zod": "4.4.3"
   },
   "devDependencies": {
     "@modelcontextprotocol/client": "2.0.0",
-    "@types/node": "26.0.0",
-    "tsdown": "0.22.3",
-    "typescript": "6.0.3",
-    "vite": "8.1.0",
-    "vitest": "4.1.9"
+    "@types/node": "26.1.2",
+    "typescript": "7.0.2",
+    "vite": "8.2.0",
+    "vitest": "4.1.10"
   }
 }

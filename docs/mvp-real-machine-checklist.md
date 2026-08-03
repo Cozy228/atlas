@@ -34,6 +34,7 @@ each unlocks one surface.
 | Feedback store | `FEEDBACK_TABLE` (DynamoDB) | Persisted feedback (else in-memory) | `context-layer/src/repositories/feedbackRepositoryFactory.ts` |
 | LLM (Ask Atlas) | `BEDROCK_MODEL_ID` (Bedrock) / RAI vars | Real grounded answers (else a simulated adapter echoes the first authoritative excerpt) | `portal/src/api/server/llmProvider.ts` |
 | Content cache | `CACHE_VALKEY_URL` (optional) | Shared Valkey/Redis cache (else in-memory, 300s TTL) | `context-layer/src/sourceContent/sourceContentCache.ts` |
+| Outbound HTTP proxy | `HTTP_PROXY`, `HTTPS_PROXY`, `NO_PROXY` (optional) | Proxies only configured Confluence and Terraform hosts; other fetches remain direct | `context-layer/src/network/outboundProxy.ts` |
 | **Registry data dir** | _(none — self-located)_ | The loader climbs to the first ancestor holding `data/sources.yaml`; there is no env override. | _(self-locating; no `dataDir.ts` env hook)_ |
 
 ### Data conventions required for live resolution

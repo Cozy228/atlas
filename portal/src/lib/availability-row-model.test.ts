@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { AvailabilityRecord, Location } from "@/api/server/availability";
+import type { AvailabilityRecord, Location } from "@atlas/schema";
 import { buildAvailabilityRowModel } from "@/lib/availability-row-model";
 
 const LOCATIONS: ReadonlyArray<Location> = [

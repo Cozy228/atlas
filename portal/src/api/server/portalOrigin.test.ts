@@ -1,11 +1,10 @@
 import { afterEach, describe, expect, it } from "vitest";
 
-import { DEFAULT_PORTAL_ORIGIN, handlerRequest, resolvePortalOrigin } from "./portalOrigin";
+import { DEFAULT_PORTAL_ORIGIN, resolvePortalOrigin } from "./portalOrigin";
 
 /**
- * Request-like stand-in: a bare `url` + `Headers`, which is the stable shape
- * `handlerRequest` normalizes to. `Headers` (unlike `new Request`) lets us set
- * the forbidden `Host`/forwarded headers a proxy would inject.
+ * Request-like stand-in with mutable `Headers`; unlike `new Request`, it lets us
+ * set the forbidden `Host`/forwarded headers a proxy would inject.
  */
 function requestWith(
   headers: Record<string, string>,
@@ -67,24 +66,5 @@ describe("resolvePortalOrigin", () => {
     delete process.env.PORTAL_ORIGIN;
     const request = requestWith({ host: "localhost:3201" }, "http://localhost:3201/robots.txt");
     expect(resolvePortalOrigin(request, { preferEnv: true })).toBe("http://localhost:3201");
-  });
-});
-
-describe("handlerRequest", () => {
-  it("returns a bare Request as-is (current Nitro contract)", () => {
-    const request = new Request("http://localhost:3201/llms.txt");
-    expect(handlerRequest(request)).toBe(request);
-  });
-
-  it("unwraps an H3Event-style { req } (older Nitro contract)", () => {
-    const request = new Request("http://localhost:3201/llms.txt");
-    expect(handlerRequest({ req: request, url: new URL("http://localhost:3201/llms.txt") })).toBe(
-      request,
-    );
-  });
-
-  it("returns undefined for request-less callers", () => {
-    expect(handlerRequest(undefined)).toBeUndefined();
-    expect(handlerRequest({})).toBeUndefined();
   });
 });

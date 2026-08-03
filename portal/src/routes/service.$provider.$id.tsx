@@ -42,7 +42,7 @@ import {
   resourceContextQueryOptions,
   resourceRecordQueryOptions,
 } from "@/api/queries";
-import type { AvailabilityRecord, LandingZoneAvailability } from "@/api/server/availability";
+import type { AvailabilityRecord, LandingZoneAvailability } from "@atlas/schema";
 import { FeedbackInlineForm } from "@/components/evidence/feedback-inline-form";
 import { ServiceIcon } from "@/components/explore/service-icon";
 import { ServiceIconFallback } from "@/components/explore/service-icon-frame";
@@ -82,16 +82,24 @@ export const Route = createFileRoute("/service/$provider/$id")({
 
     // Presentation metadata (durable, ADR-0015 §2) — awaited for the page shell.
     // 404 when the slug resolves to neither an overlay nor the availability spine.
-    const record = await context.queryClient
+    const recordPromise = context.queryClient
       .ensureQueryData(resourceRecordQueryOptions({ kind: "service", slug }))
       .catch(() => null);
-    if (!record) throw notFound();
 
     // Sibling services share this resource's category (a facet attribute).
     // Siblings come straight from the discovered catalog by category.
-    const catalogResp = await context.queryClient.ensureQueryData(resourceCatalogQueryOptions);
+    const catalogPromise = context.queryClient.ensureQueryData(resourceCatalogQueryOptions);
 
-    const guidances = await context.queryClient.ensureQueryData(guidanceQueryOptions);
+    const guidancesPromise = context.queryClient.ensureQueryData(guidanceQueryOptions);
+
+    // Start the durable catalog and guidance reads alongside the record. The
+    // expensive live reads wait for identity validation so a bad slug cannot
+    // amplify into unnecessary Confluence/resource-resolution work.
+    const record = await recordPromise;
+    if (!record) {
+      void Promise.allSettled([catalogPromise, guidancesPromise]);
+      throw notFound();
+    }
 
     // Slow: availability is a live Confluence fetch + parse in the real adapter —
     // defer it (no await) so navigation is instant; the specs, where-it-runs and
@@ -115,6 +123,8 @@ export const Route = createFileRoute("/service/$provider/$id")({
     const projection: Promise<ResourceContextResponse | null> = context.queryClient
       .ensureQueryData(resourceContextQueryOptions({ kind: "service", slug }))
       .catch(() => null);
+
+    const [catalogResp, guidances] = await Promise.all([catalogPromise, guidancesPromise]);
 
     // Related in domain: sibling service resources sharing this resource's
     // category (a facet attribute), each addressed by its own canonical slug.

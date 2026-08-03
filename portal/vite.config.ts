@@ -1,17 +1,23 @@
-// @ts-nocheck
-// TanStack Start `tanstackStart()` plus Vite 8 Rolldown `UserConfig` nesting can exceed TypeScript's inference stack
-// in strict IDE checks. Runtime matches TanStack docs; `pnpm run lint` still typechecks app sources.
-
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
-import { tanstackStart } from "@tanstack/react-start/plugin/vite";
-import { nitro } from "nitro/vite";
+import { tanstackRouter } from "@tanstack/router-plugin/vite";
 import viteReact, { reactCompilerPreset } from "@vitejs/plugin-react";
 import babel from "@rolldown/plugin-babel";
 import tailwindcss from "@tailwindcss/vite";
 
 const portalRoot = fileURLToPath(new URL(".", import.meta.url));
-const isVitest = process.env.VITEST === "true";
+const devApiTarget = "http://127.0.0.1:3001";
+const devApiPaths = [
+  "/api",
+  "/mcp",
+  "/.well-known",
+  "/resources",
+  "/health",
+  "/robots.txt",
+  "/sitemap.xml",
+  "/llms.txt",
+  "/openapi.json",
+];
 
 /**
  * Rolldown manual code splitting. Higher `priority` wins when groups overlap.
@@ -20,8 +26,11 @@ const isVitest = process.env.VITEST === "true";
  * @see https://rolldown.rs/reference/outputoptions.codesplitting
  */
 const portalCodeSplittingGroups = [
-  { name: "react-dom", test: /node_modules[\\/]react-dom[\\/]/, priority: 52 },
-  { name: "react", test: /node_modules[\\/]react[\\/]/, priority: 50 },
+  {
+    name: "react-dom",
+    test: /node_modules[\\/](?:react|react-dom)[\\/]/,
+    priority: 52,
+  },
   { name: "motion", test: /node_modules[\\/]motion[\\/]/, priority: 30 },
   // react-table is imported only by the lazy availability matrix, so split it
   // out of the eager `tanstack` group (higher priority wins) to keep it off the
@@ -36,6 +45,13 @@ const portalCodeSplittingGroups = [
   },
   // Consolidates `@tabler/icons-react` shared modules instead of dozens of sub‑KB icon chunks.
   { name: "tabler-icons", test: /node_modules[\\/]@tabler[\\/]icons-react[\\/]/, priority: 21 },
+  // These small modules are all required by the home route. Keeping them in one
+  // chunk avoids paying a separate request for each after dependency upgrades.
+  {
+    name: "home-shared",
+    test: /portal[\\/]src[\\/](?:api[\\/]queries\.ts|components[\\/](?:client-only\.tsx|home[\\/]recently-viewed\.tsx|landing-zone[\\/]context\.tsx|ui[\\/]skeleton\.tsx)|lib[\\/](?:availability-service|deferred-cache|guidance|utils)\.ts)/,
+    priority: 20,
+  },
 ];
 
 export default defineConfig(({ command }) => ({
@@ -45,28 +61,12 @@ export default defineConfig(({ command }) => ({
     },
   },
   plugins: [
-    tanstackStart({
-      router: {
-        routesDirectory: `${portalRoot}src/routes`,
-        generatedRouteTree: `${portalRoot}src/routeTree.gen.ts`,
-      },
+    tanstackRouter({
+      target: "react",
+      autoCodeSplitting: true,
+      routesDirectory: `${portalRoot}src/routes`,
+      generatedRouteTree: `${portalRoot}src/routeTree.gen.ts`,
     }),
-    // `serverDir` enables Nitro filesystem routing for the agent-facing
-    // server surface (`server/routes/**`, `server/middleware/**`) without
-    // touching the TanStack route tree.
-    !isVitest &&
-      nitro({
-        serverDir: "server",
-        // Dev-only MSW boot (plan 018 seam): start the Node-mode source-system
-        // interceptor so the dev runtime's live discovery resolves against the
-        // fixtures. Registered for `vite serve` ONLY — the prod build
-        // (`command === "build"`) never lists it, so `msw` stays out of the bundle.
-        plugins: command === "serve" ? ["./server/devMocks/start"] : [],
-        // Pre-compress public assets (>1KB) to .gz/.br at build time so any host
-        // serves smaller bytes with zero runtime overhead. CDNs that already
-        // compress will simply ignore these files.
-        compressPublicAssets: { gzip: true, brotli: true },
-      }),
     viteReact(),
     // React Compiler — official Babel route for React 19 + Vite 8 Rolldown: keep
     // the Oxc/Rolldown main chain and run the compiler as a standalone
@@ -77,10 +77,28 @@ export default defineConfig(({ command }) => ({
     babel({ presets: [reactCompilerPreset()] }),
     tailwindcss(),
   ],
+  server: {
+    port: 3000,
+    strictPort: true,
+    proxy: Object.fromEntries(
+      devApiPaths.map((path) => [
+        path,
+        {
+          target: devApiTarget,
+          bypass: (request: { url?: string }) =>
+            request.url?.startsWith("/.well-known/agent-skills/") ? request.url : undefined,
+        },
+      ]),
+    ),
+  },
   build: {
-    // ponytail: chunkImportMap (Vite 8.1) left off — it breaks the Nitro server
-    // re-bundle pass (UNRESOLVED_IMPORT on importmap-driven SSR chunks).
-    // Re-enable if/when nitro/vite resolves importmap chunks.
+    ...(command === "build"
+      ? {
+          outDir: ".output/public",
+          emptyOutDir: true,
+          manifest: true,
+        }
+      : {}),
     rolldownOptions: {
       output: {
         codeSplitting: {

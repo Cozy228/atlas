@@ -1,111 +1,175 @@
+import { Cluster } from "iovalkey";
+
 import type { CachedResponse, SourceContentCache } from "./sourceContentCache";
+import { createElastiCacheIamTokenProvider } from "./elasticacheIamToken";
 
-/**
- * ElastiCache (Valkey) adapter for {@link SourceContentCache}
- * (docs/architecture/source-content-cache.md). Active only when
- * `CACHE_VALKEY_URL` is set; `@valkey/valkey-glide` is an OPTIONAL
- * dependency imported lazily, so the default install never pulls a Valkey
- * client (nor its platform-native binaries).
- */
+const IAM_TOKEN_REFRESH_MS = 14 * 60_000;
 
-/** A GLIDE `get` yields a string or Buffer (GlideString), or null on miss. */
-type GlideString = string | { toString(): string };
-
-/** The slice of the GLIDE `GlideClient` this adapter uses. */
-type GlideClientLike = {
-  get(key: string): Promise<GlideString | null>;
-  set(
-    key: string,
-    value: string,
-    options: { expiry: { type: unknown; count: number } },
-  ): Promise<unknown>;
-  close(): void;
+type ClusterClient = {
+  connect(): Promise<void>;
+  disconnect(reconnect?: boolean): void;
+  get(key: string): Promise<string | null>;
+  quit(): Promise<unknown>;
+  set(key: string, value: string, mode: "EX", ttlSeconds: number): Promise<unknown>;
 };
 
-/** The lazily-imported slice of `@valkey/valkey-glide`. */
-type GlideModule = {
-  GlideClient: {
-    createClient(config: {
-      addresses: { host: string; port: number }[];
-      useTLS: boolean;
-    }): Promise<GlideClientLike>;
-  };
-  TimeUnit: { Seconds: unknown };
+type ClusterClientFactoryInput = {
+  host: string;
+  password: string;
+  port: number;
+  username: string;
 };
 
 export type ValkeyContentCacheInput = {
-  /** `rediss://host:6379` — `rediss://` enables TLS (required by ElastiCache). */
+  cacheName: string;
+  region: string;
   url: string;
-  /** Injectable for tests; production constructs a GLIDE client lazily. */
-  client?: GlideClientLike;
-  /** Injectable for tests; production reads it off the lazy GLIDE import. */
-  secondsUnit?: unknown;
+  userId: string;
+  clientFactory?: (input: ClusterClientFactoryInput) => Promise<ClusterClient>;
+  now?: () => number;
+  tokenProvider?: () => Promise<string>;
 };
 
+/** Shared Valkey cache backed by iovalkey's cluster-aware TLS client and IAM auth. */
 export class ValkeyContentCache implements SourceContentCache {
-  private readonly url: string;
-  private client: GlideClientLike | undefined;
-  private secondsUnit: unknown;
+  private readonly clientFactory: (input: ClusterClientFactoryInput) => Promise<ClusterClient>;
+  private readonly host: string;
+  private readonly now: () => number;
+  private readonly port: number;
+  private readonly tokenProvider: () => Promise<string>;
+  private readonly userId: string;
+  private connection: { client: ClusterClient; refreshAt: number } | undefined;
+  private connectionPromise: Promise<ClusterClient> | undefined;
 
   constructor(input: ValkeyContentCacheInput) {
-    this.url = input.url;
-    this.client = input.client;
-    this.secondsUnit = input.secondsUnit;
+    const url = new URL(input.url);
+    if (url.protocol !== "rediss:") {
+      throw new Error("CACHE_VALKEY_URL must use rediss:// for ElastiCache IAM auth.");
+    }
+    this.host = url.hostname;
+    this.port = url.port ? Number(url.port) : 6379;
+    this.userId = input.userId;
+    this.now = input.now ?? Date.now;
+    this.tokenProvider =
+      input.tokenProvider ??
+      createElastiCacheIamTokenProvider({
+        cacheName: input.cacheName,
+        region: input.region,
+        userId: input.userId,
+      });
+    this.clientFactory = input.clientFactory ?? createClusterClient;
   }
 
   async get(key: string): Promise<CachedResponse | undefined> {
-    const client = await this.connect();
-    const raw = await client.get(key);
-    if (raw === null) {
-      return undefined;
-    }
+    const raw = await this.execute((client) => client.get(key));
+    if (raw === null) return undefined;
     try {
-      return JSON.parse(raw.toString()) as CachedResponse;
+      return parseCachedResponse(JSON.parse(raw));
     } catch {
-      // A value we cannot parse is treated as a miss, never served as content.
       return undefined;
     }
   }
 
   async set(key: string, value: CachedResponse, ttlSeconds: number): Promise<void> {
-    const client = await this.connect();
-    await client.set(key, JSON.stringify(value), {
-      expiry: { type: this.secondsUnit, count: ttlSeconds },
-    });
+    await this.execute((client) => client.set(key, JSON.stringify(value), "EX", ttlSeconds));
   }
 
-  private async connect(): Promise<GlideClientLike> {
-    if (this.client) {
-      return this.client;
+  async close(): Promise<void> {
+    const pending = this.connectionPromise;
+    this.connectionPromise = undefined;
+    if (pending) await pending.catch(() => undefined);
+    const connection = this.connection;
+    this.connection = undefined;
+    if (!connection) return;
+    await closeClient(connection.client);
+  }
+
+  private async connect(): Promise<ClusterClient> {
+    if (this.connection && this.now() < this.connection.refreshAt) {
+      return this.connection.client;
     }
-    // Non-literal specifier: `@valkey/valkey-glide` is optional and may be
-    // absent, so this must not be a statically resolved import.
-    const specifier = "@valkey/valkey-glide";
-    let mod: GlideModule;
+    if (!this.connectionPromise) {
+      this.connectionPromise = this.rotate().finally(() => {
+        this.connectionPromise = undefined;
+      });
+    }
+    return this.connectionPromise;
+  }
+
+  private async execute<T>(command: (client: ClusterClient) => Promise<T>): Promise<T> {
+    const client = await this.connect();
     try {
-      mod = (await import(specifier)) as GlideModule;
-    } catch {
-      throw new Error(
-        "CACHE_VALKEY_URL is set but the '@valkey/valkey-glide' package is not installed. " +
-          "Run `pnpm add @valkey/valkey-glide` in context-layer to enable the Valkey cache adapter.",
-      );
+      return await command(client);
+    } catch (error) {
+      if (this.connection?.client === client) {
+        this.connection = undefined;
+        client.disconnect();
+      }
+      throw error;
     }
-    const { host, port, useTLS } = parseValkeyUrl(this.url);
-    this.secondsUnit ??= mod.TimeUnit.Seconds;
-    this.client = await mod.GlideClient.createClient({
-      addresses: [{ host, port }],
-      useTLS,
+  }
+
+  private async rotate(): Promise<ClusterClient> {
+    const password = await this.tokenProvider();
+    const client = await this.clientFactory({
+      host: this.host,
+      password,
+      port: this.port,
+      username: this.userId,
     });
-    return this.client;
+    const previous = this.connection;
+    this.connection = { client, refreshAt: this.now() + IAM_TOKEN_REFRESH_MS };
+    if (previous) await closeClient(previous.client);
+    return client;
   }
 }
 
-/** Parse `rediss://host:6379` into GLIDE address + TLS flag. */
-export function parseValkeyUrl(url: string): { host: string; port: number; useTLS: boolean } {
-  const parsed = new URL(url);
+function parseCachedResponse(value: unknown): CachedResponse | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const candidate = value as { body?: unknown; freshUntil?: unknown; status?: unknown };
+  if (
+    !Number.isSafeInteger(candidate.status) ||
+    (candidate.status as number) < 100 ||
+    (candidate.status as number) > 599
+  ) {
+    return undefined;
+  }
+  if (
+    candidate.freshUntil !== undefined &&
+    (typeof candidate.freshUntil !== "number" || !Number.isFinite(candidate.freshUntil))
+  ) {
+    return undefined;
+  }
   return {
-    host: parsed.hostname,
-    port: parsed.port ? Number(parsed.port) : 6379,
-    useTLS: parsed.protocol === "rediss:",
+    status: candidate.status as number,
+    body: candidate.body,
+    ...(candidate.freshUntil === undefined ? {} : { freshUntil: candidate.freshUntil }),
   };
+}
+
+async function createClusterClient(input: ClusterClientFactoryInput): Promise<ClusterClient> {
+  const client = new Cluster([{ host: input.host, port: input.port }], {
+    clusterRetryStrategy: () => null,
+    dnsLookup: (address, callback) => callback(null, address),
+    enableOfflineQueue: false,
+    lazyConnect: true,
+    redisOptions: {
+      commandTimeout: 1_000,
+      connectTimeout: 2_000,
+      maxRetriesPerRequest: 1,
+      password: input.password,
+      tls: {},
+      username: input.username,
+    },
+  }) as ClusterClient;
+  await client.connect();
+  return client;
+}
+
+async function closeClient(client: ClusterClient): Promise<void> {
+  try {
+    await client.quit();
+  } catch {
+    client.disconnect();
+  }
 }

@@ -1,7 +1,7 @@
 /**
  * Node-mode MSW server (`@mswjs/interceptors` patches `globalThis.fetch`
  * in-process — NOT a browser Service Worker). Shared by the integration vitest
- * setup and the portal dev-runtime Nitro plugin. `.listen()` must run before any
+ * setup and the Portal's Hono dev initializer. `.listen()` must run before any
  * code captures `globalThis.fetch`, so callers start it at import top / in
  * `beforeAll`, ahead of the first resolver fetch.
  *

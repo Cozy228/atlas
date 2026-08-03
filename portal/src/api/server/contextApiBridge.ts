@@ -3,7 +3,7 @@
  *
  * Agents (and the published `atlas-context-consumer` skill) consume the
  * Context API at `/api/*` on the Portal host. This bridge hands the raw
- * request to the same `handleHttpRequest` router the Lambda deployment uses,
+ * request to the framework-neutral `handleHttpRequest` router used by Hono,
  * so Portal, skills, and agents all consume one bundle contract. The caller's
  * Bearer token passes through unparsed (Bearer pipe, ADR 0001).
  */
@@ -21,6 +21,7 @@ export async function bridgeContextApiRequest(request: Request): Promise<Respons
     // Absolute self-referential URLs in resource responses, so a blind agent can
     // follow `resourceUrl` / `markdownUrl` without resolving against the host.
     origin: resolvePortalOrigin(request),
+    signal: request.signal,
   });
   return new Response(response.body, {
     status: response.status,

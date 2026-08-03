@@ -5,7 +5,7 @@ import { baseURL, channel } from "./pw-env.mjs";
 /**
  * Smoke layer config (plan 026 WU11): the REAL production build, mock-free. No
  * DEV_MOCKS — the prod build never registers the MSW plugin — so this validates
- * boot + SSR/hydration/routing + the mode badge's ABSENCE, WITHOUT asserting
+ * static shell + SPA boot/routing + the mode badge's ABSENCE, WITHOUT asserting
  * specific data (honest-empty without creds is expected). `pnpm e2e:smoke` runs
  * the portal build BEFORE this config's webServer starts `pnpm start`.
  *

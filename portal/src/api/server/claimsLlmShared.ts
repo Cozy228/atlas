@@ -1,7 +1,10 @@
 import { generateText, Output, type LanguageModel } from "ai";
 import { z } from "zod";
+import { logger, safeError } from "@atlas/logging";
 import type { ResourceContextResponse } from "@atlas/schema";
 import type { LlmAdapter } from "@/ask/askAtlas";
+
+const log = logger("portal.llm");
 
 const SYSTEM_PROMPT = [
   "You are Atlas, a governed cloud-platform assistant.",
@@ -28,6 +31,7 @@ type GenerateClaimsObjectInput = {
   schema: typeof claimResponseSchema;
   system: string;
   prompt: string;
+  abortSignal?: AbortSignal;
 };
 
 export type GenerateClaimsObject = (
@@ -61,20 +65,58 @@ export function createSimulatedClaimsAdapter(projection: ResourceContextResponse
 }
 
 export function createGeneratedClaimsAdapter(input: {
-  resolveModel(): Promise<LanguageModel>;
+  provider: "bedrock" | "rai";
+  resolveModel(options?: { signal?: AbortSignal }): Promise<LanguageModel>;
   generateObject?: GenerateClaimsObject;
 }): LlmAdapter {
   return {
-    async answer(prompt: string): Promise<ClaimResponse> {
-      const run = input.generateObject ?? defaultGenerateClaimsObject;
-      const result = await run({
-        model: await input.resolveModel(),
-        schema: claimResponseSchema,
-        system: SYSTEM_PROMPT,
-        prompt,
-      });
-      const parsed = claimResponseSchema.safeParse(result.object);
-      return parsed.success ? parsed.data : { claims: [] };
+    async answer(prompt: string, options?: { signal?: AbortSignal }): Promise<ClaimResponse> {
+      const startedAt = Date.now();
+      try {
+        const run = input.generateObject ?? defaultGenerateClaimsObject;
+        const result = await run({
+          model: await input.resolveModel(options),
+          schema: claimResponseSchema,
+          system: SYSTEM_PROMPT,
+          prompt,
+          abortSignal: options?.signal,
+        });
+        const parsed = claimResponseSchema.safeParse(result.object);
+        if (!parsed.success) {
+          log.warn(
+            {
+              event: "llm.request.completed",
+              provider: input.provider,
+              outcome: "invalid_output",
+              durationMs: Date.now() - startedAt,
+            },
+            "LLM request returned invalid structured output",
+          );
+          return { claims: [] };
+        }
+        log.info(
+          {
+            event: "llm.request.completed",
+            provider: input.provider,
+            outcome: "success",
+            durationMs: Date.now() - startedAt,
+            claimCount: parsed.data.claims.length,
+          },
+          "LLM request completed",
+        );
+        return parsed.data;
+      } catch (error) {
+        log.error(
+          {
+            event: "llm.request.failed",
+            provider: input.provider,
+            durationMs: Date.now() - startedAt,
+            err: safeError(error, "LLM request failed"),
+          },
+          "LLM request failed",
+        );
+        throw error;
+      }
     },
   };
 }
@@ -87,6 +129,7 @@ async function defaultGenerateClaimsObject(
     system: input.system,
     prompt: input.prompt,
     output: Output.object({ schema: input.schema }),
+    abortSignal: input.abortSignal,
   });
   return { object: result.output };
 }

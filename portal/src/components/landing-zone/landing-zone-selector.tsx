@@ -1,17 +1,6 @@
-import { useQuery } from "@tanstack/react-query";
 import { IconChevronDown } from "@tabler/icons-react";
 
-import { landingZonesQueryOptions } from "@/api/queries";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuLabel,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { LANDING_ZONES } from "@atlas/context-layer/landingZones";
 import { cn } from "@/lib/utils";
 
 import { useCurrentLandingZone } from "./context";
@@ -24,48 +13,39 @@ import { useCurrentLandingZone } from "./context";
  */
 export function LandingZoneSelector() {
   const { currentLandingZoneId, setCurrentLandingZoneId } = useCurrentLandingZone();
-  const { data: zones = [] } = useQuery(landingZonesQueryOptions);
-  const current = zones.find((zone) => zone.id === currentLandingZoneId);
+  const current = LANDING_ZONES.find((zone) => zone.id === currentLandingZoneId);
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
+    <label
+      data-current-landing-zone={currentLandingZoneId}
+      className={cn(
+        "relative flex h-8 max-w-[7.5rem] items-center gap-1.5 rounded-md border border-border bg-card pl-2.5 text-sm font-medium text-foreground sm:max-w-none",
+        "transition-colors hover:bg-muted focus-within:ring-2 focus-within:ring-ring",
+      )}
+    >
+      <span className="hidden font-mono text-[10px] uppercase tracking-[0.04em] text-muted-foreground sm:inline">
+        LZ
+      </span>
+      <select
         aria-label="Current landing zone"
-        className={cn(
-          "flex h-8 items-center gap-1.5 rounded-md border border-border bg-card px-2.5 text-sm font-medium text-foreground",
-          "transition-colors hover:bg-muted",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-        )}
+        value={currentLandingZoneId}
+        onChange={(event) => setCurrentLandingZoneId(event.target.value)}
+        className="h-full w-[6.5rem] appearance-none truncate bg-transparent pr-7 outline-none sm:w-auto sm:max-w-[20ch]"
       >
-        <span className="font-mono text-[10px] uppercase tracking-[0.04em] text-muted-foreground">
-          LZ
-        </span>
-        <span className="max-w-[20ch] truncate">{current?.name ?? currentLandingZoneId}</span>
-        <IconChevronDown size={14} strokeWidth={2} className="text-muted-foreground" aria-hidden />
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="min-w-[15rem]">
-        {/* GroupLabel requires a Menu.Group ancestor (Base UI) — wrap it so the
-            label renders without throwing MenuGroupContext-missing. */}
-        <DropdownMenuGroup>
-          <DropdownMenuLabel>Landing zone</DropdownMenuLabel>
-        </DropdownMenuGroup>
-        <DropdownMenuSeparator />
-        <DropdownMenuRadioGroup
-          value={currentLandingZoneId}
-          onValueChange={(value) => setCurrentLandingZoneId(value)}
-        >
-          {zones.map((zone) => (
-            <DropdownMenuRadioItem key={zone.id} value={zone.id}>
-              <span className="min-w-0 flex-1 truncate">{zone.name}</span>
-              {zone.dataStatus === "not-available" ? (
-                <span className="ml-auto shrink-0 whitespace-nowrap font-mono text-[10px] uppercase tracking-[0.04em] text-muted-foreground/70">
-                  no data
-                </span>
-              ) : null}
-            </DropdownMenuRadioItem>
-          ))}
-        </DropdownMenuRadioGroup>
-      </DropdownMenuContent>
-    </DropdownMenu>
+        {current ? null : <option value={currentLandingZoneId}>{currentLandingZoneId}</option>}
+        {LANDING_ZONES.map((zone) => (
+          <option key={zone.id} value={zone.id}>
+            {zone.name}
+            {zone.dataStatus === "not-available" ? " (no data)" : ""}
+          </option>
+        ))}
+      </select>
+      <IconChevronDown
+        size={14}
+        strokeWidth={2}
+        className="pointer-events-none absolute right-2.5 text-muted-foreground"
+        aria-hidden
+      />
+    </label>
   );
 }

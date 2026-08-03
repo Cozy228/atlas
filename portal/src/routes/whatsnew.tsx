@@ -133,11 +133,8 @@ function WhatsNewRoute() {
 
 function Masthead() {
   const [dateline, setDateline] = useState("");
-  // Gate async-query-derived chrome behind a mount flag so SSR and the initial
-  // client render are identical (both show the "Internal" placeholder), then
-  // upgrade after hydration. The deferred announcements query resolves at
-  // different times on server vs client, so reading dataUpdatedAt during the
-  // first render is a hydration mismatch once the feed actually has data.
+  // Gate async-query-derived chrome behind a mount flag so the first render is
+  // stable, then upgrade once React Query has a fetch timestamp.
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
     setMounted(true);

@@ -15,6 +15,7 @@ import {
   type SectionStatus,
   type ServiceIdentity,
 } from "@atlas/schema";
+import { logger } from "@atlas/logging";
 import type { AvailabilityProvider } from "../services/availabilityProvider";
 import type { ResourceReferenceDiscovery } from "../services/resourceReferenceDiscovery";
 import {
@@ -25,6 +26,8 @@ import type { ResolverRegistry } from "../resolvers/resolverRegistry";
 import { defaultResolutionContext, type ResolutionContext } from "../resolvers/resolverTypes";
 import { isStale } from "../services/freshness";
 import { getResourceKindDef } from "./resourceKindRegistry";
+
+const log = logger("context-layer.resources");
 
 /**
  * Live resource projection (ADR-0013). The agent-facing resource surface is a
@@ -142,11 +145,21 @@ export async function getResourceContext(
   // A derived record projects its Sections — for non-service kinds it IS the
   // identity (no spine, no discovery, unchanged behaviour, B4).
   if (overlay) {
-    return projectConfigured(deps, overlay, params, ctx);
+    const projection = await projectConfigured(deps, overlay, params, ctx);
+    logProjection(projection, params.kind);
+    return projection;
   }
 
   // No overlay. Non-service kinds have no spine, so this is a genuine 404.
   if (params.kind !== "service") {
+    log.debug(
+      {
+        event: "resource.projection.completed",
+        resourceKind: params.kind,
+        outcome: "not_found",
+      },
+      "Resource projection completed",
+    );
     return null;
   }
 
@@ -154,9 +167,41 @@ export async function getResourceContext(
   // resource's existence + canonical identity.
   const identity = await findServiceIdentity(deps.availabilityProvider, params.slug);
   if (!identity) {
+    log.debug(
+      {
+        event: "resource.projection.completed",
+        resourceKind: params.kind,
+        outcome: "not_found",
+      },
+      "Resource projection completed",
+    );
     return null;
   }
-  return projectSpineOnly(deps, identity, params);
+  const projection = await projectSpineOnly(deps, identity, params);
+  logProjection(projection, params.kind);
+  return projection;
+}
+
+function logProjection(projection: ResourceContextResponse, resourceKind: ResourceKind): void {
+  const sections = Object.values(projection.sections);
+  const warningCount = sections.reduce((count, section) => count + section.warnings.length, 0);
+  const unresolvedSectionCount = sections.filter(
+    (section) => section.status !== "available",
+  ).length;
+  const fields = {
+    event: "resource.projection.completed",
+    resourceKind,
+    outcome: warningCount > 0 || projection.missingSections.length > 0 ? "degraded" : "success",
+    sectionCount: sections.length,
+    unresolvedSectionCount,
+    missingSectionCount: projection.missingSections.length,
+    warningCount,
+  };
+  if (fields.outcome === "degraded") {
+    log.warn(fields, "Resource projection completed with gaps");
+  } else {
+    log.info(fields, "Resource projection completed");
+  }
 }
 
 /**

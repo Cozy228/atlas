@@ -29,7 +29,7 @@
       "id": "ecs",
       "type": "backend",
       "label": "ECS Fargate Service",
-      "sublabel": "Atlas Nitro server :8080",
+      "sublabel": "Atlas Hono server :8080",
       "pos": [500, 260],
       "size": [170, 66],
       "tag": "Portal + Context API"
@@ -131,7 +131,7 @@
     {
       "dot": "emerald",
       "title": "Request path",
-      "items": ["Browser and agent traffic enters through the ALB.", "ECS runs the TanStack Start / Nitro server on port 8080."]
+      "items": ["Browser and agent traffic enters through the ALB.", "ECS runs the Hono server and TanStack Router SPA on port 8080."]
     },
     {
       "dot": "cyan",

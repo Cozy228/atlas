@@ -1,7 +1,10 @@
 import type { AvailabilityReadResponse } from "@atlas/schema";
+import { logger } from "@atlas/logging";
 
 import type { ContextService } from "./contextService";
 import { isStale } from "./freshness";
+
+const log = logger("context-layer.availability");
 
 const AVAILABILITY_SOURCE_ID = "availability-matrix";
 
@@ -16,6 +19,10 @@ export class AvailabilitySourceNotFoundError extends Error {
 export async function readAvailability(service: ContextService): Promise<AvailabilityReadResponse> {
   const source = service.registry.sources.getById(AVAILABILITY_SOURCE_ID);
   if (!source) {
+    log.warn(
+      { event: "availability.read.failed", reason: "source_not_registered" },
+      "Availability read failed",
+    );
     throw new AvailabilitySourceNotFoundError();
   }
 
@@ -35,8 +42,17 @@ export async function readAvailability(service: ContextService): Promise<Availab
     });
   }
 
+  const zones = await service.availabilityProvider.getZones();
+  log.info(
+    {
+      event: "availability.read.completed",
+      zoneCount: zones.length,
+      warningCount: warnings.length,
+    },
+    "Availability read completed",
+  );
   return {
-    zones: await service.availabilityProvider.getZones(),
+    zones,
     citation: {
       source_id: source.id,
       label: source.title,

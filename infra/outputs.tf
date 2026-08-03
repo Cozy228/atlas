@@ -12,3 +12,8 @@ output "ecs_cluster_name" {
   value       = aws_ecs_cluster.atlas.name
   description = "ECS cluster running the Atlas portal service."
 }
+
+output "content_cache_endpoint" {
+  value       = aws_elasticache_replication_group.content_cache.configuration_endpoint_address
+  description = "Private cluster-configuration endpoint used by the Atlas source-content cache."
+}

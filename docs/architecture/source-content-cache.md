@@ -1,169 +1,171 @@
 # Source-content cache
 
-Live source resolution ([`live-resolution.md`](./live-resolution.md)) fetches a
-Confluence page or a Terraform README over the network on every request that
-reaches a live provider. Two requests for the same page within a few seconds
-fetch it twice. This document specifies a cache that removes the repeat fetch,
-with a default that needs no infrastructure and an ElastiCache (Valkey) adapter
-that activates only when configured.
+Live source resolution fetches Confluence pages or Terraform READMEs over the
+network. The cache is a performance layer and never becomes the source of
+truth. Confluence uses a cheap `head`/version check followed by a revisioned
+content entry; Terraform and other generic GETs use the normal response cache.
+Here `head` means the lightweight metadata/version lookup: the current
+Confluence v2 adapter sends `GET /pages/{id}` without `body-format=storage`;
+it is not an HTTP `HEAD` request.
 
 ## Goal and non-goals
 
-**Goal:** avoid re-fetching the same live source within a short window (perf +
-upstream rate-limit protection). Confirmed scope.
+**Goal:** avoid downloading an unchanged source body while retaining an honest
+freshness boundary and caller-ACL isolation.
 
 **Non-goals:**
 
-- **Not** offline / source-down resilience. We never serve content when the live
-  source is unreachable — that would contradict the freshness contract (below).
-  TTL expiry means re-fetch, not serve-stale.
-- **Not** a bundle-level cache. Most of a bundle is already in-memory (registry
-  is memoized, fixtures are in-process). Only the two live fetches are dear.
+- Not offline/source-down resilience. If a required live head check fails, the
+  resolver returns `source_unavailable`; old content is not presented as
+  current.
+- Not durable persistence. Valkey is shared cache capacity only; the source
+  remains Confluence/Terraform.
+- Not a bundle-level cache. Derived discovery and request-local parse
+  memoization remain separate concerns. Derived discovery uses the same short
+  validation window, but stores no source body.
 
 ## Where it sits
 
-The only network I/O is `request.ctx.fetch(...)`, called by exactly two
-providers (`confluenceCloudContentProvider`, `terraformModuleContentProvider`).
-So the cache is a **decorator over `FetchLike`**, injected where the
-`ResolutionContext` is built. Providers are untouched — they keep calling
-`ctx.fetch`; the decorator transparently serves a cached response or fetches and
-stores one.
+`cachedResolutionContext()` creates one shared `SourceContentCache` and exposes
+both the generic cached `fetch` and the source-cache seam on `ResolutionContext`.
+The HTTP and in-process entry points reuse that context, while tests can keep
+using `defaultResolutionContext()` without any cache.
 
-Both entry points build that context through one shared
-`cachedResolutionContext()` (memoized so the cache is a single instance, not
-rebuilt per request): the HTTP router (`handleHttpRequest`, used by external
-Skill consumers and the Portal when `CONTEXT_API_BASE_URL` is set) and the
-in-process route (`handleContextRequest`, the Portal's default path). A repeat
-fetch is therefore served from cache regardless of entry point.
-`offlineResolutionContext()` stays cache-free for tests and callers that pass
-their own context.
-
-We cache the **response body**, not the parsed excerpt. One page serves many
-anchors (one per heading), so a URL-keyed response cache fetches a page once and
-serves every anchor from it; a parse-result cache keyed by anchor would re-fetch
-the page per anchor. The parse itself is CPU-only (single-digit ms) — cheap
-beside the network fetch — and a parsed `ResolveResult` carries citation /
-freshness signals we must not cache (ADR-0009). A parse memo could be layered on
-top later if profiling ever shows it matters; YAGNI until then.
+Confluence owns the version-aware policy:
 
 ```
-ResolutionContext.fetch = withCache(realFetch, cache, ttl)
-                                       │
-                          ┌────────────┴─────────────┐
-              cache.get(key) hit?              miss → realFetch → cache.set
+Confluence request
+        │
+        ├─ head/version (short validation TTL)
+        │       └─ same revision → revision content (long TTL)
+        └─ changed/missing → storage body → write content first, then head
+
+Terraform / other GETs: ResolutionContext.fetch = withCache(realFetch, cache)
 ```
 
-`SourceContentCache` is the storage seam:
+The cache stores response-shaped JSON, not parsed excerpts. One page can serve
+many anchors, so the body is shared before the CPU-only HTML parse.
 
 ```ts
 interface SourceContentCache {
   get(key: string): Promise<CachedResponse | undefined>;
   set(key: string, value: CachedResponse, ttlSeconds: number): Promise<void>;
 }
-type CachedResponse = { status: number; body: unknown }; // the JSON FetchLike returns
+type CachedResponse = { status: number; body: unknown; freshUntil?: number };
 ```
 
-- Default: `InMemoryContentCache` — a bounded `Map` with per-entry expiry. Zero
-  dependencies, runs in this repo today.
-- Production: `ValkeyContentCache` — ElastiCache (Valkey) over a Valkey client,
-  active only when configured. See "Adapter", below.
+- Default: `InMemoryContentCache`, a bounded `Map` with per-entry expiry.
+- Production: `ValkeyContentCache`, enabled only when `CACHE_VALKEY_URL` is
+  configured.
 
-`createSourceContentCache(env)` mirrors the existing
-`createFeedbackRepository(env)` seam: return the Valkey adapter when its env var
-is set, otherwise the in-memory default.
+## Cache keys and caller identity
 
-## Cache key — and why the caller token is in it
+Generic GET keys include `method + url + sha256(Authorization)`. The raw token
+is never stored or logged. This keeps Confluence ACLs isolated between caller
+identities; Terraform's service token naturally coalesces.
 
-Key = `method + url + authScope`, where `authScope` is a SHA-256 digest of the
-`Authorization` value (or `"anon"` when absent). **The raw token is never stored
-or logged** — only its digest, and only as part of the key.
+Confluence versioned keys use a SHA-256 identity digest and a Valkey hash tag:
 
-This isolation is not optional: Confluence content is governed by the caller's
-own ACL ([`live-resolution.md`](./live-resolution.md)), so caller A's authorized
-page must never be served from cache to caller B. Keying on the auth digest
-gives each identity its own cache entry. Terraform uses a single service token,
-so its entries naturally coalesce.
+```
+atlas:source-content:{identity}:head
+atlas:source-content:{identity}:revision:v7-confluence-storage-v1
+```
 
-Only `GET` requests with `ok` responses are cached. Non-OK responses and
-non-GET methods pass through uncached.
+The hash tag keeps head and revision keys in one cluster slot. Both stay under
+the existing `atlas:source-content:*` IAM ACL prefix.
+
+Only GET requests are cached. Non-GET methods pass through. An internal bypass
+header lets the Confluence policy avoid the generic 300-second body cache; the
+header is stripped before the request leaves Atlas.
 
 ## Freshness contract
 
-Caching and Atlas's freshness/drift honesty are reconciled by two rules:
+1. **Two source windows.** Confluence head validation defaults to 300 seconds
+   (`CACHE_VALIDATION_TTL_SECONDS`); revision content defaults to seven days
+   (`CACHE_CONTENT_TTL_SECONDS`). A content entry is usable only after a fresh
+   head confirms the same revision. Head expiry triggers a metadata request, not
+   an unconditional body download.
+2. **Revision materialization.** A changed or uncached head causes one storage
+   body request. The revision body is written before the head pointer, so a head
+   never points at a body that has not been attempted.
+   Concurrent same-identity requests coalesce in-process; a distributed Valkey
+   refresh lock is still a follow-up for multi-task stampede control.
+3. **No stale-as-current fallback.** A head outage returns `source_unavailable`.
+   This preserves the live-authority contract in ADR-0009/0013. A separate
+   Portal stale/offline display policy may be added later without changing this
+   API contract.
+4. **Fail-open cache.** Cache read/write failures bypass the cache and continue
+   to the live source. Cache availability cannot turn a source read into a 5xx.
+5. **Negative responses.** Generic non-OK responses use
+   `CACHE_NEGATIVE_TTL_SECONDS` (30 seconds by default) to avoid hot failure
+   loops without hiding a later recovery.
+6. **Drift remains visible.** `stale_source` is computed from Source review
+   metadata and live version information; the cache does not rewrite that signal.
+7. **Derived discovery refreshes.** Service and guardrail discovery start in
+   parallel, share one in-process single-flight result for the validation window,
+   and retry on the next request after a failed pass. New derived catalog records
+   therefore do not require an ECS restart.
 
-1. **Short TTL.** Default 300s (`CACHE_TTL_SECONDS`). Long enough to absorb
-   a burst of repeat queries, short enough that drift surfaces on the next
-   window. TTL expiry = re-fetch, never serve-stale-on-error.
-2. **Drift detection is unaffected.** Review-frequency drift (`stale_source`) is
-   computed at the bundle level from the Source's review metadata, not from the
-   fetched bytes, so the cache cannot mask it.
+## Adapter: ElastiCache Valkey
 
-The availability matrix (ADR-0009) resolves from the in-process content
-provider, **not** the live fetch path, so it is never cached here — consistent
-with its "never a stale cached matrix" rule.
+> **Status.** Implemented. `valkeyContentCache.ts` uses iovalkey's cluster
+> client with SigV4-generated ElastiCache IAM credentials.
 
-## Adapter: ElastiCache (Valkey)
+iovalkey receives the ElastiCache configuration endpoint as a seed address,
+discovers the cluster topology, routes commands by slot, handles MOVED/ASK
+redirects, and enables TLS. The adapter generates a new
+15-minute IAM token every 14 minutes, opens the replacement cluster before the
+old token expires, then closes the previous connection. This keeps the token
+rotation explicit without requiring a platform-specific native module.
 
-ElastiCache now offers **Valkey** (the open-source Redis fork); it is the
-default new-cluster engine and is cheaper than the Redis OSS option
-([AWS](https://aws.amazon.com/elasticache/what-is-valkey/)).
+Because the cache is optional, its waits are deliberately shorter than source
+waits: initial connection is bounded at two seconds, commands at one second, and
+one request retry is allowed. A command failure disconnects that client so the
+next operation creates a fresh IAM-authenticated cluster connection. Invalid
+serialized values are treated as misses. These choices keep the fail-open
+contract real during cluster/network degradation rather than letting iovalkey's
+default retry queue become request latency.
 
-> **Status.** Implemented. The shipped adapter (`valkeyContentCache.ts`) uses
-> **GLIDE** (`@valkey/valkey-glide`).
+This is intentionally a connection rotation rather than an in-place AUTH
+refresh. The cache is an optimization, the ECS process is short-lived, and the
+rotation window is well below the AWS token lifetime; a real VPC/TLS/IAM/cluster
+smoke test is still required before claiming deployment readiness.
 
-**Client choice — GLIDE.** We use **`@valkey/valkey-glide`** (GLIDE), the
-AWS-recommended client for ElastiCache: a Rust-core, multi-language client with
-cluster topology auto-discovery, IAM auth, and best-practice defaults baked in
-([AWS blog](https://aws.amazon.com/blogs/database/introducing-valkey-glide-an-open-source-client-library-for-valkey-and-redis-open-source/)).
+Terraform provisions a TLS-enabled, cluster-mode Valkey replication group and
+restricts the ECS task role to the IAM user and replication group. Leaving
+`CACHE_VALKEY_URL` unset selects the bounded in-memory fallback.
 
-**Tradeoff (accepted):** GLIDE ships **platform-native binaries** (e.g.
-`@valkey/valkey-glide-linux-musl-x64`), whereas the pure-JS `iovalkey` does not.
-As an optional, lazily-imported dependency neither lands in the default install,
-so the native binary only matters in the runtime that actually turns the cache
-on — acceptable given ElastiCache itself is operator/live territory.
-
-**Fallback: `iovalkey` (present, not enabled).** A full pure-JS adapter
-(`iovalkeyContentCache.ts`) is kept for runtimes where GLIDE's native binaries
-are a problem. It is **not** active by default — `createSourceContentCache`
-selects it only when `CACHE_VALKEY_CLIENT=iovalkey`. The seam is identical
-(both implement `SourceContentCache`), so the switch is config-only and touches
-no callers. `iovalkey` reads `rediss://` from the URL and enables TLS itself, so
-it needs no `parseValkeyUrl`.
-
-**Optional dependency.** `@valkey/valkey-glide` stays a non-hard dependency: the
-adapter `await import("@valkey/valkey-glide")` lazily, only when
-`CACHE_VALKEY_URL` is set, and throws a clear "install @valkey/valkey-glide"
-error if configured-on but absent. The default install pulls no Valkey client
-("leave it when config is on").
-
-**Connection (GLIDE target).** `CACHE_VALKEY_URL` is a `rediss://host:6379`
-URL parsed into GLIDE's `{ addresses: [{host, port}], useTLS }` config
-(`rediss://` ⇒ `useTLS: true`, required for ElastiCache in-transit encryption,
-[AWS](https://docs.aws.amazon.com/AmazonElastiCache/latest/dg/connect-tls.html)).
-TTL uses `client.set(key, value, { expiry: { type: TimeUnit.Seconds, count } })`
-([SetOptions](https://valkey.io/valkey-glide/node/Commands/type-aliases/SetOptions/)).
-Values are JSON-serialized `CachedResponse`s.
+`CACHE_VALKEY_URL` must be `rediss://host:6379`; IAM auth requires TLS. Cache
+name, region, and IAM user id are separate inputs because IAM signs the
+replication-group id rather than the DNS endpoint. Values are JSON-serialized
+`CachedResponse`s and use `SET ... EX seconds`.
 
 ## Environment variables
 
-| Variable | Default | Purpose |
-| --- | --- | --- |
-| `CACHE_VALKEY_URL` | _(unset)_ | `rediss://…`. When set, use the Valkey adapter; else in-memory. |
-| `CACHE_VALKEY_CLIENT` | `glide` | Valkey client when the URL is set: `glide` (default) or `iovalkey` (pure-JS fallback). |
-| `CACHE_TTL_SECONDS` | `300` | Entry TTL for both adapters. |
-| `CACHE_MAX_ENTRIES` | `500` | In-memory adapter bound (ignored by Valkey). |
+| Variable                       | Default               | Purpose                                       |
+| ------------------------------ | --------------------- | --------------------------------------------- |
+| `CACHE_VALKEY_URL`             | _(unset)_             | `rediss://…`; selects Valkey, else in-memory. |
+| `CACHE_VALKEY_CACHE_NAME`      | _(required with URL)_ | ElastiCache replication-group id.             |
+| `CACHE_VALKEY_REGION`          | _(required with URL)_ | AWS region for IAM signing.                   |
+| `CACHE_VALKEY_USER_ID`         | _(required with URL)_ | IAM-enabled ElastiCache username.             |
+| `CACHE_TTL_SECONDS`            | `300`                 | Generic successful GET TTL.                   |
+| `CACHE_NEGATIVE_TTL_SECONDS`   | `30`                  | Generic non-OK response TTL.                  |
+| `CACHE_VALIDATION_TTL_SECONDS` | `300`                 | Confluence head/version validation TTL.       |
+| `CACHE_CONTENT_TTL_SECONDS`    | `604800`              | Confluence revision content TTL (7 days).     |
+| `CACHE_MAX_ENTRIES`            | `500`                 | In-memory adapter bound (ignored by Valkey).  |
 
-## Build plan
+## Implementation and verification
 
-1. `SourceContentCache` interface + `CachedResponse` type.
-2. `InMemoryContentCache` (bounded Map + expiry) — the default.
-3. `withCache(fetch, cache, ttl)` `FetchLike` decorator (key, GET-only, OK-only).
-4. `createSourceContentCache(env)` selector + a memoized `cachedResolutionContext()`
-   wired into both the HTTP router and the in-process `handleContextRequest`.
-5. `ValkeyContentCache` (lazy `@valkey/valkey-glide` import, gated by
-   `CACHE_VALKEY_URL`).
-6. Tests: in-memory hit/miss/expiry/auth-isolation; decorator caches GET and
-   skips non-OK; selector returns in-memory without config. Valkey adapter:
-   `parseValkeyUrl` + a roundtrip against an injected fake client (always run),
-   plus a real-server integration block gated by `CACHE_VALKEY_URL`
-   (skipped unless a live Valkey + the GLIDE package are present).
+1. `SourceContentCache` interface, bounded in-memory implementation, and
+   auth-scoped generic GET decorator.
+2. Memoized shared context wired into HTTP, in-process, discovery, and
+   availability paths.
+3. Confluence head/version plus revision-content cache with fail-open writes,
+   hash-tagged cluster keys, and no stale-as-current fallback.
+4. `ValkeyContentCache` using iovalkey Cluster + SigV4 IAM token rotation,
+   gated by `CACHE_VALKEY_URL`, plus Terraform env wiring.
+5. Tests for cold fetch, same-revision hit, version change, head outage,
+   generic hard expiry/single-flight, cache-backend failure, expiring/retryable
+   derived discovery, bounded iovalkey options, bad-connection recovery,
+   serialized-value validation, and adapter lifecycle/token rotation. A real
+   Valkey integration test still needs deployment credentials and VPC access.

@@ -10,7 +10,7 @@ type LlmAdapterResult = {
 };
 
 export type LlmAdapter = {
-  answer(prompt: string): Promise<LlmAdapterResult>;
+  answer(prompt: string, options?: { signal?: AbortSignal }): Promise<LlmAdapterResult>;
 };
 
 export type CitationValidationResult = {
@@ -83,7 +83,9 @@ export async function askAtlas(input: {
   adapter: LlmAdapter;
   userId: string;
   rateLimiter: RateLimiter;
+  signal?: AbortSignal;
 }): Promise<AskAtlasAnswer> {
+  input.signal?.throwIfAborted();
   if (!hasGovernedEvidence(input.projection)) {
     return {
       claims: [],
@@ -95,6 +97,7 @@ export async function askAtlas(input: {
   input.rateLimiter.consume(input.userId);
   const adapterResult = await input.adapter.answer(
     buildAskAtlasPrompt({ question: input.question, projection: input.projection }),
+    { signal: input.signal },
   );
   const validated = validateCitations({
     projection: input.projection,

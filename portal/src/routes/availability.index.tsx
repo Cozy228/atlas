@@ -23,7 +23,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { IconMapPin } from "@tabler/icons-react";
 
 import { availabilityQueryOptions } from "@/api/queries";
-import type { Location, LocationStatus } from "@/api/server/availability";
+import type { Location, LocationStatus } from "@atlas/schema";
 import { useCurrentLandingZone } from "@/components/landing-zone/context";
 import { DataNotAvailableForZone } from "@/components/landing-zone/data-not-available";
 import { MatrixView } from "@/components/explore/matrix-view";

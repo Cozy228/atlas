@@ -37,12 +37,14 @@ export default defineConfig({
   // widens the deferred-loading window so skeleton states are observable (WU8)
   // without making the suite slow.
   webServer: {
-    command: "pnpm --filter @atlas/portal dev",
+    command: "pnpm --filter @atlas/portal dev:e2e",
     env: { DEV_MOCKS: "1", LLM_PROVIDER: "simulated", DEV_MOCK_LATENCY_MS: "250" },
-    url: baseURL,
+    // /health is proxied by Vite to Hono, so readiness requires both dev
+    // processes instead of racing the slower Hono startup on Windows.
+    url: `${baseURL}/health`,
     reuseExistingServer: !process.env.CI,
-    // Bound teardown: SIGTERM the dev server, then SIGKILL after 15s if `vite dev`
-    // (pnpm → vite → nitro) doesn't exit cleanly — otherwise `playwright test` can
+    // Bound teardown: SIGTERM the dev coordinator, then SIGKILL after 15s if its
+    // Vite and Hono children do not exit cleanly — otherwise `playwright test` can
     // hang indefinitely after the suite finishes (observed locally; in CI it would
     // wedge the job to its 20-min timeout).
     gracefulShutdown: { signal: "SIGTERM", timeout: 15_000 },

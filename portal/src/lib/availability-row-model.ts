@@ -1,6 +1,6 @@
 import Fuse from "fuse.js";
 
-import type { AvailabilityRecord, Location, LocationStatus } from "@/api/server/availability";
+import type { AvailabilityRecord, Location, LocationStatus } from "@atlas/schema";
 
 export type AvailabilityStatusFilter = LocationStatus | "all";
 

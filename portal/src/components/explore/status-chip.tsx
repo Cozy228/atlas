@@ -1,4 +1,4 @@
-import type { LocationStatus } from "@/api/server/availability";
+import type { LocationStatus } from "@atlas/schema";
 import { cn } from "@/lib/utils";
 
 const STATUS_STYLES: Record<LocationStatus, string> = {

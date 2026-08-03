@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { logger, safeError } from "@atlas/logging";
 
 import {
   defaultResolutionContext,
@@ -6,24 +7,31 @@ import {
   type ResolutionContext,
 } from "../resolvers/resolverTypes";
 
+const log = logger("context-layer.source-cache");
+
 /**
  * Source-content cache (docs/architecture/source-content-cache.md). Removes the
  * repeat live fetch of the same Confluence page / Terraform README within a
  * short window. The default needs no infrastructure; an ElastiCache (Valkey)
- * adapter activates only when `CACHE_VALKEY_URL` is set.
+ * cluster adapter activates only when `CACHE_VALKEY_URL` is set.
  */
 
 /**
  * The shape `FetchLike` yields, buffered so it can be replayed from cache.
- * `freshUntil` (epoch ms) marks the end of an OK entry's fresh window for
- * stale-while-revalidate; absent on negative entries (never served stale).
+ * `freshUntil` (epoch ms) is carried alongside an OK entry so a cache backend
+ * that outlives an older TTL cannot replay it during a rolling deployment.
+ * Expired entries are re-fetched; they are never served stale.
  */
 export type CachedResponse = { status: number; body: unknown; freshUntil?: number };
 
 export interface SourceContentCache {
   get(key: string): Promise<CachedResponse | undefined>;
   set(key: string, value: CachedResponse, ttlSeconds: number): Promise<void>;
+  close?(): void | Promise<void>;
 }
+
+/** Internal marker for source adapters that own a version-aware cache policy. */
+export const SOURCE_CACHE_BYPASS_HEADER = "x-atlas-source-cache-bypass";
 
 const DEFAULT_TTL_SECONDS = 300;
 const DEFAULT_NEGATIVE_TTL_SECONDS = 30;
@@ -78,19 +86,19 @@ export class InMemoryContentCache implements SourceContentCache {
  *    fetch (a per-closure in-flight map keyed on the full auth-scoped cacheKey);
  *  - negative caching: non-OK responses are cached for `negativeTtlSeconds` so a
  *    hot 404/403/5xx does not re-hit the source on every request;
- *  - stale-while-revalidate: an OK entry past its fresh window is served instantly
- *    while a background refresh runs (bounded by `staleTtlSeconds`). SWR applies
- *    to OK entries only — a negative entry is never served stale.
+ *  - fail-open storage: a cache read/write failure bypasses the cache and keeps
+ *    the live source as the authority.
  *
  * Transport exceptions (a thrown `fetch`) are NEVER cached — only HTTP responses
  * with a status are stored; a throw propagates and the in-flight entry clears.
+ * An OK entry is usable only until its hard TTL; stale source content is never
+ * returned as a successful resolution.
  */
 export function withCache(
   fetch: FetchLike,
   cache: SourceContentCache,
   ttlSeconds: number = DEFAULT_TTL_SECONDS,
   negativeTtlSeconds: number = DEFAULT_NEGATIVE_TTL_SECONDS,
-  staleTtlSeconds: number = ttlSeconds,
   now: () => number = Date.now,
 ): FetchLike {
   // Per-closure in-flight map. Keyed on the FULL cacheKey (which includes the
@@ -102,22 +110,53 @@ export function withCache(
     input: string,
     init: Parameters<FetchLike>[1],
   ): Promise<CachedResponse> {
-    const response = await fetch(input, init);
-    // Only OK responses carry a body and a fresh window; negatives are stored
-    // bodiless with the short negative TTL and never marked fresh-bounded.
-    if (response.ok) {
-      const body = await response.json();
-      const value: CachedResponse = {
-        status: response.status,
-        body,
-        freshUntil: now() + ttlSeconds * 1000,
-      };
-      await cache.set(key, value, ttlSeconds + staleTtlSeconds);
+    const startedAt = Date.now();
+    try {
+      const response = await fetch(input, init);
+      // Only OK responses carry a body and a fresh window; negatives are stored
+      // bodiless with the short negative TTL and never marked fresh-bounded.
+      if (response.ok) {
+        const body = await response.json();
+        const value: CachedResponse = {
+          status: response.status,
+          body,
+          freshUntil: now() + ttlSeconds * 1000,
+        };
+        await setCache(cache, key, value, ttlSeconds);
+        log.info(
+          {
+            event: "source.request.completed",
+            statusCode: response.status,
+            outcome: "success",
+            durationMs: Date.now() - startedAt,
+          },
+          "Source request completed",
+        );
+        return value;
+      }
+      const value: CachedResponse = { status: response.status, body: undefined };
+      await setCache(cache, key, value, negativeTtlSeconds);
+      log.warn(
+        {
+          event: "source.request.completed",
+          statusCode: response.status,
+          outcome: "error",
+          durationMs: Date.now() - startedAt,
+        },
+        "Source request returned a non-success status",
+      );
       return value;
+    } catch (error) {
+      log.error(
+        {
+          event: "source.request.failed",
+          durationMs: Date.now() - startedAt,
+          err: safeError(error, "Source request failed"),
+        },
+        "Source request failed",
+      );
+      throw error;
     }
-    const value: CachedResponse = { status: response.status, body: undefined };
-    await cache.set(key, value, negativeTtlSeconds);
-    return value;
   }
 
   /** Start a single-flight fetch for `key`, deleting the entry when it settles. */
@@ -128,37 +167,104 @@ export function withCache(
   ): Promise<CachedResponse> {
     let pending = inFlight.get(key);
     if (!pending) {
-      pending = fetchAndStore(key, input, init).finally(() => inFlight.delete(key));
+      pending = fetchAndStore(key, input, withoutSignal(init)).finally(() => inFlight.delete(key));
       inFlight.set(key, pending);
     }
     return pending;
   }
 
   return async (input, init) => {
-    const method = init?.method ?? "GET";
+    init?.signal?.throwIfAborted();
+    const method = (init?.method ?? "GET").toUpperCase();
+    if (hasCacheBypassMarker(init?.headers)) {
+      log.debug({ event: "source.cache.bypassed" }, "Source cache bypassed");
+      return fetch(input, withoutCacheMarker(init));
+    }
     if (method !== "GET") {
       return fetch(input, init);
     }
 
     const key = cacheKey(method, input, init?.headers);
-    const hit = await cache.get(key);
-    if (hit) {
-      // SWR applies to OK entries only: a negative entry (no freshUntil) is
-      // served as-is until it expires, never refreshed in the background.
-      const isOk = hit.status >= 200 && hit.status < 300;
-      const fresh = hit.freshUntil === undefined || now() < hit.freshUntil;
-      if (!isOk || fresh) {
-        return replay(hit);
-      }
-      // Stale OK entry: kick a non-awaited single-flight refresh and serve the
-      // last-good copy immediately. A rejected background fetch is swallowed so
-      // it cannot surface as an unhandled rejection on this hot path.
-      void startFetch(key, input, init).catch(() => {});
+    const hit = await getCache(cache, key);
+    if (hit && isFresh(hit, now)) {
+      log.debug({ event: "source.cache.hit" }, "Source cache hit");
       return replay(hit);
     }
 
-    return replay(await startFetch(key, input, init));
+    log.debug({ event: "source.cache.miss" }, "Source cache miss");
+    return replay(await waitForCaller(startFetch(key, input, init), init?.signal));
   };
+}
+
+function withoutSignal(init: Parameters<FetchLike>[1]): Parameters<FetchLike>[1] {
+  if (!init?.signal) return init;
+  const { signal: _signal, ...sharedInit } = init;
+  return sharedInit;
+}
+
+function hasCacheBypassMarker(headers: Record<string, string> | undefined): boolean {
+  if (!headers) return false;
+  return Object.entries(headers).some(
+    ([name, value]) => name.toLowerCase() === SOURCE_CACHE_BYPASS_HEADER && value === "true",
+  );
+}
+
+function withoutCacheMarker(init: Parameters<FetchLike>[1]): Parameters<FetchLike>[1] {
+  if (!init?.headers) return init;
+  const headers = Object.fromEntries(
+    Object.entries(init.headers).filter(
+      ([name]) => name.toLowerCase() !== SOURCE_CACHE_BYPASS_HEADER,
+    ),
+  );
+  return { ...init, headers };
+}
+
+function waitForCaller<T>(pending: Promise<T>, signal: AbortSignal | undefined): Promise<T> {
+  if (!signal) return pending;
+  if (signal.aborted) return Promise.reject(signal.reason);
+  return new Promise<T>((resolve, reject) => {
+    const onAbort = () => reject(signal.reason);
+    signal.addEventListener("abort", onAbort, { once: true });
+    pending.then(resolve, reject).finally(() => signal.removeEventListener("abort", onAbort));
+  });
+}
+
+/** A cache is an optimization; an unavailable backend must not block the source. */
+async function getCache(
+  cache: SourceContentCache,
+  key: string,
+): Promise<CachedResponse | undefined> {
+  try {
+    return await cache.get(key);
+  } catch (error) {
+    log.warn(
+      { event: "source.cache.read.failed", err: safeError(error, "Source cache read failed") },
+      "Source cache read failed open",
+    );
+    return undefined;
+  }
+}
+
+/** Cache write failures are intentionally swallowed for the same fail-open contract. */
+async function setCache(
+  cache: SourceContentCache,
+  key: string,
+  value: CachedResponse,
+  ttlSeconds: number,
+): Promise<void> {
+  try {
+    await cache.set(key, value, ttlSeconds);
+  } catch (error) {
+    log.warn(
+      { event: "source.cache.write.failed", err: safeError(error, "Source cache write failed") },
+      "Source cache write failed open",
+    );
+    // The live response remains authoritative even when the cache is degraded.
+  }
+}
+
+function isFresh(value: CachedResponse, now: () => number): boolean {
+  return value.freshUntil === undefined || now() < value.freshUntil;
 }
 
 /** Reconstruct a `FetchLike` result from a buffered body (replayable json()). */
@@ -179,29 +285,36 @@ function cacheKey(
   const authScope = authorization
     ? createHash("sha256").update(authorization).digest("hex")
     : "anon";
-  return `${method} ${url} ${authScope}`;
+  return `atlas:source-content:${createHash("sha256")
+    .update(`${method}\n${url}\n${authScope}`)
+    .digest("hex")}`;
 }
 
 /**
  * Select the cache implementation from the environment, mirroring
  * `createFeedbackRepository`: a Valkey adapter when `CACHE_VALKEY_URL` is
- * set, otherwise the in-memory default. The Valkey client defaults to GLIDE;
- * set `CACHE_VALKEY_CLIENT=iovalkey` to use the pure-JS fallback instead.
- * Both client modules are imported lazily so the default install pulls none.
+ * set, otherwise the in-memory default. The adapter uses iovalkey's cluster
+ * client with a short-lived IAM token rotated before expiry.
  */
 export async function createSourceContentCache(
   env: Record<string, string | undefined>,
 ): Promise<SourceContentCache> {
   const valkeyUrl = env.CACHE_VALKEY_URL;
   if (valkeyUrl) {
-    if (env.CACHE_VALKEY_CLIENT === "iovalkey") {
-      const { IoValkeyContentCache } = await import("./iovalkeyContentCache");
-      return new IoValkeyContentCache({ url: valkeyUrl });
-    }
     const { ValkeyContentCache } = await import("./valkeyContentCache");
-    return new ValkeyContentCache({ url: valkeyUrl });
+    log.info({ event: "source.cache.configured", adapter: "valkey" }, "Source cache configured");
+    return new ValkeyContentCache({
+      cacheName: requiredEnv(env, "CACHE_VALKEY_CACHE_NAME"),
+      region: requiredEnv(env, "CACHE_VALKEY_REGION"),
+      url: valkeyUrl,
+      userId: requiredEnv(env, "CACHE_VALKEY_USER_ID"),
+    });
   }
   const maxEntries = numberFromEnv(env.CACHE_MAX_ENTRIES, DEFAULT_MAX_ENTRIES);
+  log.info(
+    { event: "source.cache.configured", adapter: "memory", maxEntries },
+    "Source cache configured",
+  );
   return new InMemoryContentCache({ maxEntries });
 }
 
@@ -209,12 +322,34 @@ export function cacheTtlSeconds(env: Record<string, string | undefined>): number
   return numberFromEnv(env.CACHE_TTL_SECONDS, DEFAULT_TTL_SECONDS);
 }
 
+export function cacheNegativeTtlSeconds(env: Record<string, string | undefined>): number {
+  return numberFromEnv(env.CACHE_NEGATIVE_TTL_SECONDS, DEFAULT_NEGATIVE_TTL_SECONDS);
+}
+
+export function cacheValidationTtlSeconds(env: Record<string, string | undefined>): number {
+  return numberFromEnv(env.CACHE_VALIDATION_TTL_SECONDS, DEFAULT_TTL_SECONDS);
+}
+
+export function cacheContentTtlSeconds(env: Record<string, string | undefined>): number {
+  return numberFromEnv(env.CACHE_CONTENT_TTL_SECONDS, 7 * 24 * 60 * 60);
+}
+
 // One shared cache across every entry point — it is useless if rebuilt per
 // request, so memoize it at module scope like the default registry.
 let sharedCachePromise: Promise<SourceContentCache> | undefined;
+let sharedResolutionContextPromise: Promise<ResolutionContext> | undefined;
 
 function sharedCache(env: Record<string, string | undefined>): Promise<SourceContentCache> {
   return (sharedCachePromise ??= createSourceContentCache(env));
+}
+
+export async function closeSourceContentCache(): Promise<void> {
+  const cachePromise = sharedCachePromise;
+  sharedCachePromise = undefined;
+  sharedResolutionContextPromise = undefined;
+  if (!cachePromise) return;
+  const cache = await cachePromise;
+  await cache.close?.();
 }
 
 /**
@@ -227,9 +362,18 @@ function sharedCache(env: Record<string, string | undefined>): Promise<SourceCon
 export async function cachedResolutionContext(
   env: Record<string, string | undefined> = readProcessEnv(),
 ): Promise<ResolutionContext> {
-  const base = defaultResolutionContext();
-  const cache = await sharedCache(env);
-  return { ...base, fetch: withCache(base.fetch, cache, cacheTtlSeconds(env)) };
+  return (sharedResolutionContextPromise ??= sharedCache(env).then((cache) => {
+    const base = defaultResolutionContext();
+    return {
+      ...base,
+      fetch: withCache(base.fetch, cache, cacheTtlSeconds(env), cacheNegativeTtlSeconds(env)),
+      sourceCache: cache,
+      sourceCachePolicy: {
+        validationTtlSeconds: cacheValidationTtlSeconds(env),
+        contentTtlSeconds: cacheContentTtlSeconds(env),
+      },
+    };
+  }));
 }
 
 function readProcessEnv(): Record<string, string | undefined> {
@@ -241,5 +385,11 @@ function readProcessEnv(): Record<string, string | undefined> {
 
 function numberFromEnv(raw: string | undefined, fallback: number): number {
   const parsed = raw ? Number(raw) : NaN;
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+  return Number.isFinite(parsed) && parsed > 0 ? Math.max(1, Math.floor(parsed)) : fallback;
+}
+
+function requiredEnv(env: Record<string, string | undefined>, name: string): string {
+  const value = env[name]?.trim();
+  if (!value) throw new Error(`${name} is required when CACHE_VALKEY_URL is set.`);
+  return value;
 }

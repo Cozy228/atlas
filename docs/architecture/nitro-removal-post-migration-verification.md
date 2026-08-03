@@ -1,0 +1,269 @@
+# Nitro Removal Post-Migration Verification
+
+- Status: complete on the migration branch
+- Verified: 2026-08-03, Asia/Taipei (UTC+08:00); final route follow-up
+- Migration commit: `ca3725d4bca5642e6f572a1c91a7c217b4a950ab`
+- Performance-remediation code commit: `1584b418`
+- Branch: `feat/nitro-removal-migration`
+- Comparison baseline: `docs/architecture/nitro-removal-pre-migration-baseline.md`
+
+This document records the accepted final route: one Hono ECS process, a Router-only SPA, a
+meaningful static first-screen shell in the SPA document, an in-process Context Layer, and
+production iovalkey Cluster caching. The Hono + TanStack Start work remains a measured prototype in
+[`hono-start-hybrid-prototype-verification.md`](hono-start-hybrid-prototype-verification.md), but
+is not the selected production architecture. This ledger does not claim a cloud deployment,
+production traffic, authenticated company behavior, or real-user performance.
+
+## 1. Result
+
+The migration is complete and accepted on this branch:
+
+- Nitro, TanStack Start, server functions, Start SSR, and the H3 compatibility boundary are absent from the production runtime.
+- Hono owns the Node listener, HTTP routes, request context, static serving, deployable artifact, readiness, structured request logs, and graceful shutdown.
+- Vite owns the client build and development UI process; Hono is a separately watched development API process.
+- The Portal build produces a self-contained Atlas-owned `.output` directory and rejects forbidden runtime surfaces.
+- All repository checks, Portal primary E2E tests, production smoke tests, Linux/amd64 container probes, Terraform validation, route/static/MCP matrices, blank-output portability checks, and process-lifecycle checks passed.
+- Deployment is one Hono Portal process in one ECS Fargate task; the Context Layer runs in-process and no Lambda/API Gateway artifact is built or deployed.
+- The single SPA document contains useful route-neutral HTML and native links before JavaScript, then React replaces it without hydration or a second render artifact.
+- The retained five-iteration Profile C SPA journey improved every measured click-to-primary-content median relative to the frozen Nitro baseline.
+
+## 2. Frozen-ledger rerun
+
+Commands were executed from a clean dependency install against the final remediation code commit.
+
+| Check                                                     | Result                                     |
+| --------------------------------------------------------- | ------------------------------------------ |
+| `pnpm install --frozen-lockfile`                          | pass; no lockfile mutation                 |
+| `pnpm -r typecheck`                                       | pass                                       |
+| `pnpm -r lint`                                            | pass                                       |
+| `pnpm -r test`                                            | pass; 446 tests                            |
+| `pnpm --filter @atlas/portal build`                       | pass; output verifier accepted 209 entries |
+| `pnpm --filter @atlas/e2e doctor`                         | pass; system Chrome 150.0.7871.187         |
+| Primary Playwright suite                                  | pass; 31/31                                |
+| Production smoke suite                                    | pass; 13/13                                |
+| `terraform fmt -check`, `init -backend=false`, `validate` | pass; AWS provider 5.100.0                 |
+
+Default unit and integration counts were:
+
+| Workspace              |                     Result |
+| ---------------------- | -------------------------: |
+| `@atlas/infra`         |                   5 passed |
+| `@atlas/schema`        |                  25 passed |
+| `azure-react-icons`    |                   1 passed |
+| `@atlas/context-layer` | 179 passed across 33 files |
+| `@atlas/portal`        | 231 passed across 47 files |
+| `@atlas/acceptance`    |                   5 passed |
+
+## 3. Production HTTP and artifact checks
+
+The production route matrix returned the expected content and status for `/`, `/health`, `/robots.txt`, `/sitemap.xml`, `/llms.txt`, `/openapi.json`, `/api/internal/openapi.json`, all four well-known discovery routes, `/api/*`, `/resources/*`, and `/mcp`.
+
+The representative hashed JavaScript asset passed all retained representation checks:
+
+- identity, gzip, and Brotli negotiation;
+- representation-specific ETags and `Vary: Accept-Encoding`;
+- `Last-Modified` and conditional 304;
+- `HEAD` without a body;
+- satisfiable 206 and unsatisfiable 416 byte ranges;
+- one-year immutable caching;
+- direct missing-asset 404 without SPA fallback.
+
+Final artifact inventory:
+
+| Artifact                       |         Value |
+| ------------------------------ | ------------: |
+| `.output` entries              |           209 |
+| Client JavaScript files        |            59 |
+| Cold-home JavaScript files     |            11 |
+| Cold-home JavaScript transfer  | 151,335 bytes |
+| All-client JavaScript transfer | 477,013 bytes |
+| CSS transfer                   |  21,294 bytes |
+| `.output` size                 |     5,444 KiB |
+| `.output/public` size          |     3,068 KiB |
+| `.output/server` size          |     2,372 KiB |
+
+No symlink, special filesystem entry, absolute source path, Start/Nitro import, MSW/dev-mock import, Lambda adapter, or development environment reachability was found in the deployable output.
+
+Retained SHA-256 values:
+
+- `.output/server/index.mjs`: generated by the current ECS build; record the digest at image publication time.
+- `.output/BUILD_METADATA.json`: generated by the current ECS build; record the digest at image publication time.
+
+## 4. Runtime and deployment checks
+
+The final image was built for Linux/amd64 with pnpm 11.8.0 and ran as the non-root `node` user (`uid=1000`). Its `/health` Docker health check became healthy. Home, OpenAPI, missing-route, and static-representation probes passed inside the final runtime shape. The image contained only the self-contained application directory and no symlinks.
+
+The 2026-08-03 final follow-up rebuilt `portal/Dockerfile` for `linux/amd64`. `/`, `/health`,
+and `/openapi.json` returned the expected contracts, the process ran as non-root `node`, and
+Docker health became `healthy`. The self-contained image has no Start/Nitro or Lambda runtime.
+
+`SIGTERM` stopped the container in 0.15 s with exit code 0 and `OOMKilled=false`. Additional automated lifecycle cases passed for idle shutdown, keep-alive connections, active API requests, active MCP requests, forced shutdown deadlines, invalid `PORT`, invalid shutdown timeout, and corrupt manifests. A copied `.output` tree also started from a blank directory, served health and home, and exited 0 on `SIGINT`.
+
+Terraform now uses `/health` for the ALB target health check, a 30-second deregistration delay, a 30-second ECS stop timeout, and the Linux x86_64 runtime platform.
+
+## 5. MCP compatibility
+
+The live protocol matrix preserved the frozen permissiveness and error semantics:
+
+- `initialize` accepts JSON-RPC 1.0 and a missing `jsonrpc` field;
+- id-less notifications return 202 with an empty body;
+- unknown id-bearing methods return JSON-RPC `-32601`;
+- `tools/list` with a null id returns the four read-only tools;
+- batch input returns HTTP 400 with `-32600`;
+- malformed JSON returns HTTP 400 with `-32700`;
+- `GET /mcp` returns HTTP 405 with `-32000`.
+
+## 6. Profile C performance comparison
+
+The final journey used the same severely constrained Profile C as the frozen baseline: 600/250 Kbit/s, 350 ms RTT, 8x CPU throttling, sitespeed.io 42.5.1, Browsertime 28.2.0, Chromium 150.0.7871.124, and five iterations. A frozen fictional fixture API supplied the same public-safe data shape.
+
+All values below are five-run medians in milliseconds. Negative deltas are improvements.
+
+| Edge                        | Nitro shell / primary | Hono SPA shell / primary | Delta shell / primary |
+| --------------------------- | --------------------: | -----------------------: | --------------------: |
+| Home → Catalog              |           333 / 2,065 |              287 / 1,863 |            -46 / -202 |
+| Catalog → capability        |           267 / 1,953 |              261 / 1,649 |             -6 / -304 |
+| Capability → Sources        |           241 / 1,268 |              222 / 1,150 |            -19 / -118 |
+| Sources → supporting source |             258 / 275 |                239 / 256 |             -19 / -19 |
+| Supporting source → Back    |               91 / 99 |                  63 / 74 |             -28 / -25 |
+
+No measured warm-route primary-content median regressed; the provisional `+500 ms` route regression gate therefore passed. Back navigation added zero resource requests in all five runs and restored the measured scroll position.
+
+Cold home changed more substantially because the architecture intentionally changed from SSR to a client-rendered shell. Profile C medians were TTFB 1,156 ms, FCP/LCP 6,768 ms, load 5,131 ms, TBT 7 ms, and CLS 0.084. Compared with the frozen cold-home baseline, TTFB increased 332 ms and FCP/LCP increased 4,052 ms, while load improved 1,270 ms and TBT improved 52 ms. This cold-content regression is explicitly accepted here as the documented cost of removing SSR; it must remain visible rather than being presented as performance parity.
+
+All five application journeys completed and produced per-edge HTML and trace artifacts under `/tmp/atlas-final-perf-results-ca3725d/profile-c-final-rerun2`. As in the frozen Profile C capture, sitespeed.io's downstream Coach/HAR aggregation reported `PageIndex out of range` after Chrome soft-navigation pages and measured aliases diverged. The application journey and custom timings are retained, but the aggregate sitespeed run is not described as wholly green.
+
+## 7. Invariant disposition
+
+| ID      | Disposition after migration                                                                                       |
+| ------- | ----------------------------------------------------------------------------------------------------------------- |
+| B01-B03 | pass; frozen install, recursive checks, and the single ECS Portal build                                           |
+| B04     | intentionally changed; one Portal command builds the client and Hono deployable output, with no SSR               |
+| B05-B10 | pass; portable output, port binding, shutdown, route coverage, Hono routes, and Context API seam                  |
+| B11     | intentionally changed; `/` is a static SPA shell and retains discovery `Link` headers, but is not server-rendered |
+| B12     | retired; Start serialization and hydration transport no longer exist                                              |
+| B13-B20 | pass; static representations, mock boundary, and MCP compatibility                                                |
+| B21     | accepted deployment change; ALB health moved from `/` to explicit `/health`, while `/` remains 200                |
+| B22-B25 | pass; one-directory image, CI topology, system-browser policy, and process cleanup                                |
+
+## 8. Intentional semantic changes
+
+- Document routes return the SPA shell and client routing owns page not-found behavior.
+- Direct missing assets return a plain 404 instead of falling through to an SSR document.
+- Start SSR, streaming, hydration serialization, server functions, middleware, and request context are removed rather than recreated.
+- `nitro.json` is replaced by Atlas-owned `BUILD_METADATA.json` and an explicit static manifest.
+- Readiness has an explicit `/health` contract and returns 503 while draining.
+
+These differences are the approved Router-only boundary. They are not accidental parity gaps.
+
+## 9. Performance remediation follow-up
+
+- Verified: 2026-08-01, Asia/Taipei (UTC+08:00)
+- Remediation commits: `060062ba` through `1584b418`
+- Runner: the same Profile C network and CPU constraints as Section 6
+
+The post-migration cold-load findings were fixed and remeasured. Production home no longer
+requests data mode or landing zones. The service-detail loader validates the primary record before
+starting the remaining expensive reads, then runs those valid-record reads in parallel. Motion,
+Sonner, and Zod are absent from the successful passive home dependency closure. Native readiness
+marks distinguish React interaction readiness from the later point at which both live home-data
+regions have settled and committed.
+
+### 9.1 Cold home and controlled source delay
+
+The 0 ms and cold 500 ms rows are five-run medians. Every cold 500 ms iteration restarted the
+Portal process so neither source-content cache nor in-flight state could leak between runs.
+The warm 500 ms row is a three-run median after explicitly priming both home API paths. It uses the
+in-memory implementation of the same cache contract; it does not measure a real ElastiCache
+network hop.
+
+| Profile C home                            |     TTFB |        FCP / LCP |     Load |    Shell ready\* | Data interaction / primary ready |  TBT |    CLS |
+| ----------------------------------------- | -------: | ---------------: | -------: | ---------------: | -------------------------------: | ---: | -----: |
+| Hono SPA before remediation               | 1,156 ms | 6,768 / 6,768 ms | 5,131 ms | not instrumented |                 not instrumented | 7 ms |  0.084 |
+| Remediated, MSW 0 ms                      | 1,113 ms | 6,496 / 6,496 ms | 5,194 ms |         6,214 ms |                         6,236 ms | 0 ms | 0.0564 |
+| Remediated, MSW 500 ms, cold server cache | 1,129 ms | 6,584 / 6,584 ms | 5,284 ms |         6,305 ms |                         8,097 ms | 0 ms | 0.0575 |
+| Remediated, MSW 500 ms, warm source cache | 1,115 ms | 6,600 / 6,600 ms | 5,165 ms |         6,233 ms |                         6,262 ms | 5 ms | 0.0564 |
+
+The controlled 500 ms delay adds only 88 ms to LCP but 1,860 ms to primary-content readiness.
+That is the important distinction: paint remains visually fast while decision data is still
+pending. In the representative cold process, announcements took 521 ms and availability took
+2,058 ms because the latter resolves multiple source reads. After priming, those Portal API paths
+returned in 2 ms and 3 ms respectively. The warm-cache median recovered 1,834 ms of the 1,860 ms
+cold-data penalty (98.6%); the remaining 26 ms is within this small local series' browser/runtime
+noise and cache-access overhead.
+
+\* The captured series called the React-shell mark `atlas:interaction-ready`. Final code names that
+transition `atlas:shell-interaction-ready`; `atlas:interaction-ready` is now emitted with
+`atlas:primary-content-ready` only after both live-data regions settle and their UI commits. The
+primary-ready column is therefore the final data-interaction metric.
+
+Raw HTML reports, HARs, traces, screenshots, and videos are retained outside the repository under
+`/tmp/atlas-perf-remediation-929a80c`. The final 0 ms series is
+`profile-c-msw-0-ready-final`; forced-cold 500 ms runs are
+`profile-c-msw-500-cold-{1..5}`; the primed comparison is
+`profile-c-msw-500-source-cache-final`.
+
+### 9.2 Request and bundle result
+
+| Home cold-load measure             | Before remediation | 2026-08-01 remediation | Final static-shell SPA |
+| ---------------------------------- | -----------------: | ---------------------: | ---------------------: |
+| JavaScript requests                |                 21 |                     14 |                     11 |
+| Static-closure JavaScript transfer |       not retained |          202,476 bytes |          151,335 bytes |
+| Portal JSON requests               |                  4 |                      2 |                      2 |
+| Built JavaScript files             |                 58 |                     55 |                     59 |
+| All-client JavaScript transfer     |       not retained |          483,917 bytes |          477,013 bytes |
+| CSS transfer                       |       not retained |           21,132 bytes |           21,294 bytes |
+
+The production build fails if the home static closure exceeds 14 JavaScript files or 205,000
+effective transfer bytes, if the whole client exceeds 60 JavaScript files or 500,000 bytes, or if
+CSS exceeds 22,000 bytes. The final file count is higher because finer route-level lazy splitting
+creates more small files while reducing the cold-home closure by three requests and about 51 KB;
+forcing those files together would optimize the wrong dimension. The current artifact is the
+single ECS server output containing Hono and the in-process Context Layer. iovalkey is pure
+JavaScript, so the image does not need a platform-specific GLIDE native artifact. These
+server-only assets do not enter the browser bundle.
+
+### 9.3 Meaningful static-shell follow-up
+
+The SPA document now contains stable, route-neutral product identity, primary navigation,
+first-screen explanatory copy, and real links. It contains no live availability or Confluence
+snapshot and no control whose React state can be lost during takeover. React uses `createRoot` to
+replace this shell; this is not hydration, SSR, or a second artifact.
+
+Production smoke disables JavaScript and verifies the heading, navigation, and catalog link before
+client boot. Separate smoke cases require the static marker to disappear after React starts and
+then exercise the native landing-zone selector and mobile Popover.
+
+A five-run local CDP approximation against the final production artifact used cold contexts,
+600/250 Kbit/s throughput, and 8x CPU throttling. Its medians were FCP/LCP 1,928 ms, load 2,738 ms,
+React shell-ready 3,414 ms, and primary/data-ready 3,424 ms. Localhost document TTFB bypassed the
+configured RTT, so these values are not a replacement for the sitespeed.io Profile C table. They
+establish only that native static content is visible and navigable materially before React
+takeover. The retained MSW-500 cold/warm rows remain the data-path comparison and continue to show
+why source caching is required.
+
+### 9.4 Shared Valkey deployment
+
+The production cache is a TLS iovalkey Cluster client seeded from the ElastiCache configuration
+endpoint. The adapter remains optional only for local/test fallback; deployed performance and
+source-system isolation require Valkey. It signs a fresh IAM token every 14 minutes and replaces the cluster
+connection before the 15-minute token lifetime. Terraform provisions cluster mode, an IAM-enabled
+ElastiCache user and user group, task-role `elasticache:Connect`, TLS, failover, and the cache
+environment values. Generic keys include a digest of the source authorization scope; Confluence
+additionally uses short-lived head/version keys and long-lived revision content keys. Cache reads
+and writes fail open to the live source, and a failed head validation never promotes old content to
+current.
+
+The final hardening pass bounds optional-cache connection and command waits at two seconds and one
+second respectively, disconnects a client after a command failure so the next operation reconnects,
+and treats malformed serialized values as misses. Derived service and guardrail discovery now starts
+its independent passes concurrently, expires on the same short validation window, and removes failed
+promises so source recovery no longer requires an ECS restart.
+
+Unit tests cover TLS enforcement, iovalkey adapter lifecycle/token rotation, cache isolation,
+head/content cold and warm paths, revision changes, hard expiry, fail-open behavior, negative caching,
+and single-flight;
+Terraform validates and the self-contained production artifact contains the configured path. No AWS
+cache or credentials are available in
+this public-safe local environment, so a real IAM-authenticated ElastiCache handshake and its
+network latency remain deployment-time checks rather than claimed local passes.

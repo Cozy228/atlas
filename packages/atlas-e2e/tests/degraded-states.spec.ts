@@ -11,6 +11,11 @@ test.describe("degraded states (mock-forced)", () => {
   // Deferred loading: the skeleton is observable (DEV_MOCK_LATENCY_MS widens the
   // window), then it resolves to the real matrix.
   test("availability shows a loading skeleton, then the matrix resolves", async ({ page }) => {
+    await page.route("**/api/portal/availability", async (route) => {
+      const response = await route.fetch();
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      await route.fulfill({ response });
+    });
     await page.goto("/availability", { waitUntil: "commit" });
     await expect(page.getByLabel(/Loading (service )?availability/i)).toBeVisible();
     await expect(page.getByRole("table").first()).toBeVisible();

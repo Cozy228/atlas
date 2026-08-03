@@ -123,6 +123,88 @@ resource "aws_security_group" "ecs_tasks" {
   })
 }
 
+resource "aws_security_group" "content_cache" {
+  name        = "${local.name_prefix}-content-cache"
+  description = "Valkey ingress from Atlas ECS tasks"
+  vpc_id      = aws_vpc.atlas.id
+
+  ingress {
+    from_port       = 6379
+    to_port         = 6379
+    protocol        = "tcp"
+    security_groups = [aws_security_group.ecs_tasks.id]
+  }
+
+  tags = merge(local.common_tags, {
+    Name = "${local.name_prefix}-content-cache"
+  })
+}
+
+resource "aws_elasticache_subnet_group" "content_cache" {
+  name       = "${local.name_prefix}-content-cache"
+  subnet_ids = aws_subnet.public[*].id
+
+  tags = local.common_tags
+}
+
+resource "aws_elasticache_user" "content_cache_default" {
+  user_id       = "${local.name_prefix}-cache-default"
+  user_name     = "default"
+  access_string = "off ~* -@all"
+  engine        = "valkey"
+
+  authentication_mode {
+    type = "no-password-required"
+  }
+
+  tags = local.common_tags
+}
+
+resource "aws_elasticache_user" "content_cache" {
+  user_id       = "${local.name_prefix}-portal"
+  user_name     = "${local.name_prefix}-portal"
+  access_string = "on ~atlas:source-content:* +@read +@write +@connection +cluster|slots +cluster|shards +cluster|info"
+  engine        = "valkey"
+
+  authentication_mode {
+    type = "iam"
+  }
+
+  tags = local.common_tags
+}
+
+resource "aws_elasticache_user_group" "content_cache" {
+  user_group_id = "${local.name_prefix}-content-cache"
+  engine        = "valkey"
+  user_ids = [
+    aws_elasticache_user.content_cache_default.user_id,
+    aws_elasticache_user.content_cache.user_id
+  ]
+
+  tags = local.common_tags
+}
+
+resource "aws_elasticache_replication_group" "content_cache" {
+  replication_group_id       = "${local.name_prefix}-content-cache"
+  description                = "Shared Atlas source-content cache"
+  engine                     = "valkey"
+  engine_version             = "7.2"
+  node_type                  = var.valkey_node_type
+  port                       = 6379
+  num_node_groups            = var.valkey_num_node_groups
+  replicas_per_node_group    = var.valkey_replicas_per_node_group
+  automatic_failover_enabled = true
+  multi_az_enabled           = true
+  subnet_group_name          = aws_elasticache_subnet_group.content_cache.name
+  security_group_ids         = [aws_security_group.content_cache.id]
+  user_group_ids             = [aws_elasticache_user_group.content_cache.user_group_id]
+  at_rest_encryption_enabled = true
+  transit_encryption_enabled = true
+  apply_immediately          = true
+
+  tags = local.common_tags
+}
+
 resource "aws_lb" "portal" {
   name               = "${local.name_prefix}-portal"
   internal           = false
@@ -136,18 +218,19 @@ resource "aws_lb" "portal" {
 }
 
 resource "aws_lb_target_group" "portal" {
-  name        = "${local.name_prefix}-portal"
-  port        = var.container_port
-  protocol    = "HTTP"
-  target_type = "ip"
-  vpc_id      = aws_vpc.atlas.id
+  name                 = "${local.name_prefix}-portal"
+  port                 = var.container_port
+  protocol             = "HTTP"
+  target_type          = "ip"
+  vpc_id               = aws_vpc.atlas.id
+  deregistration_delay = 30
 
   health_check {
     enabled             = true
     healthy_threshold   = 2
     interval            = 30
     matcher             = "200-399"
-    path                = "/"
+    path                = "/health"
     protocol            = "HTTP"
     timeout             = 5
     unhealthy_threshold = 3
@@ -273,6 +356,16 @@ resource "aws_iam_role_policy" "task" {
         ]
         Effect   = "Allow"
         Resource = aws_secretsmanager_secret.runtime.arn
+      },
+      {
+        Action = [
+          "elasticache:Connect"
+        ]
+        Effect = "Allow"
+        Resource = [
+          aws_elasticache_replication_group.content_cache.arn,
+          aws_elasticache_user.content_cache.arn
+        ]
       }
     ]
   })
@@ -305,11 +398,17 @@ resource "aws_ecs_task_definition" "portal" {
   execution_role_arn       = aws_iam_role.task_execution.arn
   task_role_arn            = aws_iam_role.task.arn
 
+  runtime_platform {
+    operating_system_family = "LINUX"
+    cpu_architecture        = "X86_64"
+  }
+
   container_definitions = jsonencode([
     {
-      name      = "atlas-portal"
-      image     = var.container_image
-      essential = true
+      name        = "atlas-portal"
+      image       = var.container_image
+      essential   = true
+      stopTimeout = 30
 
       portMappings = [
         {
@@ -319,13 +418,26 @@ resource "aws_ecs_task_definition" "portal" {
         }
       ]
 
-      environment = [
-        { name = "NODE_ENV", value = "production" },
-        { name = "PORT", value = tostring(var.container_port) },
-        { name = "PORTAL_ORIGIN", value = var.portal_origin },
-        { name = "FEEDBACK_TABLE", value = aws_dynamodb_table.feedback.name },
-        { name = "RUNTIME_SECRET", value = aws_secretsmanager_secret.runtime.name }
-      ]
+      environment = concat(
+        [
+          { name = "NODE_ENV", value = "production" },
+          { name = "PORT", value = tostring(var.container_port) },
+          { name = "PORTAL_ORIGIN", value = var.portal_origin },
+          { name = "FEEDBACK_TABLE", value = aws_dynamodb_table.feedback.name },
+          { name = "CACHE_VALKEY_URL", value = "rediss://${aws_elasticache_replication_group.content_cache.configuration_endpoint_address}:6379" },
+          { name = "CACHE_VALKEY_CACHE_NAME", value = aws_elasticache_replication_group.content_cache.replication_group_id },
+          { name = "CACHE_VALKEY_REGION", value = var.aws_region },
+          { name = "CACHE_VALKEY_USER_ID", value = aws_elasticache_user.content_cache.user_id },
+          { name = "CACHE_TTL_SECONDS", value = "300" },
+          { name = "CACHE_NEGATIVE_TTL_SECONDS", value = "30" },
+          { name = "CACHE_VALIDATION_TTL_SECONDS", value = "300" },
+          { name = "CACHE_CONTENT_TTL_SECONDS", value = "604800" },
+          { name = "RUNTIME_SECRET", value = aws_secretsmanager_secret.runtime.name }
+        ],
+        var.http_proxy != "" ? [{ name = "HTTP_PROXY", value = var.http_proxy }] : [],
+        var.https_proxy != "" ? [{ name = "HTTPS_PROXY", value = var.https_proxy }] : [],
+        var.no_proxy != "" ? [{ name = "NO_PROXY", value = var.no_proxy }] : []
+      )
 
       logConfiguration = {
         logDriver = "awslogs"

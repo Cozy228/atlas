@@ -21,6 +21,7 @@ export type HttpRequest = {
   /** Request origin (e.g. https://portal.example.com), used to build absolute
    * resource URLs in responses. Set by the Portal bridge; absent in-process. */
   origin?: string;
+  signal?: AbortSignal;
 };
 
 export type HttpResponse = {
@@ -35,9 +36,10 @@ type RouteResult = {
 };
 
 export async function handleHttpRequest(request: HttpRequest): Promise<HttpResponse> {
+  request.signal?.throwIfAborted();
   const method = request.method.toUpperCase();
   const path = normalizePath(request.path);
-  const ctx = await resolutionContextFromHeaders(request.headers);
+  const ctx = await resolutionContextFromHeaders(request.headers, request.signal);
 
   if (method === "GET" && path === "/sources") {
     return jsonResponse(await handleSourceDiscoveryRequest(compactQuery(request.query)));

@@ -1,9 +1,9 @@
-import { useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
-import { IconMenu2, IconSearch } from "@tabler/icons-react";
+import { IconMenu2, IconSearch, IconX } from "@tabler/icons-react";
 
 import logoSvg from "@/assets/logo.svg?url";
-import type { DataMode } from "@/api/server/dataMode";
+import type { DataMode } from "@/api/portalContracts";
 import { AskAtlasFab } from "@/components/ask-atlas-fab";
 import { AskAtlasProvider, useAskAtlas } from "@/components/ask-atlas/context";
 import { CurrentLandingZoneProvider } from "@/components/landing-zone/context";
@@ -11,7 +11,6 @@ import { LandingZoneSelector } from "@/components/landing-zone/landing-zone-sele
 import { PortalFooter } from "@/components/portal-footer";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Badge } from "@/components/ui/badge";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { ThemeProvider } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
@@ -38,6 +37,8 @@ const PRIMARY_NAV: ReadonlyArray<NavItem> = [
   { to: "/support", label: "Support" },
 ];
 
+const MOBILE_NAV_ID = "mobile-navigation";
+
 export function PortalShell({ children, dataMode }: PortalShellProps) {
   return (
     <ThemeProvider>
@@ -59,14 +60,13 @@ export function PortalShell({ children, dataMode }: PortalShellProps) {
 }
 
 function TopBar({ dataMode }: { dataMode?: DataMode }) {
-  const [menuOpen, setMenuOpen] = useState(false);
   const nav = PRIMARY_NAV;
 
   return (
     <header
       className={cn(
         // 56px, sticky, opaque (the grid starts cleanly below it). DESIGN.md §4.
-        "sticky top-0 z-40 grid h-14 grid-cols-[1fr_auto_1fr] items-center gap-2 border-b border-border px-4 sm:px-8",
+        "sticky top-0 z-40 grid h-14 grid-cols-[auto_1fr] items-center gap-2 border-b border-border px-4 sm:px-8 md:grid-cols-[1fr_auto_1fr]",
         "bg-background",
       )}
     >
@@ -85,10 +85,11 @@ function TopBar({ dataMode }: { dataMode?: DataMode }) {
             data-testid="data-mode-badge"
             title="Serving deterministic mock fixtures — not live source systems"
           >
-            Mock data
+            <span className="sm:hidden">Mock</span>
+            <span className="hidden sm:inline">Mock data</span>
           </Badge>
         ) : null}
-        <NavMenu open={menuOpen} onOpenChange={(open) => setMenuOpen(open)} />
+        <NavMenu />
         <LandingZoneSelector />
         <SearchButton />
         <ThemeToggle />
@@ -103,14 +104,14 @@ function BrandLink() {
       to="/"
       aria-label="Cloud DevEx Portal home"
       className={cn(
-        "mr-5 flex shrink-0 items-center gap-2.5 rounded-md py-1 pr-1",
+        "mr-1 flex shrink-0 items-center gap-2.5 rounded-md py-1 pr-1 sm:mr-5",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
       )}
     >
       <img src={logoSvg} alt="" aria-hidden className="size-6 shrink-0" />
       {/* Divider between the mark and the wordmark — set them a little apart. */}
-      <span aria-hidden className="h-5 w-px shrink-0 bg-border" />
-      <span className="type-body font-bold tracking-[-0.03em] text-foreground">
+      <span aria-hidden className="hidden h-5 w-px shrink-0 bg-border sm:block" />
+      <span className="type-body hidden font-bold tracking-[-0.03em] text-foreground sm:inline">
         Cloud DevEx Portal
       </span>
     </Link>
@@ -145,7 +146,7 @@ function SearchButton() {
       aria-label="Search the catalog"
       onClick={() => openOverlay("search")}
       className={cn(
-        "flex size-8 items-center justify-center rounded-sm text-muted-foreground",
+        "hidden size-8 items-center justify-center rounded-sm text-muted-foreground sm:flex",
         "transition-colors hover:bg-secondary hover:text-foreground",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
       )}
@@ -156,20 +157,16 @@ function SearchButton() {
   );
 }
 
-type NavMenuProps = {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-};
-
-function NavMenu({ open, onOpenChange }: NavMenuProps) {
+function NavMenu() {
   const nav = PRIMARY_NAV;
   return (
     <>
       <button
         type="button"
         aria-label="Open navigation menu"
-        aria-expanded={open}
-        onClick={() => onOpenChange(true)}
+        aria-haspopup="dialog"
+        popoverTarget={MOBILE_NAV_ID}
+        popoverTargetAction="show"
         className={cn(
           "flex size-7 items-center justify-center rounded-md text-muted-foreground md:hidden",
           "transition-colors hover:bg-muted hover:text-foreground",
@@ -179,22 +176,40 @@ function NavMenu({ open, onOpenChange }: NavMenuProps) {
         <IconMenu2 size={15} strokeWidth={2} aria-hidden />
         <span className="sr-only">Navigation</span>
       </button>
-      <Sheet open={open} onOpenChange={(o) => onOpenChange(o)}>
-        <SheetContent side="left" className="data-[side=left]:sm:max-w-56 gap-0 p-0">
-          <SheetHeader className="border-b px-4 py-3">
-            <SheetTitle className="text-sm font-bold tracking-[-0.03em]">
-              Cloud DevEx Portal
-            </SheetTitle>
-          </SheetHeader>
-          <nav aria-label="Primary" className="flex flex-col gap-0.5 p-2">
-            {nav.map((item) => (
-              <SheetNavLink key={item.to} item={item} onNavigate={() => onOpenChange(false)} />
-            ))}
-          </nav>
-        </SheetContent>
-      </Sheet>
+      <div
+        id={MOBILE_NAV_ID}
+        popover="auto"
+        role="dialog"
+        aria-label="Mobile navigation"
+        className={cn(
+          "fixed inset-y-0 left-0 z-50 m-0 h-dvh w-3/4 max-w-56 border-0 border-r border-border bg-popover p-0 text-popover-foreground shadow-lg",
+          "backdrop:bg-overlay/10 backdrop:backdrop-blur-xs",
+        )}
+      >
+        <div className="flex items-center justify-between border-b px-4 py-3">
+          <span className="text-sm font-bold tracking-[-0.03em]">Cloud DevEx Portal</span>
+          <button
+            type="button"
+            aria-label="Close navigation menu"
+            popoverTarget={MOBILE_NAV_ID}
+            popoverTargetAction="hide"
+            className="flex size-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+          >
+            <IconX size={16} aria-hidden />
+          </button>
+        </div>
+        <nav aria-label="Primary" className="flex flex-col gap-0.5 p-2">
+          {nav.map((item) => (
+            <SheetNavLink key={item.to} item={item} onNavigate={closeMobileNavigation} />
+          ))}
+        </nav>
+      </div>
     </>
   );
+}
+
+function closeMobileNavigation() {
+  document.getElementById(MOBILE_NAV_ID)?.hidePopover();
 }
 
 function SheetNavLink({ item, onNavigate }: { item: NavItem; onNavigate: () => void }) {

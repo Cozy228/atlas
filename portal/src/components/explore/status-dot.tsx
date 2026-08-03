@@ -1,4 +1,4 @@
-import type { LocationStatus } from "@/api/server/availability";
+import type { LocationStatus } from "@atlas/schema";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 

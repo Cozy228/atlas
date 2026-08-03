@@ -4,30 +4,11 @@
  * `Link` header). Derived from the incoming request so every environment is
  * correct with zero config; `PORTAL_ORIGIN` env is the backstop for
  * request-less callers (build steps, tests), and the public-safe placeholder
- * is the final default.
- *
- * Resolution works off the standard web `Request`, not the h3 `H3Event`
- * wrapper: Nitro's beta filesystem-route contract has shifted between releases
- * (some hand handlers an `H3Event`, others a bare `Request`), so `handlerRequest`
- * normalizes whatever a route receives into a `Request` and everything below
- * depends only on that stable shape.
+ * is the final default. Hono handlers pass the standard web `Request` directly.
  */
 
 /** Last-resort placeholder when neither a request nor PORTAL_ORIGIN is set. */
 export const DEFAULT_PORTAL_ORIGIN = "https://portal.example.com";
-
-/**
- * Extract the web `Request` from whatever a Nitro route/middleware is handed —
- * a bare `Request` (current contract) or an `H3Event` whose `.req` is the
- * `Request` (older contract). Duck-typed, not `instanceof`, because srvx may
- * hand back a `Request` subclass. Returns `undefined` for request-less callers.
- */
-export function handlerRequest(arg: unknown): Request | undefined {
-  if (isRequestLike(arg)) return arg;
-  const req = (arg as { req?: unknown } | null)?.req;
-  if (isRequestLike(req)) return req;
-  return undefined;
-}
 
 /**
  * `preferEnv` flips the precedence to env-first. Use it for spec-canonical
@@ -59,14 +40,6 @@ function originFromRequest(request: Request): string | undefined {
     return proto ? `${proto}://${host}` : undefined;
   }
   return safeUrl(request.url)?.origin || undefined;
-}
-
-function isRequestLike(value: unknown): value is Request {
-  return (
-    !!value &&
-    typeof (value as Request).url === "string" &&
-    typeof (value as Request).headers?.get === "function"
-  );
 }
 
 function safeUrl(url: string): URL | undefined {

@@ -12,7 +12,7 @@ variable "environment_name" {
 
 variable "container_image" {
   type        = string
-  description = "Container image for the Atlas portal Nitro server."
+  description = "Container image for the Atlas Portal Hono server."
 }
 
 variable "container_port" {
@@ -39,6 +39,34 @@ variable "task_memory" {
   description = "Fargate task memory in MiB."
 }
 
+variable "valkey_node_type" {
+  type        = string
+  default     = "cache.t4g.micro"
+  description = "ElastiCache node type for the shared source-content cache."
+}
+
+variable "valkey_num_node_groups" {
+  type        = number
+  default     = 1
+  description = "Number of shards in the cluster-mode Valkey replication group."
+
+  validation {
+    condition     = var.valkey_num_node_groups >= 1
+    error_message = "valkey_num_node_groups must be at least 1."
+  }
+}
+
+variable "valkey_replicas_per_node_group" {
+  type        = number
+  default     = 1
+  description = "Number of replicas per Valkey shard. At least one is required for automatic failover."
+
+  validation {
+    condition     = var.valkey_replicas_per_node_group >= 1
+    error_message = "valkey_replicas_per_node_group must be at least 1."
+  }
+}
+
 variable "vpc_cidr" {
   type        = string
   default     = "10.42.0.0/16"
@@ -61,4 +89,24 @@ variable "portal_origin" {
   type        = string
   default     = ""
   description = "Canonical Portal origin. Leave empty to derive it from load-balancer headers."
+}
+
+variable "http_proxy" {
+  type        = string
+  default     = ""
+  description = "Optional HTTP proxy URL for server-side outbound fetches."
+  sensitive   = true
+}
+
+variable "https_proxy" {
+  type        = string
+  default     = ""
+  description = "Optional HTTPS proxy URL for server-side outbound fetches."
+  sensitive   = true
+}
+
+variable "no_proxy" {
+  type        = string
+  default     = ""
+  description = "Optional comma-separated hosts that bypass the scoped outbound HTTP proxy."
 }

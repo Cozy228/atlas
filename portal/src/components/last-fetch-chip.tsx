@@ -15,8 +15,8 @@ function formatAgo(deltaMs: number): string {
 
 /**
  * Freshness chip for live fetch/resolve pages — shows how long ago the page's
- * data was fetched (from React Query's `dataUpdatedAt`). Renders client-only so
- * the relative time never causes an SSR/hydration mismatch, and re-ticks every
+ * data was fetched (from React Query's `dataUpdatedAt`). Renders after mount so
+ * the first client render stays stable, and re-ticks every
  * 30s so "just now" ages into "1 min ago" without a reload.
  */
 export function LastFetchChip({ updatedAt, className }: { updatedAt: number; className?: string }) {
