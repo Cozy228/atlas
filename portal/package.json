@@ -13,8 +13,10 @@
   },
   "scripts": {
     "dev": "pnpm run \"/^dev:(client|server)$/\"",
+    "dev:e2e": "pnpm run \"/^dev:(client|server:e2e)$/\"",
     "dev:client": "vite dev",
     "dev:server": "tsx watch server/hono/dev.ts",
+    "dev:server:e2e": "tsx server/hono/dev.ts",
     "build": "pnpm run build:clean && pnpm run gen:agent-skills && pnpm run build:client && pnpm run build:server && pnpm run build:assemble && pnpm run build:verify",
     "build:clean": "node scripts/clean-output.mjs",
     "build:client": "vite build",

@@ -37,7 +37,7 @@ export default defineConfig({
   // widens the deferred-loading window so skeleton states are observable (WU8)
   // without making the suite slow.
   webServer: {
-    command: "pnpm --filter @atlas/portal dev",
+    command: "pnpm --filter @atlas/portal dev:e2e",
     env: { DEV_MOCKS: "1", LLM_PROVIDER: "simulated", DEV_MOCK_LATENCY_MS: "250" },
     // /health is proxied by Vite to Hono, so readiness requires both dev
     // processes instead of racing the slower Hono startup on Windows.
