@@ -39,7 +39,9 @@ export default defineConfig({
   webServer: {
     command: "pnpm --filter @atlas/portal dev",
     env: { DEV_MOCKS: "1", LLM_PROVIDER: "simulated", DEV_MOCK_LATENCY_MS: "250" },
-    url: baseURL,
+    // /health is proxied by Vite to Hono, so readiness requires both dev
+    // processes instead of racing the slower Hono startup on Windows.
+    url: `${baseURL}/health`,
     reuseExistingServer: !process.env.CI,
     // Bound teardown: SIGTERM the dev coordinator, then SIGKILL after 15s if its
     // Vite and Hono children do not exit cleanly — otherwise `playwright test` can
