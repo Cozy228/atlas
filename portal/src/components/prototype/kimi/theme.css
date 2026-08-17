@@ -1,0 +1,118 @@
+/*
+ * Prototype "kimi" — scoped theme, design direction "Fieldbook".
+ *
+ * A survey-expedition instrument register: cool paper, hairline rules, a
+ * dashed traverse line connecting journey "stations", and a single
+ * signal-orange accent reserved for action and selection. Independent from
+ * the portal's Blueprint tokens on purpose (see the exploration prompt):
+ * every semantic CSS variable the shadcn/ui primitives consume is redefined
+ * inside this scope, so the prototype re-themes without touching globals.
+ *
+ * Light scheme only. The scope forces `color-scheme: light` and the layout
+ * route strips the portal's `dark` class while mounted.
+ */
+
+.pv {
+  color-scheme: light;
+
+  /* Neutral field: cool paper, neutrals tinted toward hue 255 at minimal chroma. */
+  --background: oklch(98.7% 0.003 255);
+  --foreground: oklch(26% 0.02 255);
+  --card: oklch(99.6% 0.001 255);
+  --card-foreground: oklch(26% 0.02 255);
+  --popover: oklch(99.6% 0.001 255);
+  --popover-foreground: oklch(26% 0.02 255);
+
+  /* Signal orange: the one action & selection colour (survey marker). */
+  --primary: oklch(45% 0.13 43);
+  --primary-foreground: oklch(99.2% 0.002 255);
+  --ring: oklch(50% 0.15 43);
+
+  --secondary: oklch(96.4% 0.005 255);
+  --secondary-foreground: oklch(26% 0.02 255);
+  --muted: oklch(96.4% 0.005 255);
+  --muted-foreground: oklch(45.5% 0.018 255);
+  --accent: oklch(96.4% 0.005 255);
+  --accent-foreground: oklch(26% 0.02 255);
+
+  --destructive: oklch(52% 0.19 24);
+  --destructive-foreground: oklch(99.2% 0.002 255);
+
+  --border: oklch(90.5% 0.007 255);
+  --border-strong: oklch(80% 0.01 255);
+  --input: oklch(90.5% 0.007 255);
+
+  /* `brand` vars are consumed by some shared primitives; map to the accent. */
+  --brand: oklch(45% 0.13 43);
+  --brand-tint: oklch(94.6% 0.035 43);
+  --brand-foreground: oklch(99.2% 0.002 255);
+  --brand-ink: oklch(41% 0.12 43);
+  --grid: oklch(70% 0.03 255 / 0.06);
+
+  /* Semantic states: four fixed hues, never folded into the accent. */
+  --success: oklch(54% 0.12 158);
+  --success-foreground: oklch(99.2% 0.002 158);
+  --success-ink: oklch(36% 0.1 158);
+  --warning: oklch(72% 0.14 82);
+  --warning-foreground: oklch(24% 0.02 82);
+  --warning-ink: oklch(41% 0.1 62);
+  --critical: oklch(52% 0.19 24);
+  --critical-foreground: oklch(99.2% 0.002 24);
+  --critical-ink: oklch(41% 0.16 24);
+  --info: oklch(52% 0.11 250);
+  --info-foreground: oklch(99.2% 0.002 250);
+  --info-ink: oklch(39% 0.1 250);
+
+  --overlay: oklch(22% 0.01 255);
+
+  /* Fieldbook-specific: contour line colour for the topographic motif. */
+  --pv-contour: oklch(55% 0.03 255 / 0.09);
+  --pv-traverse: oklch(72% 0.02 255);
+
+  background-color: var(--background);
+  color: var(--foreground);
+}
+
+/*
+ * Topographic contour motif: two families of concentric rings anchored to the
+ * corners of a band. Restrained (9% alpha) and used only in dedicated header
+ * bands, never behind running text.
+ */
+.pv-contour {
+  background-image:
+    repeating-radial-gradient(
+      circle at 92% -40%,
+      transparent 0,
+      transparent 26px,
+      var(--pv-contour) 26px,
+      var(--pv-contour) 27px
+    ),
+    repeating-radial-gradient(
+      circle at -6% 130%,
+      transparent 0,
+      transparent 34px,
+      var(--pv-contour) 34px,
+      var(--pv-contour) 35px
+    );
+}
+
+/* Current station on the traverse rail: a slow outward ring pulse. State is
+   still communicated by label and shape; motion is decorative-only. */
+@keyframes pv-station-pulse {
+  0% {
+    box-shadow: 0 0 0 0 oklch(45% 0.13 43 / 0.35);
+  }
+  100% {
+    box-shadow: 0 0 0 9px oklch(45% 0.13 43 / 0);
+  }
+}
+
+.pv-station-current {
+  animation: pv-station-pulse 2.4s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pv-station-current {
+    animation: none;
+  }
+}
