@@ -1,0 +1,86 @@
+.codex-prototype {
+  --background: #fefefe;
+  --foreground: #16181c;
+  --card: #ffffff;
+  --card-foreground: #16181c;
+  --popover: #ffffff;
+  --popover-foreground: #16181c;
+  --primary: #0758f5;
+  --primary-foreground: #ffffff;
+  --secondary: #f2f4f7;
+  --secondary-foreground: #20242b;
+  --muted: #f2f4f7;
+  --muted-foreground: #596273;
+  --accent: #edf2ff;
+  --accent-foreground: #0758f5;
+  --border: #dfe3e8;
+  --border-strong: #c6ccd4;
+  --input: #dfe3e8;
+  --ring: #0758f5;
+  --brand: #0758f5;
+  --brand-tint: #edf2ff;
+  --brand-foreground: #ffffff;
+  --brand-ink: #0758f5;
+  --success: #22c55e;
+  --success-foreground: #ffffff;
+  --success-ink: #16a34a;
+  --warning: #f59e0b;
+  --warning-foreground: #20242b;
+  --warning-ink: #f59e0b;
+  --critical: #ef2b1d;
+  --critical-foreground: #ffffff;
+  --critical-ink: #e52519;
+  --info: #0ea5e9;
+  --info-foreground: #ffffff;
+  --info-ink: #0758f5;
+  min-height: 100dvh;
+  background: var(--background);
+  color: var(--foreground);
+}
+
+.codex-prototype ::selection {
+  background: color-mix(in oklch, var(--primary) 24%, transparent);
+}
+
+.codex-prototype [data-prototype-nav-link][data-active="true"] {
+  color: var(--foreground);
+  box-shadow: inset 0 -2px 0 var(--primary);
+}
+
+.codex-prototype [data-app-menu] summary::-webkit-details-marker {
+  display: none;
+}
+
+.codex-prototype [data-app-menu][open] summary {
+  border-color: var(--border-strong);
+}
+
+.codex-prototype [popover]::backdrop {
+  background: color-mix(in oklch, var(--foreground) 18%, transparent);
+  backdrop-filter: blur(2px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .codex-prototype *,
+  .codex-prototype *::before,
+  .codex-prototype *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
+@media (min-width: 1400px) {
+  .codex-prototype .codex-evidence-row {
+    grid-template-columns: 227px 185px 165px 144px minmax(0, 1fr) 16px;
+  }
+
+  .codex-prototype .codex-evidence-chevron {
+    display: block;
+  }
+
+  .codex-prototype .codex-evidence-detail {
+    grid-column: span 6 / span 6;
+  }
+}
