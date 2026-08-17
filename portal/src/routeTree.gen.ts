@@ -22,11 +22,30 @@ import { Route as CatalogIndexRouteImport } from './routes/catalog.index'
 import { Route as GuidanceIndexRouteImport } from './routes/guidance.index'
 import { Route as GuidanceGuidanceIdRouteImport } from './routes/guidance.$guidanceId'
 import { Route as PoliciesPolicyIdRouteImport } from './routes/policies.$policyId'
+import { Route as PrototypeCodexRouteImport } from './routes/prototype/codex'
+import { Route as PrototypeKimiRouteImport } from './routes/prototype/kimi'
+import { Route as PrototypeOpusRouteImport } from './routes/prototype/opus'
 import { Route as ReleasesReleaseIdRouteImport } from './routes/releases.$releaseId'
 import { Route as SkillsIndexRouteImport } from './routes/skills.index'
 import { Route as SourcesIndexRouteImport } from './routes/sources.index'
 import { Route as SourcesSourceIdRouteImport } from './routes/sources.$sourceId'
+import { Route as PrototypeCodexIndexRouteImport } from './routes/prototype/codex/index'
+import { Route as PrototypeCodexDashboardRouteImport } from './routes/prototype/codex/dashboard'
+import { Route as PrototypeCodexDiagnosisRouteImport } from './routes/prototype/codex/diagnosis'
+import { Route as PrototypeCodexOnboardingRouteImport } from './routes/prototype/codex/onboarding'
+import { Route as PrototypeCodexScaffolderRouteImport } from './routes/prototype/codex/scaffolder'
+import { Route as PrototypeKimiIndexRouteImport } from './routes/prototype/kimi/index'
+import { Route as PrototypeKimiDashboardRouteImport } from './routes/prototype/kimi/dashboard'
+import { Route as PrototypeKimiDiagnosisRouteImport } from './routes/prototype/kimi/diagnosis'
+import { Route as PrototypeKimiOnboardingRouteImport } from './routes/prototype/kimi/onboarding'
+import { Route as PrototypeKimiScaffolderRouteImport } from './routes/prototype/kimi/scaffolder'
+import { Route as PrototypeOpusIndexRouteImport } from './routes/prototype/opus/index'
+import { Route as PrototypeOpusDashboardRouteImport } from './routes/prototype/opus/dashboard'
+import { Route as PrototypeOpusDiagnosisRouteImport } from './routes/prototype/opus/diagnosis'
+import { Route as PrototypeOpusOnboardingRouteImport } from './routes/prototype/opus/onboarding'
+import { Route as PrototypeOpusScaffolderRouteImport } from './routes/prototype/opus/scaffolder'
 import { Route as ServiceProviderIdRouteImport } from './routes/service.$provider.$id'
+import { Route as PrototypeKimiRunsRunIdRouteImport } from './routes/prototype/kimi/runs/$runId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -93,6 +112,21 @@ const PoliciesPolicyIdRoute = PoliciesPolicyIdRouteImport.update({
   path: '/policies/$policyId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PrototypeCodexRoute = PrototypeCodexRouteImport.update({
+  id: '/prototype/codex',
+  path: '/prototype/codex',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrototypeKimiRoute = PrototypeKimiRouteImport.update({
+  id: '/prototype/kimi',
+  path: '/prototype/kimi',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrototypeOpusRoute = PrototypeOpusRouteImport.update({
+  id: '/prototype/opus',
+  path: '/prototype/opus',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ReleasesReleaseIdRoute = ReleasesReleaseIdRouteImport.update({
   id: '/releases/$releaseId',
   path: '/releases/$releaseId',
@@ -113,10 +147,92 @@ const SourcesSourceIdRoute = SourcesSourceIdRouteImport.update({
   path: '/$sourceId',
   getParentRoute: () => SourcesRoute,
 } as any)
+const PrototypeCodexIndexRoute = PrototypeCodexIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => PrototypeCodexRoute,
+} as any)
+const PrototypeCodexDashboardRoute = PrototypeCodexDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => PrototypeCodexRoute,
+} as any)
+const PrototypeCodexDiagnosisRoute = PrototypeCodexDiagnosisRouteImport.update({
+  id: '/diagnosis',
+  path: '/diagnosis',
+  getParentRoute: () => PrototypeCodexRoute,
+} as any)
+const PrototypeCodexOnboardingRoute =
+  PrototypeCodexOnboardingRouteImport.update({
+    id: '/onboarding',
+    path: '/onboarding',
+    getParentRoute: () => PrototypeCodexRoute,
+  } as any)
+const PrototypeCodexScaffolderRoute =
+  PrototypeCodexScaffolderRouteImport.update({
+    id: '/scaffolder',
+    path: '/scaffolder',
+    getParentRoute: () => PrototypeCodexRoute,
+  } as any)
+const PrototypeKimiIndexRoute = PrototypeKimiIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => PrototypeKimiRoute,
+} as any)
+const PrototypeKimiDashboardRoute = PrototypeKimiDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => PrototypeKimiRoute,
+} as any)
+const PrototypeKimiDiagnosisRoute = PrototypeKimiDiagnosisRouteImport.update({
+  id: '/diagnosis',
+  path: '/diagnosis',
+  getParentRoute: () => PrototypeKimiRoute,
+} as any)
+const PrototypeKimiOnboardingRoute = PrototypeKimiOnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => PrototypeKimiRoute,
+} as any)
+const PrototypeKimiScaffolderRoute = PrototypeKimiScaffolderRouteImport.update({
+  id: '/scaffolder',
+  path: '/scaffolder',
+  getParentRoute: () => PrototypeKimiRoute,
+} as any)
+const PrototypeOpusIndexRoute = PrototypeOpusIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => PrototypeOpusRoute,
+} as any)
+const PrototypeOpusDashboardRoute = PrototypeOpusDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => PrototypeOpusRoute,
+} as any)
+const PrototypeOpusDiagnosisRoute = PrototypeOpusDiagnosisRouteImport.update({
+  id: '/diagnosis',
+  path: '/diagnosis',
+  getParentRoute: () => PrototypeOpusRoute,
+} as any)
+const PrototypeOpusOnboardingRoute = PrototypeOpusOnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => PrototypeOpusRoute,
+} as any)
+const PrototypeOpusScaffolderRoute = PrototypeOpusScaffolderRouteImport.update({
+  id: '/scaffolder',
+  path: '/scaffolder',
+  getParentRoute: () => PrototypeOpusRoute,
+} as any)
 const ServiceProviderIdRoute = ServiceProviderIdRouteImport.update({
   id: '/service/$provider/$id',
   path: '/service/$provider/$id',
   getParentRoute: () => rootRouteImport,
+} as any)
+const PrototypeKimiRunsRunIdRoute = PrototypeKimiRunsRunIdRouteImport.update({
+  id: '/runs/$runId',
+  path: '/runs/$runId',
+  getParentRoute: () => PrototypeKimiRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -130,6 +246,9 @@ export interface FileRoutesByFullPath {
   '/whatsnew': typeof WhatsnewRoute
   '/guidance/$guidanceId': typeof GuidanceGuidanceIdRoute
   '/policies/$policyId': typeof PoliciesPolicyIdRoute
+  '/prototype/codex': typeof PrototypeCodexRouteWithChildren
+  '/prototype/kimi': typeof PrototypeKimiRouteWithChildren
+  '/prototype/opus': typeof PrototypeOpusRouteWithChildren
   '/releases/$releaseId': typeof ReleasesReleaseIdRoute
   '/sources/$sourceId': typeof SourcesSourceIdRoute
   '/availability/': typeof AvailabilityIndexRoute
@@ -137,7 +256,23 @@ export interface FileRoutesByFullPath {
   '/guidance/': typeof GuidanceIndexRoute
   '/skills/': typeof SkillsIndexRoute
   '/sources/': typeof SourcesIndexRoute
+  '/prototype/codex/dashboard': typeof PrototypeCodexDashboardRoute
+  '/prototype/codex/diagnosis': typeof PrototypeCodexDiagnosisRoute
+  '/prototype/codex/onboarding': typeof PrototypeCodexOnboardingRoute
+  '/prototype/codex/scaffolder': typeof PrototypeCodexScaffolderRoute
+  '/prototype/kimi/dashboard': typeof PrototypeKimiDashboardRoute
+  '/prototype/kimi/diagnosis': typeof PrototypeKimiDiagnosisRoute
+  '/prototype/kimi/onboarding': typeof PrototypeKimiOnboardingRoute
+  '/prototype/kimi/scaffolder': typeof PrototypeKimiScaffolderRoute
+  '/prototype/opus/dashboard': typeof PrototypeOpusDashboardRoute
+  '/prototype/opus/diagnosis': typeof PrototypeOpusDiagnosisRoute
+  '/prototype/opus/onboarding': typeof PrototypeOpusOnboardingRoute
+  '/prototype/opus/scaffolder': typeof PrototypeOpusScaffolderRoute
   '/service/$provider/$id': typeof ServiceProviderIdRoute
+  '/prototype/codex/': typeof PrototypeCodexIndexRoute
+  '/prototype/kimi/': typeof PrototypeKimiIndexRoute
+  '/prototype/opus/': typeof PrototypeOpusIndexRoute
+  '/prototype/kimi/runs/$runId': typeof PrototypeKimiRunsRunIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -153,7 +288,23 @@ export interface FileRoutesByTo {
   '/guidance': typeof GuidanceIndexRoute
   '/skills': typeof SkillsIndexRoute
   '/sources': typeof SourcesIndexRoute
+  '/prototype/codex/dashboard': typeof PrototypeCodexDashboardRoute
+  '/prototype/codex/diagnosis': typeof PrototypeCodexDiagnosisRoute
+  '/prototype/codex/onboarding': typeof PrototypeCodexOnboardingRoute
+  '/prototype/codex/scaffolder': typeof PrototypeCodexScaffolderRoute
+  '/prototype/kimi/dashboard': typeof PrototypeKimiDashboardRoute
+  '/prototype/kimi/diagnosis': typeof PrototypeKimiDiagnosisRoute
+  '/prototype/kimi/onboarding': typeof PrototypeKimiOnboardingRoute
+  '/prototype/kimi/scaffolder': typeof PrototypeKimiScaffolderRoute
+  '/prototype/opus/dashboard': typeof PrototypeOpusDashboardRoute
+  '/prototype/opus/diagnosis': typeof PrototypeOpusDiagnosisRoute
+  '/prototype/opus/onboarding': typeof PrototypeOpusOnboardingRoute
+  '/prototype/opus/scaffolder': typeof PrototypeOpusScaffolderRoute
   '/service/$provider/$id': typeof ServiceProviderIdRoute
+  '/prototype/codex': typeof PrototypeCodexIndexRoute
+  '/prototype/kimi': typeof PrototypeKimiIndexRoute
+  '/prototype/opus': typeof PrototypeOpusIndexRoute
+  '/prototype/kimi/runs/$runId': typeof PrototypeKimiRunsRunIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -167,6 +318,9 @@ export interface FileRoutesById {
   '/whatsnew': typeof WhatsnewRoute
   '/guidance/$guidanceId': typeof GuidanceGuidanceIdRoute
   '/policies/$policyId': typeof PoliciesPolicyIdRoute
+  '/prototype/codex': typeof PrototypeCodexRouteWithChildren
+  '/prototype/kimi': typeof PrototypeKimiRouteWithChildren
+  '/prototype/opus': typeof PrototypeOpusRouteWithChildren
   '/releases/$releaseId': typeof ReleasesReleaseIdRoute
   '/sources/$sourceId': typeof SourcesSourceIdRoute
   '/availability/': typeof AvailabilityIndexRoute
@@ -174,7 +328,23 @@ export interface FileRoutesById {
   '/guidance/': typeof GuidanceIndexRoute
   '/skills/': typeof SkillsIndexRoute
   '/sources/': typeof SourcesIndexRoute
+  '/prototype/codex/dashboard': typeof PrototypeCodexDashboardRoute
+  '/prototype/codex/diagnosis': typeof PrototypeCodexDiagnosisRoute
+  '/prototype/codex/onboarding': typeof PrototypeCodexOnboardingRoute
+  '/prototype/codex/scaffolder': typeof PrototypeCodexScaffolderRoute
+  '/prototype/kimi/dashboard': typeof PrototypeKimiDashboardRoute
+  '/prototype/kimi/diagnosis': typeof PrototypeKimiDiagnosisRoute
+  '/prototype/kimi/onboarding': typeof PrototypeKimiOnboardingRoute
+  '/prototype/kimi/scaffolder': typeof PrototypeKimiScaffolderRoute
+  '/prototype/opus/dashboard': typeof PrototypeOpusDashboardRoute
+  '/prototype/opus/diagnosis': typeof PrototypeOpusDiagnosisRoute
+  '/prototype/opus/onboarding': typeof PrototypeOpusOnboardingRoute
+  '/prototype/opus/scaffolder': typeof PrototypeOpusScaffolderRoute
   '/service/$provider/$id': typeof ServiceProviderIdRoute
+  '/prototype/codex/': typeof PrototypeCodexIndexRoute
+  '/prototype/kimi/': typeof PrototypeKimiIndexRoute
+  '/prototype/opus/': typeof PrototypeOpusIndexRoute
+  '/prototype/kimi/runs/$runId': typeof PrototypeKimiRunsRunIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -189,6 +359,9 @@ export interface FileRouteTypes {
     | '/whatsnew'
     | '/guidance/$guidanceId'
     | '/policies/$policyId'
+    | '/prototype/codex'
+    | '/prototype/kimi'
+    | '/prototype/opus'
     | '/releases/$releaseId'
     | '/sources/$sourceId'
     | '/availability/'
@@ -196,7 +369,23 @@ export interface FileRouteTypes {
     | '/guidance/'
     | '/skills/'
     | '/sources/'
+    | '/prototype/codex/dashboard'
+    | '/prototype/codex/diagnosis'
+    | '/prototype/codex/onboarding'
+    | '/prototype/codex/scaffolder'
+    | '/prototype/kimi/dashboard'
+    | '/prototype/kimi/diagnosis'
+    | '/prototype/kimi/onboarding'
+    | '/prototype/kimi/scaffolder'
+    | '/prototype/opus/dashboard'
+    | '/prototype/opus/diagnosis'
+    | '/prototype/opus/onboarding'
+    | '/prototype/opus/scaffolder'
     | '/service/$provider/$id'
+    | '/prototype/codex/'
+    | '/prototype/kimi/'
+    | '/prototype/opus/'
+    | '/prototype/kimi/runs/$runId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -212,7 +401,23 @@ export interface FileRouteTypes {
     | '/guidance'
     | '/skills'
     | '/sources'
+    | '/prototype/codex/dashboard'
+    | '/prototype/codex/diagnosis'
+    | '/prototype/codex/onboarding'
+    | '/prototype/codex/scaffolder'
+    | '/prototype/kimi/dashboard'
+    | '/prototype/kimi/diagnosis'
+    | '/prototype/kimi/onboarding'
+    | '/prototype/kimi/scaffolder'
+    | '/prototype/opus/dashboard'
+    | '/prototype/opus/diagnosis'
+    | '/prototype/opus/onboarding'
+    | '/prototype/opus/scaffolder'
     | '/service/$provider/$id'
+    | '/prototype/codex'
+    | '/prototype/kimi'
+    | '/prototype/opus'
+    | '/prototype/kimi/runs/$runId'
   id:
     | '__root__'
     | '/'
@@ -225,6 +430,9 @@ export interface FileRouteTypes {
     | '/whatsnew'
     | '/guidance/$guidanceId'
     | '/policies/$policyId'
+    | '/prototype/codex'
+    | '/prototype/kimi'
+    | '/prototype/opus'
     | '/releases/$releaseId'
     | '/sources/$sourceId'
     | '/availability/'
@@ -232,7 +440,23 @@ export interface FileRouteTypes {
     | '/guidance/'
     | '/skills/'
     | '/sources/'
+    | '/prototype/codex/dashboard'
+    | '/prototype/codex/diagnosis'
+    | '/prototype/codex/onboarding'
+    | '/prototype/codex/scaffolder'
+    | '/prototype/kimi/dashboard'
+    | '/prototype/kimi/diagnosis'
+    | '/prototype/kimi/onboarding'
+    | '/prototype/kimi/scaffolder'
+    | '/prototype/opus/dashboard'
+    | '/prototype/opus/diagnosis'
+    | '/prototype/opus/onboarding'
+    | '/prototype/opus/scaffolder'
     | '/service/$provider/$id'
+    | '/prototype/codex/'
+    | '/prototype/kimi/'
+    | '/prototype/opus/'
+    | '/prototype/kimi/runs/$runId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -245,6 +469,9 @@ export interface RootRouteChildren {
   SupportRoute: typeof SupportRoute
   WhatsnewRoute: typeof WhatsnewRoute
   PoliciesPolicyIdRoute: typeof PoliciesPolicyIdRoute
+  PrototypeCodexRoute: typeof PrototypeCodexRouteWithChildren
+  PrototypeKimiRoute: typeof PrototypeKimiRouteWithChildren
+  PrototypeOpusRoute: typeof PrototypeOpusRouteWithChildren
   ReleasesReleaseIdRoute: typeof ReleasesReleaseIdRoute
   SkillsIndexRoute: typeof SkillsIndexRoute
   ServiceProviderIdRoute: typeof ServiceProviderIdRoute
@@ -343,6 +570,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PoliciesPolicyIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/prototype/codex': {
+      id: '/prototype/codex'
+      path: '/prototype/codex'
+      fullPath: '/prototype/codex'
+      preLoaderRoute: typeof PrototypeCodexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/prototype/kimi': {
+      id: '/prototype/kimi'
+      path: '/prototype/kimi'
+      fullPath: '/prototype/kimi'
+      preLoaderRoute: typeof PrototypeKimiRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/prototype/opus': {
+      id: '/prototype/opus'
+      path: '/prototype/opus'
+      fullPath: '/prototype/opus'
+      preLoaderRoute: typeof PrototypeOpusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/releases/$releaseId': {
       id: '/releases/$releaseId'
       path: '/releases/$releaseId'
@@ -371,12 +619,124 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SourcesSourceIdRouteImport
       parentRoute: typeof SourcesRoute
     }
+    '/prototype/codex/': {
+      id: '/prototype/codex/'
+      path: '/'
+      fullPath: '/prototype/codex/'
+      preLoaderRoute: typeof PrototypeCodexIndexRouteImport
+      parentRoute: typeof PrototypeCodexRoute
+    }
+    '/prototype/codex/dashboard': {
+      id: '/prototype/codex/dashboard'
+      path: '/dashboard'
+      fullPath: '/prototype/codex/dashboard'
+      preLoaderRoute: typeof PrototypeCodexDashboardRouteImport
+      parentRoute: typeof PrototypeCodexRoute
+    }
+    '/prototype/codex/diagnosis': {
+      id: '/prototype/codex/diagnosis'
+      path: '/diagnosis'
+      fullPath: '/prototype/codex/diagnosis'
+      preLoaderRoute: typeof PrototypeCodexDiagnosisRouteImport
+      parentRoute: typeof PrototypeCodexRoute
+    }
+    '/prototype/codex/onboarding': {
+      id: '/prototype/codex/onboarding'
+      path: '/onboarding'
+      fullPath: '/prototype/codex/onboarding'
+      preLoaderRoute: typeof PrototypeCodexOnboardingRouteImport
+      parentRoute: typeof PrototypeCodexRoute
+    }
+    '/prototype/codex/scaffolder': {
+      id: '/prototype/codex/scaffolder'
+      path: '/scaffolder'
+      fullPath: '/prototype/codex/scaffolder'
+      preLoaderRoute: typeof PrototypeCodexScaffolderRouteImport
+      parentRoute: typeof PrototypeCodexRoute
+    }
+    '/prototype/kimi/': {
+      id: '/prototype/kimi/'
+      path: '/'
+      fullPath: '/prototype/kimi/'
+      preLoaderRoute: typeof PrototypeKimiIndexRouteImport
+      parentRoute: typeof PrototypeKimiRoute
+    }
+    '/prototype/kimi/dashboard': {
+      id: '/prototype/kimi/dashboard'
+      path: '/dashboard'
+      fullPath: '/prototype/kimi/dashboard'
+      preLoaderRoute: typeof PrototypeKimiDashboardRouteImport
+      parentRoute: typeof PrototypeKimiRoute
+    }
+    '/prototype/kimi/diagnosis': {
+      id: '/prototype/kimi/diagnosis'
+      path: '/diagnosis'
+      fullPath: '/prototype/kimi/diagnosis'
+      preLoaderRoute: typeof PrototypeKimiDiagnosisRouteImport
+      parentRoute: typeof PrototypeKimiRoute
+    }
+    '/prototype/kimi/onboarding': {
+      id: '/prototype/kimi/onboarding'
+      path: '/onboarding'
+      fullPath: '/prototype/kimi/onboarding'
+      preLoaderRoute: typeof PrototypeKimiOnboardingRouteImport
+      parentRoute: typeof PrototypeKimiRoute
+    }
+    '/prototype/kimi/scaffolder': {
+      id: '/prototype/kimi/scaffolder'
+      path: '/scaffolder'
+      fullPath: '/prototype/kimi/scaffolder'
+      preLoaderRoute: typeof PrototypeKimiScaffolderRouteImport
+      parentRoute: typeof PrototypeKimiRoute
+    }
+    '/prototype/opus/': {
+      id: '/prototype/opus/'
+      path: '/'
+      fullPath: '/prototype/opus/'
+      preLoaderRoute: typeof PrototypeOpusIndexRouteImport
+      parentRoute: typeof PrototypeOpusRoute
+    }
+    '/prototype/opus/dashboard': {
+      id: '/prototype/opus/dashboard'
+      path: '/dashboard'
+      fullPath: '/prototype/opus/dashboard'
+      preLoaderRoute: typeof PrototypeOpusDashboardRouteImport
+      parentRoute: typeof PrototypeOpusRoute
+    }
+    '/prototype/opus/diagnosis': {
+      id: '/prototype/opus/diagnosis'
+      path: '/diagnosis'
+      fullPath: '/prototype/opus/diagnosis'
+      preLoaderRoute: typeof PrototypeOpusDiagnosisRouteImport
+      parentRoute: typeof PrototypeOpusRoute
+    }
+    '/prototype/opus/onboarding': {
+      id: '/prototype/opus/onboarding'
+      path: '/onboarding'
+      fullPath: '/prototype/opus/onboarding'
+      preLoaderRoute: typeof PrototypeOpusOnboardingRouteImport
+      parentRoute: typeof PrototypeOpusRoute
+    }
+    '/prototype/opus/scaffolder': {
+      id: '/prototype/opus/scaffolder'
+      path: '/scaffolder'
+      fullPath: '/prototype/opus/scaffolder'
+      preLoaderRoute: typeof PrototypeOpusScaffolderRouteImport
+      parentRoute: typeof PrototypeOpusRoute
+    }
     '/service/$provider/$id': {
       id: '/service/$provider/$id'
       path: '/service/$provider/$id'
       fullPath: '/service/$provider/$id'
       preLoaderRoute: typeof ServiceProviderIdRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/prototype/kimi/runs/$runId': {
+      id: '/prototype/kimi/runs/$runId'
+      path: '/runs/$runId'
+      fullPath: '/prototype/kimi/runs/$runId'
+      preLoaderRoute: typeof PrototypeKimiRunsRunIdRouteImport
+      parentRoute: typeof PrototypeKimiRoute
     }
   }
 }
@@ -431,6 +791,68 @@ const SourcesRouteChildren: SourcesRouteChildren = {
 const SourcesRouteWithChildren =
   SourcesRoute._addFileChildren(SourcesRouteChildren)
 
+interface PrototypeCodexRouteChildren {
+  PrototypeCodexDashboardRoute: typeof PrototypeCodexDashboardRoute
+  PrototypeCodexDiagnosisRoute: typeof PrototypeCodexDiagnosisRoute
+  PrototypeCodexOnboardingRoute: typeof PrototypeCodexOnboardingRoute
+  PrototypeCodexScaffolderRoute: typeof PrototypeCodexScaffolderRoute
+  PrototypeCodexIndexRoute: typeof PrototypeCodexIndexRoute
+}
+
+const PrototypeCodexRouteChildren: PrototypeCodexRouteChildren = {
+  PrototypeCodexDashboardRoute: PrototypeCodexDashboardRoute,
+  PrototypeCodexDiagnosisRoute: PrototypeCodexDiagnosisRoute,
+  PrototypeCodexOnboardingRoute: PrototypeCodexOnboardingRoute,
+  PrototypeCodexScaffolderRoute: PrototypeCodexScaffolderRoute,
+  PrototypeCodexIndexRoute: PrototypeCodexIndexRoute,
+}
+
+const PrototypeCodexRouteWithChildren = PrototypeCodexRoute._addFileChildren(
+  PrototypeCodexRouteChildren,
+)
+
+interface PrototypeKimiRouteChildren {
+  PrototypeKimiDashboardRoute: typeof PrototypeKimiDashboardRoute
+  PrototypeKimiDiagnosisRoute: typeof PrototypeKimiDiagnosisRoute
+  PrototypeKimiOnboardingRoute: typeof PrototypeKimiOnboardingRoute
+  PrototypeKimiScaffolderRoute: typeof PrototypeKimiScaffolderRoute
+  PrototypeKimiIndexRoute: typeof PrototypeKimiIndexRoute
+  PrototypeKimiRunsRunIdRoute: typeof PrototypeKimiRunsRunIdRoute
+}
+
+const PrototypeKimiRouteChildren: PrototypeKimiRouteChildren = {
+  PrototypeKimiDashboardRoute: PrototypeKimiDashboardRoute,
+  PrototypeKimiDiagnosisRoute: PrototypeKimiDiagnosisRoute,
+  PrototypeKimiOnboardingRoute: PrototypeKimiOnboardingRoute,
+  PrototypeKimiScaffolderRoute: PrototypeKimiScaffolderRoute,
+  PrototypeKimiIndexRoute: PrototypeKimiIndexRoute,
+  PrototypeKimiRunsRunIdRoute: PrototypeKimiRunsRunIdRoute,
+}
+
+const PrototypeKimiRouteWithChildren = PrototypeKimiRoute._addFileChildren(
+  PrototypeKimiRouteChildren,
+)
+
+interface PrototypeOpusRouteChildren {
+  PrototypeOpusDashboardRoute: typeof PrototypeOpusDashboardRoute
+  PrototypeOpusDiagnosisRoute: typeof PrototypeOpusDiagnosisRoute
+  PrototypeOpusOnboardingRoute: typeof PrototypeOpusOnboardingRoute
+  PrototypeOpusScaffolderRoute: typeof PrototypeOpusScaffolderRoute
+  PrototypeOpusIndexRoute: typeof PrototypeOpusIndexRoute
+}
+
+const PrototypeOpusRouteChildren: PrototypeOpusRouteChildren = {
+  PrototypeOpusDashboardRoute: PrototypeOpusDashboardRoute,
+  PrototypeOpusDiagnosisRoute: PrototypeOpusDiagnosisRoute,
+  PrototypeOpusOnboardingRoute: PrototypeOpusOnboardingRoute,
+  PrototypeOpusScaffolderRoute: PrototypeOpusScaffolderRoute,
+  PrototypeOpusIndexRoute: PrototypeOpusIndexRoute,
+}
+
+const PrototypeOpusRouteWithChildren = PrototypeOpusRoute._addFileChildren(
+  PrototypeOpusRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AvailabilityRoute: AvailabilityRouteWithChildren,
@@ -441,6 +863,9 @@ const rootRouteChildren: RootRouteChildren = {
   SupportRoute: SupportRoute,
   WhatsnewRoute: WhatsnewRoute,
   PoliciesPolicyIdRoute: PoliciesPolicyIdRoute,
+  PrototypeCodexRoute: PrototypeCodexRouteWithChildren,
+  PrototypeKimiRoute: PrototypeKimiRouteWithChildren,
+  PrototypeOpusRoute: PrototypeOpusRouteWithChildren,
   ReleasesReleaseIdRoute: ReleasesReleaseIdRoute,
   SkillsIndexRoute: SkillsIndexRoute,
   ServiceProviderIdRoute: ServiceProviderIdRoute,

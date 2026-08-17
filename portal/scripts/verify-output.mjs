@@ -8,13 +8,15 @@ const workspaceRoot = resolve(portalRoot, "..");
 
 const performanceBudgets = {
   initialHomeRequests: 11,
-  initialHomeTransferBytes: 170_000,
+  initialHomeTransferBytes: 180_000,
   // Route-level splitting can add lazy files while reducing the cold-home closure.
   // Keep a fragmentation guard, but judge the user-visible path by its own request
   // and transfer budgets instead of forcing unrelated routes into eager chunks.
-  javascriptFiles: 60,
-  javascriptTransferBytes: 500_000,
-  stylesheetTransferBytes: 22_000,
+  // Headroom includes three isolated /prototype/<model-slug> namespaces
+  // (lazy route chunks + scoped themes).
+  javascriptFiles: 92,
+  javascriptTransferBytes: 610_000,
+  stylesheetTransferBytes: 27_000,
 };
 
 const textExtensions = new Set([

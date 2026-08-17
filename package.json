@@ -2,6 +2,7 @@
   "name": "atlas",
   "private": true,
   "scripts": {
+    "dev": "pnpm --filter @atlas/portal dev",
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test",

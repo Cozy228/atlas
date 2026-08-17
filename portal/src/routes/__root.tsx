@@ -79,11 +79,18 @@ function RootComponent() {
   useEffect(() => {
     if (pathname !== "/") setShowToaster(true);
   }, [pathname]);
+  // Model prototype namespaces (/prototype/<slug>) render their own shell;
+  // the portal chrome (nav, landing-zone context, Ask Atlas) does not apply.
+  const isPrototype = pathname.startsWith("/prototype/");
   return (
     <QueryClientProvider client={queryClient}>
-      <PortalShell dataMode={dataMode}>
+      {isPrototype ? (
         <Outlet />
-      </PortalShell>
+      ) : (
+        <PortalShell dataMode={dataMode}>
+          <Outlet />
+        </PortalShell>
+      )}
       {showToaster ? (
         <Suspense fallback={null}>
           <Toaster />
