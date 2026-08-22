@@ -72,6 +72,13 @@ For multi-step tasks, state a brief plan:
 
 Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
 
+## 5. Comments & PR Descriptions
+
+**Document the final state, not the journey.**
+
+- Comments explain only non-obvious reasons; never leave commented-out code or intermediate attempts behind.
+- PR descriptions describe only the final behavior. Skip tradeoffs that aren't visible in the diff and states that never landed.
+
 ---
 
 **These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.

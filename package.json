@@ -10,16 +10,16 @@
     "prepare": "husky"
   },
   "devDependencies": {
-    "@commitlint/cli": "^21.2.1",
-    "@commitlint/config-conventional": "^21.2.0",
+    "@commitlint/cli": "^21.2.2",
+    "@commitlint/config-conventional": "^21.2.2",
     "husky": "^9.1.7",
     "lint-staged": "^17.3.0",
     "msw": "^2.15.0",
-    "oxfmt": "^0.61.0",
-    "oxlint": "^1.76.0",
+    "oxfmt": "^0.64.0",
+    "oxlint": "^1.79.0",
     "typescript": "7.0.2",
-    "vite": "8.2.0",
-    "vitest": "4.1.10"
+    "vite": "8.2.2",
+    "vitest": "4.1.11"
   },
   "lint-staged": {
     "*.{ts,tsx}": [
@@ -27,5 +27,5 @@
       "oxlint --fix --vitest-plugin"
     ]
   },
-  "packageManager": "pnpm@11.18.0"
+  "packageManager": "pnpm@11.22.0"
 }

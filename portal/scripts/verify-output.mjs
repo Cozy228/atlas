@@ -6,19 +6,6 @@ const portalRoot = fileURLToPath(new URL("..", import.meta.url));
 const outputRoot = resolve(portalRoot, ".output");
 const workspaceRoot = resolve(portalRoot, "..");
 
-const performanceBudgets = {
-  initialHomeRequests: 11,
-  initialHomeTransferBytes: 180_000,
-  // Route-level splitting can add lazy files while reducing the cold-home closure.
-  // Keep a fragmentation guard, but judge the user-visible path by its own request
-  // and transfer budgets instead of forcing unrelated routes into eager chunks.
-  // Headroom includes three isolated /prototype/<model-slug> namespaces
-  // (lazy route chunks + scoped themes).
-  javascriptFiles: 92,
-  javascriptTransferBytes: 610_000,
-  stylesheetTransferBytes: 27_000,
-};
-
 const textExtensions = new Set([
   ".cjs",
   ".css",
@@ -139,37 +126,11 @@ export function findProductionExclusionViolations({
   return [...new Set(violations)].sort();
 }
 
-export function findPerformanceBudgetViolations(performance, budgets = performanceBudgets) {
-  const checks = [
-    ["initial home JS requests", performance.initialHome.requestCount, budgets.initialHomeRequests],
-    [
-      "initial home JS transfer bytes",
-      performance.initialHome.transferBytes,
-      budgets.initialHomeTransferBytes,
-    ],
-    ["JavaScript files", performance.javascript.fileCount, budgets.javascriptFiles],
-    [
-      "all JavaScript transfer bytes",
-      performance.javascript.transferBytes,
-      budgets.javascriptTransferBytes,
-    ],
-    [
-      "stylesheet transfer bytes",
-      performance.stylesheets.transferBytes,
-      budgets.stylesheetTransferBytes,
-    ],
-  ];
-  return checks
-    .filter(([, actual, maximum]) => actual > maximum)
-    .map(([label, actual, maximum]) => `${label}: ${actual} exceeds budget ${maximum}`);
-}
-
 export async function verifyProductionOutput() {
   const packageJson = JSON.parse(await readFile(resolve(portalRoot, "package.json"), "utf8"));
-  const [entries, installedPackageNames, buildMetadata] = await Promise.all([
+  const [entries, installedPackageNames] = await Promise.all([
     collectOutputEntries(outputRoot),
     listDirectPackageNames(resolve(portalRoot, "node_modules")),
-    readFile(resolve(outputRoot, "BUILD_METADATA.json"), "utf8").then(JSON.parse),
   ]);
   const packageSections = Object.fromEntries(
     ["dependencies", "devDependencies", "optionalDependencies", "peerDependencies"].map(
@@ -189,17 +150,13 @@ export async function verifyProductionOutput() {
       resolve(workspaceRoot, "docs"),
     ],
   });
-  violations.push(...findPerformanceBudgetViolations(buildMetadata.performance));
-
   if (violations.length > 0) {
     throw new Error(
       `Production output exclusion verification failed:\n${violations.map((item) => `- ${item}`).join("\n")}`,
     );
   }
 
-  console.log(
-    `Verified ${entries.length} production output entries: no forbidden reachability and performance budgets pass.`,
-  );
+  console.log(`Verified ${entries.length} production output entries: no forbidden reachability.`);
 }
 
 async function collectOutputEntries(root) {

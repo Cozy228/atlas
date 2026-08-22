@@ -1,8 +1,8 @@
 import { useMemo } from "react";
 import {
   flexRender,
-  getCoreRowModel,
-  useReactTable,
+  tableFeatures,
+  useTable,
   type ColumnDef,
   type Row,
 } from "@tanstack/react-table";
@@ -17,6 +17,10 @@ import { Button } from "@/components/ui/button";
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { AvailabilityRow, AvailabilityRowGroup } from "@/lib/availability-row-model";
 import { cn } from "@/lib/utils";
+
+const matrixTableFeatures = tableFeatures({});
+
+type MatrixTableRow = Row<typeof matrixTableFeatures, AvailabilityRow>;
 
 type MatrixViewProps = {
   provider: ServiceIconProvider;
@@ -46,14 +50,14 @@ export function MatrixView({
   const locColWidth = `${(100 - parseFloat(svcColWidth)) / locations.length}%`;
   const hasActiveCol = activeLocationId !== null;
   const tableData = useMemo(() => [...rows], [rows]);
-  const columns = useMemo<ColumnDef<AvailabilityRow>[]>(
+  const columns = useMemo<ColumnDef<typeof matrixTableFeatures, AvailabilityRow>[]>(
     () => [
       {
         id: "service",
         header: () => "Service",
         cell: ({ row }) => <ServiceCell provider={provider} service={row.original.service} />,
       },
-      ...locations.map<ColumnDef<AvailabilityRow>>((location) => {
+      ...locations.map<ColumnDef<typeof matrixTableFeatures, AvailabilityRow>>((location) => {
         return {
           id: location.id,
           header: () => (
@@ -85,10 +89,10 @@ export function MatrixView({
     // states are now CSS-driven (chevron) or applied at render time (active col).
     [isWide, locations, onLocationSelect, provider],
   );
-  const table = useReactTable({
+  const table = useTable({
+    features: matrixTableFeatures,
     data: tableData,
     columns,
-    getCoreRowModel: getCoreRowModel(),
     getRowId: (row) => row.id,
   });
   const tableRowsById = new Map(table.getRowModel().rows.map((row) => [row.original.id, row]));
@@ -153,7 +157,7 @@ function DomainRows({
   hasActiveCol,
 }: {
   domain: string;
-  rows: ReadonlyArray<Row<AvailabilityRow>>;
+  rows: ReadonlyArray<MatrixTableRow>;
   locations: ReadonlyArray<Location>;
   selectedServiceId: string | null;
   onSelect: (id: string) => void;
@@ -210,7 +214,7 @@ function MatrixRow({
   activeLocationId,
   hasActiveCol,
 }: {
-  row: Row<AvailabilityRow>;
+  row: MatrixTableRow;
   isSelected: boolean;
   locations: ReadonlyArray<Location>;
   onSelect: (id: string) => void;
@@ -235,7 +239,7 @@ function MatrixRow({
         )}
         aria-expanded={isSelected}
       >
-        {row.getVisibleCells().map((cell) => (
+        {row.getAllCells().map((cell) => (
           <TableCell
             key={cell.id}
             className={matrixCellClass(cell.column.id, activeLocationId, isWide, hasActiveCol)}
@@ -313,7 +317,7 @@ function matrixHeadClass(columnId: string, activeLocationId: string | null) {
   );
 }
 
-function isTableRow(row: Row<AvailabilityRow> | undefined): row is Row<AvailabilityRow> {
+function isTableRow(row: MatrixTableRow | undefined): row is MatrixTableRow {
   return row !== undefined;
 }
 

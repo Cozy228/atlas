@@ -24,9 +24,10 @@
  * is enough; sibling regions sharing that promise show the error without a button.
  */
 import { useState, type ReactNode } from "react";
-import { Await, CatchBoundary, useRouter } from "@tanstack/react-router";
+import { Await, useRouter } from "@tanstack/react-router";
 import { IconAlertTriangle, IconLock, IconRefresh } from "@tabler/icons-react";
 
+import { RouterCatchBoundary } from "@/components/router-catch-boundary";
 import { presentError } from "@/lib/error-presentation";
 import { cn } from "@/lib/utils";
 
@@ -62,7 +63,7 @@ export function DeferredRegion<T>({
 }) {
   const router = useRouter();
   return (
-    <CatchBoundary
+    <RouterCatchBoundary
       // Reset on navigation so a stale error never sticks across a param change;
       // retry resets explicitly via the `reset` arg below.
       getResetKey={() => router.state.location.pathname}
@@ -84,7 +85,7 @@ export function DeferredRegion<T>({
       <Await promise={promise} fallback={fallback}>
         {children}
       </Await>
-    </CatchBoundary>
+    </RouterCatchBoundary>
   );
 }
 

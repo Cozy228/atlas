@@ -11,7 +11,12 @@ describe("MatrixView", () => {
     expect(source).not.toContain("overflow-clip");
     expect(source).toContain("@tanstack/react-table");
     expect(source).toContain("motion/react");
-    expect(source).toContain("useReactTable");
+    expect(source).toContain("useTable");
+    expect(source).toContain("tableFeatures");
+    expect(source).toContain("getAllCells");
+    expect(source).not.toContain("stockFeatures");
+    expect(source).not.toContain("useReactTable");
+    expect(source).not.toContain("getCoreRowModel");
     expect(source).toContain("AnimatePresence");
   });
 });

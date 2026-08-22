@@ -1,8 +1,7 @@
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
 import { tanstackRouter } from "@tanstack/router-plugin/vite";
-import viteReact, { reactCompilerPreset } from "@vitejs/plugin-react";
-import babel from "@rolldown/plugin-babel";
+import viteReact from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 
 const portalRoot = fileURLToPath(new URL(".", import.meta.url));
@@ -32,10 +31,18 @@ const portalCodeSplittingGroups = [
     priority: 52,
   },
   { name: "motion", test: /node_modules[\\/]motion[\\/]/, priority: 30 },
-  // react-table is imported only by the lazy availability matrix, so split it
-  // out of the eager `tanstack` group (higher priority wins) to keep it off the
-  // cold-load path.
-  { name: "react-table", test: /node_modules[\\/]@tanstack[\\/]react-table[\\/]/, priority: 26 },
+  {
+    name: "tanstack-store",
+    test: /node_modules[\\/]@tanstack[\\/](?:react-store|store)[\\/]/,
+    priority: 27,
+  },
+  // The React adapter re-exports table-core, so both packages must stay in the
+  // same lazy chunk to avoid a static cycle through the eager `tanstack` group.
+  {
+    name: "react-table",
+    test: /node_modules[\\/]@tanstack[\\/](?:react-table|table-core)[\\/]/,
+    priority: 26,
+  },
   { name: "tanstack", test: /node_modules[\\/]@tanstack[\\/]/, priority: 25 },
   { name: "aws-icons", test: /node_modules[\\/]aws-react-icons[\\/]/, priority: 23 },
   {
@@ -67,14 +74,7 @@ export default defineConfig(({ command }) => ({
       routesDirectory: `${portalRoot}src/routes`,
       generatedRouteTree: `${portalRoot}src/routeTree.gen.ts`,
     }),
-    viteReact(),
-    // React Compiler — official Babel route for React 19 + Vite 8 Rolldown: keep
-    // the Oxc/Rolldown main chain and run the compiler as a standalone
-    // `@rolldown/plugin-babel` pass. `reactCompilerPreset()` returns a
-    // RolldownBabelPreset the plugin consumes directly (preset + filter +
-    // client-only env hook + `react/compiler-runtime` optimizeDeps). React 19
-    // needs no `target`. Verify via React DevTools "Memo ✨" badges.
-    babel({ presets: [reactCompilerPreset()] }),
+    viteReact({ compiler: true }),
     tailwindcss(),
   ],
   server: {

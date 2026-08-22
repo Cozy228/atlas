@@ -50,8 +50,16 @@ jobs:
       - name: Test
         run: pnpm -r test
 
-      - name: Build portal (runs gen:agent-skills then vite build)
-        run: pnpm --filter @atlas/portal build
+      - name: Build portal and run Lighthouse performance
+        run: pnpm --filter @atlas/portal perf:lhci
+
+      - name: Upload Lighthouse reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-reports
+          path: portal/.lighthouseci/
+          retention-days: 7
 
   e2e:
     name: e2e (${{ matrix.os }})

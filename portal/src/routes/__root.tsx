@@ -62,11 +62,11 @@ function RootComponent() {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   // Load the toast runtime only when a toast is requested or the user first
   // interacts. Successful passive page loads never pay for Sonner.
-  const [showToaster, setShowToaster] = useState(pathname !== "/");
+  const [toasterRequested, setToasterRequested] = useState(pathname !== "/");
   useEffect(() => {
     markReady("atlas:app-mounted");
     markReady("atlas:shell-interaction-ready");
-    const show = () => setShowToaster(true);
+    const show = () => setToasterRequested(true);
     window.addEventListener("atlas:toast-needed", show, { once: true });
     window.addEventListener("pointerdown", show, { once: true });
     window.addEventListener("keydown", show, { once: true });
@@ -76,12 +76,10 @@ function RootComponent() {
       window.removeEventListener("keydown", show);
     };
   }, []);
-  useEffect(() => {
-    if (pathname !== "/") setShowToaster(true);
-  }, [pathname]);
-  // Model prototype namespaces (/prototype/<slug>) render their own shell;
-  // the portal chrome (nav, landing-zone context, Ask Atlas) does not apply.
-  const isPrototype = pathname.startsWith("/prototype/");
+  const showToaster = toasterRequested || pathname !== "/";
+  // Model prototype namespaces (/prototype and /prototype/<slug>) render their
+  // own shell; the portal chrome (nav, landing-zone context, Ask Atlas) does not apply.
+  const isPrototype = pathname === "/prototype" || pathname.startsWith("/prototype/");
   return (
     <QueryClientProvider client={queryClient}>
       {isPrototype ? (

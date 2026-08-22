@@ -11,12 +11,13 @@
  *   - What changed   → a DATE-LED TIMELINE with recency hierarchy
  */
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Await, CatchBoundary, Link } from "@tanstack/react-router";
+import { Await, Link } from "@tanstack/react-router";
 import { IconArrowLeft, IconArrowRight, IconMessageCircle } from "@tabler/icons-react";
 
 import { useAskAtlas } from "@/components/ask-atlas/context";
 import { JourneyGrid } from "@/components/home/journey-grid";
 import { IntentSearch } from "@/components/intent-search";
+import { RouterCatchBoundary } from "@/components/router-catch-boundary";
 import { Skeleton } from "@/components/ui/skeleton";
 import { markReady } from "@/lib/readinessMetrics";
 import { cn } from "@/lib/utils";
@@ -48,11 +49,11 @@ function HomeDeferred<T>({
   children: (value: T) => ReactNode;
 }) {
   return (
-    <CatchBoundary getResetKey={() => "home"} errorComponent={() => <HomeDeferredFallback />}>
+    <RouterCatchBoundary getResetKey={() => "home"} errorComponent={() => <HomeDeferredFallback />}>
       <Await promise={promise} fallback={fallback}>
         {children}
       </Await>
-    </CatchBoundary>
+    </RouterCatchBoundary>
   );
 }
 
