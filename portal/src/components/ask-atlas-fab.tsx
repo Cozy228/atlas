@@ -18,9 +18,9 @@ export function AskAtlasFab() {
 
   // Only mount (and fetch the chunk for) the overlay once it has been opened.
   const [hasOpened, setHasOpened] = useState(false);
-  useEffect(() => {
-    if (overlayOpen) setHasOpened(true);
-  }, [overlayOpen]);
+  if (overlayOpen && !hasOpened) {
+    setHasOpened(true);
+  }
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {

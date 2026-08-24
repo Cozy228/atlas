@@ -12,7 +12,7 @@
  * Data: fictional, public-safe fixtures in `proto/whatsnew/data.ts`. Home's
  * "What changed" section links here; the freshest slice are Home's announcements.
  */
-import { useEffect, useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 
@@ -131,22 +131,25 @@ function WhatsNewRoute() {
   );
 }
 
+function getDateline(): string {
+  const now = new Date();
+  return `${now.toLocaleDateString("en-US", { weekday: "long" })} · ${now.toLocaleDateString(
+    "en-US",
+    {
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    },
+  )}`;
+}
+
 function Masthead() {
-  const [dateline, setDateline] = useState("");
-  // Gate async-query-derived chrome behind a mount flag so the first render is
-  // stable, then upgrade once React Query has a fetch timestamp.
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => {
-    setMounted(true);
-    const now = new Date();
-    setDateline(
-      `${now.toLocaleDateString("en-US", { weekday: "long" })} · ${now.toLocaleDateString("en-US", {
-        month: "long",
-        day: "numeric",
-        year: "numeric",
-      })}`,
-    );
-  }, []);
+  const [dateline] = useState(getDateline);
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
   const { dataUpdatedAt } = useQuery(announcementsQueryOptions);
 
   return (

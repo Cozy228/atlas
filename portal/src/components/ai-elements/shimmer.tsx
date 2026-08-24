@@ -1,36 +1,28 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import type { MotionProps } from "motion/react";
 import { LazyMotion, m } from "motion/react";
-import type { CSSProperties, ElementType, JSX } from "react";
-import { memo, useEffect, useMemo, useRef, useState } from "react";
-
-type MotionHTMLProps = MotionProps & Record<string, unknown>;
+import { memo, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 
 // Lazily load motion's DOM feature bundle (shared with the home page chunk).
 const loadDomAnimation = () => import("motion/react").then((mod) => mod.domAnimation);
 
-// Cache motion components at module level to avoid creating during render
-const motionComponentCache = new Map<
-  keyof JSX.IntrinsicElements,
-  React.ComponentType<MotionHTMLProps>
->();
-
-const getMotionComponent = (element: keyof JSX.IntrinsicElements) => {
-  let component = motionComponentCache.get(element);
-  if (!component) {
-    component = m.create(element);
-    motionComponentCache.set(element, component);
-  }
-  return component as React.ForwardRefExoticComponent<
-    MotionHTMLProps & React.RefAttributes<HTMLElement>
-  >;
-};
+// Statically map common element types to avoid declaring components during render
+const MOTION_ELEMENT_MAP = {
+  p: m.p,
+  span: m.span,
+  div: m.div,
+  h1: m.h1,
+  h2: m.h2,
+  h3: m.h3,
+  h4: m.h4,
+  h5: m.h5,
+  h6: m.h6,
+} as const;
 
 export interface TextShimmerProps {
   children: string;
-  as?: ElementType;
+  as?: keyof typeof MOTION_ELEMENT_MAP;
   className?: string;
   duration?: number;
   spread?: number;
@@ -43,7 +35,7 @@ const ShimmerComponent = ({
   duration = 2,
   spread = 2,
 }: TextShimmerProps) => {
-  const MotionComponent = getMotionComponent(Component as keyof JSX.IntrinsicElements);
+  const MotionComponent = MOTION_ELEMENT_MAP[Component];
 
   const dynamicSpread = useMemo(() => (children?.length ?? 0) * spread, [children, spread]);
 
