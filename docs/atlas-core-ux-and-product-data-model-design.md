@@ -2,6 +2,10 @@
 
 **状态：** UX shaping draft
 **日期：** 2026-08-24
+**来源与依据：**
+* [`Atlas.md`](../Atlas.md)：产品定位与愿景、四项核心体验原语（View / Action / Journey / Diagnosis）、状态真实性（Honesty Model）及职责边界。
+* [`Atlas_Strategy.md`](../Atlas_Strategy.md)：成果导向平台策略、分阶段演进路线（Phase 1–2 与扩展）及三大典型业务场景（Onboarding / Diagnosis / Daily Workbench）。
+* [`docs/app-centric-experience-architecture.md`](./app-centric-experience-architecture.md)：以身份为锚点的信息架构、全局与应用工作台双层 Shell、稳定导航与动态任务分离规范。
 **范围：** Atlas 面向应用团队成员的核心终端体验，包括全局入口、Application Workbench、Onboarding、Infrastructure Change、Promote、Diagnosis，以及支撑这些体验的数据模型和实现方向。
 **不包含：** Platform Support Member 工作台、管理层专属 Dashboard、通用 Workflow Builder、完整 Cloud Console、通用 Observability、Atlas 内审批。
 
@@ -46,7 +50,7 @@ Support
 
 作为默认一级 sidebar 页面。
 
-这些内容并没有被删除，而是回到与用户任务相关的上下文中：
+这些内容并没有被删除，而是回归到与用户任务相关的具体上下文中：
 
 | 原内容                  | 新位置                                                                     |
 | -------------------- | ----------------------------------------------------------------------- |
@@ -78,15 +82,15 @@ Architecture
 
 不再使用 `Work`。
 
-`Work` 过于抽象，用户无法预判页面中会看到什么；`Activity` 更像历史记录；`Operations` 容易被理解为生产运维；`Processes` 偏企业流程和审批；`Journeys` 又无法覆盖 Infrastructure Change、Promotion、Diagnosis 和独立 Action。
+`Work` 语义过于抽象，用户难以预判页面内容；`Activity` 偏向历史日志；`Operations` 容易被误解为生产运维；`Processes` 偏向企业审批与流程；`Journeys` 又无法覆盖 Infrastructure Change、Promotion、Diagnosis 与独立 Action。
 
-`Tasks` 虽然不是对底层对象最严格的领域定义，但它对用户最容易识别：
+`Tasks` 虽非底层对象最严格的领域抽象，但最符合用户直觉：
 
-> 与当前 Application 相关、可以继续、Review、观察或处理的事情。
+> 与当前 Application 相关、可以继续推进、评审、观察或处理的事项。
 
-Atlas 原有 Experience Contract 已将 `Task` 定义为“用户希望完成的目标”，因此这一名称与产品语言是兼容的。
+`Tasks` 与系统的交互契约一致，直接代表用户希望完成的目标。
 
-这里的 `Tasks` 是一个**用户侧导航概念和读取投影**，不要求底层所有对象继承同一个 Task 数据模型。
+这里的 `Tasks` 是**用户侧的导航概念与读取投影（Read Projection）**，不要求底层所有对象继承同一个 Task 数据模型。
 
 页面可以聚合：
 
@@ -118,7 +122,7 @@ Tasks
 Things to continue, review, monitor or resolve for this application.
 ```
 
-页面按照用户当前与任务的关系组织，而不是按照底层对象类型组织：
+页面按照用户当前与任务的协作关系组织，而非按底层对象类型分类：
 
 ```text
 Needs you
@@ -154,11 +158,11 @@ Recently completed
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
-Sidebar label需要优化的是**识别速度**，而不是精确复述内部数据结构。Atlas 的底层 `JourneyRun`、`InfrastructureChangeRun`、`PromotionRun` 和 `DiagnosisCase` 仍然独立建模，只投影到统一的 Tasks 页面。
+Sidebar 导航标签的核心在于**提升用户的识别速度**，而非机械复述内部数据结构。Atlas 底层的 `JourneyRun`、`InfrastructureChangeRun`、`PromotionRun` 和 `DiagnosisCase` 保持独立建模，仅投影到统一的 Tasks 页面。
 
 ## 1.3 Application 顶栏提供 `Start`
 
-Application Workbench 提供一个直接、稳定、上下文相关的启动入口。
+Application Workbench 提供一个直观、稳定且具备上下文感知能力的启动入口。
 
 在 Application 顶栏右侧提供：
 
@@ -166,9 +170,9 @@ Application Workbench 提供一个直接、稳定、上下文相关的启动入�
 [ Start ▾ ]
 ```
 
-它不放在 sidebar，也不成为独立页面。Start Launcher 根据 Application Context 筛选事项，默认显示 2–4 个推荐结果、少量其他可用结果和搜索入口。
+它不占用 sidebar，也不跳转为独立页面。Start Launcher 会根据 Application Context 动态筛选事项，默认展示 2–4 个推荐操作、少量其他可用操作以及全局搜索入口。
 
-具体页面中的上下文 CTA 仍然保留：
+具体页面中的上下文 CTA 依然保留：
 
 ```text
 Architecture → Add capability
@@ -179,9 +183,9 @@ Journey step → Request access
 
 ## 1.4 核心产品边界
 
-Atlas 是一个 application-centric、multi-cloud Developer Experience Platform。它拥有体验、指导、状态、证据和跨系统衔接；底层平台继续拥有执行、审批、授权和领域事实。
+Atlas 是一个以应用为中心（Application-centric）、面向多云的 Developer Experience Platform。Atlas 负责体验编排、指导建议、状态聚合、可信证据与跨系统协同；底层平台继续掌管资源执行、授权审批与领域事实。
 
-这意味着：
+职责划分如下：
 
 ```text
 Atlas 负责：
@@ -203,7 +207,7 @@ Domain truth
 Actual cloud and SDLC state
 ```
 
-Atlas 不替代 SailPoint、ServiceNow、TFE、Harness、云控制台和 Observability 平台。它解决的是用户必须亲自理解和拼接这些系统的问题。
+Atlas 不替代 SailPoint、ServiceNow、TFE、Harness、云控制台和 Observability 平台，其核心价值在于消除用户在多个系统之间手动理解与拼接上下文的负担。
 
 ---
 
@@ -211,29 +215,29 @@ Atlas 不替代 SailPoint、ServiceNow、TFE、Harness、云控制台和 Observa
 
 ## 2.1 核心用户
 
-唯一核心用户是：
+核心用户定义为：
 
 > 负责将应用接入、建设和维护在云平台上的应用团队成员。
 
-他可能是 Developer、Tech Lead 或 Application Owner，但 Atlas 不为三者设计三套独立 persona。
+具体角色可能是 Developer、Tech Lead 或 Application Owner，Atlas 统一其核心工作流，不设计三套独立 persona。
 
-他可能：
+用户可能面临的典型场景包括：
 
-* 没有 App Code；
-* 没有 repository；
-* 没有 deployable artifact；
-* 不熟悉云平台；
-* 不熟悉 Terraform；
-* 已经有应用，需要增加或修改资源；
-* 需要 Promote version；
-* 日常确认应用状态；
-* 正在处理一个具体错误。
+* 尚未创建 App Code；
+* 尚未建立 repository；
+* 尚未生成可部署的 deployable artifact；
+* 对目标云平台不熟悉；
+* 对 Terraform 等 IaC 工具不熟悉；
+* 已有存量应用，需要扩充或修改云资源；
+* 需要跨环境 Promote version；
+* 日常检查应用运行与健康状态；
+* 正在排查并恢复具体运行错误。
 
 ## 2.2 用户真正来 Atlas 的原因
 
-Atlas 的设计应从用户意图开始，而不是从 Atlas 连接了什么系统开始。现有产品定义已经将主要意图归纳为理解、观察、决定、行动、完成和恢复。
+Atlas 的设计围绕用户意图展开，而非始于底层系统的连接关系。核心意图涵盖：理解、观察、决定、行动、完成与恢复。
 
-在实际界面中，可以进一步收敛成四种用户动机：
+在实际界面中，可收敛为四种核心用户动机：
 
 | 用户动机           | 用户心里的问题                                           |
 | -------------- | ------------------------------------------------- |
@@ -244,34 +248,28 @@ Atlas 的设计应从用户意图开始，而不是从 Atlas 连接了什么系�
 
 ## 2.3 对用户的价值
 
-Atlas 的价值不在于将多个链接放在同一个页面，而在于减少以下成本：
+Atlas 的价值不在于将多个外部链接简单聚合在同一页面，而在于实质降低以下认知与操作成本：
 
 | 用户成本   | Atlas 提供的改善                                |
 | ------ | ------------------------------------------ |
-| 发现成本   | 告诉用户去哪里、使用哪个流程、找哪个团队                       |
-| 判断成本   | 自动填值、推荐值、解释影响和命名规则                         |
-| 协调成本   | 管理跨系统依赖、责任方、等待和 handoff                    |
-| 输入成本   | 避免重复输入 Application、Environment、Account 等信息 |
-| 切换成本   | 在可行时直接提交，否则带着预填数据进入外部系统                    |
-| 等待不确定性 | 显示当前卡在哪里、谁负责、最后更新时间                        |
-| 恢复成本   | 自动聚合失败上下文，给出证据和下一步                         |
-| 验证成本   | 用真实 evidence 证明结果是否完成                      |
+| 发现成本   | 明确指引目标位置、适用流程与负责团队                       |
+| 判断成本   | 自动注入上下文、推荐合理配置、解释影响与命名规则                         |
+| 协调成本   | 统一管理跨系统依赖、责任方、等待状态与 handoff                    |
+| 输入成本   | 避免重复填报 Application、Environment、Account 等基础信息 |
+| 切换成本   | 在可行时直接代理提交，必要时携带预填数据直达外部系统                    |
+| 等待不确定性 | 明确显示阻塞节点、当前负责团队及最后更新时间                        |
+| 恢复成本   | 自动聚合失败现场上下文，输出可信证据与下一步修复路径                         |
+| 验证成本   | 基于真实源系统凭证（Evidence）验证交付结果是否达成                      |
 
-Atlas 的关键体验不是：
+Atlas 的核心体验目标是：
 
-> “所有系统都能从这里打开。”
-
-而是：
-
-> “我不需要理解所有组织和工具边界，也能完成结果。”
-
-这也是现有战略定义的最终目标。
+> 让用户无需感知异构组织与工具边界，即可端到端交付业务结果。
 
 ## 2.4 对管理层的价值
 
-管理层初期不需要一个新的管理驾驶舱。
+管理层初期无需单独构建管理大屏。
 
-最容易理解 Atlas 价值的证明是：
+最具说服力的价值验证闭环为：
 
 ```text
 一个真实 Application Team
@@ -289,16 +287,16 @@ Atlas 定位问题并提供恢复路径
 留下可验证 Evidence
 ```
 
-现有战略也将“真实团队通过 Atlas 完成 AWSF Onboarding 和第一次成功 DEV Deployment”定义为首个 proof point。
+战略首个关键验证点（Proof Point）即：真实业务团队通过 Atlas 完成 AWSF Onboarding 并顺利实现首次 DEV 环境成功部署。
 
-管理层得到的是：
+管理层由此获得：
 
 * 受治理的 Golden Path；
-* 跨系统状态透明度；
-* 责任与阻塞可见性；
-* 标准化的平台消费方式；
-* 可测量的 onboarding 和 diagnosis 效率；
-* 不重建底层执行平台的较低实施成本。
+* 跨系统执行状态端到端透明；
+* 责任边界与阻塞原因清晰可见；
+* 标准化的平台能力消费方式；
+* 可精确度量的 onboarding 和 diagnosis 效率；
+* 无需重构底层基础设施执行平台的较低实施成本。
 
 ---
 
@@ -306,7 +304,7 @@ Atlas 定位问题并提供恢复路径
 
 ## 3.1 Application 是上下文，不是所有体验的唯一入口
 
-进入 Application 后，所有页面都继承：
+进入 Application 后，所有页面统一继承以下上下文：
 
 ```text
 Application
@@ -317,9 +315,7 @@ Permissions
 Related platform context
 ```
 
-但 Onboarding 可以在 canonical Application 创建之前开始。
-
-Catalog 也可以在没有 Application context 时浏览。
+但 Onboarding 允许在标准 Canonical Application 创建之前发起；Catalog 也支持在脱离具体 Application 上下文时全局浏览。
 
 ## 3.2 稳定导航与动态工作分离
 
@@ -331,7 +327,7 @@ Tasks
 Architecture
 ```
 
-动态任务不成为永久 sidebar item。
+动态任务不作为常驻 sidebar item。
 
 例如：
 
@@ -342,11 +338,11 @@ Promote v2.4.1 to UAT
 Diagnose deployment #1428
 ```
 
-这些都出现在 Overview、Tasks 或相关对象中。
+这些事项均由 Overview、Tasks 或具体关联对象承载。
 
 ## 3.3 操作入口必须与上下文绑定
 
-不设置：
+避免设置宽泛的泛化操作入口：
 
 ```text
 Generic Debug
@@ -354,7 +350,7 @@ Generic Promote
 Generic Add resource
 ```
 
-而是：
+所有操作入口均携带明确上下文：
 
 ```text
 Promote v2.4.1 from DEV to UAT
@@ -366,11 +362,9 @@ Investigate why DEV is not reachable
 
 ## 3.4 直接开始新事务的入口
 
-仅依赖 Overview、Architecture、Environment 或已有错误对象中的间接入口，会产生一个明显问题：
+若仅依赖 Overview、Architecture、Environment 或已有错误对象中的间接入口，会导致用户在想发起新任务时不知道该先进入哪个页面。
 
-> 用户知道自己要做一件新事情，但不知道应该先进入哪个页面。
-
-因此，Application Workbench 需要一个直接、稳定、上下文相关的启动入口。
+因此，Application Workbench 需要一个直接、稳定且具备上下文感知能力的启动入口。
 
 ### 入口位置
 
@@ -380,7 +374,7 @@ Investigate why DEV is not reachable
 [ Start ▾ ]
 ```
 
-它不放在 sidebar，也不成为独立页面。
+它不占用 sidebar，也不跳转为独立页面。
 
 ```text
 ┌──────────────────────────────────────────────────────────────────────┐
@@ -388,13 +382,13 @@ Investigate why DEV is not reachable
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
-`Start` 比以下名称更合适：
+`Start` 相比其他命名的优势：
 
-* `New`：容易被理解为创建新资源；
-* `Create`：无法覆盖 Promote 和 Diagnose；
-* `Action`：过于产品内部化；
-* `Start a task`：文案较重；
-* `Quick Start`：更像某种产品模块。
+* `New`：容易被狭义理解为新建云资源；
+* `Create`：无法准确涵盖 Promote 与 Diagnose；
+* `Action`：偏向产品内部实现术语；
+* `Start a task`：文案偏重；
+* `Quick Start`：更像静态新手教程模块。
 
 ### Start Launcher
 
@@ -431,9 +425,9 @@ Investigate why DEV is not reachable
 
 ### Launcher 的设计规则
 
-1. **使用用户结果语言**
+1. **使用面向用户目标的业务语言**
 
-   显示：
+   展示：
 
    ```text
    Add a PostgreSQL database
@@ -442,7 +436,7 @@ Investigate why DEV is not reachable
    Investigate a problem
    ```
 
-   不显示：
+   避免直接暴露底层执行细节：
 
    ```text
    Start InfrastructureChangeRun
@@ -451,17 +445,17 @@ Investigate why DEV is not reachable
    Execute Harness workflow
    ```
 
-2. **根据 Application Context 筛选**
+2. **根据 Application Context 智能筛选**
 
-   Atlas 只展示当前 Application 实际适用的事项：
+   Atlas 仅展示当前 Application 实际适用的事项：
 
-   * 当前 cloud 和 workload 支持；
-   * 当前用户有权限查看或发起；
-   * prerequisites 已满足，或能够解释缺失项；
-   * 当前没有冲突的同类 operation；
-   * 有合理的 environment 或 version context。
+   * 匹配当前 cloud 与 workload 支持范围；
+   * 当前用户具备查看或发起权限；
+   * 前置条件（prerequisites）已满足，或能清晰解释缺失项；
+   * 当前无同类冲突操作在执行；
+   * 具备合理的环境与版本上下文。
 
-3. **提供推荐原因**
+3. **提供明确的推荐理由**
 
    例如：
 
@@ -469,19 +463,19 @@ Investigate why DEV is not reachable
    Recommended because DEV has v2.4.1 and UAT is still running v2.4.0.
    ```
 
-4. **不退化为模板目录**
+4. **保持聚焦，不退化为静态模板目录**
 
-   Start Launcher 应保持较短，默认只显示：
+   Start Launcher 保持紧凑，默认展示：
 
-   * 2–4 个推荐结果；
-   * 少量其他可用结果；
+   * 2–4 个高优先级推荐结果；
+   * 少量其他可用常用操作；
    * 搜索入口。
 
-   完整 capability 和文档发现仍然属于 Catalog。
+   全量 capability 与文档发现依然归属 Catalog。
 
-5. **上下文入口仍然保留**
+5. **就近上下文入口依然保留**
 
-   Header `Start` 解决可发现性；具体页面中的 CTA 提供更精准的上下文：
+   Header `Start` 解决全局操作的可发现性；具体页面内的 CTA 提供精准的就近直达：
 
    ```text
    Architecture → Add capability
@@ -490,11 +484,11 @@ Investigate why DEV is not reachable
    Journey step → Request access
    ```
 
-Atlas 的设计应从用户任务而不是产品入口开始，Task Center 和 Quick Start 也应完成 `Intent → Context → Recommended choice → Minimal inputs → Action → Result`，而不是展示表单目录。
+   交互路径遵循 `Intent → Context → Recommended choice → Minimal inputs → Action → Result` 的高效收敛。
 
 ### 实现投影
 
-Start Launcher 使用独立的 read projection，而不是创建万能领域模型：
+Start Launcher 使用独立的读取投影（Read Projection），无需绑定重型领域模型：
 
 ```text
 LaunchableItemProjection
@@ -511,7 +505,7 @@ LaunchableItemProjection
 └── Entry route
 ```
 
-其来源可以分别是：
+其来源分别映射自：
 
 ```text
 JourneyDefinition
@@ -523,35 +517,33 @@ DiagnosisEntryDefinition
 
 ## 3.5 最少提问
 
-Atlas 按以下优先级获取参数：
+Atlas 按照以下优先级获取参数：
 
 ```text
-1. 从已知 Application context 获取
-2. 从可信 source system 获取
+1. 从已知 Application context 推导
+2. 从权威 source system 获取
 3. 使用平台治理默认值
-4. 生成推荐值
-5. 最后才询问用户
+4. 生成推荐默认值
+5. 最终才向用户确认必要决策
 ```
 
-用户只决定 Atlas 无法安全推断的事项。
+用户仅需决定系统无法安全推断的事项。
 
 ## 3.6 状态必须诚实
 
-Atlas 必须区分：
+Atlas 清晰标明每项状态的事实来源：
 
-* 已观察到的事实；
-* 根据多个事实推导出的状态；
-* 用户主动确认；
-* Atlas 自己拥有的选择；
-* 当前未知或数据过期。
+* 实际观测到的源系统事实（Observed）；
+* 根据多项事实推导的复合状态（Derived）；
+* 用户主动填报的声明（Declared）；
+* Atlas 自身维护的状态（Atlas-owned）；
+* 当前未知或数据源离线（Unknown）。
 
-现有产品定义已经规定 `Observed / Derived / Declared / Atlas-owned / Unknown` 等状态来源，并要求 Done 原则上关联 Evidence。
+任务完成（Done）原则上必须关联可信的 Evidence 凭据。
 
 ## 3.7 Delegated execution
 
-Atlas 可以准备、触发和追踪操作，但不应让用户误以为 Atlas 自己拥有底层执行。
-
-例如：
+Atlas 负责准备、触发和追踪操作，并向用户明确展示实际掌管底层执行的系统：
 
 ```text
 Atlas prepared the request
@@ -564,7 +556,7 @@ Atlas generated the proposed IaC
 TFE owns plan and apply
 ```
 
-现有职责边界也明确将 Provision、Deploy、Access、Approval 和 Operate 的实际执行保留给相应平台。
+Provision、Deploy、Access、Approval 和 Operate 的实际执行职责完整保留在相应领域平台。
 
 ---
 
@@ -574,12 +566,12 @@ TFE owns plan and apply
 
 ### 用户为什么来到这里
 
-用户进入 Atlas，首先需要：
+用户进入 Atlas 全局层，核心诉求包括：
 
-* 回到自己的工作；
-* Onboard 新应用；
-* 查找平台能力、文档或支持；
-* 进入某个 Application。
+* 回到未完成的工作流；
+* 发起新应用接入（Onboard）；
+* 查找平台能力、权威文档或支持渠道；
+* 切换进入目标 Application 工作台。
 
 ### Atlas 需要提供
 
@@ -603,7 +595,7 @@ Identity and profile
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
 
-`Home / Onboard / Catalog` 是全局目的地，不进入 Application sidebar。
+`Home / Onboard / Catalog` 属于全局目的地，不进入具体 Application 的 sidebar 导航。
 
 ---
 
@@ -611,7 +603,7 @@ Identity and profile
 
 ### 用户为什么来到这里
 
-用户已经进入某个 Application，需要持续在该上下文下查看状态、继续工作或修改架构。
+用户已选定特定 Application，需要在其上下文内持续查看健康状态、推进任务或调整架构。
 
 ### Atlas 需要提供
 
@@ -619,8 +611,8 @@ Identity and profile
 * Environment selector；
 * Contextual Ask；
 * Application verdict；
-* 稳定 sidebar；
-* About 和 contextual help；
+* 稳定的三项一级 sidebar；
+* About 和上下文帮助；
 * 当前数据 freshness。
 
 ### Sidebar
@@ -651,7 +643,7 @@ Architecture
 └───────────────────┴──────────────────────────────────────────────────────────┘
 ```
 
-Sidebar 不包含：
+Sidebar 不设置独立常驻项：
 
 ```text
 About
@@ -659,17 +651,15 @@ Support
 Settings
 ```
 
-About 由顶栏 Application 名称或信息图标打开。
-
-Help 由当前页面、当前 step 或错误对象提供。
+About 由顶栏 Application 名称或信息图标直接唤出抽屉；Help 与 Support 由当前页面、具体步骤或错误对象就近提供。
 
 ---
 
 ## 4.3 Focused Workspace Shell
 
-Onboarding、Promotion、Infrastructure Change 和完整 Diagnosis 都是需要持续专注的任务。
+Onboarding、Promotion、Infrastructure Change 和完整 Diagnosis 均属于需要高专注度的任务流程。
 
-进入这些任务时，Application sidebar 被替换成场景自己的导航。
+进入这些任务时，Application Workbench 整体切换为全屏沉浸式的 Focused Workspace：
 
 ```text
 ┌──────────────────────────────────────────────────────────────────────────────┐
@@ -685,15 +675,7 @@ Onboarding、Promotion、Infrastructure Change 和完整 Diagnosis 都是需要�
 └───────────────────────┴──────────────────────────────────────────────────────┘
 ```
 
-不同时显示：
-
-```text
-Application sidebar
-+
-Journey step sidebar
-```
-
-避免两套导航争夺注意力。
+避免常规 Application sidebar 与步骤导航同时并存，减少多层导航对注意力的分散。
 
 ---
 
@@ -701,18 +683,16 @@ Journey step sidebar
 
 ## 5.1 用户为什么来到这里
 
-用户想知道：
+用户需要了解：
 
-* 哪些 Application 需要自己处理；
-* 是否有工作可以继续；
-* 自己有哪些 Application；
-* 是否需要进入某个 Application。
+* 哪些 Application 存在待办或异常；
+* 是否有未完成的工作可以继续；
+* 自身团队拥有哪些 Application；
+* 是否需要切换进入某个具体 Application。
 
 ## 5.2 用户此刻要完成什么
 
-Home 不用于完成复杂操作。
-
-它只用于：
+Home 不承载复杂的单应用运维操作，其核心目标为：
 
 ```text
 跨 Application 分诊
@@ -722,41 +702,39 @@ Home 不用于完成复杂操作。
 
 ## 5.3 用户不知道什么、被什么阻塞
 
-用户可能不知道：
+用户可能面临的不确定性包括：
 
-* 哪个 Application 出了问题；
-* 哪项工作在等自己；
-* 自己是否被正确映射到 Application；
-* 某个状态是否只是外部等待；
-* 哪个 Application 应该优先进入。
+* 哪个 Application 出现了故障或告警；
+* 哪项任务当前正等待自己处理；
+* 自身企业身份是否已正确映射至应用；
+* 某个阻塞状态是由于外部等待还是缺失配置；
+* 多个 Application 中应该优先处理哪一个。
 
 ## 5.4 Atlas 提供什么
 
-对于不同身份解析结果：
+根据身份解析结果提供针对性界面：
 
 ### 没有解析到 Application
 
-不能直接断言用户没有 Application。
+不直接断言用户名下无应用，而是提供清晰的排查与创建路径：
 
-Atlas 应显示：
-
-* 当前没有 Application 与该身份关联；
-* 查找已有 Application；
-* Onboard 新 Application；
-* 报告身份或映射问题。
+* 提示当前身份尚未关联 Application；
+* 提供存量 Application 查找入口；
+* 提供新 Application 接入（Onboard）入口；
+* 提供身份映射异常反馈渠道。
 
 ### 一个 Application
 
-直接进入该 Application 的 Overview。
+直接进入该 Application 的 Overview 页面。
 
 ### 多个 Application
 
-显示跨 Application 分诊台：
+展示跨 Application 分诊台：
 
-* Needs your attention；
-* Work in progress；
-* Waiting；
-* Application list。
+* Needs your attention（需当前用户处理的事项）；
+* Work in progress（进行中的任务）；
+* Waiting（等待外部处理的事项）；
+* Application list（全量应用列表）。
 
 ## 5.5 多 Application ASCII
 
@@ -764,30 +742,30 @@ Atlas 应显示：
 ┌──────────────────────────────────────────────────────────────────────────────┐
 │ Atlas        Home        Onboard        Catalog          Search / Ask    User │
 ├──────────────────────────────────────────────────────────────────────────────┤
-│ Hi, Ziyu                                                                  │
-│ 4 applications · 2 require your attention                                  │
+│ Hi, Ziyu                                                                     │
+│ 4 applications · 2 require your attention                                    │
 │                                                                              │
 │ NEEDS YOUR ATTENTION                                                         │
 │ ┌──────────────────────────────────────────────────────────────────────────┐ │
-│ │ payments-api · DEV deployment failed                                    │ │
+│ │ payments-api · DEV deployment failed                                     │ │
 │ │ Deployment #1428 · 18 minutes ago                         [ Diagnose ]   │ │
 │ ├──────────────────────────────────────────────────────────────────────────┤ │
-│ │ ledger-api · Runtime configuration requires input                       │ │
+│ │ ledger-api · Runtime configuration requires input                        │ │
 │ │ AWSF onboarding · Step 6 of 9                             [ Continue ]   │ │
 │ └──────────────────────────────────────────────────────────────────────────┘ │
 │                                                                              │
 │ IN PROGRESS / WAITING                                                        │
 │ ┌──────────────────────────────────────────────────────────────────────────┐ │
-│ │ inventory-api · Access request                                          │ │
-│ │ Waiting for Identity Platform · REQ-4821 · Last checked 6 min ago       │ │
-│ │                                                               [ View ] │ │
+│ │ inventory-api · Access request                                           │ │
+│ │ Waiting for Identity Platform · REQ-4821 · Last checked 6 min ago        │ │
+│ │                                                               [ View ]   │ │
 │ └──────────────────────────────────────────────────────────────────────────┘ │
 │                                                                              │
 │ MY APPLICATIONS                                                              │
-│ payments-api       Action required      DEV / UAT / PROD                    │
-│ ledger-api         Action required      Onboarding                          │
-│ inventory-api      Waiting              DEV                                 │
-│ report-service     No action required   DEV / PROD                          │
+│ payments-api       Action required      DEV / UAT / PROD                     │
+│ ledger-api         Action required      Onboarding                           │
+│ inventory-api      Waiting              DEV                                  │
+│ report-service     No action required   DEV / PROD                           │
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -795,14 +773,14 @@ Atlas 应显示：
 
 ```text
 ┌──────────────────────────────────────────────────────────────────────────────┐
-│ No applications are linked to your profile                                  │
+│ No applications are linked to your profile                                   │
 │                                                                              │
 │ This may mean:                                                               │
-│ · You are onboarding your first application                                 │
-│ · An existing application has not been mapped to your identity              │
-│ · You need access to another team's application                             │
+│ · You are onboarding your first application                                  │
+│ · An existing application has not been mapped to your identity               │
+│ · You need access to another team's application                              │
 │                                                                              │
-│ [ Onboard an application ]   [ Find an existing application ]                │
+│ [ Onboard an application ]   [ Find an existing application ]                 │
 │ [ Report an identity mapping issue ]                                         │
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -811,17 +789,17 @@ Atlas 应显示：
 
 # 6. Catalog UX
 
-Catalog 不是当前文档的核心工作流，但它承担 Atlas 的 Discover / Understand 能力。
+Catalog 承担 Atlas 全局的发现（Discover）与理解（Understand）能力。
 
 ## 6.1 用户为什么来到这里
 
 用户需要：
 
-* 找到平台能力；
-* 阅读权威文档；
-* 了解某项能力是否支持自己的 cloud、region 或 workload；
-* 找到正确 support route；
-* 理解平台变化。
+* 查找平台支持的技术能力与组件；
+* 查阅权威的平台文档与 Runbook；
+* 确认某项能力是否适配自身的 cloud、region 或 workload；
+* 找到正确的官方 support route；
+* 了解平台近期的演进与规范更新。
 
 ## 6.2 用户此刻要完成什么
 
@@ -834,21 +812,21 @@ Catalog 不是当前文档的核心工作流，但它承担 Atlas 的 Discover /
 
 ## 6.3 用户不知道什么
 
-* 不知道平台产品名称；
-* 不知道某个业务目标对应哪个技术资源；
-* 不知道文档是否权威或过期；
-* 不知道是否适用于当前 Application；
-* 不知道该找哪个团队。
+* 不清楚平台内部的具体产品代号；
+* 无法准确将业务目标映射到底层技术资源；
+* 难以辨别散落文档的权威性与时效性；
+* 无法确认特定能力是否适用于当前 Application；
+* 不明确特定问题应联系哪个平台团队。
 
 ## 6.4 Atlas 提供什么
 
-* Intent-based search；
-* Capability mapping；
-* 官方文档和来源；
-* Availability；
-* Known limitations；
-* Application relevance；
-* Support route；
+* Intent-based search（基于意图的搜索）；
+* Capability mapping（能力与资源映射）；
+* 官方文档与更新溯源；
+* Availability（支持范围与可用性）；
+* Known limitations（已知限制与约束）；
+* Application relevance（当前应用的适用性分析）；
+* Support route（支持渠道指引）；
 * 相关 Journey 和 Architecture action 入口。
 
 ## 6.5 ASCII
@@ -868,13 +846,13 @@ Catalog 不是当前文档的核心工作流，但它承担 Atlas 的 Discover /
 │ └──────────────────────┘ └──────────────────────┘ └──────────────────────┘   │
 │                                                                              │
 │ AUTHORITATIVE GUIDANCE                                                       │
-│ Runtime configuration guide          Platform Engineering · Updated 3d ago  │
+│ Runtime configuration guide          Platform Engineering · Updated 3d ago   │
 │ AWSF onboarding runbook              DevEx · Updated 1w ago                  │
 │ ECS supported regions                AWSF · Updated 2d ago                   │
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
 
-Catalog 只帮助用户理解和定位，不应变成第二个 Scaffolder Catalog。
+Catalog 侧重于能力认知、规范指导与意图定位，避免退化为底层表单模板的简单罗列。
 
 ---
 
@@ -882,17 +860,13 @@ Catalog 只帮助用户理解和定位，不应变成第二个 Scaffolder Catalo
 
 ## 7.1 页面定位
 
-Sidebar 中仍使用：
+Sidebar 采用：
 
 > **Overview**
 
-产品和设计文档中可以将其描述为：
+其定位为应用的工作大盘（Application Dashboard）。采用 `Overview` 作为导航标签，更能准确体现页面兼顾运行指标监控、任务协同处理、状态判据及全局操作入口的综合定位。
 
-> **Application Dashboard**
-
-`Dashboard` 描述的是页面的展示形态；`Overview` 是更合适的导航名称，因为页面不仅展示 metrics，也包含用户行动、Tasks、状态和上下文入口。
-
-Overview 需要同时回答三个问题：
+Overview 聚焦回答三个核心问题：
 
 ```text
 1. Application 当前是否健康？
@@ -900,17 +874,15 @@ Overview 需要同时回答三个问题：
 3. 最近发生了什么，接下来可以做什么？
 ```
 
-它不是纯文字状态列表，也不是把所有 Application 数据平铺成企业全景大屏。
-
-统一视图的原则仍然是：展示当前判断所需的上下文，而不是把 Cost、Resources、Tickets、Logs 和全部历史都塞到同一页。
+Overview 提供决策所需的上下文摘要，而非平铺所有 Application 数据的监控大屏，避免将 Cost、Resources、Tickets、Logs 和全部历史记录无节制堆叠在单页。
 
 ## 7.2 信息层级
 
-Overview 使用四层信息层级。
+Overview 使用四层清晰的信息层级：
 
 ### 第一层：Application Context 和直接行动
 
-始终可见：
+全局常驻：
 
 ```text
 Application
@@ -927,16 +899,16 @@ Updated 3 minutes ago                                  [ Start ▾ ]
 
 ### 第二层：健康与用户行动
 
-第一视区只回答：
+首屏核心视区直接回答：
 
 * Application 是否健康；
-* 哪些 environment 有问题；
-* 是否需要当前用户处理；
+* 哪些 environment 存在异常；
+* 是否需要当前用户介入处理；
 * 最重要的 primary action 是什么。
 
 ### 第三层：运行趋势与正在进行的工作
 
-展示：
+展示核心运行与交付状态：
 
 * health metrics；
 * environment/version；
@@ -946,14 +918,14 @@ Updated 3 minutes ago                                  [ Start ▾ ]
 
 ### 第四层：辅助判断信息
 
-展示较轻量的：
+轻量呈现关联上下文：
 
 * cost；
 * log signal；
 * architecture summary；
 * recent changes。
 
-它们不与健康裁决和用户行动使用同等视觉重量。
+辅助信号保持克制的视觉权重，不干扰核心健康裁决与待办决策。
 
 ---
 
@@ -961,23 +933,23 @@ Updated 3 minutes ago                                  [ Start ▾ ]
 
 ```text
 ┌──────────────────────────────────────────────────────────────────────────────┐
-│ Overview                                                                    │
-│ payments-api    All environments ▾    Last 24 hours ▾    [ Start ▾ ]       │
-│ Sources updated 3 minutes ago                                               │
+│ Overview                                                                     │
+│ payments-api    All environments ▾    Last 24 hours ▾    [ Start ▾ ]         │
+│ Sources updated 3 minutes ago                                                │
 │                                                                              │
 │ ┌─ HEALTH & TRAFFIC ────────────────────────────┬─ NEEDS YOUR ATTENTION ───┐ │
 │ │                                               │                           │ │
 │ │  DEGRADED                                     │ 2 items                   │ │
 │ │  DEV has an elevated error rate               │                           │ │
-│ │                                               │ ● DEV deployment failed  │ │
-│ │  DEV ● Degraded   UAT ● Healthy               │   #1428 · 18 min ago     │ │
-│ │  PROD ● Healthy                               │             [ Diagnose ] │ │
+│ │                                               │ ● DEV deployment failed   │ │
+│ │  DEV ● Degraded   UAT ● Healthy               │   #1428 · 18 min ago      │ │
+│ │  PROD ● Healthy                               │             [ Diagnose ]  │ │
 │ │                                               │                           │ │
-│ │  Error rate        1.84%                      │ ● Runtime config missing │ │
-│ │  0%   ▁▁▂▂▃▆█▅▃▂                threshold ┄  │   2 required values      │ │
-│ │                                               │             [ Continue ] │ │
+│ │  Error rate        1.84%                      │ ● Runtime config missing  │ │
+│ │  0%   ▁▁▂▂▃▆█▅▃▂                threshold ┄   │   2 required values       │ │
+│ │                                               │             [ Continue ]  │ │
 │ │  P95 latency       428 ms                     │                           │ │
-│ │  0    ▁▂▂▃▂▅█▆▃▂                               │ [ View all tasks ]        │ │
+│ │  0    ▁▂▂▃▂▅█▆▃▂                               │ [ View all tasks ]         │ │
 │ │                                               │                           │ │
 │ │  Availability      99.91%                     │                           │ │
 │ │       99.99 ─────────╲─────                    │                           │ │
@@ -988,17 +960,17 @@ Updated 3 minutes ago                                  [ Start ▾ ]
 │ │  DEV              UAT              PROD       │ AWSF onboarding           │ │
 │ │  v2.4.1           v2.4.0           v2.3.9     │ Step 6 of 9               │ │
 │ │  Failed           Healthy          Healthy    │ ██████░░░ 67%             │ │
-│ │     │                 │                │       │             [ Continue ] │ │
+│ │     │                 │                │       │             [ Continue ]  │ │
 │ │     └──── newer ──────┘                │       │                           │ │
-│ │                       └── version drift┘       │ Promote v2.4.1 to UAT    │ │
-│ │                                               │ 5 of 6 gates passed      │ │
-│ │  Deployment success · Last 7 days             │                 [ Open ] │ │
+│ │                       └── version drift┘       │ Promote v2.4.1 to UAT     │ │
+│ │                                               │ 5 of 6 gates passed       │ │
+│ │  Deployment success · Last 7 days             │                 [ Open ]  │ │
 │ │  Mon  Tue  Wed  Thu  Fri  Sat  Sun             │                           │ │
-│ │   8    7    9    6    4    8    5             │ Access request           │ │
-│ │  ███  ███  ███  ██   ██   ███  ██             │ Waiting for platform     │ │
-│ │              × 1 failed                       │                 [ View ] │ │
+│ │   8    7    9    6    4    8    5             │ Access request            │ │
+│ │  ███  ███  ███  ██   ██   ███  ██             │ Waiting for platform      │ │
+│ │              × 1 failed                       │                 [ View ]  │ │
 │ │                                               │                           │ │
-│ │  Latest deployment #1428 · DEV · Failed       │ [ View all tasks ]       │ │
+│ │  Latest deployment #1428 · DEV · Failed       │ [ View all tasks ]        │ │
 │ └───────────────────────────────────────────────┴───────────────────────────┘ │
 │                                                                              │
 │ ┌─ COST ───────────────────┬─ LOG SIGNALS ─────────────┬─ ARCHITECTURE ─────┐ │
@@ -1009,15 +981,15 @@ Updated 3 minutes ago                                  [ Start ▾ ]
 │ │ ▁▂▂▃▄▅▅▆                 │ ▁▁▂▃▇█▅▂                   │    │                │ │
 │ │ +7% from last month      │                            │   ECS ── Secrets    │ │
 │ │                          │ Top error signature       │    └── Logs         │ │
-│ │ No anomaly detected      │ Missing secret reference │                     │ │
-│ │ [ View cost source ]     │ [ Open related logs ]    │ 7 managed resources │ │
+│ │ No anomaly detected      │ Missing secret reference  │                     │ │
+│ │ [ View cost source ]     │ [ Open related logs ]     │ 7 managed resources │ │
 │ │                          │                            │ [ Open architecture]│ │
 │ └──────────────────────────┴────────────────────────────┴─────────────────────┘ │
 │                                                                              │
 │ RECENT CHANGES                                                               │
-│ 10:42  Deployment #1428 failed in DEV                                       │
-│ 09:15  SailPoint request REQ-4821 moved to In progress                      │
-│ Yesterday  Runtime configuration changed                                    │
+│ 10:42  Deployment #1428 failed in DEV                                        │
+│ 09:15  SailPoint request REQ-4821 moved to In progress                       │
+│ Yesterday  Runtime configuration changed                                     │
 │                                                         [ View more ]        │
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -1026,7 +998,7 @@ Updated 3 minutes ago                                  [ Start ▾ ]
 
 ## 7.4 不同信息使用不同视觉形式
 
-Overview 不应把所有内容表现为同样大小的文字卡片。
+Overview 避免将所有内容呈现为完全相同大小的文字卡片：
 
 | 信息类型                  | 推荐形式                                    |
 | --------------------- | --------------------------------------- |
@@ -1045,9 +1017,9 @@ Overview 不应把所有内容表现为同样大小的文字卡片。
 
 ### Logs 的展示边界
 
-Overview 不展示完整原始日志流。
+Overview 不平铺展示完整原始日志流。
 
-Atlas 只显示：
+Atlas 仅提取用于异常识别的高阶摘要：
 
 ```text
 Error event count
@@ -1057,14 +1029,14 @@ Affected environment
 Relevant failed run
 ```
 
-然后提供：
+然后提供直达下钻入口：
 
 ```text
 Open related logs
 Diagnose
 ```
 
-Atlas 可以聚合日志和运行状态用于判断和诊断，但不替代 Observability 平台。底层平台继续拥有执行和领域事实，Atlas 拥有上下文、体验、状态和证据。
+Atlas 聚合运行时状态与日志以辅助决策与排障，并不替代专业 Observability 平台。底层平台继续拥有执行和领域事实，Atlas 掌管上下文、体验、状态与证据。
 
 ---
 
@@ -1086,14 +1058,14 @@ Cost、Architecture、Logs 和 Recent Changes 使用较低视觉权重。
 健康状态下：
 
 * Health 区压缩；
-* Needs Attention 区不存在；
+* Needs Attention 区收起或隐藏；
 * Environment、Tasks 和 Trends 上移；
-* 不保留空白 warning 卡。
+* 不保留空白占位卡。
 
 异常状态下：
 
 * Health 和 Needs Attention 扩大；
-* Cost、Architecture 等次级信息下移。
+* Cost、Architecture 等次级信息下移以强化聚焦。
 
 ### 规则三：限制列表长度
 
@@ -1110,7 +1082,7 @@ Top log signatures     2
 
 ### 规则四：摘要与详情分离
 
-Overview 只显示：
+Overview 仅承载：
 
 ```text
 判断所需摘要
@@ -1118,7 +1090,7 @@ Overview 只显示：
 明确入口
 ```
 
-完整内容进入：
+完整工作流进入专用页面：
 
 ```text
 Tasks
@@ -1132,27 +1104,27 @@ Source system
 
 如果 deployment failure 已经作为最高优先级 `Needs Attention`：
 
-* Health 区只表达其对 Application 的影响；
-* Active Tasks 不再复制一张相同失败卡；
-* Recent Changes 只保留一行时间事件。
+* Health 区只表达其对 Application 可用性的影响；
+* Active Tasks 不再复制一张完全相同的失败卡片；
+* Recent Changes 仅保留单行时间线事件。
 
 ### 规则六：图表必须有决策价值
 
-不展示：
+避免引入无效修饰：
 
-* 没有真实时间序列的假 sparkline；
-* 没有 threshold 或比较基准的孤立数字；
-* 无法解释来源的 health score；
-* 仅为填充空间的 donut chart；
-* 无明确意义的总资源数。
+* 禁止缺少真实时间序列的假 sparkline；
+* 禁止缺少 threshold 或比较基准的孤立数字；
+* 禁止无法解释来源算法的综合 health score；
+* 禁止仅为填充空间的占位图表；
+* 禁止脱离上下文的总资源数罗列。
 
-Workbench 默认内容必须能够帮助用户做决定、执行下一步、理解失败、找到责任人或验证结果，否则不进入 Overview。
+Workbench 默认内容必须能够直接帮助用户做出决定、执行下一步、理解故障、定位责任人或验证结果，否则不进入 Overview。
 
 ---
 
 ## 7.6 Overview Read Model 调整
 
-`ApplicationOverviewProjection` 扩展为：
+`ApplicationOverviewProjection` 模型结构为：
 
 ```text
 ApplicationOverviewProjection
@@ -1191,7 +1163,7 @@ Cost signal
 Log signal
 ```
 
-必须包含：
+必须包含来源溯源元数据：
 
 ```text
 Source
@@ -1202,7 +1174,7 @@ Threshold or comparison baseline
 Freshness
 ```
 
-Overview Projection 只负责组合适合展示的读取数据，不成为任何底层领域事实的 System of Record。
+Overview Projection 专用于前端视图渲染，不充当底层领域实体的 System of Record。
 
 ---
 
@@ -1210,7 +1182,7 @@ Overview Projection 只负责组合适合展示的读取数据，不成为任何
 
 ## 8.1 页面命名
 
-Sidebar：
+Sidebar 导航：
 
 ```text
 Tasks
@@ -1232,12 +1204,12 @@ Things to continue, review, monitor or resolve for this application.
 
 用户需要：
 
-* 找到当前 Application 正在进行的所有任务；
-* 继续某项 Journey；
-* Review 某个 Infrastructure Change；
-* 查看 Promotion；
-* 查看正在等待平台处理的事项；
-* 回看最近完成的结果。
+* 查阅当前 Application 正在进行的所有异步任务；
+* 继续推进某项暂存的 Journey；
+* Review 某个待确认的 Infrastructure Change；
+* 查看 Promotion 进度与审批状态；
+* 确认正在等待平台处理的申请事项；
+* 回看近期完成的任务结果与留存凭证。
 
 ## 8.3 用户此刻要完成什么
 
@@ -1247,22 +1219,22 @@ Things to continue, review, monitor or resolve for this application.
 → 继续、Review、Diagnose 或查看结果
 ```
 
-Tasks 页面聚合已有任务。启动新事务由顶栏 `Start` 和上下文 CTA 负责。
+Tasks 页面聚合已有任务。启动新事务由顶栏 `Start` 和就近上下文 CTA 负责。
 
 ## 8.4 用户不知道什么、被什么阻塞
 
-用户可能不知道：
+用户可能面临的不确定性：
 
-* 哪项工作需要自己处理；
-* 哪项工作仍在平台运行；
-* 哪项工作在等待外部团队；
-* 某个 Journey 和某个失败是否属于同一个工作；
-* 某个操作最终是否真的完成；
-* 该从哪里继续。
+* 哪项工作需要自己立即处理；
+* 哪项工作仍在平台后台自动化运行；
+* 哪项工作正等待外部团队审批或处理；
+* 某个 Journey 和某个具体失败是否属于同一工作流；
+* 某个变更操作最终是否通过了实际环境验证；
+* 该从哪个具体步骤恢复执行。
 
 ## 8.5 Atlas 提供什么
 
-Tasks 按用户与任务的关系分组，而不是按领域对象类型分组：
+Tasks 按用户与任务的协作关系分组，而非按领域对象类型分类：
 
 ```text
 Needs you
@@ -1271,7 +1243,7 @@ Waiting
 Recently completed
 ```
 
-可提供次级筛选：
+提供次级筛选维度：
 
 ```text
 All
@@ -1281,40 +1253,40 @@ Promotion
 Diagnosis
 ```
 
-这些类型只作为筛选，不作为一级 IA。
+这些类型仅作为筛选器，不作为一级信息架构。
 
 ## 8.6 ASCII
 
 ```text
 ┌──────────────────────────────────────────────────────────────────────────────┐
 │ Tasks                                                   [ All types ▾ ]      │
-│ Things to continue, review, monitor or resolve.                             │
+│ Things to continue, review, monitor or resolve.                              │
 │                                                                              │
 │ NEEDS YOU · 2                                                                │
 │ ┌──────────────────────────────────────────────────────────────────────────┐ │
-│ │ Review PostgreSQL capability change                                    │ │
-│ │ Infrastructure change · DEV                                             │ │
-│ │ Proposed architecture is ready · Cost estimate available                │ │
-│ │ Updated 12 minutes ago                                    [ Review ]    │ │
+│ │ Review PostgreSQL capability change                                      │ │
+│ │ Infrastructure change · DEV                                              │ │
+│ │ Proposed architecture is ready · Cost estimate available                 │ │
+│ │ Updated 12 minutes ago                                    [ Review ]     │ │
 │ ├──────────────────────────────────────────────────────────────────────────┤ │
-│ │ Provide runtime configuration                                           │ │
-│ │ AWSF onboarding · Step 6 of 9                                           │ │
-│ │ Two values cannot be safely inferred                     [ Continue ]   │ │
+│ │ Provide runtime configuration                                            │ │
+│ │ AWSF onboarding · Step 6 of 9                                            │ │
+│ │ Two values cannot be safely inferred                     [ Continue ]    │ │
 │ └──────────────────────────────────────────────────────────────────────────┘ │
 │                                                                              │
 │ RUNNING                                                                      │
 │ ┌──────────────────────────────────────────────────────────────────────────┐ │
-│ │ Promote v2.4.1 from DEV to UAT                                          │ │
-│ │ Readiness · 5 of 6 gates passed                                         │ │
-│ │ Current responsibility: Application Team                 [ Open ]       │ │
+│ │ Promote v2.4.1 from DEV to UAT                                           │ │
+│ │ Readiness · 5 of 6 gates passed                                          │ │
+│ │ Current responsibility: Application Team                  [ Open ]       │ │
 │ └──────────────────────────────────────────────────────────────────────────┘ │
 │                                                                              │
 │ WAITING                                                                      │
 │ ┌──────────────────────────────────────────────────────────────────────────┐ │
-│ │ AWSF deployment access                                                  │ │
-│ │ Responsible team: Identity Platform                                     │ │
-│ │ SailPoint request REQ-4821 · Waiting 2 days · Checked 6 min ago         │ │
-│ │                                                               [ View ] │ │
+│ │ AWSF deployment access                                                   │ │
+│ │ Responsible team: Identity Platform                                      │ │
+│ │ SailPoint request REQ-4821 · Waiting 2 days · Checked 6 min ago          │ │
+│ │                                                               [ View ]   │ │
 │ └──────────────────────────────────────────────────────────────────────────┘ │
 │                                                                              │
 │ RECENTLY COMPLETED                                                           │
@@ -1326,7 +1298,7 @@ Diagnosis
 
 ## 8.7 Task item 的 UX 内容
 
-每个 Task item 至少包含：
+每个 Task item 包含以下核心内容：
 
 | 内容             | 示例                                   |
 | -------------- | ------------------------------------ |
@@ -1349,11 +1321,11 @@ Diagnosis
 
 用户需要：
 
-* 理解当前 Application 的云上结构；
-* 查看 resource 和 connection；
-* 增加某项 capability；
-* 修改现有 infrastructure；
-* 理解当前状态和 proposed state；
+* 理解当前 Application 在各环境下的云上结构；
+* 查看 resource 和 connection 拓扑；
+* 为应用增加某项 capability；
+* 修改现有 infrastructure 配置；
+* 对比当前状态（Current state）与变更方案（Proposed state）；
 * Review 正在进行的 infrastructure change。
 
 ## 9.2 用户此刻要完成什么
@@ -1369,19 +1341,19 @@ Diagnosis
 
 ## 9.3 用户不知道什么、被什么阻塞
 
-用户可能不知道：
+用户可能面临的不确定性：
 
-* 需要哪些底层 resources；
-* capability pack 包含什么；
-* 某个 resource 与其他 resource 如何连接；
-* 哪些资源由 Atlas 管理；
-* 当前数据是否完整；
-* 改动会造成 replacement、downtime 或 cost change；
-* 应该填写什么 Terraform variable。
+* 达成目标需要哪些底层原子 resources；
+* capability pack 内部封装了什么；
+* 某个 resource 与其他 resource 如何连通与鉴权；
+* 哪些资源由 Atlas 托管，哪些是外部依赖；
+* 当前架构拓扑数据是否完整与实时；
+* 改动是否会造成 replacement 销毁重建、downtime 或成本剧增；
+* 应该如何填写复杂的 Terraform 变量。
 
 ## 9.4 Atlas 需要提供什么
 
-Architecture 页面以 Graph 为主要视觉对象。
+Architecture 页面以 Graph 作为主要视觉交互对象。
 
 Graph 表达：
 
@@ -1401,9 +1373,7 @@ Add capability
 Change infrastructure
 ```
 
-不提供默认自由拖拽式架构编辑器。
-
-不向低知识用户暴露完整 Terraform provider resource catalog。
+界面不提供自由无约束的空白画板式拖拽连线，也不向业务用户倾倒全量底层 Terraform provider resource catalog，而是以治理后的 Capability Pack 作为主要消费单元。
 
 ## 9.5 ASCII
 
@@ -1411,7 +1381,7 @@ Change infrastructure
 ┌──────────────────────────────────────────────────────────────────────────────┐
 │ Architecture                 Environment: DEV ▾        Refreshed 4 min ago   │
 │                                                                              │
-│ [ Add capability ]   [ Change infrastructure ]                              │
+│ [ Add capability ]   [ Change infrastructure ]                               │
 │                                                                              │
 │ ┌──────────────────────────────────────────────────────────┬───────────────┐ │
 │ │ CURRENT ARCHITECTURE                                     │ CONTEXT       │ │
@@ -1423,10 +1393,10 @@ Change infrastructure
 │ │                         │                                │ dependency    │ │
 │ │                         ▼                                │               │ │
 │ │                    ECS Service                           │ Data source   │ │
-│ │                    /         \                           │ warnings · 1  │ │
+│ │                    /                                    │ warnings · 1  │ │
 │ │                   ▼           ▼                          │               │ │
 │ │              Secrets        Logs                         │ ACTIVE CHANGE │ │
-│ │                   \                                      │ Add PostgreSQL│ │
+│ │                                                         │ Add PostgreSQL│ │
 │ │                    ─ ─ ─ Unknown dependency              │ Ready review  │ │
 │ │                                                          │ [ Continue ]  │ │
 │ └──────────────────────────────────────────────────────────┴───────────────┘ │
@@ -1438,7 +1408,7 @@ Change infrastructure
 
 ## 9.6 Graph 的复用定义
 
-复用的是：
+跨生命周期统一复用的是：
 
 * Application resource identity；
 * connection identity；
@@ -1447,7 +1417,7 @@ Change infrastructure
 * execution state；
 * post-execution actual state。
 
-不强制复用：
+不强制复用单一视觉形式：
 
 * 同一布局；
 * 同一 zoom；
@@ -1455,7 +1425,7 @@ Change infrastructure
 * 同一信息密度；
 * 同一种 projection。
 
-同一个 Application Architecture Model 可以产生：
+同一个 Application Architecture Model 可以生成：
 
 ```text
 Application-wide view
@@ -1470,17 +1440,17 @@ Execution status overlay
 
 # 10. Application About Panel
 
-`Details` 不作为 sidebar item。
+`Details` 不作为独立 sidebar item。
 
 ## 10.1 用户为什么来到这里
 
-用户需要快速确认：
+用户需要快速确认应用级元数据：
 
 * Application identity；
 * Owner 和 Team；
 * App Code；
 * repository；
-* account；
+* account / subscription；
 * workspace；
 * pipeline；
 * support route；
@@ -1488,7 +1458,7 @@ Execution status overlay
 
 ## 10.2 Atlas 提供什么
 
-点击 Application 名称或 `About` 图标，打开右侧 panel。
+点击顶栏 Application 名称或 `About` 图标，打开右侧抽屉面板。
 
 ## 10.3 ASCII
 
@@ -1516,7 +1486,7 @@ Execution status overlay
 └──────────────────────────────────────┘
 ```
 
-所有外部事实都显示 source 和 freshness。
+所有外部事实均标注来源系统与数据同步时效。
 
 ---
 
@@ -1524,46 +1494,46 @@ Execution status overlay
 
 ## 11.1 用户为什么来到这里
 
-用户需要将一个尚未完全建立的平台 Application 带到第一次成功 DEV Deployment。
+用户需要将一个尚未在平台完全建立的应用推进至第一次成功 DEV Deployment。
 
-他可能没有：
+用户在此阶段可能处于零资产状态：
 
-* App Code；
-* repository；
-* source code；
-* artifact；
-* platform account；
-* Terraform knowledge。
+* 没有 App Code；
+* 没有 repository；
+* 没有 source code；
+* 没有 artifact；
+* 没有 platform account；
+* 不掌握 Terraform 知识。
 
 ## 11.2 用户此刻要完成什么
 
-创建一个可以跨会话保存的 Onboarding context，并开始固定的 AWSF Onboarding Journey。
+创建一个可以跨会话保存的 Onboarding context，并启动标准的 AWSF Onboarding Journey。
 
 ## 11.3 用户不知道什么、被什么阻塞
 
-用户可能不知道：
+用户可能面临的不确定性：
 
-* 是否已经存在同名 Application；
-* 自己属于哪个 owning team；
-* 是否需要 App Code；
-* repository 是否必须已有；
-* 后续会经过哪些平台；
-* 自己需要准备什么。
+* 平台内是否已存在同名 Application；
+* 自己归属于哪个 owning team；
+* 当前是否必须具备 App Code；
+* repository 是否必须先行创建；
+* 后续流转会经过哪些平台；
+* 自己当前需要准备什么材料。
 
 ## 11.4 Atlas 需要提供什么
 
-Atlas 创建一个 provisional onboarding subject。
+Atlas 初始化一个临时主体 `OnboardingSubject`。
 
-它至少关联：
+它关联：
 
 * Initiating user；
 * Owning team；
 * Participants；
 * Working application name；
-* 已知 identifier；
+* 已知的前置 identifier；
 * Onboarding Golden Path version。
 
-开始时只询问建立 provisional identity 所需的最低信息。
+开始时仅向用户收集建立临时身份所需的最小信息。
 
 ## 11.5 ASCII
 
@@ -1594,7 +1564,7 @@ Atlas 创建一个 provisional onboarding subject。
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
 
-如果发现匹配的 canonical Application，Atlas 应要求用户确认绑定，而不是创建重复对象。
+如果检测到匹配的 canonical Application，Atlas 提示用户确认绑定，避免产生重复实体。
 
 ---
 
@@ -1602,52 +1572,52 @@ Atlas 创建一个 provisional onboarding subject。
 
 ## 12.1 用户为什么来到这里
 
-用户要继续一条已开始的 Onboarding Journey。
+用户要继续推进一条已开始的 Onboarding Journey。
 
-他想知道：
+他需要了解：
 
-* 当前到哪一步；
-* 哪些步骤已经满足；
-* 当前卡在哪里；
-* 谁负责；
-* 下一步要做什么；
-* 是否已经产生可验证证据。
+* 当前推进到哪一步；
+* 哪些步骤已经通过验证；
+* 当前卡在哪里及阻塞原因；
+* 当前步骤由谁负责；
+* 下一步推荐的操作是什么；
+* 是否已经产出可验证凭证（Evidence）。
 
 ## 12.2 用户此刻要完成什么
 
-完成当前最合适的 Journey step，并推动整个 Onboarding 到第一次成功 DEV Deployment。
+完成当前就绪的 Journey step，并推动整个 Onboarding 直至达成首次成功 DEV Deployment。
 
 ## 12.3 用户不知道什么、被什么阻塞
 
-用户可能不知道：
+用户可能面临的不确定性：
 
-* 当前推荐步骤；
-* 是否有多个步骤可以并行；
-* 某一步为什么 blocked；
-* 一个 field 应该填什么；
-* 外部系统操作是否完成；
-* support 应该找谁；
-* 用户手动确认是否足够；
-* 某个步骤是否已经被已有 evidence 满足。
+* 哪些步骤属于推荐的下一步；
+* 是否存在可并行执行的步骤；
+* 某一步骤受阻的具体原因；
+* 某个输入字段应该填什么；
+* 外部系统的异步操作是否已完成；
+* 遇到问题应该向谁求助；
+* 用户手动确认是否具备最终效力；
+* 某个步骤是否已被已有 evidence 自动满足。
 
 ## 12.4 Atlas 需要提供什么
 
 * 真实 phases 和 steps；
-* DAG dependency；
+* DAG dependency 依赖拓扑；
 * selected step；
 * recommended next step；
-* multiple ready steps；
+* multiple ready steps 并行展示；
 * current responsibility；
-* source system；
-* completion evidence；
-* parameter assistance；
-* external action assistance；
-* step-level support；
-* inline diagnosis。
+* source system 状态同步；
+* completion evidence 校验；
+* parameter assistance 参数辅助；
+* external action assistance 代理支持；
+* step-level support 步骤级求助；
+* inline diagnosis 行内诊断。
 
 ## 12.5 Journey Navigation
 
-不使用：
+不使用泛化的状态标签：
 
 ```text
 Progress
@@ -1657,7 +1627,7 @@ Upcoming
 Overall Support
 ```
 
-只显示真实阶段和步骤。
+而是直接呈现真实的阶段与步骤。
 
 ### ASCII
 
@@ -1705,53 +1675,53 @@ Overall Support
 | `🔒` | Blocked by dependency  |
 | `—`  | Not applicable         |
 
-如果存在多个 Ready step，Atlas 可以标记其中一个为 `Recommended next`，但不能将另一个 Ready step 隐藏。
+如果存在多个 Ready step，Atlas 可以标记其中一个为 `Recommended next`，但保持其他 Ready step 完整可见并支持点击切换。
 
 ---
 
 # 13. Onboarding Step UX
 
-每个 Journey step 都使用同一内容顺序，但不强迫所有 step 共享同一个表单结构。
+各 Journey step 遵循统一的信息顺序，同时根据任务类型灵活组织交互。
 
 ## 13.1 Step 页面结构
 
 ```text
-1. What this step achieves
-2. Current status and responsibility
-3. What Atlas already knows
-4. What the user needs to decide or do
-5. What will happen next
-6. Validation and evidence
-7. Step-level support
+1. What this step achieves（步骤目标说明）
+2. Current status and responsibility（当前状态与责任归属）
+3. What Atlas already knows（系统已获取的上下文事实）
+4. What the user needs to decide or do（用户需决策或操作的内容）
+5. What will happen next（后续流转说明）
+6. Validation and evidence（验证依据与凭据展示）
+7. Step-level support（步骤级支持通道）
 ```
 
 ## 13.2 参数配置 Step
 
 ### 用户为什么来到这里
 
-用户需要提供当前步骤无法安全推断的参数。
+用户需要提供当前步骤无法安全自动推断的配置参数。
 
 ### 用户不知道什么
 
-* 参数用途；
-* 应该使用什么值；
-* 命名规则；
-* 影响范围；
-* 推荐值从哪里来；
-* 错误选择会造成什么。
+* 参数的实际用途；
+* 应该填报什么值；
+* 平台命名规则；
+* 选项对性能与成本的影响范围；
+* 推荐值的来源依据；
+* 错误选择可能导致的问题。
 
 ### Atlas 提供什么
 
 每个字段提供：
 
-* recommendation；
-* source；
-* why；
-* impact；
-* example；
-* naming guidance；
-* reference image；
-* support。
+* recommendation（推荐默认值）；
+* source（来源溯源）；
+* why（推荐依据）；
+* impact（影响分析）；
+* example（正确示例）；
+* naming guidance（命名规范校验）；
+* reference image（参考图解）；
+* support（求助渠道）。
 
 ### ASCII
 
@@ -1793,7 +1763,7 @@ Overall Support
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
 
-参数不按照 Terraform variables 顺序组织，而是按用户决策组织。
+参数按照用户的业务决策维度编排，而非机械按 Terraform variables 顺序平铺。
 
 ---
 
@@ -1804,11 +1774,11 @@ Overall Support
 | 用户可见模式                              | 实现方式示例                           |
 | ----------------------------------- | -------------------------------- |
 | Atlas can complete this             | API 或 MCP delegated action       |
-| Review and submit                   | Atlas 预填，用户确认后提交                 |
-| Continue with guided assistance     | Browser / Local Agent assistance |
-| Open prepared data in source system | Deep link + prefilled context    |
+| Review and submit                   | Atlas 预填，用户确认后一键提交                 |
+| Continue with guided assistance     | Browser / Local Agent 引导辅助 |
+| Open prepared data in source system | 携带预填上下文的 Deep link 跳转    |
 
-用户不需要首先理解 MCP、Local Agent 或 browser automation。
+用户专注于业务操作本身，无需首先理解 MCP、Local Agent 或 browser automation 的底层机制。
 
 ### ASCII
 
@@ -1835,9 +1805,7 @@ Overall Support
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
 
-提交后不将 step 立即标记为 Completed。
-
-状态变为：
+提交后不将 step 立即置为 Completed，而是进入异步追踪状态链：
 
 ```text
 Request submitted
@@ -1877,40 +1845,40 @@ Request submitted
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
 
-这里必须区分：
+明确区分责任团队与底层系统：
 
 ```text
 Responsible party: Cloud Platform
 Execution or tracking system: ServiceNow
 ```
 
-不能显示为“Waiting for ServiceNow”。
+避免显示为 “Waiting for ServiceNow”。
 
 ---
 
 ## 13.5 用户手动确认
 
-用户可以主动标注某些 manual step 已完成，但 UI 必须说明验证强度：
+用户可以主动标记某些线下 manual step 已完成，但 UI 明确说明其验证强度：
 
 ```text
 Completed
 Confirmed by you · Not independently verified
 ```
 
-如果之后外部数据与用户确认冲突：
+如果之后外部源系统同步的数据与用户确认产生冲突：
 
 ```text
 Verification conflict
 External evidence indicates this requirement is not satisfied.
 ```
 
-该 step 应重新进入：
+该 step 自动重置为：
 
 ```text
 Needs review
 ```
 
-而不是继续保持绿色 Done。
+避免在存在冲突事实时继续维持绿色的 Done 状态。
 
 ---
 
@@ -1942,7 +1910,7 @@ Needs review
 
 # 14. Infrastructure Change UX
 
-用户侧不使用 `Scaffolder` 作为功能名称。
+用户侧采用业务化语汇，不使用 `Scaffolder` 作为功能名称。
 
 ## 14.1 用户可见命名
 
@@ -1951,7 +1919,7 @@ Needs review
 | 从 Architecture 增加能力 | Add capability        |
 | 修改已有资源              | Change infrastructure |
 | Focused workspace   | Infrastructure change |
-| 内部生成能力              | Scaffolder，可保留为工程术语   |
+| 内部生成能力              | Scaffolder（保留为工程术语）   |
 
 ## 14.2 四个阶段
 
@@ -1962,7 +1930,7 @@ Select goal
 → Execute & track
 ```
 
-已知上下文直接跳过，不强制所有用户经过完整选择链。
+已知上下文直接跳过，不强迫所有用户经历完整选择链。
 
 ---
 
@@ -1970,22 +1938,22 @@ Select goal
 
 ### 用户为什么来到这里
 
-用户希望增加或改变某项云能力。
+用户希望为应用新增或变更某项云能力。
 
 ### 用户此刻要完成什么
 
-表达业务或平台结果，而不是选择 Terraform resource。
+表达业务或平台目标，而非直接挑选底层 Terraform resource。
 
 ### 用户不知道什么
 
-* 实现某个结果需要哪些资源；
-* 应选择 capability pack 还是原子资源；
-* 当前 Application 已经拥有什么；
+* 实现目标需要开通哪些底层资源；
+* 应该选择 capability pack 还是原子资源；
+* 当前 Application 已经开通了什么；
 * 某个 capability 是否适用于当前 workload。
 
 ### Atlas 提供什么
 
-默认显示 capability：
+默认展示 capability pack：
 
 ```text
 Add a database
@@ -1995,7 +1963,7 @@ Add secret management
 Increase availability
 ```
 
-原子 resource 只在平台明确支持其独立、安全消费时出现。
+原子 resource 仅在平台明确支持其独立、安全消费时开放高级入口。
 
 ### ASCII
 
@@ -2024,7 +1992,7 @@ Increase availability
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
 
-如果入口已经确定 goal，例如从 Journey step 进入 `Add PostgreSQL`，则跳过此页面。
+如果入口已明确指定目标（如从 Journey step 进入 `Add PostgreSQL`），则跳过此页面。
 
 ---
 
@@ -2032,30 +2000,29 @@ Increase availability
 
 ### 用户为什么来到这里
 
-用户需要确认无法安全推断的少量设计决策。
+用户需要确认无法安全推断的少数设计决策。
 
 ### 用户此刻要完成什么
 
-配置 proposed architecture，并理解每项选择如何影响 Graph。
+配置 proposed architecture，并直观理解每项选择对 Graph 产生的影响。
 
 ### 用户不知道什么
 
-* 需要选择哪些数据库参数；
-* 推荐值是否适用；
-* current 和 proposed architecture 有什么差异；
-* capability pack 内包含什么；
-* 哪些设置影响成本、可靠性和恢复能力。
+* 必须配置哪些数据库参数；
+* 推荐值是否适用于当前环境；
+* current 与 proposed architecture 的具体差异；
+* capability pack 内部包含的组件明细；
+* 哪些设置会影响成本、可靠性与容灾。
 
 ### Atlas 提供什么
 
-* Graph 为主视觉；
-* current / new / modified；
-* capability pack grouping；
+* Graph 作为主工作区核心视觉；
+* current / new / modified 差异标注；
+* capability pack grouping 分组；
 * 决策面板；
-* recommended defaults；
-* impact explanation；
-* live Graph update；
-* provenance；
+* recommended defaults 与影响说明；
+* live Graph 实时响应刷新；
+* provenance 来源信息；
 * advanced options 按需展开。
 
 ### ASCII
@@ -2088,7 +2055,7 @@ Increase availability
 └──────────────────────────────────────────────────────────┴───────────────────┘
 ```
 
-Graph 不是右侧辅助插图。它占据主空间，用户决策面板是辅助控制面。
+Graph 占据主空间，决策面板作为辅助控制面。
 
 ---
 
@@ -2096,11 +2063,11 @@ Graph 不是右侧辅助插图。它占据主空间，用户决策面板是辅�
 
 ### 用户为什么来到这里
 
-用户需要确认 proposed change 是否安全、合规、可执行。
+用户需要确认 proposed change 是否安全、合规且可执行。
 
 ### 用户此刻要完成什么
 
-理解：
+全面理解：
 
 * Architecture delta；
 * IaC delta；
@@ -2156,7 +2123,7 @@ Unknowns and exclusions
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
 
-Graph 不能替代 plan、replacement、security 和 unknown value 等详细影响。
+Graph 与 plan、replacement、security 和 unknown value 等结构化影响清单协同呈现。
 
 ---
 
@@ -2164,20 +2131,20 @@ Graph 不能替代 plan、replacement、security 和 unknown value 等详细影�
 
 ### 用户为什么来到这里
 
-用户已经确认 change，希望知道它实际执行到哪里。
+用户已经确认 change，希望实时跟踪其异步执行进度。
 
 ### 用户此刻要完成什么
 
 * 追踪 delegated execution；
-* 完成用户必须参与的步骤；
-* 查看 artifacts；
-* 在失败时开始 Diagnosis；
+* 完成需要人工介入的操作环节；
+* 查阅生成的 artifacts；
+* 在失败时启动 Diagnosis；
 * 验证 actual state。
 
 ### Atlas 提供什么
 
 * 同一 Architecture Graph 的 execution overlay；
-* delegated system；
+* delegated system 状态；
 * current responsibility；
 * run timeline；
 * artifacts；
@@ -2221,27 +2188,17 @@ TFE apply #842
 [ Diagnose failure ]
 ```
 
-不能将：
-
-```text
-Pull request created
-```
-
-显示为：
-
-```text
-Infrastructure created
-```
+代码提交或 PR 创建仅代表变更发起，不作为资源开通完成的判定依据。
 
 ---
 
 # 15. Promote UX
 
-Promote 是一条具体 Journey，不是通用 Journey Definition 页面。
+Promote 是一条针对特定版本与环境的晋级工作流，而非通用模板页面。
 
 ## 15.1 用户为什么来到这里
 
-用户希望将已存在的 Application version 从较低环境推进到较高环境。
+用户希望将已存在的 Application version 从较低环境安全推进至较高环境。
 
 ## 15.2 用户此刻要完成什么
 
@@ -2256,15 +2213,15 @@ Promote 是一条具体 Journey，不是通用 Journey Definition 页面。
 
 ## 15.3 用户不知道什么、被什么阻塞
 
-用户可能不知道：
+用户可能面临的不确定性：
 
-* 哪个 version 可 Promote；
-* source 和 target 的差异；
-* target 是否准备好；
-* 哪个 readiness gate 阻塞；
+* 哪个 version 可供 Promote；
+* source 和 target 环境的具体配置与架构差异；
+* target 环境是否已准备就绪；
+* 哪个具体的 readiness gate 产生阻塞；
 * 是否存在 infrastructure 或 configuration drift；
-* 本次 Promote 是否带来 cost impact；
-* 失败后应找哪个对象和哪个团队。
+* 本次 Promote 是否会带来 cost impact；
+* 失败后应向哪个对象和团队求助。
 
 ## 15.4 Atlas 提供什么
 
@@ -2281,9 +2238,7 @@ Promote 是一条具体 Journey，不是通用 Journey Definition 页面。
 
 ## 15.5 入口
 
-Promote 不作为 sidebar item。
-
-入口来自：
+Promote 不作为 sidebar item，而是从具体上下文唤出：
 
 * Overview environment/version row；
 * 当前 deployment result；
@@ -2326,9 +2281,7 @@ DEV has v2.4.1 available
 └───────────────────────┴──────────────────────────────────────────────────────┘
 ```
 
-Readiness 不默认压缩成 `82% ready`。
-
-用户需要知道的是：
+Readiness 不使用 `82% ready` 这类抽象百分比，而是直观呈现离散的门禁清单：
 
 ```text
 哪一项 gate 阻塞
@@ -2340,15 +2293,13 @@ Readiness 不默认压缩成 `82% ready`。
 
 ## 15.7 Target Environment 不存在
 
-如果 Promote 发现 target environment 不存在：
+如果 Promote 发现 target environment 尚未开通：
 
 ```text
 Prepare target environment
 ```
 
-成为当前 Promotion Journey 中的一个 blocking step。
-
-该 step 可以引用独立的 `InfrastructureChangeRun`，但不复制 Infrastructure Change 的完整数据结构。
+成为当前 Promotion Journey 中的一个 blocking step。该 step 引用独立的 `InfrastructureChangeRun`，但不复制其完整数据结构。
 
 ## 15.8 Promote Review
 
@@ -2379,7 +2330,7 @@ Prepare target environment
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
 
-Cost 只在存在实际变化或可信 estimate 时增强显示。
+Cost 仅在存在实际变化或可信预估时强化呈现。
 
 ---
 
@@ -2387,7 +2338,7 @@ Cost 只在存在实际变化或可信 estimate 时增强显示。
 
 ## 16.1 入口原则
 
-Diagnosis 优先从已有错误对象进入：
+Diagnosis 优先从已有错误对象启动：
 
 * failed Journey step；
 * failed Infrastructure Change；
@@ -2395,17 +2346,13 @@ Diagnosis 优先从已有错误对象进入：
 * failed deployment；
 * Dashboard anomaly。
 
-但不是唯一入口。
-
-当不存在明确 failed object 时，可以从：
+当不存在明确 failed object 时，支持从结构化症状发起：
 
 ```text
 Application
 + Environment
 + Structured symptom
 ```
-
-开始。
 
 例如：
 
@@ -2416,7 +2363,7 @@ Expected resource is missing
 Deployment succeeded but runtime validation failed
 ```
 
-不以空白聊天框作为起点。
+不以空白聊天框作为排障起点。
 
 ## 16.2 Diagnosis 内容结构
 
@@ -2437,13 +2384,11 @@ Support route
 
 ### 用户为什么来到这里
 
-用户正在 Journey、Promotion 或 Infrastructure Change 中，某一步突然失败。
-
-他不希望离开当前现场。
+用户正在 Journey、Promotion 或 Infrastructure Change 中，某一步突然失败，需在当前现场快速获得诊断。
 
 ### 用户此刻要完成什么
 
-快速理解：
+快速掌握：
 
 ```text
 最可能原因是什么
@@ -2475,7 +2420,7 @@ Support route
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
 
-证据默认折叠，结论和首要动作优先。
+证据默认折叠，结论与推荐动作优先呈现。
 
 ---
 
@@ -2483,7 +2428,7 @@ Support route
 
 ### 用户为什么来到这里
 
-用户专门来调查一个失败，需要查看完整证据、不同假设和恢复路径。
+用户专门调查复杂或复合型失败，需要查看完整证据链、不同归因假设和恢复路径。
 
 ### ASCII
 
@@ -2535,15 +2480,17 @@ Support route
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
 
-只有选择 `Something else` 时才允许简短补充描述。
+仅在选择 `Something else` 时允许补充简要描述。
 
 ---
 
 # 17. Contextual Support UX
 
-Support 不作为 Journey 级固定右栏，也不成为默认 sidebar page。
+Support 不作为 Journey 级固定右栏，也不作为默认 sidebar 独立页面。
 
 ## 17.1 Support Route 的解析维度
+
+系统根据多维上下文自动匹配对应的平台支持渠道：
 
 ```text
 Application
@@ -2586,7 +2533,7 @@ Prepared handoff
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
 
-`Step Owner` 和 `Current Responder` 必须分开：
+`Step Owner` 与 `Current Responder` 明确分离：
 
 ```text
 Step Owner
@@ -2600,7 +2547,7 @@ Current Responder
 
 # 18. 状态与责任模型
 
-Journey step 的状态不能由单个 enum 完整表达。
+Journey step 的状态不能由单一 enum 完整表达。
 
 ## 18.1 四个独立维度
 
@@ -2656,7 +2603,7 @@ Approved exception
 
 ## 18.3 Responsibility
 
-责任方必须是能够承担行动的人或组织：
+责任方必须是指向具备实际处理与行动能力的实体或组织：
 
 ```text
 Current user
@@ -2666,7 +2613,7 @@ Approver
 Atlas automation
 ```
 
-以下对象不是责任方：
+以下底层系统不是责任方：
 
 ```text
 ServiceNow
@@ -2675,7 +2622,7 @@ Harness
 TFE
 ```
 
-它们是：
+它们属于：
 
 ```text
 Execution system
@@ -2685,15 +2632,7 @@ State source
 
 ## 18.4 UI 组合语句
 
-不要仅显示：
-
-```text
-Waiting
-Completed
-Failed
-```
-
-而应组合为：
+避免仅展示宽泛的单一状态字眼（如 `Waiting / Completed / Failed`），而是组合呈现具体上下文：
 
 ```text
 Needs your input
@@ -2709,7 +2648,7 @@ Blocked by AWSF account request
 
 # 19. Application Verdict 模型
 
-Application verdict 与技术 health 分开。
+Application verdict 与技术 health 明确解耦。
 
 ## 19.1 Verdict
 
@@ -2746,23 +2685,23 @@ Unknown
    → No action required
 ```
 
-一个 Application 可以同时是：
+一个 Application 可以同时处于：
 
 ```text
 Technical state: Healthy
 Verdict: Action required
 ```
 
-例如应用运行正常，但用户需要完成 Production readiness input。
+例如应用运行正常，但用户需要补充完成 Production readiness input。
 
-也可以是：
+也可以同时处于：
 
 ```text
 Technical state: Degraded
 Verdict: No action required
 ```
 
-例如平台团队已接手恢复，当前用户无需行动。
+例如平台运维团队已接手故障恢复，当前用户无需操作。
 
 ---
 
@@ -2770,19 +2709,7 @@ Verdict: No action required
 
 ## 20.1 设计原则
 
-不创建万能领域对象：
-
-```text
-Goal
-Work
-Decision
-Change
-Issue
-```
-
-然后要求所有场景继承。
-
-采用三层模型：
+不创建膨胀的全局领域模型（如通用的 `Goal / Work / Decision / Change / Issue`）并强制所有场景继承，而是采用三层架构体系：
 
 ```text
 Scenario-specific domain models
@@ -2815,7 +2742,7 @@ Team ────────────────┤
                     │                                          │
                     └────────────────┬─────────────────────────┘
                                      ▼
-                              Delegated Operations
+                               Delegated Operations
                                      │
                                      ▼
                                   Evidence
@@ -2830,9 +2757,7 @@ Application + Environment + Run / Step / Symptom + Evidence
 
 ## 21.1 Actor
 
-表示可信企业身份。
-
-主要属性：
+表示可信的企业员工身份：
 
 | 属性                  | 含义                    |
 | ------------------- | --------------------- |
@@ -2843,7 +2768,7 @@ Application + Environment + Run / Step / Symptom + Evidence
 | Roles               | 在 Application 或平台上的角色 |
 | Permission context  | 可查看和可执行范围             |
 
-Identity 是 Atlas 的 P0 基础，因为 Atlas 必须知道谁在执行、谁确认了 manual step、谁触发了 deployment。
+Identity 是 Atlas 的核心基础，Atlas 必须明确记录谁在执行操作、谁确认了 manual step、谁触发了 deployment。
 
 ## 21.2 Team
 
@@ -2858,9 +2783,7 @@ Identity 是 Atlas 的 P0 基础，因为 Atlas 必须知道谁在执行、谁�
 
 ## 21.3 OnboardingSubject
 
-在 canonical Application 尚未建立时承载 Onboarding 状态。
-
-主要属性：
+在 canonical Application 尚未建立时承载 Onboarding 状态：
 
 | 属性                       | 含义                    |
 | ------------------------ | --------------------- |
@@ -2887,9 +2810,7 @@ OnboardingSubject
 → Onboarding 历史和 evidence 保留
 ```
 
-OnboardingSubject 首先关联团队和发起人，而不只关联个人。
-
-即使发起人离开团队，团队成员仍应能够继续 Journey。
+OnboardingSubject 关联团队与发起人，确保在人员变动时团队其他成员仍能继续推进 Journey。
 
 ---
 
@@ -2925,9 +2846,7 @@ OnboardingSubject 首先关联团队和发起人，而不只关联个人。
 
 ## 22.3 ApplicationContextProjection
 
-Atlas 不拥有底层事实，只拥有规范化投影。现有产品定义要求 Application Projection 覆盖 Team、Environment、Account、Repository、TFE、Harness、Resources、Tickets、Documents、Cost 和 Journeys，并为每项事实保留 source、external ID、retrieval time 和 freshness。
-
-投影包含：
+Atlas 不直接拥有底层事实，而是维护规范化的上下文投影：
 
 ```text
 Application
@@ -2945,7 +2864,7 @@ Application
 └── Support routes
 ```
 
-每个事实包含：
+每个聚合事实均包含来源元数据：
 
 | 字段                | 含义                             |
 | ----------------- | ------------------------------ |
@@ -2970,7 +2889,7 @@ Journey Run
 = 某个 Application 或 OnboardingSubject 对 Golden Path 的一次执行
 ```
 
-现有产品定义也明确区分 Golden Path、Journey 和 Action。
+系统明确区分 Golden Path、Journey 和 Action。
 
 ## 23.2 GoldenPathVersion
 
@@ -3039,7 +2958,7 @@ StepRun
 └── exception path
 ```
 
-UI 根据这些信息生成真实 step 导航，而不是生成 `Upcoming` 区域。
+UI 根据这些依赖信息生成真实的步骤导航。
 
 ---
 
@@ -3087,7 +3006,7 @@ UI 根据这些信息生成真实 step 导航，而不是生成 `Upcoming` 区�
 * cost model；
 * support route。
 
-Capability pack 是默认消费单位。
+Capability pack 是默认的消费单元。
 
 ## 24.3 ArchitectureSnapshot
 
@@ -3135,7 +3054,7 @@ ArchitectureSnapshot
 
 # 25. Promotion Model
 
-Promotion 不直接复用 Onboarding 的业务字段。
+Promotion 采用独立模型，不混用 Onboarding 专属业务字段。
 
 ## 25.1 PromotionRun
 
@@ -3174,7 +3093,7 @@ Promotion 不直接复用 Onboarding 的业务字段。
 * remediation；
 * freshness。
 
-Readiness 是 gate 集合，不默认生成单一分数。
+Readiness 表现为门禁集合，不默认生成单一复合分数。
 
 ---
 
@@ -3220,11 +3139,11 @@ Medium
 Low
 ```
 
-而不是表现为精确但无法解释的百分比。
+而非输出缺乏可解释性的精确百分比。
 
 ## 26.3 DiagnosisAction
 
-可以是：
+可以包括：
 
 ```text
 Open source system
@@ -3244,7 +3163,7 @@ Contact support
 
 ## 27.1 DelegatedOperation
 
-用于表示 Atlas 发起或追踪的真实外部执行。
+用于表示 Atlas 发起或追踪的外部系统真实执行。
 
 主要属性：
 
@@ -3276,9 +3195,7 @@ Manual external action
 
 ## 27.3 Operation 与完成结果
 
-Operation 成功不一定意味着上层 step 完成。
-
-例如：
+Operation 执行成功并不直接等同于上层 step 达成目标：
 
 ```text
 Access request submitted
@@ -3384,15 +3301,13 @@ Remaining warnings
 * destination；
 * handoff result。
 
-Support Member 不是 Atlas 的新 persona。
+Support Member 属于平台角色，Atlas 不为其构建多余的独立 persona。
 
 ---
 
 # 30. Tasks Read Model
 
-`Tasks` 页面不能要求所有领域对象继承同一个 Task 数据模型。
-
-它使用 read projection。
+`Tasks` 页面采用 read projection，不要求所有领域对象继承同一个 Task 数据模型。
 
 ## 30.1 WorkProjection
 
@@ -3409,9 +3324,7 @@ Manual Step / Review ─────────┘
 
 ## 30.2 WorkItemProjection
 
-仅用于 UI 查询和展示，不作为领域真相。
-
-主要字段：
+仅用于 UI 查询与展示，不作为领域真相：
 
 | 字段               | 含义                            |
 | ---------------- | ----------------------------- |
@@ -3446,7 +3359,7 @@ Recently completed
 = 已验证完成，并处于近期时间窗口
 ```
 
-分组依据是 actionability 和 responsibility，而不是领域对象类型。
+分组依据是 actionability 与 responsibility，而非领域对象类型。
 
 ---
 
@@ -3498,7 +3411,7 @@ Freshness
 
 ## 31.2 AttentionItemProjection
 
-可能来自：
+聚合来源包括：
 
 * failed Journey step；
 * required user input；
@@ -3507,11 +3420,11 @@ Freshness
 * failed readiness gate；
 * stale critical data。
 
-它同样是 UI read model，不是领域父类。
+它同样是 UI read model，而非领域父类。
 
 ## 31.3 RecentChangeProjection
 
-只保留对用户判断有帮助的事件：
+仅保留对用户判断有帮助的关键变更：
 
 ```text
 Deployment
@@ -3523,7 +3436,7 @@ Journey milestone
 Diagnosis outcome
 ```
 
-完整 event log 仍保存在 operation 和 audit 数据中。
+完整事件日志仍保存在 operation 和 audit 数据中。
 
 ---
 
@@ -3581,7 +3494,7 @@ Webhook / event
 → Manual confirmation
 ```
 
-不能依赖用户刷新页面后才更新 Journey。
+系统主动维护状态同步，不依赖用户反复刷新页面。
 
 ## 32.4 Journey Runtime
 
@@ -3596,11 +3509,11 @@ Webhook / event
 * support route resolution；
 * state conflict detection。
 
-Journey Runtime 不负责实现 TFE 或 Harness 的业务执行逻辑。
+Journey Runtime 不负责实现 TFE 或 Harness 的具体执行逻辑。
 
 ## 32.5 Architecture Model
 
-Architecture Model 合并：
+Architecture Model 合并以下多维状态：
 
 ```text
 Current discovered state
@@ -3614,7 +3527,7 @@ Execution state
 Post-execution actual state
 ```
 
-同一个稳定 node identity 贯穿：
+同一个稳定 node identity 贯穿全生命周期：
 
 ```text
 Current
@@ -3638,7 +3551,7 @@ Resolve context
 → Prepare support handoff
 ```
 
-AI 只能在 evidence-grounded 的范围内：
+AI 严格在 evidence-grounded 范围内：
 
 ```text
 Read
@@ -3647,7 +3560,7 @@ Diagnose
 Prepare
 ```
 
-不能自主进行生产修改。
+不能自主向生产环境发起非托管变更。
 
 ## 32.7 Authorization 与 Audit
 
@@ -3664,7 +3577,7 @@ Prepare
 * result；
 * evidence。
 
-Atlas 不代理 approver 身份，也不复制外部审批规则。
+Atlas 不代理 approver 身份，也不复写外部审批规则。
 
 ---
 
@@ -3672,7 +3585,7 @@ Atlas 不代理 approver 身份，也不复制外部审批规则。
 
 ## 33.1 使用结果语言
 
-推荐：
+推荐采用直观的业务目标表述：
 
 ```text
 Add a database
@@ -3682,7 +3595,7 @@ Validate runtime configuration
 Diagnose deployment failure
 ```
 
-避免：
+避免直接暴露底层系统与命令：
 
 ```text
 Create RDS
@@ -3692,7 +3605,7 @@ Open Terraform workflow
 Run debug
 ```
 
-系统名称放在次级信息：
+系统名称置于次级辅助信息：
 
 ```text
 Request deployment access
@@ -3751,7 +3664,7 @@ Atlas cannot mark this deployment as verified.
 
 ## 34.4 Stale Data
 
-所有关键状态必须显示：
+所有关键状态必须显示时效元数据：
 
 ```text
 Last checked
@@ -3764,22 +3677,22 @@ Last known state
 
 # 35. Accessibility 与交互约束
 
-* 状态不能只依赖颜色；
-* Graph 节点必须支持 keyboard focus；
-* 每个 status icon 有文字说明；
-* Animation 支持 reduced motion；
-* Graph transition 不应影响 state comprehension；
+* 状态不能仅依赖颜色，必须辅以明确图标与文本说明；
+* Graph 节点必须支持 keyboard focus 与全键盘导航；
+* 每个 status icon 配备无障碍文字说明；
+* Animation 支持系统级 reduced motion；
+* Graph transition 不应干扰对状态的理解；
 * External links 明确说明将离开 Atlas；
-* 用户提交 delegated action 前必须看到责任系统；
-* 失败时焦点自动移动到错误摘要；
+* 用户提交 delegated action 前必须清晰知晓责任系统；
+* 失败时焦点自动移动到错误摘要卡片；
 * 长 Journey 导航支持搜索或折叠 phase，但不能隐藏 blocking step；
-* Reference image 必须有文字说明和替代内容。
+* Reference image 必须提供文字说明与替代文本。
 
 ---
 
 # 36. 产品指标
 
-Atlas 的 North Star 是第一次成功 DEV Deployment，但必须拆分 total lead time、active user time 和 blocked time。现有产品定义也明确要求关注工具切换、重复输入、人工 handoff、Action success、Journey completion 和 diagnosis time，而不是只关注 page view。
+Atlas 的 North Star 是第一次成功 DEV Deployment，同时度量 total lead time、active user time 和 blocked time。重点关注工具切换频次、重复输入、人工 handoff、Action success、Journey completion 和 diagnosis time，而非单纯关注 page view。
 
 ## 36.1 用户结果指标
 
@@ -3844,11 +3757,11 @@ Architecture graph source coverage
 
 管理层可以直观看到：
 
-* Atlas 没有重建 SailPoint、TFE 或 Harness；
-* Atlas 把碎片化系统变成一条受治理的 outcome；
-* 用户减少输入、切换和协调；
-* 平台团队获得标准化消费路径；
-* 每个步骤、等待和失败都可测量。
+* Atlas 没有重建 SailPoint、TFE 或 Harness，保护存量投资；
+* Atlas 把碎片化系统编排为一条受治理的 outcome；
+* 用户减少输入、切换与协调成本；
+* 平台团队获得标准化的云原生消费路径；
+* 每个步骤、等待和失败都精准可测量。
 
 ---
 
