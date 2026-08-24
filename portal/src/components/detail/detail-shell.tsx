@@ -56,9 +56,7 @@ export function DetailHeader({
               <h1 className="type-heading font-semibold tracking-[-0.03em] text-foreground sm:type-heading-lg">
                 {title}
               </h1>
-              {badges ? (
-                <div className="flex flex-wrap items-center gap-1.5">{badges}</div>
-              ) : null}
+              {badges ? <div className="flex flex-wrap items-center gap-1.5">{badges}</div> : null}
             </div>
             {description ? (
               <p className="max-w-[68ch] text-sm leading-[1.6] text-muted-foreground">

@@ -25,7 +25,8 @@ const PNPM = join(ROOT, "node_modules/.pnpm");
 /** Resolve a package directory inside the pnpm virtual store by name prefix. */
 function findPkgDir(prefix, sub = prefix) {
   const entry = readdirSync(PNPM).find((d) => d.startsWith(`${prefix}@`));
-  if (!entry) throw new Error(`Cannot find "${prefix}" under ${PNPM}. See header for install hint.`);
+  if (!entry)
+    throw new Error(`Cannot find "${prefix}" under ${PNPM}. See header for install hint.`);
   return join(PNPM, entry, "node_modules", sub);
 }
 

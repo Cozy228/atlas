@@ -16,7 +16,13 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { brotliCompressSync, gzipSync } from "node:zlib";
 
-const assetsDir = join(dirname(fileURLToPath(import.meta.url)), "..", ".output", "public", "assets");
+const assetsDir = join(
+  dirname(fileURLToPath(import.meta.url)),
+  "..",
+  ".output",
+  "public",
+  "assets",
+);
 
 function listChunks() {
   let entries;
@@ -63,7 +69,9 @@ function main() {
   }
 
   const nameWidth = Math.max(...chunks.map((c) => c.name.length), 4);
-  console.log(`${"file".padEnd(nameWidth)}  ${"raw".padStart(9)}  ${"gzip".padStart(9)}  ${"brotli".padStart(9)}`);
+  console.log(
+    `${"file".padEnd(nameWidth)}  ${"raw".padStart(9)}  ${"gzip".padStart(9)}  ${"brotli".padStart(9)}`,
+  );
   for (const c of chunks) {
     console.log(
       `${c.name.padEnd(nameWidth)}  ${kb(c.raw).padStart(9)}  ${kb(c.gzip).padStart(9)}  ${kb(c.brotli).padStart(9)}`,

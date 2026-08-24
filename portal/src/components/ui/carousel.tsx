@@ -86,7 +86,6 @@ function Carousel({
     [scrollPrev, scrollNext],
   );
 
-
   React.useEffect(() => {
     if (!api) return;
     const syncScrollButtonState = () => syncScrollButtonsRef.current(api);
