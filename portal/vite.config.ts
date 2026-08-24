@@ -5,7 +5,9 @@ import viteReact from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 
 const portalRoot = fileURLToPath(new URL(".", import.meta.url));
-const devApiTarget = "http://127.0.0.1:3001";
+const devClientPort = Number(process.env.ATLAS_DEV_CLIENT_PORT ?? 3000);
+const devServerPort = Number(process.env.ATLAS_DEV_SERVER_PORT ?? 3001);
+const devApiTarget = `http://127.0.0.1:${devServerPort}`;
 const devApiPaths = [
   "/api",
   "/mcp",
@@ -78,8 +80,7 @@ export default defineConfig(({ command }) => ({
     tailwindcss(),
   ],
   server: {
-    port: 3000,
-    strictPort: true,
+    port: devClientPort,
     proxy: Object.fromEntries(
       devApiPaths.map((path) => [
         path,

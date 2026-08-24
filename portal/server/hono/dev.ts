@@ -12,10 +12,11 @@ const cleanupDevMocks = initializeDevMocks();
 process.once("exit", cleanupDevMocks);
 
 const { startPortalServer } = await import("./server");
-const server = startPortalServer({ hostname: "127.0.0.1", port: 3001 });
+const port = Number(process.env.ATLAS_DEV_SERVER_PORT ?? 3001);
+const server = startPortalServer({ hostname: "127.0.0.1", port });
 
 server.once("listening", () => {
-  console.log("Hono dev server listening on http://127.0.0.1:3001");
+  console.log(`Hono dev server listening on http://127.0.0.1:${port}`);
 });
 server.once("error", (error) => {
   cleanupDevMocks();
