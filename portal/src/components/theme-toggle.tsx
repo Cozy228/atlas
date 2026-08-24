@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { IconMoon, IconSun } from "@tabler/icons-react";
 import { useTheme, type ThemeMode } from "@/lib/theme";
 import { cn } from "@/lib/utils";
@@ -6,12 +7,10 @@ const CYCLE: ThemeMode[] = ["light", "dark", "system"];
 
 export function ThemeToggle() {
   const { mode, resolved, setMode } = useTheme();
+  const buttonRef = useRef<HTMLButtonElement>(null);
 
   const next = CYCLE[(CYCLE.indexOf(mode) + 1) % CYCLE.length];
-  const label =
-    mode === "system"
-      ? `Theme: system (${resolved})`
-      : `Theme: ${mode}`;
+  const label = mode === "system" ? `Theme: system (${resolved})` : `Theme: ${mode}`;
   const tooltip =
     mode === "system"
       ? `System (${resolved}) · click for ${next}`
@@ -19,10 +18,11 @@ export function ThemeToggle() {
 
   return (
     <button
+      ref={buttonRef}
       type="button"
       aria-label={label}
       title={tooltip}
-      onClick={(e) => setMode(next, e)}
+      onClick={(e) => setMode(next, buttonRef.current ?? e.currentTarget)}
       className={cn(
         "relative flex size-7 items-center justify-center rounded-md text-muted-foreground",
         "transition-colors hover:bg-muted hover:text-foreground",

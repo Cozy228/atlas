@@ -7,6 +7,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
   type ReactNode,
 } from "react";
 
@@ -16,7 +17,7 @@ type ResolvedTheme = "light" | "dark";
 type ThemeContextValue = {
   mode: ThemeMode;
   resolved: ResolvedTheme;
-  setMode: (mode: ThemeMode, event?: MouseEvent | React.MouseEvent) => void;
+  setMode: (mode: ThemeMode, event?: MouseEvent | React.MouseEvent | HTMLElement) => void;
 };
 
 const STORAGE_KEY = "atlas-theme";
@@ -27,6 +28,13 @@ const ThemeContext = createContext<ThemeContextValue | null>(null);
 function getSystemPreference(): ResolvedTheme {
   if (typeof window === "undefined") return "light";
   return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
+function subscribeSystemPreference(callback: () => void) {
+  if (typeof window === "undefined") return () => {};
+  const mql = window.matchMedia("(prefers-color-scheme: dark)");
+  mql.addEventListener("change", callback);
+  return () => mql.removeEventListener("change", callback);
 }
 
 function readStoredMode(): ThemeMode {
@@ -40,110 +48,200 @@ function applyThemeToDOM(resolved: ResolvedTheme) {
   document.documentElement.classList.toggle("dark", resolved === "dark");
 }
 
+function resolveThemeTransitionOrigin(
+  trigger?:
+    | MouseEvent
+    | React.MouseEvent
+    | HTMLElement
+    | { clientX?: number; clientY?: number }
+    | null,
+): { x: number; y: number } {
+  // 1. Explicit HTMLElement passed (e.g. buttonRef.current or e.currentTarget)
+  if (
+    trigger &&
+    "getBoundingClientRect" in trigger &&
+    typeof trigger.getBoundingClientRect === "function"
+  ) {
+    const rect = trigger.getBoundingClientRect();
+    if (rect.width > 0 || rect.height > 0) {
+      return {
+        x: rect.left + rect.width / 2,
+        y: rect.top + rect.height / 2,
+      };
+    }
+  }
+
+  // 2. React SyntheticEvent or native DOM Event
+  if (trigger && typeof trigger === "object") {
+    const currentTarget =
+      "currentTarget" in trigger ? (trigger.currentTarget as Element | null) : null;
+    const target = "target" in trigger ? (trigger.target as Element | null) : null;
+    const el = currentTarget ?? target;
+    if (el && typeof el.getBoundingClientRect === "function") {
+      const rect = el.getBoundingClientRect();
+      if (rect.width > 0 || rect.height > 0) {
+        return {
+          x: rect.left + rect.width / 2,
+          y: rect.top + rect.height / 2,
+        };
+      }
+    }
+    if (
+      "clientX" in trigger &&
+      typeof trigger.clientX === "number" &&
+      "clientY" in trigger &&
+      typeof trigger.clientY === "number" &&
+      (trigger.clientX !== 0 || trigger.clientY !== 0)
+    ) {
+      return { x: trigger.clientX, y: trigger.clientY };
+    }
+  }
+
+  // 3. Fallback: currently active / focused element if it is a control
+  if (
+    typeof document !== "undefined" &&
+    document.activeElement instanceof HTMLElement &&
+    document.activeElement !== document.body &&
+    document.activeElement !== document.documentElement
+  ) {
+    const rect = document.activeElement.getBoundingClientRect();
+    if (rect.width > 0 || rect.height > 0) {
+      return {
+        x: rect.left + rect.width / 2,
+        y: rect.top + rect.height / 2,
+      };
+    }
+  }
+
+  // 4. Fallback: query theme toggle button directly in DOM
+  if (typeof document !== "undefined") {
+    const toggleBtn = document.querySelector('button[aria-label^="Theme"]');
+    if (toggleBtn) {
+      const rect = toggleBtn.getBoundingClientRect();
+      if (rect.width > 0 || rect.height > 0) {
+        return {
+          x: rect.left + rect.width / 2,
+          y: rect.top + rect.height / 2,
+        };
+      }
+    }
+  }
+
+  // 5. Default fallback to top-right corner where the header toggle sits
+  const x = typeof window !== "undefined" ? window.innerWidth - 32 : 0;
+  const y = 28;
+  return { x, y };
+}
+
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  // Start with stable defaults for the initial client render. The inline theme
-  // script in <head> already applies the visual dark class before first paint, so
-  // there is no flash. State syncs to actual browser values after mount.
-  const [mode, setModeState] = useState<ThemeMode>("system");
-  const [systemPref, setSystemPref] = useState<ResolvedTheme>("light");
+  const [mode, setModeState] = useState<ThemeMode>(() => readStoredMode());
+  const systemPref = useSyncExternalStore<ResolvedTheme>(
+    subscribeSystemPreference,
+    getSystemPreference,
+    () => "light",
+  );
   const isTransitioning = useRef(false);
-  const hasMounted = useRef(false);
+  const activeAnimRef = useRef<Animation | null>(null);
 
   const resolved: ResolvedTheme = mode === "system" ? systemPref : mode;
 
-  const setMode = useCallback(async (next: ThemeMode, event?: MouseEvent | React.MouseEvent) => {
-    const nextResolved = next === "system" ? getSystemPreference() : next;
-    const prevResolved = document.documentElement.classList.contains("dark") ? "dark" : "light";
-    const noVisualChange = nextResolved === prevResolved;
+  const setMode = useCallback(
+    async (next: ThemeMode, event?: MouseEvent | React.MouseEvent | HTMLElement) => {
+      const nextResolved = next === "system" ? getSystemPreference() : next;
+      const prevResolved = document.documentElement.classList.contains("dark") ? "dark" : "light";
+      const noVisualChange = nextResolved === prevResolved;
 
-    const canAnimate =
-      !noVisualChange &&
-      !isTransitioning.current &&
-      typeof document !== "undefined" &&
-      "startViewTransition" in document &&
-      !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const canAnimate =
+        !noVisualChange &&
+        !isTransitioning.current &&
+        typeof document !== "undefined" &&
+        "startViewTransition" in document &&
+        !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-    if (!canAnimate) {
-      applyThemeToDOM(nextResolved);
-      localStorage.setItem(STORAGE_KEY, next);
-      startTransition(() => setModeState(next));
-      return;
-    }
-
-    let x = event?.clientX ?? window.innerWidth / 2;
-    let y = event?.clientY ?? 0;
-    // Keyboard-triggered clicks report (0, 0); expand from the control instead.
-    if (event && event.clientX === 0 && event.clientY === 0) {
-      const target = event.currentTarget;
-      if (target instanceof Element) {
-        const rect = target.getBoundingClientRect();
-        x = rect.left + rect.width / 2;
-        y = rect.top + rect.height / 2;
+      if (!canAnimate) {
+        applyThemeToDOM(nextResolved);
+        localStorage.setItem(STORAGE_KEY, next);
+        startTransition(() => setModeState(next));
+        return;
       }
-    }
-    const endRadius = Math.hypot(
-      Math.max(x, window.innerWidth - x),
-      Math.max(y, window.innerHeight - y),
-    );
 
-    isTransitioning.current = true;
+      // Calculate origin coordinates for the circular expansion directly from the button.
+      const { x, y } = resolveThemeTransitionOrigin(event);
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
 
-    // Apply DOM changes inside the VT callback so the browser captures the correct
-    // before/after snapshots. React state is synced via startTransition concurrently.
-    const transition = document.startViewTransition(() => {
-      applyThemeToDOM(nextResolved);
-      localStorage.setItem(STORAGE_KEY, next);
-    });
+      // Use percentage coordinates to guarantee exact alignment under fractional DPI display scales.
+      const toX = (val: number) => `${(val / viewportWidth) * 100}%`;
+      const toY = (val: number) => `${(val / viewportHeight) * 100}%`;
+      const toRadius = (r: number) =>
+        `${(r / (Math.hypot(viewportWidth, viewportHeight) / Math.SQRT2)) * 100}%`;
 
-    startTransition(() => setModeState(next));
+      const endRadius = Math.hypot(Math.max(x, viewportWidth - x), Math.max(y, viewportHeight - y));
 
-    // Release the guard however the transition ends, including when the
-    // browser skips it (`ready`/`finished` reject in that case).
-    transition.finished
-      .catch(() => {})
-      .finally(() => {
-        isTransitioning.current = false;
+      activeAnimRef.current?.cancel();
+      isTransitioning.current = true;
+
+      const transition = document.startViewTransition(() => {
+        applyThemeToDOM(nextResolved);
+        localStorage.setItem(STORAGE_KEY, next);
       });
 
-    try {
-      await transition.ready;
-    } catch {
-      // Transition was skipped; the theme is already applied.
-      return;
-    }
+      startTransition(() => setModeState(next));
 
-    document.documentElement.animate(
-      {
-        clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${endRadius}px at ${x}px ${y}px)`],
-      },
-      {
-        duration: TRANSITION_DURATION,
-        easing: "cubic-bezier(0.16, 1, 0.3, 1)",
-        pseudoElement: "::view-transition-new(root)",
-      },
-    );
+      transition.finished
+        .catch(() => {})
+        .finally(() => {
+          isTransitioning.current = false;
+          activeAnimRef.current = null;
+        });
+
+      try {
+        await transition.ready;
+      } catch {
+        // Transition was skipped or aborted; the theme is already applied.
+        return;
+      }
+
+      const anim = document.documentElement.animate(
+        {
+          clipPath: [
+            `circle(0% at ${toX(x)} ${toY(y)})`,
+            `circle(${toRadius(endRadius)} at ${toX(x)} ${toY(y)})`,
+          ],
+        },
+        {
+          duration: TRANSITION_DURATION,
+          easing: "cubic-bezier(0.4, 0, 0.2, 1)",
+          fill: "forwards",
+          pseudoElement: "::view-transition-new(root)",
+        },
+      );
+      activeAnimRef.current = anim;
+    },
+    [],
+  );
+
+  useEffect(() => {
+    return () => {
+      activeAnimRef.current?.cancel();
+    };
   }, []);
 
   useEffect(() => {
-    setModeState(readStoredMode());
-    setSystemPref(getSystemPreference());
-  }, []);
-
-  useEffect(() => {
-    // Skip the first run: `resolved` still holds the initial default here, and the
-    // inline head script already applied the correct class before first paint.
-    if (!hasMounted.current) {
-      hasMounted.current = true;
-      return;
-    }
     applyThemeToDOM(resolved);
   }, [resolved]);
 
   useEffect(() => {
-    const mql = window.matchMedia("(prefers-color-scheme: dark)");
-    const handler = (e: MediaQueryListEvent) => setSystemPref(e.matches ? "dark" : "light");
-    mql.addEventListener("change", handler);
-    return () => mql.removeEventListener("change", handler);
+    const handler = (e: StorageEvent) => {
+      if (
+        e.key === STORAGE_KEY &&
+        (e.newValue === "light" || e.newValue === "dark" || e.newValue === "system")
+      ) {
+        setModeState(e.newValue);
+      }
+    };
+    window.addEventListener("storage", handler);
+    return () => window.removeEventListener("storage", handler);
   }, []);
 
   const value = useMemo<ThemeContextValue>(
