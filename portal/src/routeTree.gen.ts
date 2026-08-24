@@ -22,13 +22,29 @@ import { Route as CatalogIndexRouteImport } from './routes/catalog.index'
 import { Route as GuidanceIndexRouteImport } from './routes/guidance.index'
 import { Route as GuidanceGuidanceIdRouteImport } from './routes/guidance.$guidanceId'
 import { Route as PoliciesPolicyIdRouteImport } from './routes/policies.$policyId'
+import { Route as PrototypeIndexRouteImport } from './routes/prototype/index'
+import { Route as PrototypeAppIdRouteImport } from './routes/prototype/$appId'
 import { Route as PrototypeCodexRouteImport } from './routes/prototype/codex'
 import { Route as PrototypeKimiRouteImport } from './routes/prototype/kimi'
+import { Route as PrototypeOnboardRouteImport } from './routes/prototype/onboard'
 import { Route as PrototypeOpusRouteImport } from './routes/prototype/opus'
 import { Route as ReleasesReleaseIdRouteImport } from './routes/releases.$releaseId'
 import { Route as SkillsIndexRouteImport } from './routes/skills.index'
 import { Route as SourcesIndexRouteImport } from './routes/sources.index'
 import { Route as SourcesSourceIdRouteImport } from './routes/sources.$sourceId'
+import { Route as PrototypeAppIdIndexRouteImport } from './routes/prototype/$appId/index'
+import { Route as PrototypeAppIdAccessRouteImport } from './routes/prototype/$appId/access'
+import { Route as PrototypeAppIdCloudRouteImport } from './routes/prototype/$appId/cloud'
+import { Route as PrototypeAppIdCostRouteImport } from './routes/prototype/$appId/cost'
+import { Route as PrototypeAppIdDeliveryRouteImport } from './routes/prototype/$appId/delivery'
+import { Route as PrototypeAppIdDiagnosticsRouteImport } from './routes/prototype/$appId/diagnostics'
+import { Route as PrototypeAppIdDocsRouteImport } from './routes/prototype/$appId/docs'
+import { Route as PrototypeAppIdJourneysRouteImport } from './routes/prototype/$appId/journeys'
+import { Route as PrototypeAppIdOverviewRouteImport } from './routes/prototype/$appId/overview'
+import { Route as PrototypeAppIdResourcesRouteImport } from './routes/prototype/$appId/resources'
+import { Route as PrototypeAppIdScaffoldRouteImport } from './routes/prototype/$appId/scaffold'
+import { Route as PrototypeAppIdSupportRouteImport } from './routes/prototype/$appId/support'
+import { Route as PrototypeAppIdTicketsRouteImport } from './routes/prototype/$appId/tickets'
 import { Route as PrototypeCodexIndexRouteImport } from './routes/prototype/codex/index'
 import { Route as PrototypeCodexDashboardRouteImport } from './routes/prototype/codex/dashboard'
 import { Route as PrototypeCodexDiagnosisRouteImport } from './routes/prototype/codex/diagnosis'
@@ -112,6 +128,16 @@ const PoliciesPolicyIdRoute = PoliciesPolicyIdRouteImport.update({
   path: '/policies/$policyId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PrototypeIndexRoute = PrototypeIndexRouteImport.update({
+  id: '/prototype/',
+  path: '/prototype/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrototypeAppIdRoute = PrototypeAppIdRouteImport.update({
+  id: '/prototype/$appId',
+  path: '/prototype/$appId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PrototypeCodexRoute = PrototypeCodexRouteImport.update({
   id: '/prototype/codex',
   path: '/prototype/codex',
@@ -120,6 +146,11 @@ const PrototypeCodexRoute = PrototypeCodexRouteImport.update({
 const PrototypeKimiRoute = PrototypeKimiRouteImport.update({
   id: '/prototype/kimi',
   path: '/prototype/kimi',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrototypeOnboardRoute = PrototypeOnboardRouteImport.update({
+  id: '/prototype/onboard',
+  path: '/prototype/onboard',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PrototypeOpusRoute = PrototypeOpusRouteImport.update({
@@ -146,6 +177,72 @@ const SourcesSourceIdRoute = SourcesSourceIdRouteImport.update({
   id: '/$sourceId',
   path: '/$sourceId',
   getParentRoute: () => SourcesRoute,
+} as any)
+const PrototypeAppIdIndexRoute = PrototypeAppIdIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => PrototypeAppIdRoute,
+} as any)
+const PrototypeAppIdAccessRoute = PrototypeAppIdAccessRouteImport.update({
+  id: '/access',
+  path: '/access',
+  getParentRoute: () => PrototypeAppIdRoute,
+} as any)
+const PrototypeAppIdCloudRoute = PrototypeAppIdCloudRouteImport.update({
+  id: '/cloud',
+  path: '/cloud',
+  getParentRoute: () => PrototypeAppIdRoute,
+} as any)
+const PrototypeAppIdCostRoute = PrototypeAppIdCostRouteImport.update({
+  id: '/cost',
+  path: '/cost',
+  getParentRoute: () => PrototypeAppIdRoute,
+} as any)
+const PrototypeAppIdDeliveryRoute = PrototypeAppIdDeliveryRouteImport.update({
+  id: '/delivery',
+  path: '/delivery',
+  getParentRoute: () => PrototypeAppIdRoute,
+} as any)
+const PrototypeAppIdDiagnosticsRoute =
+  PrototypeAppIdDiagnosticsRouteImport.update({
+    id: '/diagnostics',
+    path: '/diagnostics',
+    getParentRoute: () => PrototypeAppIdRoute,
+  } as any)
+const PrototypeAppIdDocsRoute = PrototypeAppIdDocsRouteImport.update({
+  id: '/docs',
+  path: '/docs',
+  getParentRoute: () => PrototypeAppIdRoute,
+} as any)
+const PrototypeAppIdJourneysRoute = PrototypeAppIdJourneysRouteImport.update({
+  id: '/journeys',
+  path: '/journeys',
+  getParentRoute: () => PrototypeAppIdRoute,
+} as any)
+const PrototypeAppIdOverviewRoute = PrototypeAppIdOverviewRouteImport.update({
+  id: '/overview',
+  path: '/overview',
+  getParentRoute: () => PrototypeAppIdRoute,
+} as any)
+const PrototypeAppIdResourcesRoute = PrototypeAppIdResourcesRouteImport.update({
+  id: '/resources',
+  path: '/resources',
+  getParentRoute: () => PrototypeAppIdRoute,
+} as any)
+const PrototypeAppIdScaffoldRoute = PrototypeAppIdScaffoldRouteImport.update({
+  id: '/scaffold',
+  path: '/scaffold',
+  getParentRoute: () => PrototypeAppIdRoute,
+} as any)
+const PrototypeAppIdSupportRoute = PrototypeAppIdSupportRouteImport.update({
+  id: '/support',
+  path: '/support',
+  getParentRoute: () => PrototypeAppIdRoute,
+} as any)
+const PrototypeAppIdTicketsRoute = PrototypeAppIdTicketsRouteImport.update({
+  id: '/tickets',
+  path: '/tickets',
+  getParentRoute: () => PrototypeAppIdRoute,
 } as any)
 const PrototypeCodexIndexRoute = PrototypeCodexIndexRouteImport.update({
   id: '/',
@@ -246,16 +343,31 @@ export interface FileRoutesByFullPath {
   '/whatsnew': typeof WhatsnewRoute
   '/guidance/$guidanceId': typeof GuidanceGuidanceIdRoute
   '/policies/$policyId': typeof PoliciesPolicyIdRoute
+  '/prototype/$appId': typeof PrototypeAppIdRouteWithChildren
   '/prototype/codex': typeof PrototypeCodexRouteWithChildren
   '/prototype/kimi': typeof PrototypeKimiRouteWithChildren
+  '/prototype/onboard': typeof PrototypeOnboardRoute
   '/prototype/opus': typeof PrototypeOpusRouteWithChildren
   '/releases/$releaseId': typeof ReleasesReleaseIdRoute
   '/sources/$sourceId': typeof SourcesSourceIdRoute
   '/availability/': typeof AvailabilityIndexRoute
   '/catalog/': typeof CatalogIndexRoute
   '/guidance/': typeof GuidanceIndexRoute
+  '/prototype/': typeof PrototypeIndexRoute
   '/skills/': typeof SkillsIndexRoute
   '/sources/': typeof SourcesIndexRoute
+  '/prototype/$appId/access': typeof PrototypeAppIdAccessRoute
+  '/prototype/$appId/cloud': typeof PrototypeAppIdCloudRoute
+  '/prototype/$appId/cost': typeof PrototypeAppIdCostRoute
+  '/prototype/$appId/delivery': typeof PrototypeAppIdDeliveryRoute
+  '/prototype/$appId/diagnostics': typeof PrototypeAppIdDiagnosticsRoute
+  '/prototype/$appId/docs': typeof PrototypeAppIdDocsRoute
+  '/prototype/$appId/journeys': typeof PrototypeAppIdJourneysRoute
+  '/prototype/$appId/overview': typeof PrototypeAppIdOverviewRoute
+  '/prototype/$appId/resources': typeof PrototypeAppIdResourcesRoute
+  '/prototype/$appId/scaffold': typeof PrototypeAppIdScaffoldRoute
+  '/prototype/$appId/support': typeof PrototypeAppIdSupportRoute
+  '/prototype/$appId/tickets': typeof PrototypeAppIdTicketsRoute
   '/prototype/codex/dashboard': typeof PrototypeCodexDashboardRoute
   '/prototype/codex/diagnosis': typeof PrototypeCodexDiagnosisRoute
   '/prototype/codex/onboarding': typeof PrototypeCodexOnboardingRoute
@@ -269,6 +381,7 @@ export interface FileRoutesByFullPath {
   '/prototype/opus/onboarding': typeof PrototypeOpusOnboardingRoute
   '/prototype/opus/scaffolder': typeof PrototypeOpusScaffolderRoute
   '/service/$provider/$id': typeof ServiceProviderIdRoute
+  '/prototype/$appId/': typeof PrototypeAppIdIndexRoute
   '/prototype/codex/': typeof PrototypeCodexIndexRoute
   '/prototype/kimi/': typeof PrototypeKimiIndexRoute
   '/prototype/opus/': typeof PrototypeOpusIndexRoute
@@ -281,13 +394,27 @@ export interface FileRoutesByTo {
   '/whatsnew': typeof WhatsnewRoute
   '/guidance/$guidanceId': typeof GuidanceGuidanceIdRoute
   '/policies/$policyId': typeof PoliciesPolicyIdRoute
+  '/prototype/onboard': typeof PrototypeOnboardRoute
   '/releases/$releaseId': typeof ReleasesReleaseIdRoute
   '/sources/$sourceId': typeof SourcesSourceIdRoute
   '/availability': typeof AvailabilityIndexRoute
   '/catalog': typeof CatalogIndexRoute
   '/guidance': typeof GuidanceIndexRoute
+  '/prototype': typeof PrototypeIndexRoute
   '/skills': typeof SkillsIndexRoute
   '/sources': typeof SourcesIndexRoute
+  '/prototype/$appId/access': typeof PrototypeAppIdAccessRoute
+  '/prototype/$appId/cloud': typeof PrototypeAppIdCloudRoute
+  '/prototype/$appId/cost': typeof PrototypeAppIdCostRoute
+  '/prototype/$appId/delivery': typeof PrototypeAppIdDeliveryRoute
+  '/prototype/$appId/diagnostics': typeof PrototypeAppIdDiagnosticsRoute
+  '/prototype/$appId/docs': typeof PrototypeAppIdDocsRoute
+  '/prototype/$appId/journeys': typeof PrototypeAppIdJourneysRoute
+  '/prototype/$appId/overview': typeof PrototypeAppIdOverviewRoute
+  '/prototype/$appId/resources': typeof PrototypeAppIdResourcesRoute
+  '/prototype/$appId/scaffold': typeof PrototypeAppIdScaffoldRoute
+  '/prototype/$appId/support': typeof PrototypeAppIdSupportRoute
+  '/prototype/$appId/tickets': typeof PrototypeAppIdTicketsRoute
   '/prototype/codex/dashboard': typeof PrototypeCodexDashboardRoute
   '/prototype/codex/diagnosis': typeof PrototypeCodexDiagnosisRoute
   '/prototype/codex/onboarding': typeof PrototypeCodexOnboardingRoute
@@ -301,6 +428,7 @@ export interface FileRoutesByTo {
   '/prototype/opus/onboarding': typeof PrototypeOpusOnboardingRoute
   '/prototype/opus/scaffolder': typeof PrototypeOpusScaffolderRoute
   '/service/$provider/$id': typeof ServiceProviderIdRoute
+  '/prototype/$appId': typeof PrototypeAppIdIndexRoute
   '/prototype/codex': typeof PrototypeCodexIndexRoute
   '/prototype/kimi': typeof PrototypeKimiIndexRoute
   '/prototype/opus': typeof PrototypeOpusIndexRoute
@@ -318,16 +446,31 @@ export interface FileRoutesById {
   '/whatsnew': typeof WhatsnewRoute
   '/guidance/$guidanceId': typeof GuidanceGuidanceIdRoute
   '/policies/$policyId': typeof PoliciesPolicyIdRoute
+  '/prototype/$appId': typeof PrototypeAppIdRouteWithChildren
   '/prototype/codex': typeof PrototypeCodexRouteWithChildren
   '/prototype/kimi': typeof PrototypeKimiRouteWithChildren
+  '/prototype/onboard': typeof PrototypeOnboardRoute
   '/prototype/opus': typeof PrototypeOpusRouteWithChildren
   '/releases/$releaseId': typeof ReleasesReleaseIdRoute
   '/sources/$sourceId': typeof SourcesSourceIdRoute
   '/availability/': typeof AvailabilityIndexRoute
   '/catalog/': typeof CatalogIndexRoute
   '/guidance/': typeof GuidanceIndexRoute
+  '/prototype/': typeof PrototypeIndexRoute
   '/skills/': typeof SkillsIndexRoute
   '/sources/': typeof SourcesIndexRoute
+  '/prototype/$appId/access': typeof PrototypeAppIdAccessRoute
+  '/prototype/$appId/cloud': typeof PrototypeAppIdCloudRoute
+  '/prototype/$appId/cost': typeof PrototypeAppIdCostRoute
+  '/prototype/$appId/delivery': typeof PrototypeAppIdDeliveryRoute
+  '/prototype/$appId/diagnostics': typeof PrototypeAppIdDiagnosticsRoute
+  '/prototype/$appId/docs': typeof PrototypeAppIdDocsRoute
+  '/prototype/$appId/journeys': typeof PrototypeAppIdJourneysRoute
+  '/prototype/$appId/overview': typeof PrototypeAppIdOverviewRoute
+  '/prototype/$appId/resources': typeof PrototypeAppIdResourcesRoute
+  '/prototype/$appId/scaffold': typeof PrototypeAppIdScaffoldRoute
+  '/prototype/$appId/support': typeof PrototypeAppIdSupportRoute
+  '/prototype/$appId/tickets': typeof PrototypeAppIdTicketsRoute
   '/prototype/codex/dashboard': typeof PrototypeCodexDashboardRoute
   '/prototype/codex/diagnosis': typeof PrototypeCodexDiagnosisRoute
   '/prototype/codex/onboarding': typeof PrototypeCodexOnboardingRoute
@@ -341,6 +484,7 @@ export interface FileRoutesById {
   '/prototype/opus/onboarding': typeof PrototypeOpusOnboardingRoute
   '/prototype/opus/scaffolder': typeof PrototypeOpusScaffolderRoute
   '/service/$provider/$id': typeof ServiceProviderIdRoute
+  '/prototype/$appId/': typeof PrototypeAppIdIndexRoute
   '/prototype/codex/': typeof PrototypeCodexIndexRoute
   '/prototype/kimi/': typeof PrototypeKimiIndexRoute
   '/prototype/opus/': typeof PrototypeOpusIndexRoute
@@ -359,16 +503,31 @@ export interface FileRouteTypes {
     | '/whatsnew'
     | '/guidance/$guidanceId'
     | '/policies/$policyId'
+    | '/prototype/$appId'
     | '/prototype/codex'
     | '/prototype/kimi'
+    | '/prototype/onboard'
     | '/prototype/opus'
     | '/releases/$releaseId'
     | '/sources/$sourceId'
     | '/availability/'
     | '/catalog/'
     | '/guidance/'
+    | '/prototype/'
     | '/skills/'
     | '/sources/'
+    | '/prototype/$appId/access'
+    | '/prototype/$appId/cloud'
+    | '/prototype/$appId/cost'
+    | '/prototype/$appId/delivery'
+    | '/prototype/$appId/diagnostics'
+    | '/prototype/$appId/docs'
+    | '/prototype/$appId/journeys'
+    | '/prototype/$appId/overview'
+    | '/prototype/$appId/resources'
+    | '/prototype/$appId/scaffold'
+    | '/prototype/$appId/support'
+    | '/prototype/$appId/tickets'
     | '/prototype/codex/dashboard'
     | '/prototype/codex/diagnosis'
     | '/prototype/codex/onboarding'
@@ -382,6 +541,7 @@ export interface FileRouteTypes {
     | '/prototype/opus/onboarding'
     | '/prototype/opus/scaffolder'
     | '/service/$provider/$id'
+    | '/prototype/$appId/'
     | '/prototype/codex/'
     | '/prototype/kimi/'
     | '/prototype/opus/'
@@ -394,13 +554,27 @@ export interface FileRouteTypes {
     | '/whatsnew'
     | '/guidance/$guidanceId'
     | '/policies/$policyId'
+    | '/prototype/onboard'
     | '/releases/$releaseId'
     | '/sources/$sourceId'
     | '/availability'
     | '/catalog'
     | '/guidance'
+    | '/prototype'
     | '/skills'
     | '/sources'
+    | '/prototype/$appId/access'
+    | '/prototype/$appId/cloud'
+    | '/prototype/$appId/cost'
+    | '/prototype/$appId/delivery'
+    | '/prototype/$appId/diagnostics'
+    | '/prototype/$appId/docs'
+    | '/prototype/$appId/journeys'
+    | '/prototype/$appId/overview'
+    | '/prototype/$appId/resources'
+    | '/prototype/$appId/scaffold'
+    | '/prototype/$appId/support'
+    | '/prototype/$appId/tickets'
     | '/prototype/codex/dashboard'
     | '/prototype/codex/diagnosis'
     | '/prototype/codex/onboarding'
@@ -414,6 +588,7 @@ export interface FileRouteTypes {
     | '/prototype/opus/onboarding'
     | '/prototype/opus/scaffolder'
     | '/service/$provider/$id'
+    | '/prototype/$appId'
     | '/prototype/codex'
     | '/prototype/kimi'
     | '/prototype/opus'
@@ -430,16 +605,31 @@ export interface FileRouteTypes {
     | '/whatsnew'
     | '/guidance/$guidanceId'
     | '/policies/$policyId'
+    | '/prototype/$appId'
     | '/prototype/codex'
     | '/prototype/kimi'
+    | '/prototype/onboard'
     | '/prototype/opus'
     | '/releases/$releaseId'
     | '/sources/$sourceId'
     | '/availability/'
     | '/catalog/'
     | '/guidance/'
+    | '/prototype/'
     | '/skills/'
     | '/sources/'
+    | '/prototype/$appId/access'
+    | '/prototype/$appId/cloud'
+    | '/prototype/$appId/cost'
+    | '/prototype/$appId/delivery'
+    | '/prototype/$appId/diagnostics'
+    | '/prototype/$appId/docs'
+    | '/prototype/$appId/journeys'
+    | '/prototype/$appId/overview'
+    | '/prototype/$appId/resources'
+    | '/prototype/$appId/scaffold'
+    | '/prototype/$appId/support'
+    | '/prototype/$appId/tickets'
     | '/prototype/codex/dashboard'
     | '/prototype/codex/diagnosis'
     | '/prototype/codex/onboarding'
@@ -453,6 +643,7 @@ export interface FileRouteTypes {
     | '/prototype/opus/onboarding'
     | '/prototype/opus/scaffolder'
     | '/service/$provider/$id'
+    | '/prototype/$appId/'
     | '/prototype/codex/'
     | '/prototype/kimi/'
     | '/prototype/opus/'
@@ -469,10 +660,13 @@ export interface RootRouteChildren {
   SupportRoute: typeof SupportRoute
   WhatsnewRoute: typeof WhatsnewRoute
   PoliciesPolicyIdRoute: typeof PoliciesPolicyIdRoute
+  PrototypeAppIdRoute: typeof PrototypeAppIdRouteWithChildren
   PrototypeCodexRoute: typeof PrototypeCodexRouteWithChildren
   PrototypeKimiRoute: typeof PrototypeKimiRouteWithChildren
+  PrototypeOnboardRoute: typeof PrototypeOnboardRoute
   PrototypeOpusRoute: typeof PrototypeOpusRouteWithChildren
   ReleasesReleaseIdRoute: typeof ReleasesReleaseIdRoute
+  PrototypeIndexRoute: typeof PrototypeIndexRoute
   SkillsIndexRoute: typeof SkillsIndexRoute
   ServiceProviderIdRoute: typeof ServiceProviderIdRoute
 }
@@ -570,6 +764,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PoliciesPolicyIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/prototype/': {
+      id: '/prototype/'
+      path: '/prototype'
+      fullPath: '/prototype/'
+      preLoaderRoute: typeof PrototypeIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/prototype/$appId': {
+      id: '/prototype/$appId'
+      path: '/prototype/$appId'
+      fullPath: '/prototype/$appId'
+      preLoaderRoute: typeof PrototypeAppIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/prototype/codex': {
       id: '/prototype/codex'
       path: '/prototype/codex'
@@ -582,6 +790,13 @@ declare module '@tanstack/react-router' {
       path: '/prototype/kimi'
       fullPath: '/prototype/kimi'
       preLoaderRoute: typeof PrototypeKimiRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/prototype/onboard': {
+      id: '/prototype/onboard'
+      path: '/prototype/onboard'
+      fullPath: '/prototype/onboard'
+      preLoaderRoute: typeof PrototypeOnboardRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/prototype/opus': {
@@ -618,6 +833,97 @@ declare module '@tanstack/react-router' {
       fullPath: '/sources/$sourceId'
       preLoaderRoute: typeof SourcesSourceIdRouteImport
       parentRoute: typeof SourcesRoute
+    }
+    '/prototype/$appId/': {
+      id: '/prototype/$appId/'
+      path: '/'
+      fullPath: '/prototype/$appId/'
+      preLoaderRoute: typeof PrototypeAppIdIndexRouteImport
+      parentRoute: typeof PrototypeAppIdRoute
+    }
+    '/prototype/$appId/access': {
+      id: '/prototype/$appId/access'
+      path: '/access'
+      fullPath: '/prototype/$appId/access'
+      preLoaderRoute: typeof PrototypeAppIdAccessRouteImport
+      parentRoute: typeof PrototypeAppIdRoute
+    }
+    '/prototype/$appId/cloud': {
+      id: '/prototype/$appId/cloud'
+      path: '/cloud'
+      fullPath: '/prototype/$appId/cloud'
+      preLoaderRoute: typeof PrototypeAppIdCloudRouteImport
+      parentRoute: typeof PrototypeAppIdRoute
+    }
+    '/prototype/$appId/cost': {
+      id: '/prototype/$appId/cost'
+      path: '/cost'
+      fullPath: '/prototype/$appId/cost'
+      preLoaderRoute: typeof PrototypeAppIdCostRouteImport
+      parentRoute: typeof PrototypeAppIdRoute
+    }
+    '/prototype/$appId/delivery': {
+      id: '/prototype/$appId/delivery'
+      path: '/delivery'
+      fullPath: '/prototype/$appId/delivery'
+      preLoaderRoute: typeof PrototypeAppIdDeliveryRouteImport
+      parentRoute: typeof PrototypeAppIdRoute
+    }
+    '/prototype/$appId/diagnostics': {
+      id: '/prototype/$appId/diagnostics'
+      path: '/diagnostics'
+      fullPath: '/prototype/$appId/diagnostics'
+      preLoaderRoute: typeof PrototypeAppIdDiagnosticsRouteImport
+      parentRoute: typeof PrototypeAppIdRoute
+    }
+    '/prototype/$appId/docs': {
+      id: '/prototype/$appId/docs'
+      path: '/docs'
+      fullPath: '/prototype/$appId/docs'
+      preLoaderRoute: typeof PrototypeAppIdDocsRouteImport
+      parentRoute: typeof PrototypeAppIdRoute
+    }
+    '/prototype/$appId/journeys': {
+      id: '/prototype/$appId/journeys'
+      path: '/journeys'
+      fullPath: '/prototype/$appId/journeys'
+      preLoaderRoute: typeof PrototypeAppIdJourneysRouteImport
+      parentRoute: typeof PrototypeAppIdRoute
+    }
+    '/prototype/$appId/overview': {
+      id: '/prototype/$appId/overview'
+      path: '/overview'
+      fullPath: '/prototype/$appId/overview'
+      preLoaderRoute: typeof PrototypeAppIdOverviewRouteImport
+      parentRoute: typeof PrototypeAppIdRoute
+    }
+    '/prototype/$appId/resources': {
+      id: '/prototype/$appId/resources'
+      path: '/resources'
+      fullPath: '/prototype/$appId/resources'
+      preLoaderRoute: typeof PrototypeAppIdResourcesRouteImport
+      parentRoute: typeof PrototypeAppIdRoute
+    }
+    '/prototype/$appId/scaffold': {
+      id: '/prototype/$appId/scaffold'
+      path: '/scaffold'
+      fullPath: '/prototype/$appId/scaffold'
+      preLoaderRoute: typeof PrototypeAppIdScaffoldRouteImport
+      parentRoute: typeof PrototypeAppIdRoute
+    }
+    '/prototype/$appId/support': {
+      id: '/prototype/$appId/support'
+      path: '/support'
+      fullPath: '/prototype/$appId/support'
+      preLoaderRoute: typeof PrototypeAppIdSupportRouteImport
+      parentRoute: typeof PrototypeAppIdRoute
+    }
+    '/prototype/$appId/tickets': {
+      id: '/prototype/$appId/tickets'
+      path: '/tickets'
+      fullPath: '/prototype/$appId/tickets'
+      preLoaderRoute: typeof PrototypeAppIdTicketsRouteImport
+      parentRoute: typeof PrototypeAppIdRoute
     }
     '/prototype/codex/': {
       id: '/prototype/codex/'
@@ -791,6 +1097,42 @@ const SourcesRouteChildren: SourcesRouteChildren = {
 const SourcesRouteWithChildren =
   SourcesRoute._addFileChildren(SourcesRouteChildren)
 
+interface PrototypeAppIdRouteChildren {
+  PrototypeAppIdAccessRoute: typeof PrototypeAppIdAccessRoute
+  PrototypeAppIdCloudRoute: typeof PrototypeAppIdCloudRoute
+  PrototypeAppIdCostRoute: typeof PrototypeAppIdCostRoute
+  PrototypeAppIdDeliveryRoute: typeof PrototypeAppIdDeliveryRoute
+  PrototypeAppIdDiagnosticsRoute: typeof PrototypeAppIdDiagnosticsRoute
+  PrototypeAppIdDocsRoute: typeof PrototypeAppIdDocsRoute
+  PrototypeAppIdJourneysRoute: typeof PrototypeAppIdJourneysRoute
+  PrototypeAppIdOverviewRoute: typeof PrototypeAppIdOverviewRoute
+  PrototypeAppIdResourcesRoute: typeof PrototypeAppIdResourcesRoute
+  PrototypeAppIdScaffoldRoute: typeof PrototypeAppIdScaffoldRoute
+  PrototypeAppIdSupportRoute: typeof PrototypeAppIdSupportRoute
+  PrototypeAppIdTicketsRoute: typeof PrototypeAppIdTicketsRoute
+  PrototypeAppIdIndexRoute: typeof PrototypeAppIdIndexRoute
+}
+
+const PrototypeAppIdRouteChildren: PrototypeAppIdRouteChildren = {
+  PrototypeAppIdAccessRoute: PrototypeAppIdAccessRoute,
+  PrototypeAppIdCloudRoute: PrototypeAppIdCloudRoute,
+  PrototypeAppIdCostRoute: PrototypeAppIdCostRoute,
+  PrototypeAppIdDeliveryRoute: PrototypeAppIdDeliveryRoute,
+  PrototypeAppIdDiagnosticsRoute: PrototypeAppIdDiagnosticsRoute,
+  PrototypeAppIdDocsRoute: PrototypeAppIdDocsRoute,
+  PrototypeAppIdJourneysRoute: PrototypeAppIdJourneysRoute,
+  PrototypeAppIdOverviewRoute: PrototypeAppIdOverviewRoute,
+  PrototypeAppIdResourcesRoute: PrototypeAppIdResourcesRoute,
+  PrototypeAppIdScaffoldRoute: PrototypeAppIdScaffoldRoute,
+  PrototypeAppIdSupportRoute: PrototypeAppIdSupportRoute,
+  PrototypeAppIdTicketsRoute: PrototypeAppIdTicketsRoute,
+  PrototypeAppIdIndexRoute: PrototypeAppIdIndexRoute,
+}
+
+const PrototypeAppIdRouteWithChildren = PrototypeAppIdRoute._addFileChildren(
+  PrototypeAppIdRouteChildren,
+)
+
 interface PrototypeCodexRouteChildren {
   PrototypeCodexDashboardRoute: typeof PrototypeCodexDashboardRoute
   PrototypeCodexDiagnosisRoute: typeof PrototypeCodexDiagnosisRoute
@@ -863,10 +1205,13 @@ const rootRouteChildren: RootRouteChildren = {
   SupportRoute: SupportRoute,
   WhatsnewRoute: WhatsnewRoute,
   PoliciesPolicyIdRoute: PoliciesPolicyIdRoute,
+  PrototypeAppIdRoute: PrototypeAppIdRouteWithChildren,
   PrototypeCodexRoute: PrototypeCodexRouteWithChildren,
   PrototypeKimiRoute: PrototypeKimiRouteWithChildren,
+  PrototypeOnboardRoute: PrototypeOnboardRoute,
   PrototypeOpusRoute: PrototypeOpusRouteWithChildren,
   ReleasesReleaseIdRoute: ReleasesReleaseIdRoute,
+  PrototypeIndexRoute: PrototypeIndexRoute,
   SkillsIndexRoute: SkillsIndexRoute,
   ServiceProviderIdRoute: ServiceProviderIdRoute,
 }
