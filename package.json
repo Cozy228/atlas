@@ -6,6 +6,8 @@
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test",
+    "audit:grid": "pnpm run test:audit-grid && node scripts/audit-grid-alignment.mjs",
+    "test:audit-grid": "node --test scripts/grid-audit-core.test.mjs",
     "validate:guidance": "pnpm --filter @atlas/context-layer validate:guidance",
     "prepare": "husky"
   },

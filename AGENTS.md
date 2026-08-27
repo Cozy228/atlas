@@ -99,3 +99,23 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 4. **Fake data only**
    - Tests, fixtures, docs, and examples must use fictional names and generic sample data.
+
+---
+
+## React & UI Implementation Hard Gates
+
+When implementing or modifying React components, layouts, or styles in `portal/` or workspace packages:
+
+1. **Mandatory Specification Loading**:
+   - Before writing or editing UI/React code, agents **MUST load and strictly follow** the detailed engineering specification:
+     - [`docs/architecture/react_blueprint_hard_gates.md`](docs/architecture/react_blueprint_hard_gates.md)
+     - [`DESIGN.md`](DESIGN.md)
+2. **Core Hard Gates**:
+   - **Master Grid Math ($G = 32\text{px}$)**: Outer bounding boxes must be integer multiples of 32px (`top, bottom, width, height % 32 == 0`). Canvas $1120\text{px}$, Sidebar $224\text{px}$, Column Gutters $32\text{px}$ symmetric.
+   - **Anti-Glyph Slicing**: Single-line elements centered on grid lines; body line-height $24\text{px}$ ($0.75G$).
+   - **2-Tier Color Contract**: Components consume semantic tokens only (`--color-bg`, `--color-surface`, `--color-ink`, `--color-brand`, etc.); Brand Blue `#001AFF` is interactive-only.
+   - **Tabular Numerics**: All numbers and metric values use `font-feature-settings: "tnum"`.
+3. **Mandatory Verification after EVERY Change**:
+   - `pnpm tsc`: 0 errors
+   - `pnpm lint`: 0 errors, 0 warnings
+   - `pnpm run audit:grid`: 100% PASS across all viewports

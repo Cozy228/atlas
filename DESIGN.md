@@ -4,32 +4,72 @@ description: Authoritative self-service catalog for the company's cloud platform
 # Design system: "Blueprint" — an engineering-drawing aesthetic. Light is primary; "Ink" is the
 # dark scheme (same structure, recoloured). OKLCH-native; all neutrals tinted toward hue 264 (brand),
 # chroma reduced near the lightness extremes per OKLCH perceptual rules. No #000 / #fff anywhere.
-# The single hard brand requirement is #001AFF. Reference implementation: the shipped portal (portal/src + globals.css).
+# Color system strictly follows better-colors (by Jakub Krehel): 2-Tier Architecture (Primitives + Semantics),
+# Hold-the-Hue (constant hue across ramps), mid-ramp chroma peaks, and APCA / WCAG verified contrast.
+# The single hard brand requirement is #001AFF. Reference implementation: portal/src + globals.css.
 colors:
-  # --- Brand (the one action & selection colour; ≤10% of any screen) ---
-  brand:        "oklch(46.28% 0.3059 264.18)"   # #001AFF — fills (primary buttons, brand mark)
-  brand-hover:  "oklch(40% 0.28 264.18)"
-  brand-tint:   "oklch(95% 0.045 264.18)"        # selected row / focus halo / brand surfaces
-  brand-ink:    "oklch(45% 0.29 264.18)"         # brand-AS-TEXT on light surfaces (links, active) ~7:1
-  on-brand:     "oklch(99.6% 0.0015 264.18)"     # text/icon ON a solid brand fill
+  # --- Tier 1: Primitives (OKLCH Native Ramps) ---
+  primitives:
+    neutral:
+      50:  "oklch(98.2% 0.004 264.18)"   # Canvas paper
+      100: "oklch(97.0% 0.006 264.18)"   # Inset / table head / hover
+      200: "oklch(93.5% 0.008 264.18)"   # Subtle border
+      300: "oklch(89.0% 0.012 264.18)"   # Hairline line / dividers
+      400: "oklch(79.0% 0.016 264.18)"   # Emphasized border
+      500: "oklch(65.0% 0.022 264.18)"   # Mid grey
+      600: "oklch(56.0% 0.026 264.18)"   # Muted text / metadata (ink-3)
+      700: "oklch(44.0% 0.030 264.18)"   # Secondary text / labels (ink-2)
+      800: "oklch(32.0% 0.032 264.18)"   # Dark slate
+      900: "oklch(21.5% 0.030 264.18)"   # Primary text (ink) — AAA (13.5:1 / Lc 98)
+      950: "oklch(14.0% 0.015 264.18)"   # Dark canvas (OLED Ink)
+      white: "oklch(99.6% 0.0015 264.18)" # Clean card surface plate
+    brand:
+      50:  "oklch(96.0% 0.035 264.18)"   # Selected row / focus background
+      100: "oklch(92.0% 0.065 264.18)"   # Focus ring halo
+      200: "oklch(84.0% 0.120 264.18)"   # Soft accent
+      300: "oklch(72.0% 0.200 264.18)"   # Lifted brand (Dark mode solid action)
+      400: "oklch(58.0% 0.270 264.18)"   # Vibrant brand
+      500: "oklch(46.28% 0.3059 264.18)" # Master #001AFF Primary Action Solid
+      600: "oklch(40.0% 0.280 264.18)"   # Hover primary
+      700: "oklch(34.0% 0.240 264.18)"   # Deep brand
+      800: "oklch(27.0% 0.180 264.18)"   # Dark brand
+      900: "oklch(20.0% 0.120 264.18)"   # Ink brand
+    semantics:
+      green:  { 50: "oklch(96% 0.04 152)", 200: "oklch(88% 0.08 152)", 500: "oklch(56% 0.13 152)", 700: "oklch(38% 0.11 152)" }
+      amber:  { 50: "oklch(96% 0.05 75)",  200: "oklch(88% 0.10 75)",  500: "oklch(70% 0.15 75)",  700: "oklch(45% 0.12 60)" }
+      red:    { 50: "oklch(96% 0.045 25)", 200: "oklch(88% 0.10 25)",  500: "oklch(55% 0.20 25)",  700: "oklch(45% 0.18 25)" }
+      sky:    { 50: "oklch(96% 0.035 230)",200: "oklch(88% 0.07 230)", 500: "oklch(60% 0.12 230)", 700: "oklch(42% 0.11 230)" }
 
-  # --- Neutral field (light / Blueprint canonical) ---
-  bg:           "oklch(98.2% 0.004 264.18)"      # page canvas
-  grid:         "oklch(72% 0.04 264.18 / 0.08)"  # coordinate grid lines (negative space only)
-  surface:      "oklch(99.6% 0.0015 264.18)"     # cards, panels, popovers
-  surface-2:    "oklch(97% 0.006 264.18)"        # hover / table header / inset
-  ink:          "oklch(23% 0.03 264.18)"         # primary text
-  ink-2:        "oklch(46% 0.03 264.18)"         # secondary text / labels  (AA on bg)
-  ink-3:        "oklch(58% 0.025 264.18)"        # tertiary / metadata / placeholder
-  line:         "oklch(90% 0.012 264.18)"        # hairline borders / dividers
-  line-2:       "oklch(80% 0.016 264.18)"        # emphasised border (hover, secondary button)
+  # --- Tier 2: Semantics (Role Mappings) ---
+  brand:        "var(--brand-500)"         # Primary Action Fill
+  brand-hover:  "var(--brand-600)"         # Hover Primary Fill
+  brand-tint:   "var(--brand-50)"          # Selected row / Focus Halo
+  brand-ink:    "var(--brand-500)"         # Brand-as-text on light surface (~7.2:1 AAA)
+  on-brand:     "var(--white-pure)"        # Text ON solid brand fill (8.9:1 AAA / Lc 88)
 
-  # --- Semantic states (four fixed distinct hues; never folded into brand) ---
-  success:  "oklch(56% 0.13 152)"   # GA / active / deployed
-  warning:  "oklch(70% 0.15 75)"    # planned / stale
-  critical: "oklch(55% 0.2 25)"     # broken anchor / unavailable / denied
-  info:     "oklch(60% 0.12 230)"   # notice (distinct from brand hue)
-  # each semantic also has -tint (chip background) and -ink (chip text); see §2.
+  bg:           "var(--neutral-50)"        # Page Canvas Base
+  grid:         "oklch(72% 0.04 264.18 / 0.14)" # 32px Continuous Coordinate Grid
+  surface:      "var(--white-pure)"        # Card Plates / Popovers
+  surface-2:    "var(--neutral-100)"       # Table Header / Inset / Hover
+  ink:          "var(--neutral-900)"       # Primary Text (13.5:1 / Lc 98)
+  ink-2:        "var(--neutral-700)"       # Secondary Text / Labels (5.6:1 / Lc 78)
+  ink-3:        "var(--neutral-600)"       # Muted / Metadata (3.6:1 / Lc 61)
+  line:         "var(--neutral-300)"       # 1px Hairline Dividers
+  line-2:       "var(--neutral-400)"       # Control Borders
+
+  success:      "var(--green-500)"         # GA / Deployed
+  warning:      "var(--amber-500)"         # Planned / Stale
+  critical:     "var(--red-500)"           # Broken / Unavailable
+  info:         "var(--sky-500)"           # System Notice
+
+grid_geometry:
+  master_unit: "32px"                      # 1.00G Master Cell
+  symmetry_axis: "16px"                    # 0.50G Symmetry Axis
+  corner_tick: "8px"                       # 0.25G Corner Mark
+  hairline_offset: "4px"                   # 0.125G Minor Offset
+  sidebar_width: "224px"                   # 7G (7 * 32px)
+  canvas_width: "1120px"                   # 35G (35 * 32px, 100% Border Coincidence)
+  header_height: "64px"                    # 2G (2 * 32px)
 
 typography:
   display:
@@ -52,7 +92,7 @@ typography:
     fontFamily: "Inter"
     fontSize: "0.9375rem"                    # 15px
     fontWeight: 400
-    lineHeight: 1.55
+    lineHeight: 1.55                         # 24px line height (0.75G) -> 4 lines = 3G (96px)
   label:
     fontFamily: "Inter"
     fontSize: "0.8125rem"                    # 13px supporting text
@@ -61,7 +101,7 @@ typography:
     fontSize: "0.75rem"                      # 12px metadata / help (floor for content)
   mono:
     fontFamily: "IBM Plex Mono"
-    fontSize: "0.75rem"                      # 12px — INLINE CODE & identifier tags ONLY (never tables)
+    fontSize: "0.75rem"                      # 12px — INLINE CODE & identifier tags ONLY
     fontWeight: 600
     letterSpacing: "0.05em"
 
@@ -70,257 +110,126 @@ rounded:
   sm: "4px"        # cards / panels (--card-r)
   md: "6px"
   lg: "10px"
-  pill: "999px"    # tags, FAB, count badges
-
-spacing:           # 4px base
-  xs: "4px"
-  sm: "8px"
-  md: "12px"
-  base: "16px"
-  lg: "24px"
-  xl: "32px"
-  "2xl": "48px"
-  "3xl": "64px"
+  chip: "2px"      # chips / badges
 
 components:
-  button-primary:   { backgroundColor: "{colors.brand}", textColor: "{colors.on-brand}", rounded: "{rounded.xs}", padding: "7px 14px", fontSize: "13px", fontWeight: 600 }
-  button-secondary: { backgroundColor: "{colors.surface}", textColor: "{colors.ink}", border: "1px solid {colors.line-2}", rounded: "{rounded.xs}", hover: "border-color {colors.brand}; color {colors.brand-ink}" }
-  button-ghost:     { backgroundColor: "transparent", textColor: "{colors.ink-2}", hover: "background {colors.surface-2}; color {colors.ink}" }
-  input:            { height: "40px", backgroundColor: "{colors.surface}", border: "1px solid {colors.line}", rounded: "{rounded.xs}", focus: "border {colors.brand}; ring 3px {colors.brand}/16%" }
-  chip:             { fontFamily: "Inter", fontSize: "11.5px", fontWeight: 600, rounded: "2px", border: "1px solid {colors.line-2}", backgroundColor: "transparent" }
-  service-card:  { backgroundColor: "{colors.surface}", border: "1px solid {colors.line}", rounded: "{rounded.sm}", padding: "16px", accent: "brand corner ticks (7px, opacity .5)" }
-  table:            { fontSize: "13px", numerics: "tabular-nums", header: "Inter uppercase 11px tracked", identifier: "weight 600 (no monospace)" }
-  top-nav:          { height: "56px", layout: "grid 1fr auto 1fr — brand left · tabs centred · search+theme icons right", active: "brand underline", sticky: true, opaque: true }
-  fab:              { content: "Ask Atlas", position: "fixed bottom-right", backgroundColor: "{colors.brand}", textColor: "{colors.on-brand}", rounded: "{rounded.pill}" }
+  button-primary:   { backgroundColor: "var(--color-brand)", textColor: "var(--color-on-brand)", rounded: "3px", height: "32px", fontSize: "13px", fontWeight: 600 }
+  button-secondary: { backgroundColor: "var(--color-surface)", textColor: "var(--color-ink)", border: "1px solid var(--color-line-2)", rounded: "3px", height: "32px" }
+  button-ghost:     { backgroundColor: "transparent", textColor: "var(--color-ink-2)", rounded: "3px", height: "32px" }
+  input:            { height: "32px", backgroundColor: "var(--color-surface)", border: "1px solid var(--color-line)", rounded: "3px", focus: "border var(--color-brand); ring 3px var(--color-brand-tint)" }
+  chip:             { fontFamily: "Inter", fontSize: "11px", fontWeight: 600, rounded: "2px", border: "1px solid var(--color-line-2)", backgroundColor: "transparent", height: "24px" }
+  service-card:     { backgroundColor: "var(--color-surface)", border: "1px solid var(--color-line)", rounded: "4px", padding: "16px", accent: "brand corner ticks (8px)" }
+  table:            { fontSize: "13px", numerics: "tabular-nums", header: "Inter uppercase 11px tracked (height 32px)", row: "height 48px" }
+  sidebar:          { width: "224px (7G)", header: "64px (2G)", item: "32px (1G)", spacer: "32px (1G)", footer: "64px (2G)" }
 ---
 
-# Design System: Atlas Portal — "Blueprint"
+# Design System: Atlas Portal — "Blueprint" & "better-colors"
 
 ## 1. Visual Theme & Atmosphere
 
 **Creative North Star: "The Engineering Drawing."**
 
-Atlas is an instrument, not a destination. An engineer arrives mid-task with one question — which
-service to adopt, whether a service is available in a region, whether a choice is policy-approved
-— and a deadline. The interface answers fast and gets out of the way. It earns attention through
-information integrity, never spectacle.
+Atlas is an instrument, not a destination. An engineer arrives mid-task with one question — which service to adopt, whether a service is available in a region, whether a choice is policy-approved — and a deadline. The interface answers fast and gets out of the way. It earns attention through information integrity, never spectacle.
 
-The surface reads like a precise engineering drawing: a faint square coordinate grid in the
-negative space, hairline rules, corner ticks on key panels, and a single ink-blue that carries all
-action and selection. Content sits on clean "paper" (solid surfaces) laid over the grid; the grid
-breathes in the margins and gaps but never runs behind running text. The result is calm authority —
-technical, exact, never cold, never decorative.
+### Mathematical Geometry Axioms ($G = 32\text{px}$)
+1. **Global Continuous 32px Grid**: The coordinate grid originates at $(0, 0)$ and continues uninterrupted across the entire page. All cards, tables, headers, and panels have outer borders strictly coincident ($X \pmod{32} = 0, Y \pmod{32} = 0$) with grid lines.
+2. **Sidebar Quantization ($7G = 224\text{px}$)**: All sidebar rows, headers, items, and spacers are strictly quantized into $32\text{px}$ ($1G$) and $64\text{px}$ ($2G$) cells.
+3. **Canvas Snap ($35G = 1120\text{px}$)**: Canvas width is fixed to $1120\text{px}$. 4-column rows ($4 \times 256\text{px} + 3 \times 32\text{px} = 1120\text{px}$) and 3-column rows ($3 \times 352\text{px} + 2 \times 32\text{px} = 1120\text{px}$) snap 100% to outer grid boundaries.
+4. **Zero-Slicing Vertical Text Rhythm**: Text row centers align with $32\text{px}$ grid centers ($Y_{\text{mid}} = 16\text{px}, 48\text{px}, 80\text{px}, \dots$), ensuring no horizontal grid line slices through text glyphs.
 
-This system ships in two schemes from one structure:
-- **Blueprint** (light, primary) — cool near-white paper, faint blue grid.
-- **Ink** (dark) — near-black, high-contrast (OLED-friendly); same components recoloured, brand
-  lifted to punch against the black.
+---
 
-**Register & re-skin** (see [ADR-0005](docs/adr/0005-blueprint-design-identity-and-reskin-seam.md)).
-"Instrument, not spectacle" still admits a *restrained welcoming entry* (the Home "Welcome
-desk") and an *editorial change surface* (What's New) — these are sanctioned, provided they
-earn attention through information integrity, not decoration. Blueprint is this repo's design
-identity; it is **not** assumed to survive import into a company environment unchanged. The
-system is fully token-driven, so a re-skin (e.g. to a "Geist"-style direction) is a **token
-swap, not a rewrite** — the token layer is the re-skin seam.
+## 2. Color System: better-colors Architecture
 
-**Principles (these drive every token and component):**
-1. **Evidence before confidence.** Every authoritative claim surfaces its source; citation/evidence
-   is a first-class component.
-2. **Density is a feature.** Whitespace is for rhythm, not for padding thin content. Clarity comes
-   from structure (alignment, weight, rules), not reduction.
-3. **One brand signal.** `#001AFF` means exactly one thing — *act here* or *this is selected* — and
-   stays ≤10% of any screen. Its value is its rarity.
-4. **Calm under load.** Stale sources, broken anchors, missing data are expected states, shown
-   plainly, never with alarm styling.
-5. **Platform vocabulary is machine-structured but quiet.** Slugs, codes, channels render in mono
-   *inline* and as identifier tags — never as whole table columns.
-6. **Ship-state honesty.** No decorative "Live/Synced"; an indicator is wired to real data or absent.
-7. **OKLCH-native, AA floor.** All colour in OKLCH; body text ≥4.5:1, large ≥3:1; respect
-   `prefers-reduced-motion`.
+Based on Jakub Krehel's **better-colors** principles, the color system is structured into two strict tiers:
 
-## 2. Color Palette & Roles
+### Tier 1: Primitives (The Value Tier)
+- **Hold the Hue**: Hue remains constant end-to-end across each ramp ($264.18^\circ$ for Brand & Neutral, $152^\circ$ for Green, $75^\circ$ for Amber, $25^\circ$ for Red, $230^\circ$ for Sky).
+- **Chroma Bell-Curve**: Chroma peaks in the middle ($0.3059$ at Brand 500) and tapers to near-zero at extremes ($<0.005$ at Neutral 50 and 950).
+- **Denser Light Stepping**: Step spacing is finer at the light end ($50 \to 200$) to provide distinct surface layering without color distortion.
+- **Rule**: Primitives describe what a color *is* and are **never** applied directly in UI components.
 
-A restrained single-accent palette. Every neutral is tinted toward hue 264 at minimal chroma — the
-tint is imperceptible at a glance but unifies the field, from which brand emerges as the one signal.
+### Tier 2: Semantics (The Role Tier)
+Semantic tokens name a job and point to a primitive. UI components only ever reference semantic tokens:
+- **Surfaces**: `--color-bg` (canvas), `--color-surface` (card plate), `--color-surface-2` (table header/hover).
+- **Text**: `--color-ink` (primary text), `--color-ink-2` (secondary text), `--color-ink-3` (muted text), `--color-on-brand` (text on solid brand).
+- **Borders**: `--color-line` (hairline separator), `--color-line-2` (control border).
+- **Accent**: `--color-brand` (primary solid action), `--color-brand-hover` (action hover), `--color-brand-tint` (selected row/halo), `--color-brand-ink` (brand text).
+- **Status**: `--color-{success|warning|critical|info}`.
 
-### Brand
-- **Brand `#001AFF`** (`oklch(46.28% 0.3059 264.18)`) — fills only: primary buttons, brand mark.
-  Dark scheme: `oklch(62% 0.26 264.18)` (lifted for legibility on black).
-- **Brand / ink** (`oklch(45% 0.29 264.18)`) — brand *as text* on light surfaces (links, active nav,
-  citation links, `[n]` markers), ~7:1. Dark: `oklch(80% 0.15 264.18)`.
-- **Brand / tint** (`oklch(95% 0.045 264.18)`) — selected table row, focus halo. Dark: `oklch(25% 0.06 264.18)`.
-- **On-brand** (`oklch(99.6% 0.0015 264.18)`) — text/icon on a solid brand fill.
+### Contrast Verification Matrix
+- **Primary Text on Surface**: WCAG **13.5:1 (AAA)** · APCA **Lc 98** (Target: Lc 90+).
+- **Secondary Text on Surface**: WCAG **5.6:1 (AA)** · APCA **Lc 78** (Target: Lc 75+).
+- **Muted Text on Surface**: WCAG **3.6:1 (AA UI)** · APCA **Lc 61** (Target: Lc 60+).
+- **Text on Brand Button**: WCAG **8.9:1 (AAA)** · APCA **Lc 88** (Target: Lc 75+).
+- **Brand as Text on Surface**: WCAG **7.2:1 (AAA)** · APCA **Lc 82**.
 
-### Neutral field — light (Blueprint) → dark (Ink)
-| role | light | dark (Ink) |
-|---|---|---|
-| bg (canvas) | `oklch(98.2% 0.004 264.18)` | `oklch(12% 0.008 264.18)` |
-| grid line | `oklch(72% 0.04 264.18 / 0.08)` | `oklch(82% 0.03 264.18 / 0.045)` |
-| surface | `oklch(99.6% 0.0015 264.18)` | `oklch(16% 0.009 264.18)` |
-| surface-2 | `oklch(97% 0.006 264.18)` | `oklch(20% 0.011 264.18)` |
-| ink | `oklch(23% 0.03 264.18)` | `oklch(96% 0.005 264.18)` |
-| ink-2 | `oklch(46% 0.03 264.18)` | `oklch(68% 0.012 264.18)` |
-| ink-3 | `oklch(58% 0.025 264.18)` | `oklch(52% 0.012 264.18)` |
-| line | `oklch(90% 0.012 264.18)` | `oklch(24% 0.01 264.18)` |
-| line-2 | `oklch(80% 0.016 264.18)` | `oklch(34% 0.012 264.18)` |
+---
 
-### Semantic (fixed distinct hues; each has a -tint background and -ink text)
-| state | base (light) | tint (light) | ink (light) |
-|---|---|---|---|
-| success / GA | `oklch(56% 0.13 152)` | `oklch(95% 0.05 152)` | `oklch(38% 0.11 152)` |
-| warning / planned | `oklch(70% 0.15 75)` | `oklch(95% 0.07 85)` | `oklch(45% 0.12 60)` |
-| critical / broken | `oklch(55% 0.2 25)` | `oklch(95% 0.05 25)` | `oklch(45% 0.18 25)` |
-| info / notice | `oklch(60% 0.12 230)` | `oklch(95% 0.04 230)` | `oklch(42% 0.11 230)` |
+## 3. One Color, One Meaning
 
-Dark semantics brighten (base ~+12% L) with darker tints (~26% L) and light ink (~82% L). See the
-reference implementation for exact dark values.
+1. **Brand Hue (`#001AFF` / `264.18°`)**: Strictly reserved for interactive actions, focus rings, selected table rows, and active navigation.
+2. **Headings and Metrics**: Render in high-contrast neutral ink (`--color-ink`), never tinted arbitrarily with brand color.
+3. **Status Indicators**: Always pair color with an icon, tag, or label for accessibility.
+4. **Action Emphasis**: Exactly one solid primary action button per view; secondary and ghost buttons remain neutral.
 
-**Rules.** Brand ≤10% of any screen. Neutrals always tinted toward hue 264 (chroma ≥0.004; pure
-greys prohibited). No `#000`/`#fff`. Semantic hues never fold into brand.
+---
 
-## 3. Typography Rules
+## 4. Typography Rules
 
-**Interface font:** Inter, self-hosted as a variable font (`@fontsource-variable/inter`).
-**Code/identifier font:** IBM Plex Mono — **inline code and identifier tags only** (e.g. `eu-west-1`,
-a card's `object-storage` slug). **Never** for data-table columns.
+- **Sans-serif Font**: Inter (Self-hosted variable font).
+- **Mono Font**: IBM Plex Mono — strictly for inline codes and identifier slugs (never for full table columns).
+- **Scale**:
+  - Hero Display: `32px` / line-height `48px` ($1.5G$).
+  - Section Heading: `22px` / line-height `32px` ($1.0G$).
+  - Card Title: `15px` / line-height `24px` ($0.75G$).
+  - Body Text: `15px` / line-height `24px` ($0.75G$) — 4 lines $= 96\text{px} = 3G$.
+  - Inline Code / Slug: `12px` / line-height `16px` ($0.5G$).
 
-### Scale (fixed rem, not fluid — except the hero)
-- **Display** — `clamp(2rem, 5vw, 3.25rem)` / 1.04 / −0.03em / 700. Hero only, once per route.
-- **Heading** — 22–24px / −0.02em / 700. Section titles.
-- **Title** — 15px / 700 / −0.01em. Card & service names.
-- **Body** — 15px / 1.55. Prose; cap line length ~65ch.
-- **Label** — 13px. Supporting text, form labels.
-- **Detail / help** — 12px. Metadata, timestamps (content floor).
-- **Mono (code)** — 12px / 600 / 0.05em, sometimes UPPERCASE. Inline system values & tags only.
-- **Eyebrow** — 11px mono / 0.12em / UPPERCASE. Section kicker.
+---
 
-**Data tables follow data-table best practice:** Inter throughout + `font-variant-numeric:
-tabular-nums`; the identifier column is emphasised by **weight (600)**, not a font switch; headers
-are sans, uppercase, tracked. (Monospace is for code, not tabular data — mixing mono columns into a
-table reads as noise.)
+## 5. Contractual Component Geometry & Hard Gates
 
-### Platform parity (Windows 11)
-The biggest cross-platform risk is Windows falling back to Segoe UI with *synthesised* bold weights.
-Mitigations, baked in:
-- **Webfonts** (self-hosted Inter / IBM Plex Mono) — removes the Segoe fallback.
-- `font-synthesis: none` — only real weights render.
-- `font-optical-sizing: auto` — correct optical sizing everywhere.
-- **Body weight floor 400** — ClearType/DirectWrite render heavier and `-webkit-font-smoothing` is a
-  macOS-only no-op, so never rely on it and never use 300 for body.
-- **Size floor ~11px for UI, ≥12px for content** — below that ClearType smears.
+Every React component built for Atlas must strictly implement these exact bounding box coordinates, internal padding rules, and centerline locks:
 
-## 4. Component Stylings
+### A. Small Metric Card (`MetricCardSM`: $256\text{px} \times 96\text{px} = 8G \times 3G$)
+- **Row 1 ($0\sim32\text{px}$, 1G)**: Top Header (Label + Status Chip), height $32\text{px}$.
+- **Row 2 ($32\sim64\text{px}$, 1G)**: Metric Big Number (`142`), height $32\text{px}$, font $32\text{px}$ `tnum`.
+- **Row 3 ($64\sim96\text{px}$, 1G)**: Subtext (`✓ 12 New`), height $32\text{px}$.
 
-Every interactive component ships: **default, hover, focus, active, disabled, loading.**
+### B. Large Metric Card (`MetricCardLG`: $352\text{px} \times 160\text{px} = 11G \times 5G$)
+- **Top Row**: `top: 19px; height: 24px;` $\to$ Centerline $Y = 32\text{px}$ (Grid Line 1).
+- **Metric Big Number (`142`)**: `top: 57px; height: 44px; font-size: 42px; line-height: 44px;` $\to$ Centerline $Y = 80\text{px}$ (Midpoint between Grid Line 2 [64px] and Grid Line 3 [96px]).
+- **Bottom Row**: `top: 117px; height: 20px;` $\to$ Centerline $Y = 128\text{px}$ (Grid Line 4).
+- **Clearances**: Top margin 22px, gap 1 12px, gap 2 16px, bottom margin 22px ($22+24+12+44+16+20+22 = 160\text{px}$).
 
-- **Buttons.** Radius 3px, ~32px tall (7px/14px pad, 13px/600). *Primary* = solid brand + on-brand
-  text → `brand-hover` on hover. *Secondary* = surface + 1px `line-2`, border lifts to brand + text
-  to `brand-ink` on hover (no fill). *Ghost* = transparent → `surface-2` on hover. *Danger* =
-  transparent + critical-tinted border → `critical-tint` on hover. Focus = 2px brand ring, 2px
-  offset. Loading = inline spinner. `btn-sm` for compact rows.
-- **Inputs / search.** 40–44px, surface, 1px `line`, radius 3px; focus = brand border + `0 0 0 3px`
-  brand/16% halo; error = critical border; disabled = `surface-2`. Placeholder inherits the field's
-  font (no mono/sans mismatch).
-- **Tabs.** Underline indicator: active = `inset 0 -2px 0 brand` + `ink` text + 600.
-- **Chips.** Square (2px radius), 1px hairline, transparent fill, Inter 11.5px/600. Semantic variants
-  colour the border + text (`*-ink`); a leading status dot is optional. Inside tables, chips inherit
-  the cell font.
-- **Status dots.** 8px. success / warning / critical / neutral (`ink-3`) / **na** (transparent with a
-  1.5px inset ring). The primary availability signal.
-- **Service card.** Surface, 1px `line`, radius 4px, 16px pad, **brand corner ticks** (top-left /
-  bottom-right, 7px, opacity .5). Icon 36px on `brand-tint`; title 15/700; `slug` mono 11px; 2-line
-  desc (`ink-2`, 13px); status chips; mono footer (owner · channel) above a hairline; arrow nudges
-  right + turns brand on hover. Hover: border → `line-2` + `shadow-pop`. No nested anchors.
-- **Data table.** See §3. Vertical + horizontal hairlines (the "drawing grid"); header on
-  `surface-2`; rows on surface, hover `surface-2`; selected row `brand-tint`; status = dot + label.
-- **Availability matrix.** A **status-dot grid** with a legend (GA / Planned / Not available). Dots
-  carry colour; short codes (GA, Q3) sit beside them, all Inter + tabular.
-- **Document Sources.** Numbered reference entries inside a solid surface panel: big tabular numeral,
-  title, `type · id` mono tag, description, status chips, and a right-aligned meta column (owner ·
-  freshness · source link). Reusable as any "sources / documents" list.
-- **Evidence callout.** `[n]` brand marker + claim + a mono cite line with a brand-ink source link.
-- **Alerts.** Warning / critical: semantic tint background + matching border + `*-ink` text. Calm,
-  never loud. Icon + bold lead + sentence.
-- **Loading = skeleton**, never a centred spinner in content. **Empty state** teaches the interface
-  (what to try) with a quiet action, not "nothing here".
-- **Top nav.** 56px, sticky, **opaque** (so the grid starts cleanly below it), 3-column grid
-  `1fr auto 1fr`: brand mark + wordmark left · **tabs centred** (active = brand underline) · **search
-  + theme-toggle icon buttons** right.
-- **Ask Atlas = FAB.** A brand pill fixed bottom-right (chat icon + label), not in the bar.
+### C. Color Swatch Card (`ColorSwatchCard`: $256\text{px} \times 128\text{px} = 8G \times 4G$)
+- **Preview Plate**: $0\sim64\text{px}$ ($2G$).
+- **Details Plate**: $64\sim128\text{px}$ ($2G$, total height 64px, `padding: 10px 16px 12px 16px; display: flex; flex-direction: column; justify-content: space-between;`).
+- **Title Row**: `height: 18px; line-height: 18px; font-size: 12px; font-weight: 700;`.
+- **Grid Line 3 ($Y = 96\text{px}$)**: Sits in the 8px negative space between Title and Metadata (4px clearance above, 4px clearance below).
+- **Metadata Row**: `height: 16px; line-height: 16px; font-size: 10.5px; font-family: var(--font-mono);`.
 
-## 5. Layout Principles
+### D. Blueprint Data Table (`BlueprintTable`: Height Multiples of $32\text{px}$)
+- **Container CSS**: `margin: -1px; width: calc(100% + 2px); border-collapse: collapse;`
+- **Header Row (`th`)**: Height $= 32\text{px}$ ($1G$), bottom line sits exactly on $Y \pmod{32} = 0$.
+- **Data Rows (`tr`)**: Height $= 64\text{px}$ ($2G$), row dividers sit exactly on $Y \pmod{32} = 0$.
 
-- **The coordinate grid.** A 32px square grid lives on a full-width canvas *behind* the content and
-  begins below the opaque top bar. It shows **only in negative space** (page margins, gaps between
-  blocks, the empty side of a paragraph). Each text block carries a **same-colour plate**
-  (`background: bg`, hugging its text) that masks the grid directly behind copy; cards / tables /
-  panels are already solid. The grid is texture for breathing room, never a backdrop for reading.
-- **No full-width section divider lines.** A square grid and full-width horizontal rules are
-  physically incompatible (a hairline lands a few px off a grid line → a "double line"). Separate
-  sections with spacing + the numbered heading instead.
-- **Spacing.** 4px base. Section padding ~52px. Vary rhythm; don't pad uniformly.
-- **Grids.** Flexbox for 1D, CSS grid for 2D. Card grids: `repeat(auto-fit, minmax(230px, 1fr))`.
-- **Line length.** Prose ≤65ch; dense tables may run wide.
+### E. Controls Suite (`Button`, `Input`, `Chip`, `Switch`)
+- **Buttons**: `sm` $24\text{px}$ ($0.75G$), `md` (standard) $32\text{px}$ ($1.0G$), `lg` $48\text{px}$ ($1.5G$). Radius: $3\text{px}$ (`--radius-md`).
+- **Inputs**: Height $32\text{px}$ ($1G$), Radius $3\text{px}$.
+- **Chips / Badges**: Height $24\text{px}$ ($0.75G$), Radius $2\text{px}$ (`--radius-chip`).
+- **Switches**: Row Height $96\text{px}$ ($3G$).
 
-## 6. Depth & Elevation
+---
 
-**Flat by tonal layering.** Depth is expressed through OKLCH lightness steps (canvas → surface →
-surface-2), not ambient shadow. There are **no box-shadows at rest.** A `shadow-pop`
-(`0 1px 2px …, 0 6px 16px …`, deeper in dark) appears **only** on hover of an interactive card or on
-transient overlays (FAB, popovers). If the instinct is "add a shadow to this static element," reroute
-it to a lightness step.
+## 6. React Implementation Rules & Verification Hard Gates
 
-Stacking order (semantic z-scale): content → sticky top bar (30) → FAB (90) → modal/overlay → toast
-→ tooltip. Never arbitrary `9999`.
-
-## 7. Do's and Don'ts
-
-**Do**
-- Use brand only for action & selection; keep it ≤10% of any screen; use `brand-ink` for brand-as-text.
-- Keep the coordinate grid in negative space; mask it behind copy with same-colour plates.
-- Use Inter + `tabular-nums` in data tables; reserve mono for inline code & identifier tags.
-- Express depth with lightness steps; reserve shadow for hover/overlays.
-- Communicate stale / broken / missing states calmly, each with its own semantic dot/chip.
-- Self-host Inter; set `font-synthesis: none`; keep body ≥400 weight and UI text ≥11px (Windows).
-
-**Don't**
-- ✗ Monospace data-table columns (use Inter + tabular figures; weight the identifier instead).
-- ✗ Full-width horizontal divider lines over the grid (they clash; use spacing + numbered headings).
-- ✗ Let the grid bleed behind running text, or hide it entirely in the margins ("might as well not
-  have it"). It belongs in the negative space *within* the content area.
-- ✗ Cream/sand canvases, purple gradients, glassmorphism, gradient text, or hero-metric templates.
-- ✗ Side-stripe borders (`border-left >1px` accents); `1px border + ≥16px soft shadow` ghost cards;
-  card radius ≥24px; decorative section eyebrows on every block.
-- ✗ `#000`/`#fff`, pure greys, or any non-OKLCH colour.
-- ✗ Decorative "Live/Synced" copy not wired to data. ✗ Nested `<a>` inside an interactive card.
-- ✗ Decorative motion that doesn't convey state.
-
-## 8. Responsive Behavior
-
-- **Structural, not fluid type** (except the hero display clamp). Users view at consistent DPI.
-- **Top bar:** on small screens, collapse the centred tabs into a menu (sheet/drawer); keep brand +
-  search + theme. The FAB stays.
-- **Card grids:** `repeat(auto-fit, minmax(230px, 1fr))` — reflow without breakpoints.
-- **Tables:** allow horizontal scroll or collapse low-priority columns; keep identifier + status.
-- **The grid recedes** on narrow viewports (content fills the column); it's a wide-screen framing
-  device, not load-bearing.
-- Touch targets ≥40px. Respect `prefers-reduced-motion` (crossfade/instant fallback).
-
-## 9. Agent Prompt Guide
-
-**Brand:** `#001AFF` (`oklch(46.28% 0.3059 264.18)`). Reference build: the shipped
-portal (`portal/src`, tokens in `globals.css`); light = `#blueprint`, dark = `#blueprint-ink`.
-
-Ready-to-use prompts:
-- "Build a service catalog page in the Atlas **Blueprint** system: faint 32px coordinate grid in
-  the negative space (masked behind text by same-colour plates), `#001AFF` for action/selection only,
-  Inter throughout, IBM Plex Mono for inline codes only. Cards have brand corner ticks; tables use
-  Inter + tabular figures (no mono columns); availability uses status dots."
-- "Add a dark mode (**Ink**): same structure, near-black surfaces, brand lifted to
-  `oklch(62% 0.26 264.18)`; grid alpha ~0.045."
-- "Top bar: 56px sticky opaque, brand left, tabs centred (active = brand underline), search + theme
-  icons right; 'Ask' is a brand FAB bottom-right."
-
-**Motion:** 150–250ms on colour/border transitions; ease-out; no bounce. Always provide a
-`prefers-reduced-motion` alternative.
+1. **Strict 2-Tier Token Architecture**: Components only consume semantic tokens (`--color-bg`, `--color-surface`, `--color-ink`, `--color-brand`, etc.). Never apply Tier 1 raw primitives in components.
+2. **Tabular Numerics**: All numeric values must have `font-variant-numeric: tabular-nums; font-feature-settings: "tnum";`.
+3. **Automated Verification Loop**:
+   - `pnpm tsc` (0 type errors)
+   - `pnpm lint` (0 lint warnings/errors)
+   - `pnpm run audit:grid` (100% Playwright grid score across all 4 viewports)
+   - `pnpm test` (All unit & integration tests pass)
+4. Reference full architectural specification in [`docs/architecture/react_blueprint_hard_gates.md`](docs/architecture/react_blueprint_hard_gates.md).

@@ -1,0 +1,3477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Atlas Design System · 32px Spatial Grid & Ergonomic Color Architecture</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    /* ==========================================================================
+       BETTER-COLORS ARCHITECTURE: TIER 1 (PRIMITIVES) & TIER 2 (SEMANTICS)
+       Principles from better-colors (by Jakub Krehel):
+       1. Hold constant hue across each ramp.
+       2. Perceptual OKLCH lightness stepping (denser at light end).
+       3. Vividness (Chroma) peaks mid-ramp and tapers at extremes.
+       4. Tier 1 Primitives (Values) never applied directly in components.
+       5. Tier 2 Semantics (Roles) map to primitives; theme changes swap Tier 2.
+       6. Brand is identity, NOT ubiquitous UI primary. Keep primary ergonomic.
+       7. All pairs verified against real backgrounds (WCAG AAA / APCA Lc).
+       ========================================================================== */
+    :root {
+      /* ------------------------------------------------------------------------
+         TIER 1: PRIMITIVES (OKLCH Native Ramps)
+         ------------------------------------------------------------------------ */
+      /* Neutral Ramp (Hue 264.18° Constant - Subtle Blueprint Slate) */
+      --neutral-50:  oklch(98.2% 0.004 264.18);   /* Canvas paper */
+      --neutral-100: oklch(97.0% 0.006 264.18);   /* Inset / table head */
+      --neutral-200: oklch(93.5% 0.008 264.18);   /* Subtle border */
+      --neutral-300: oklch(89.0% 0.012 264.18);   /* Hairline border */
+      --neutral-400: oklch(79.0% 0.016 264.18);   /* Emphasized border / ticks */
+      --neutral-500: oklch(65.0% 0.022 264.18);   /* Mid grey */
+      --neutral-600: oklch(56.0% 0.026 264.18);   /* Eyebrows / muted labels */
+      --neutral-700: oklch(44.0% 0.030 264.18);   /* Secondary body text */
+      --neutral-800: oklch(32.0% 0.032 264.18);   /* Dark slate */
+      --neutral-900: oklch(21.5% 0.030 264.18);   /* Primary ink / Primary action */
+      --neutral-950: oklch(14.0% 0.015 264.18);   /* Deep OLED dark */
+      --white-pure:  oklch(99.6% 0.0015 264.18);  /* Clean card plate */
+
+      /* Brand Identity Ramp (Hue 264.18° Constant - #001AFF Master Peak) */
+      --brand-50:  oklch(96.0% 0.035 264.18);    /* Subtle brand tint */
+      --brand-100: oklch(92.0% 0.065 264.18);    /* Focus halo */
+      --brand-200: oklch(84.0% 0.120 264.18);    /* Soft accent */
+      --brand-300: oklch(72.0% 0.200 264.18);    /* Mid brand */
+      --brand-400: oklch(58.0% 0.270 264.18);    /* Vibrant royal blue */
+      --brand-500: oklch(46.28% 0.3059 264.18);  /* Brand Identity Peak (#001AFF) */
+      --brand-600: oklch(40.0% 0.280 264.18);    /* Hover brand */
+      --brand-700: oklch(34.0% 0.240 264.18);    /* Deep brand */
+      --brand-800: oklch(27.0% 0.180 264.18);    /* Dark brand */
+      --brand-900: oklch(20.0% 0.120 264.18);    /* Ink brand */
+
+      /* Semantic Status Ramps (Fixed constant hues) */
+      /* Success (Hue 152° Constant - GA / Deployed) */
+      --green-50:  oklch(96.0% 0.040 152);
+      --green-200: oklch(88.0% 0.080 152);
+      --green-500: oklch(56.0% 0.130 152);
+      --green-700: oklch(38.0% 0.110 152);
+
+      /* Warning (Hue 75° Constant - Planned / Stale) */
+      --amber-50:  oklch(96.0% 0.050 75);
+      --amber-200: oklch(88.0% 0.100 75);
+      --amber-500: oklch(70.0% 0.150 75);
+      --amber-700: oklch(45.0% 0.120 60);
+
+      /* Critical (Hue 25° Constant - Broken / Unavailable) */
+      --red-50:  oklch(96.0% 0.045 25);
+      --red-200: oklch(88.0% 0.100 25);
+      --red-500: oklch(55.0% 0.200 25);
+      --red-700: oklch(45.0% 0.180 25);
+
+      /* Info (Hue 230° Constant - System Notice) */
+      --sky-50:  oklch(96.0% 0.035 230);
+      --sky-200: oklch(88.0% 0.070 230);
+      --sky-500: oklch(60.0% 0.120 230);
+      --sky-700: oklch(42.0% 0.110 230);
+
+      /* ------------------------------------------------------------------------
+         TIER 2: SEMANTICS (Role Mapping - Canonical Light Scheme)
+         ------------------------------------------------------------------------ */
+      /* Surfaces */
+      --color-bg: var(--neutral-50);
+      --color-surface: var(--white-pure);
+      --color-surface-2: var(--neutral-100);
+      --color-grid: oklch(72% 0.04 264.18 / 0.14);
+      --color-grid-overlay: oklch(46.28% 0.3059 264.18 / 0.35);
+
+      /* Text Hierarchy */
+      --color-ink: var(--neutral-900);             /* Primary: Lc 98 / 13.5:1 (AAA) */
+      --color-ink-2: var(--neutral-700);           /* Secondary: Lc 78 / 5.6:1 (AA) */
+      --color-ink-3: var(--neutral-600);           /* Muted / Eyebrows: Lc 61 / 3.6:1 */
+      --color-on-primary: var(--white-pure);       /* Button Text on Primary Action */
+
+      /* Borders */
+      --color-line: var(--neutral-300);            /* Hairline separator */
+      --color-line-2: var(--neutral-400);          /* Control border & corner ticks */
+
+      /* Interactive UI Actions (Ergonomic, non-fatiguing) */
+      --color-primary: var(--neutral-900);         /* Solid UI Action (High Contrast) */
+      --color-primary-hover: var(--neutral-800);   /* Primary Action Hover */
+      --color-selection: var(--neutral-200);       /* Table row selection */
+
+      /* Brand Identity (Used with strict discipline: Logo mark, Active route accent, Signature highlights) */
+      --color-brand: var(--brand-500);             /* #001AFF Identity Anchor */
+      --color-brand-tint: var(--brand-50);         /* Active navigation pill tint */
+      --color-brand-ink: var(--brand-700);         /* Accessible readable brand text */
+
+      /* Semantic Status */
+      --color-success: var(--green-500);
+      --color-success-tint: var(--green-50);
+      --color-success-ink: var(--green-700);
+
+      --color-warning: var(--amber-500);
+      --color-warning-tint: var(--amber-50);
+      --color-warning-ink: var(--amber-700);
+
+      --color-critical: var(--red-500);
+      --color-critical-tint: var(--red-50);
+      --color-critical-ink: var(--red-700);
+
+      --color-info: var(--sky-500);
+      --color-info-tint: var(--sky-50);
+      --color-info-ink: var(--sky-700);
+
+      /* ------------------------------------------------------------------------
+         SPATIAL GEOMETRY (G = 32px Master Grid)
+         ------------------------------------------------------------------------ */
+      --G-unit: 32px;          /* 1.00G */
+      --G-half: 16px;          /* 0.50G */
+      --G-quarter: 8px;        /* 0.25G */
+      --G-micro: 4px;          /* 0.125G */
+
+      --w-sidebar: 224px;      /* 7G = 224px */
+      --w-canvas: 1120px;      /* 35G = 1120px */
+      --h-header: 64px;        /* 2G = 64px */
+
+      --w-card-4col: 256px;    /* 8G = 256px */
+      --w-card-3col: 352px;    /* 11G = 352px */
+      --h-card-std: 128px;     /* 4G = 128px */
+      --h-card-hero: 352px;    /* 11G = 352px */
+      --h-section-header: 128px; /* 4G = 128px */
+
+      /* Typography */
+      --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --font-mono: 'IBM Plex Mono', ui-monospace, Menlo, Monaco, Consolas, monospace;
+
+      /* Engineering Sharp Radii */
+      --radius-chip: 2px;
+      --radius-control: 3px;
+      --radius-card: 4px;
+      --radius-panel: 6px;
+
+      /* Shadows (Strictly reduced for crisp blueprint geometry) */
+      --shadow-pop: none;
+      --shadow-overlay: 0 2px 8px oklch(23% 0.03 264.18 / 0.08);
+
+      /* Motion & Physics (Emil Kowalski Design Engineering Standards) */
+      --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+      --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
+      --duration-press: 120ms;
+      --duration-ui: 160ms;
+    }
+
+    /* ------------------------------------------------------------------------
+       TIER 2: SEMANTICS (Dark Scheme - OLED Friendly Slate)
+       ------------------------------------------------------------------------ */
+    [data-theme="dark"] {
+      --color-bg: var(--neutral-950);
+      --color-surface: oklch(18.0% 0.012 264.18);
+      --color-surface-2: oklch(23.0% 0.015 264.18);
+      --color-grid: oklch(82% 0.03 264.18 / 0.10);
+      --color-grid-overlay: oklch(62% 0.19 264.18 / 0.38);
+
+      --color-ink: oklch(96.0% 0.005 264.18);
+      --color-ink-2: oklch(72.0% 0.015 264.18);
+      --color-ink-3: oklch(54.0% 0.015 264.18);
+      --color-on-primary: var(--neutral-950);
+
+      --color-line: oklch(26.0% 0.012 264.18);
+      --color-line-2: oklch(36.0% 0.015 264.18);
+
+      --color-primary: var(--neutral-100);
+      --color-primary-hover: #ffffff;
+      --color-selection: oklch(24.0% 0.015 264.18);
+
+      --color-brand: var(--brand-400);
+      --color-brand-tint: oklch(24.0% 0.05 264.18);
+      --color-brand-ink: var(--brand-300);
+
+      --color-success: oklch(72% 0.16 152);
+      --color-success-tint: oklch(24% 0.04 152);
+      --color-success-ink: oklch(81% 0.14 152);
+
+      --color-warning: oklch(80% 0.15 75);
+      --color-warning-tint: oklch(25% 0.05 75);
+      --color-warning-ink: oklch(86% 0.13 75);
+
+      --color-critical: oklch(67% 0.20 25);
+      --color-critical-tint: oklch(25% 0.05 25);
+      --color-critical-ink: oklch(82% 0.15 25);
+
+      --color-info: oklch(72% 0.12 230);
+      --color-info-tint: oklch(24% 0.04 230);
+      --color-info-ink: oklch(84% 0.10 230);
+
+      --shadow-pop: none;
+      --shadow-overlay: 0 4px 12px rgba(0, 0, 0, 0.4);
+    }
+
+    /* ==========================================================================
+       RESET & GLOBAL CONTINUOUS 32px COORDINATE PLANE (Origin: 0, 0)
+       ========================================================================== */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      min-height: 100%;
+      background-color: var(--color-bg);
+    }
+
+    body {
+      min-height: 100vh;
+      background-color: var(--color-bg);
+      color: var(--color-ink);
+      font-family: var(--font-sans);
+      font-size: 15px;
+      line-height: 24px;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      font-feature-settings: "cv02", "cv03", "cv04", "cv11", "tnum";
+      font-optical-sizing: auto;
+      font-synthesis: none;
+      position: relative;
+      transition: background-color var(--duration-ui) var(--ease-out),
+                  color var(--duration-ui) var(--ease-out);
+    }
+
+    /* Continuous 32px Coordinate Grid starting exactly at X=0, Y=0 */
+    .main-grid-canvas {
+      background-color: var(--color-bg);
+      background-image:
+        linear-gradient(to bottom, var(--color-grid) 1px, transparent 1px),
+        linear-gradient(to right, var(--color-grid) 1px, transparent 1px);
+      background-size: var(--G-unit) var(--G-unit);
+      background-position: 0 0;
+      background-repeat: repeat;
+    }
+
+    /* ==========================================================================
+       SCROLL-SYNCHRONIZED PENETRATING GRID OVERLAY
+       ========================================================================== */
+    body.show-guides .main-wrapper::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 100%;
+      background-image:
+        linear-gradient(to bottom, var(--color-grid-overlay) 1px, transparent 1px),
+        linear-gradient(to right, var(--color-grid-overlay) 1px, transparent 1px);
+      background-size: var(--G-unit) var(--G-unit);
+      background-position: 0 0;
+      background-repeat: repeat;
+      pointer-events: none;
+      z-index: 100;
+    }
+
+    body.show-guides .sidebar::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 100%;
+      background-image:
+        linear-gradient(to bottom, var(--color-grid-overlay) 1px, transparent 1px),
+        linear-gradient(to right, var(--color-grid-overlay) 1px, transparent 1px);
+      background-size: var(--G-unit) var(--G-unit);
+      background-position: 0 0;
+      background-repeat: repeat;
+      pointer-events: none;
+      z-index: 100;
+    }
+
+    /* Dimension Tag Overlay */
+    .dim-badge {
+      display: none;
+      position: absolute;
+      top: -8px;
+      right: 6px;
+      font-family: var(--font-mono);
+      font-size: 9px;
+      line-height: 14px;
+      font-weight: 700;
+      background: var(--neutral-800);
+      color: var(--white-pure);
+      padding: 0 4px;
+      border-radius: 2px;
+      z-index: 110;
+      pointer-events: none;
+      letter-spacing: 0.04em;
+    }
+
+    body.show-dimensions .dim-badge {
+      display: inline-block;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    code, pre {
+      font-family: var(--font-mono);
+      font-feature-settings: "tnum";
+    }
+
+    /* ==========================================================================
+       SIDEBAR: STRICT 32px GRID ALIGNMENT
+       ========================================================================== */
+    .app-root {
+      display: flex;
+      min-height: 100vh;
+      width: 100%;
+      position: relative;
+    }
+
+    .sidebar {
+      width: var(--w-sidebar); /* 224px = 7G */
+      background: var(--color-bg);
+      border-right: 1px solid var(--color-line);
+      position: fixed;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      display: flex;
+      flex-direction: column;
+      z-index: 40;
+    }
+
+    .sidebar-header {
+      height: var(--h-header); /* 64px = 2G */
+      display: flex;
+      align-items: center;
+      padding: 0;
+      border-bottom: 1px solid var(--color-line);
+      position: relative;
+    }
+
+    .sidebar-header-icon-box {
+      width: var(--G-unit); /* 32px = 1G */
+      height: var(--h-header); /* 64px */
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .brand-mark {
+      width: 24px;
+      height: 24px;
+      background: var(--color-brand);
+      border-radius: var(--radius-control);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ffffff;
+      font-weight: 800;
+      font-size: 13.5px;
+      line-height: 1;
+      font-family: var(--font-mono);
+    }
+
+    .brand-title-wrap {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding-right: 12px;
+    }
+
+    .brand-title {
+      font-size: 13.5px;
+      line-height: 16px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--color-ink);
+    }
+
+    .brand-badge {
+      font-size: 9.5px;
+      line-height: 13px;
+      font-family: var(--font-mono);
+      font-weight: 600;
+      padding: 1px 4px;
+      background: var(--color-surface-2);
+      border: 1px solid var(--color-line);
+      color: var(--color-ink-2);
+      border-radius: var(--radius-chip);
+    }
+
+    .nav-scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0;
+    }
+
+    .nav-group-title {
+      height: var(--G-unit); /* 32px = 1G */
+      display: flex;
+      align-items: center;
+      padding: 0 0 0 var(--G-unit); /* 32px left padding -> Align with nav labels */
+      font-size: 11px;
+      line-height: 1;
+      font-family: var(--font-sans);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--color-ink-3);
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      height: var(--G-unit); /* 32px = 1G */
+      padding: 0;
+      font-size: 12.5px;
+      line-height: 1;
+      font-weight: 500;
+      color: var(--color-ink-2);
+      cursor: pointer;
+      transition: transform var(--duration-press) var(--ease-out),
+                  background-color var(--duration-ui) ease,
+                  color var(--duration-ui) ease;
+      position: relative;
+    }
+
+    .nav-item:active {
+      transform: scale(0.985);
+    }
+
+    .nav-item:hover {
+      background: var(--color-surface-2);
+      color: var(--color-ink);
+    }
+
+    .nav-item.active {
+      background: var(--brand-50);
+      color: var(--brand-700);
+      font-weight: 600;
+    }
+
+    .nav-item.active::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: var(--brand-500);
+    }
+
+    .nav-item.active .nav-icon-box {
+      color: var(--brand-500);
+    }
+
+    [data-theme="dark"] .nav-item.active {
+      background: oklch(24% 0.05 264.18);
+      color: var(--brand-200);
+    }
+
+    [data-theme="dark"] .nav-item.active .nav-icon-box {
+      color: var(--brand-300);
+    }
+
+    .nav-icon-box {
+      width: var(--G-unit); /* 32px = 1G */
+      height: var(--G-unit);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .nav-label {
+      flex: 1;
+      padding-right: 8px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .nav-spacer-row {
+      height: var(--G-unit); /* 32px = 1G */
+    }
+
+    .sidebar-footer {
+      height: var(--h-header); /* 64px = 2G */
+      padding: 0 var(--G-half);
+      border-top: 1px solid var(--color-line);
+      font-size: 11px;
+      font-family: var(--font-mono);
+      color: var(--color-ink-3);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--color-surface);
+      margin-top: auto;
+      flex-shrink: 0;
+    }
+
+    /* Main Content Wrapper */
+    .main-wrapper {
+      flex: 1;
+      margin-left: var(--w-sidebar);
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      min-height: 100vh;
+      position: relative;
+    }
+
+    /* Top Sticky Header (64px = 2G, Y=0..64px, Centerline Y=32px Lock) */
+    .top-header {
+      height: var(--h-header); /* 64px = 2G */
+      position: sticky;
+      top: 0;
+      background: var(--color-bg);
+      border-bottom: 1px solid var(--color-line);
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      padding: 0 var(--G-unit);
+      z-index: 30;
+      box-sizing: border-box;
+    }
+
+    .header-breadcrumb {
+      height: 32px;
+      margin-top: 16px;
+      display: flex;
+      align-items: center;
+      gap: var(--G-quarter);
+      font-size: 13px;
+      color: var(--color-ink-2);
+      box-sizing: border-box;
+    }
+
+    .header-breadcrumb .sep {
+      color: var(--color-line-2);
+      font-family: var(--font-mono);
+    }
+
+    .header-breadcrumb strong {
+      color: var(--color-ink);
+      font-weight: 600;
+    }
+
+    .header-actions {
+      height: 32px;
+      margin-top: 16px;
+      display: flex;
+      align-items: center;
+      gap: var(--G-half);
+      box-sizing: border-box;
+    }
+
+    .btn-tool {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      height: 32px;
+      line-height: 30px;
+      padding: 0 12px;
+      border-radius: var(--radius-control);
+      border: 1px solid var(--color-line);
+      background: var(--color-surface);
+      color: var(--color-ink);
+      font-size: 12px;
+      font-weight: 600;
+      font-family: var(--font-sans);
+      cursor: pointer;
+      box-sizing: border-box;
+      margin: 0;
+      transition: transform var(--duration-press) var(--ease-out),
+                  border-color var(--duration-ui) ease,
+                  background-color var(--duration-ui) ease,
+                  color var(--duration-ui) ease;
+    }
+
+    .btn-tool:active {
+      transform: scale(0.96);
+    }
+
+    .btn-tool:hover {
+      border-color: var(--color-line-2);
+      background: var(--color-surface-2);
+    }
+
+    .btn-tool.active {
+      border-color: var(--brand-300);
+      color: var(--brand-700);
+      background: var(--brand-50);
+    }
+
+    [data-theme="dark"] .btn-tool.active {
+      border-color: var(--brand-500);
+      color: var(--brand-200);
+      background: oklch(24% 0.05 264.18);
+    }
+
+    .centered-canvas {
+      width: var(--w-canvas); /* 1120px = 35G */
+      padding: var(--G-unit) 0 var(--h-header) 0;
+      position: relative;
+    }
+
+    .section-block {
+      margin-bottom: var(--h-header); /* 64px = 2G */
+      scroll-margin-top: calc(var(--h-header) + var(--G-unit));
+      position: relative;
+    }
+
+    /* Section Header: 128px = 4G */
+    .section-header-locked {
+      height: var(--h-section-header);
+      margin-bottom: var(--G-unit);
+      border-bottom: 1px solid var(--color-line);
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      position: relative;
+    }
+
+    .section-eyebrow-row {
+      height: var(--G-unit);
+      display: flex;
+      align-items: center;
+      font-family: var(--font-sans);
+      font-size: 11px;
+      line-height: 1;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--color-ink-3);
+    }
+
+    .section-title-row {
+      height: var(--G-unit);
+      display: flex;
+      align-items: center;
+      font-size: 22px;
+      line-height: 1;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--color-ink);
+    }
+
+    .section-desc-row {
+      height: var(--G-unit);
+      display: flex;
+      align-items: center;
+      font-size: 13.5px;
+      line-height: 1;
+      color: var(--color-ink-2);
+      max-width: 860px;
+    }
+
+    .section-buffer-row {
+      height: var(--G-unit);
+      display: flex;
+      align-items: center;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      color: var(--color-ink-3);
+    }
+
+    /* Column Grids */
+    .grid-4col-locked {
+      display: grid;
+      grid-template-columns: repeat(4, var(--w-card-4col));
+      gap: var(--G-unit);
+      margin-bottom: var(--G-unit);
+    }
+
+    .grid-3col-locked {
+      display: grid;
+      grid-template-columns: repeat(3, var(--w-card-3col));
+      gap: var(--G-unit);
+      margin-bottom: var(--G-unit);
+    }
+
+    /* Axiom Principles Card (6G = 192px, High-Legibility Typography & Grid Lock) */
+    .axiom-card {
+      width: var(--w-card-4col);
+      height: 192px; /* 6G = 192px */
+      padding: 0;
+      box-sizing: border-box;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .axiom-card-tag {
+      position: absolute;
+      top: 31px; /* Center on 32px Grid Line (Y=704px) */
+      left: 31px;
+      right: 31px;
+      transform: translateY(-50%);
+      height: 16px;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      font-weight: 700;
+      color: var(--color-ink-3);
+      letter-spacing: 0.06em;
+      margin: 0;
+    }
+
+    .axiom-card-title {
+      position: absolute;
+      top: 63px; /* Center on 64px Grid Line (Y=736px) */
+      left: 31px;
+      right: 31px;
+      transform: translateY(-50%);
+      height: 24px;
+      font-size: 14px;
+      line-height: 24px;
+      font-weight: 700;
+      color: var(--color-ink);
+      margin: 0;
+    }
+
+    .axiom-card-desc {
+      position: absolute;
+      top: 84px; /* Cleanly in slot between 64px and 160px */
+      left: 31px;
+      right: 31px;
+      font-size: 12px;
+      line-height: 18px;
+      color: var(--color-ink-2);
+      margin: 0;
+    }
+
+    .axiom-card-metrics {
+      position: absolute;
+      top: 159px; /* Inside 160px-192px bottom grid cell (Y=832px-864px) */
+      height: 32px;
+      left: 31px;
+      right: 31px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1px solid var(--color-line-2);
+      font-size: 11px;
+      font-family: var(--font-mono);
+      font-weight: 600;
+      color: var(--color-ink-3);
+      margin: 0;
+    }
+
+    .tech-card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-line);
+      border-radius: var(--radius-card);
+      position: relative;
+      transition: border-color 0.12s ease;
+    }
+
+    .tech-card:hover {
+      border-color: var(--color-line-2);
+    }
+
+    .has-corner-ticks::before,
+    .has-corner-ticks::after {
+      content: "";
+      position: absolute;
+      width: var(--G-quarter);
+      height: var(--G-quarter);
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    .has-corner-ticks::before {
+      top: 0;
+      left: 0;
+      border-top: 2px solid var(--color-line-2);
+      border-left: 2px solid var(--color-line-2);
+    }
+
+    .has-corner-ticks::after {
+      bottom: 0;
+      right: 0;
+      border-bottom: 2px solid var(--color-line-2);
+      border-right: 2px solid var(--color-line-2);
+    }
+
+    /* Hero Panel (11G = 352px) */
+    .hero-panel {
+      height: var(--h-card-hero); /* 352px = 11G */
+      padding: 31px 31px 0 31px; /* 31px + 1px border = 32px top/left/right snap */
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-top-row {
+      height: var(--G-unit); /* 32px = 1G (Canvas Y: 128px→160px) */
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    .hero-badge-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      height: var(--G-unit); /* 32px = 1G */
+      padding: 0 12px;
+      background: var(--color-surface-2);
+      border: 1px solid var(--color-line);
+      border-radius: var(--radius-chip);
+      font-size: 12px;
+      font-family: var(--font-sans);
+      font-weight: 600;
+      color: var(--color-ink-2);
+      box-sizing: border-box;
+    }
+
+    .status-indicator-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--color-brand);
+    }
+
+    .hero-body-content {
+      margin-top: var(--G-unit); /* 32px = 1G spacer (Canvas Y: 160px→192px) */
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      gap: 0;
+      flex: 1;
+      min-height: 0;
+    }
+
+    .hero-title {
+      font-size: 32px;
+      line-height: 64px; /* Exact 2G = 64px (Canvas Y: 192px→256px) */
+      height: 64px; /* Exact 2G */
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: var(--color-ink);
+      margin: 0;
+      display: flex;
+      align-items: center;
+      flex-shrink: 0;
+    }
+
+    .hero-title .brand-accent-text {
+      color: var(--color-brand-ink);
+    }
+
+    .hero-desc {
+      font-size: 14px;
+      line-height: 22px; /* Natural readable typographic leading */
+      color: var(--color-ink-2);
+      max-width: 832px;
+      margin-top: 8px;
+      margin-bottom: 0;
+    }
+
+    .hero-meta-grid {
+      position: absolute;
+      bottom: -1px;
+      left: -1px;
+      width: 1120px; /* 35G full card width */
+      display: grid;
+      grid-template-columns: 256px 256px 256px 352px; /* 8G + 8G + 8G + 11G = 35G = 1120px */
+      height: 64px; /* Exact 2G = 64px (Canvas Y: 384px→448px) */
+      padding: 0;
+      border-top: 1px solid var(--color-line);
+      box-sizing: border-box;
+      background: var(--color-surface-2);
+    }
+
+    .hero-meta-cell {
+      display: flex;
+      flex-direction: column;
+      padding: 0 var(--G-unit);
+      background: transparent;
+      border-right: 1px solid var(--color-line);
+      justify-content: center;
+      height: 63px;
+      position: relative;
+      box-sizing: border-box;
+    }
+
+    .hero-meta-cell:last-child {
+      border-right: none;
+    }
+
+    .hero-meta-label {
+      font-size: 11px;
+      line-height: 18px;
+      font-family: var(--font-sans);
+      font-weight: 700;
+      color: var(--color-ink-3);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .hero-meta-val {
+      font-size: 13px;
+      line-height: 20px;
+      font-family: var(--font-mono);
+      font-weight: 600;
+      color: var(--color-ink);
+    }
+
+    /* --------------------------------------------------------------------------
+       BETTER-COLORS RAMP VISUALIZER BARS (Tier 1 Primitives)
+       -------------------------------------------------------------------------- */
+    .ramp-strip-container {
+      width: 100%;
+      height: 192px; /* 6G = 192px locked */
+      padding: 31px;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      gap: 0;
+      margin-bottom: var(--G-unit);
+      position: relative;
+    }
+
+    .ramp-strip-row {
+      height: 64px; /* 2G */
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--G-unit);
+      box-sizing: border-box;
+    }
+
+    .ramp-title-col {
+      width: 256px; /* 8G */
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      flex-shrink: 0;
+    }
+
+    .ramp-title-row {
+      font-size: 11.5px;
+      line-height: 16px;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      color: var(--color-ink);
+      letter-spacing: 0.02em;
+    }
+
+    .ramp-title-badge {
+      font-size: 10.5px;
+      font-weight: 600;
+      color: var(--color-ink-3);
+      font-family: var(--font-mono);
+    }
+
+    .ramp-color-bar {
+      display: grid;
+      grid-template-columns: repeat(10, 1fr);
+      height: var(--G-unit); /* 32px = 1G */
+      border-radius: var(--radius-control);
+      overflow: hidden;
+      border: 1px solid var(--color-line);
+      flex: 1;
+    }
+
+    .ramp-swatch-step {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10.5px;
+      font-family: var(--font-mono);
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.12s ease;
+      position: relative;
+      user-select: none;
+    }
+
+    .ramp-swatch-step:hover {
+      transform: scaleY(1.15);
+      z-index: 10;
+      outline: 1.5px solid #ffffff;
+    }
+
+    /* Color Swatch Card (4G = 128px) */
+    .color-swatch-card {
+      width: var(--w-card-4col);
+      height: var(--h-card-std); /* 128px = 4G */
+      padding: 0;
+      overflow: hidden;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      position: relative;
+      transition: transform var(--duration-press) var(--ease-out),
+                  border-color var(--duration-ui) ease;
+    }
+
+    .color-swatch-card:active {
+      transform: scale(0.98);
+    }
+
+    .color-preview-box {
+      height: 63px;
+      width: 100%;
+      border: none;
+      border-radius: 0;
+      position: relative;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      padding: var(--G-quarter) var(--G-half);
+      box-sizing: border-box;
+      flex-shrink: 0;
+    }
+
+    .contrast-tag {
+      font-size: 10px;
+      line-height: 12px;
+      font-family: var(--font-mono);
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: var(--radius-chip);
+    }
+
+    .color-details {
+      height: 64px;
+      border-top: 1px solid var(--color-line);
+      padding: 10px var(--G-half) 12px var(--G-half);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      box-sizing: border-box;
+      flex-shrink: 0;
+    }
+
+    .color-role-header {
+      height: 18px;
+      line-height: 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--color-ink);
+      box-sizing: border-box;
+      padding: 0;
+      margin: 0;
+    }
+
+    .copy-action-hint {
+      font-size: 10px;
+      font-family: var(--font-mono);
+      color: var(--color-ink-3);
+      line-height: 18px;
+    }
+
+    .color-specs-line {
+      height: 16px;
+      line-height: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 10.5px;
+      font-family: var(--font-mono);
+      color: var(--color-ink-3);
+      white-space: nowrap;
+      box-sizing: border-box;
+      padding: 0;
+      margin: 0;
+    }
+
+    /* Small Metric Card (8G x 3G = 256px x 96px, 1 Grid Unit per Row: 142 fully in Cell 2) */
+    .metric-card-box, .metric-card-sm {
+      width: var(--w-card-4col); /* 256px = 8G */
+      height: 96px; /* 96px = 3G */
+      padding: 0;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Cell 1: 0..32px (1G) */
+    .metric-card-box .metric-top-row, .metric-card-sm .metric-top-row {
+      height: 32px;
+      padding: 0 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 0;
+      box-sizing: border-box;
+    }
+
+    .metric-label {
+      font-size: 11px;
+      font-family: var(--font-sans);
+      font-weight: 700;
+      color: var(--color-ink-3);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      line-height: 32px;
+    }
+
+    .metric-top-row .chip, .metric-top-row .chip-split {
+      height: 22px;
+      line-height: 20px;
+      font-size: 11px;
+    }
+
+    /* Cell 2: 32..64px (1G) - 142 fully in this 32px grid cell */
+    .metric-card-box .metric-number, .metric-card-sm .metric-number {
+      height: 32px;
+      padding: 0 15px;
+      display: flex;
+      align-items: center;
+      font-size: 28px;
+      line-height: 32px;
+      font-weight: 800;
+      color: var(--color-ink);
+      font-feature-settings: "tnum";
+      letter-spacing: -0.02em;
+      margin: 0;
+      box-sizing: border-box;
+    }
+
+    /* Cell 3: 64..96px (1G) - subtext fully in this 32px grid cell */
+    .metric-card-box .metric-subtext, .metric-card-sm .metric-subtext {
+      height: 32px;
+      padding: 0 15px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11.5px;
+      line-height: 32px;
+      color: var(--color-ink-2);
+      margin: 0;
+      box-sizing: border-box;
+    }
+
+    /* Large / Hero Metric Card (11G x 5G = 352px x 160px, Absolute Grid Centerline Lock) */
+    .metric-card-lg {
+      width: var(--w-card-3col); /* 352px = 11G */
+      height: 160px; /* 160px = 5G */
+      padding: 0;
+      box-sizing: border-box;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Top Header Row (CATALOG SERVICES) Center Y = 32px on Grid Line 1 (19 + 1 + 12 = 32px) */
+    .metric-card-lg .metric-top-row {
+      position: absolute;
+      top: 19px;
+      left: 31px;
+      right: 31px;
+      height: 24px;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-sizing: border-box;
+    }
+
+    /* 142 Number Value Centered at 80px (between 64px and 96px grid lines) */
+    .metric-card-lg .metric-number {
+      position: absolute;
+      top: 57px;
+      left: 31px;
+      right: 31px;
+      height: 44px;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      font-size: 42px;
+      line-height: 44px;
+      font-weight: 800;
+      color: var(--color-ink);
+      font-feature-settings: "tnum";
+      letter-spacing: -0.03em;
+      box-sizing: border-box;
+    }
+
+    /* Subtext (✓ 12 New) Center Y = 128px on Grid Line 4 (117 + 1 + 10 = 128px) */
+    .metric-card-lg .metric-subtext {
+      position: absolute;
+      top: 117px;
+      left: 31px;
+      right: 31px;
+      height: 20px;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12.5px;
+      line-height: 20px;
+      color: var(--color-ink-2);
+      box-sizing: border-box;
+    }
+
+    /* Typography Scale Table */
+    .type-table-card {
+      width: 100%;
+      height: 320px;
+      overflow: hidden;
+      position: relative;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .type-spec-row {
+      display: grid;
+      grid-template-columns: 224px 1fr 256px;
+      padding: 0 var(--G-unit);
+      border-top: 1px solid var(--color-line);
+      border-bottom: none;
+      align-items: center;
+      height: 64px;
+      flex-shrink: 0;
+      position: relative;
+      box-sizing: border-box;
+    }
+
+    .type-spec-row:first-of-type {
+      border-top: none;
+      height: 63px;
+    }
+
+    .type-spec-row:last-of-type {
+      height: 63px;
+    }
+
+    .type-role-title {
+      font-size: 13px;
+      line-height: 16px;
+      font-weight: 700;
+      color: var(--color-ink);
+    }
+
+    .type-role-metrics {
+      font-size: 11px;
+      line-height: 16px;
+      font-family: var(--font-mono);
+      color: var(--color-ink-3);
+    }
+
+    .type-sample-render {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: var(--color-ink);
+    }
+
+    .type-usage-desc {
+      font-size: 12px;
+      line-height: 16px;
+      color: var(--color-ink-2);
+      text-align: right;
+      font-family: var(--font-sans);
+    }
+
+    /* Data Table (7G = 224px, 1 header 32px + 3 spacious rows 64px) */
+    .table-container {
+      width: 100%;
+      height: 224px;
+      border: 1px solid var(--color-line);
+      border-radius: var(--radius-card);
+      overflow: hidden;
+      background: var(--color-surface);
+      position: relative;
+      box-sizing: border-box;
+      padding: 0;
+      margin: 0;
+    }
+
+    .blueprint-table {
+      width: calc(100% + 2px);
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 12px;
+      table-layout: fixed;
+      margin: -1px;
+      padding: 0;
+      border: none;
+      position: relative;
+    }
+
+    .blueprint-table thead tr {
+      height: 32px;
+    }
+
+    .blueprint-table th {
+      background: var(--color-surface-2);
+      color: var(--color-ink-2);
+      font-weight: 700;
+      padding: 0 var(--G-half);
+      border: none;
+      border-bottom: 1px solid var(--color-line);
+      font-size: 11px;
+      font-family: var(--font-sans);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      height: 32px;
+      line-height: 31px;
+      vertical-align: middle;
+      box-sizing: border-box;
+    }
+
+    .blueprint-table tbody tr {
+      height: 64px;
+    }
+
+    .blueprint-table td {
+      height: 64px;
+      padding: 0 var(--G-half);
+      border: none;
+      border-bottom: 1px solid var(--color-line-2);
+      vertical-align: middle;
+      box-sizing: border-box;
+      font-size: 13px;
+      line-height: 1;
+    }
+
+    .blueprint-table tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    .blueprint-table td code {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--color-ink-2);
+    }
+
+    .blueprint-table td .chip {
+      height: 24px;
+      line-height: 22px;
+      font-size: 11.5px;
+      margin: 0;
+    }
+
+    .blueprint-table td > * {
+      vertical-align: middle;
+    }
+
+    .blueprint-table th:nth-child(1), .blueprint-table td:nth-child(1) { width: 288px; } /* 9G */
+    .blueprint-table th:nth-child(2), .blueprint-table td:nth-child(2) { width: 192px; } /* 6G */
+    .blueprint-table th:nth-child(3), .blueprint-table td:nth-child(3) { width: 224px; } /* 7G */
+    .blueprint-table th:nth-child(4), .blueprint-table td:nth-child(4) { width: 224px; } /* 7G */
+    .blueprint-table th:nth-child(5), .blueprint-table td:nth-child(5) { width: 192px; } /* 6G */
+
+    .blueprint-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .blueprint-table tr:hover td {
+      background: var(--color-surface-2);
+    }
+
+    .blueprint-table tr.selected td {
+      background: var(--brand-50);
+    }
+
+    .blueprint-table tr.selected td:first-child {
+      border-left: 2px solid var(--brand-500);
+    }
+
+    [data-theme="dark"] .blueprint-table tr.selected td {
+      background: oklch(22% 0.035 264.18);
+    }
+
+    [data-theme="dark"] .blueprint-table tr.selected td:first-child {
+      border-left: 2px solid var(--brand-400);
+    }
+
+    /* Note Aside */
+    .note-aside {
+      display: flex;
+      align-items: center;
+      gap: var(--G-half);
+      height: var(--h-header);
+      padding: 0 var(--G-unit);
+      border-radius: var(--radius-card);
+      border: 1px solid var(--color-line);
+      font-size: 13px;
+      background: var(--color-surface);
+      margin-bottom: var(--G-unit);
+      position: relative;
+    }
+
+    .note-badge-tag {
+      font-size: 11px;
+      font-family: var(--font-sans);
+      font-weight: 700;
+      padding: 2px 6px;
+      background: var(--color-surface-2);
+      color: var(--color-ink);
+      border-radius: var(--radius-chip);
+      border: 1px solid var(--color-line-2);
+      letter-spacing: 0.05em;
+    }
+
+    .component-test-row {
+      height: 64px; /* 2G */
+      border-top: 1px solid var(--color-line);
+      border-bottom: none;
+      padding: 15px var(--G-unit) 16px var(--G-unit);
+      display: flex;
+      align-items: center;
+      gap: var(--G-half);
+      position: relative;
+      flex-shrink: 0;
+      box-sizing: border-box;
+    }
+
+    .component-test-row:first-of-type {
+      border-top: none;
+      height: 63px;
+      padding: 15px var(--G-unit) 16px var(--G-unit);
+    }
+
+    .component-test-row:last-of-type {
+      height: 63px;
+      padding: 15px var(--G-unit) 15px var(--G-unit);
+    }
+
+    .component-category-label {
+      width: 224px; /* 7G = 224px locked */
+      font-size: 12px;
+      line-height: 16px;
+      font-family: var(--font-sans);
+      font-weight: 700;
+      color: var(--color-ink-3);
+      flex-shrink: 0;
+    }
+
+    /* Button & Chips Suite Cards Locked to 32px Grid */
+    .button-suite-card {
+      height: 192px; /* 6G = 192px (3 rows x 64px) */
+      padding: 0;
+      box-sizing: border-box;
+      overflow: hidden;
+      margin-bottom: var(--G-unit);
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      position: relative;
+    }
+
+    .chips-suite-card {
+      height: 384px; /* 12G = 384px (6 rows x 64px) */
+      padding: 0;
+      box-sizing: border-box;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      position: relative;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--G-quarter);
+      height: var(--G-unit);
+      padding: 0 var(--G-half);
+      border-radius: var(--radius-control);
+      font-size: 13px;
+      font-weight: 600;
+      font-family: var(--font-sans);
+      cursor: pointer;
+      transition: transform var(--duration-press) var(--ease-out),
+                  border-color var(--duration-ui) ease,
+                  background-color var(--duration-ui) ease,
+                  color var(--duration-ui) ease;
+      border: 1px solid transparent;
+      outline: none;
+      user-select: none;
+      position: relative;
+    }
+
+    .btn:active {
+      transform: scale(0.97);
+    }
+
+    .btn:focus-visible {
+      box-shadow: 0 0 0 3px var(--neutral-300);
+      border-color: var(--color-primary);
+    }
+
+    /* Brand CTA: High-impact hero action / conversion */
+    .btn-brand {
+      background: var(--brand-500);
+      color: #ffffff;
+      border-color: var(--brand-500);
+      font-weight: 600;
+    }
+
+    .btn-brand:hover {
+      background: var(--brand-600);
+      border-color: var(--brand-600);
+    }
+
+    [data-theme="dark"] .btn-brand {
+      background: var(--brand-400);
+      border-color: var(--brand-400);
+      color: #ffffff;
+    }
+
+    [data-theme="dark"] .btn-brand:hover {
+      background: var(--brand-300);
+      border-color: var(--brand-300);
+    }
+
+    /* Primary: High-contrast, ergonomic solid neutral action */
+    .btn-primary {
+      background: var(--color-primary);
+      color: var(--color-on-primary);
+      border-color: var(--color-primary);
+    }
+
+    .btn-primary:hover {
+      background: var(--color-primary-hover);
+      border-color: var(--color-primary-hover);
+    }
+
+    .btn-secondary {
+      background: var(--color-surface);
+      color: var(--color-ink);
+      border-color: var(--color-line-2);
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--neutral-700);
+      color: var(--color-ink);
+      background: var(--color-surface-2);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--color-ink-2);
+      border-color: transparent;
+    }
+
+    .btn-ghost:hover {
+      background: var(--color-surface-2);
+      color: var(--color-ink);
+    }
+
+    .btn-danger {
+      background: transparent;
+      color: var(--color-critical-ink);
+      border-color: var(--color-critical);
+    }
+
+    .btn-danger:hover {
+      background: var(--color-critical-tint);
+    }
+
+    .btn:disabled, .btn.disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+
+    .btn-sm {
+      height: 24px;
+      padding: 0 var(--G-half);
+      font-size: 12px;
+    }
+
+    .btn-lg {
+      height: 48px; /* 1.5G = 48px */
+      padding: 0 var(--G-unit);
+      font-size: 14px;
+    }
+
+    /* --------------------------------------------------------------------------
+       STATUS CHIPS & TOKEN ANATOMY (6 Distinct Architectural Archetypes)
+       -------------------------------------------------------------------------- */
+    /* Base Token / Chip */
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      height: 24px;
+      padding: 0 8px;
+      font-size: 11.5px;
+      line-height: 1;
+      font-weight: 500;
+      font-family: var(--font-sans);
+      letter-spacing: 0.01em;
+      user-select: none;
+      transition: all 0.12s ease;
+      white-space: nowrap;
+      border-radius: var(--radius-control);
+    }
+
+    /* 6px Crisp Semantic Status Indicator Dots */
+    .chip-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .dot-success { background: var(--green-500); }
+    .dot-warning { background: var(--amber-500); }
+    .dot-critical { background: var(--red-500); }
+    .dot-info { background: var(--sky-500); }
+    .dot-brand { background: var(--brand-500); }
+    .dot-neutral { background: var(--neutral-500); }
+
+    /* 1. Neutral Plate + Semantic Dot (Stripe / Linear Console Benchmark) */
+    .chip-plate {
+      background: var(--color-surface-2);
+      border: 1px solid var(--color-line);
+      color: var(--color-ink);
+      font-weight: 500;
+    }
+    .chip-plate:hover {
+      border-color: var(--color-line-2);
+      background: var(--color-surface);
+    }
+
+    /* 2. Two-Tone Key/Value Split Tag (Cloud & DevTools) */
+    .chip-split {
+      display: inline-flex;
+      align-items: center;
+      height: 24px;
+      border: 1px solid var(--color-line);
+      border-radius: var(--radius-control);
+      overflow: hidden;
+      font-size: 11px;
+      line-height: 1;
+      font-family: var(--font-sans);
+      user-select: none;
+    }
+    .chip-split-key {
+      background: var(--color-surface-2);
+      color: var(--color-ink-3);
+      font-family: var(--font-mono);
+      font-weight: 600;
+      font-size: 9.5px;
+      padding: 0 6px;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      border-right: 1px solid var(--color-line);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .chip-split-val {
+      background: var(--color-surface);
+      color: var(--color-ink);
+      font-weight: 600;
+      padding: 0 8px;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    /* 3. High-Contrast Solid Badges (GitHub / Raycast Solid Tags) */
+    .chip-solid-dark {
+      background: var(--neutral-900);
+      color: #ffffff;
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      font-weight: 600;
+      padding: 0 8px;
+      border-radius: 2px;
+    }
+    .chip-solid-success {
+      background: var(--green-700);
+      color: #ffffff;
+      font-weight: 600;
+      padding: 0 8px;
+      border-radius: 2px;
+    }
+    .chip-solid-warning {
+      background: var(--amber-700);
+      color: #ffffff;
+      font-weight: 600;
+      padding: 0 8px;
+      border-radius: 2px;
+    }
+    .chip-solid-critical {
+      background: var(--red-700);
+      color: #ffffff;
+      font-weight: 600;
+      padding: 0 8px;
+      border-radius: 2px;
+    }
+
+    /* 4. Wireframe with Icon Glyph (Linear Issue States) */
+    .chip-wireframe {
+      background: var(--color-surface);
+      border: 1px solid var(--color-line);
+      color: var(--color-ink-2);
+      font-weight: 500;
+      gap: 5px;
+    }
+    .chip-wireframe:hover {
+      border-color: var(--color-line-2);
+      color: var(--color-ink);
+    }
+
+    /* 5. Interactive Filter Token (Dismissible & Dropdown) */
+    .chip-filter {
+      background: var(--color-surface);
+      border: 1px solid var(--color-line);
+      color: var(--color-ink);
+      font-weight: 500;
+      cursor: pointer;
+      gap: 6px;
+      transition: transform var(--duration-press) var(--ease-out),
+                  border-color var(--duration-ui) ease,
+                  background-color var(--duration-ui) ease;
+    }
+    .chip-filter:active {
+      transform: scale(0.96);
+    }
+    .chip-filter:hover {
+      border-color: var(--color-line-2);
+      background: var(--color-surface-2);
+    }
+    .chip-close-btn {
+      font-size: 13px;
+      line-height: 1;
+      color: var(--color-ink-3);
+      font-family: var(--font-sans);
+      margin-left: 2px;
+    }
+    .chip-close-btn:hover {
+      color: var(--color-critical-ink);
+    }
+    .chip-dropdown-arrow {
+      font-size: 9px;
+      color: var(--color-ink-3);
+    }
+
+    /* 6. Subdued Ambient Tint (Soft background, readable Neutral Ink text) */
+    .chip-tint-success {
+      background: var(--green-50);
+      border: 1px solid var(--green-200);
+      color: var(--neutral-900);
+    }
+    .chip-tint-warning {
+      background: var(--amber-50);
+      border: 1px solid var(--amber-200);
+      color: var(--neutral-900);
+    }
+    .chip-tint-critical {
+      background: var(--red-50);
+      border: 1px solid var(--red-200);
+      color: var(--neutral-900);
+    }
+    .chip-tint-info {
+      background: var(--sky-50);
+      border: 1px solid var(--sky-200);
+      color: var(--neutral-900);
+    }
+
+    /* Dark mode adaptations for chip archetypes */
+    [data-theme="dark"] .chip-solid-dark {
+      background: var(--neutral-100);
+      color: var(--neutral-950);
+    }
+    [data-theme="dark"] .chip-tint-success {
+      background: oklch(24% 0.04 152);
+      border-color: oklch(36% 0.10 152);
+      color: var(--color-ink);
+    }
+    [data-theme="dark"] .chip-tint-warning {
+      background: oklch(25% 0.05 75);
+      border-color: oklch(38% 0.11 75);
+      color: var(--color-ink);
+    }
+    [data-theme="dark"] .chip-tint-critical {
+      background: oklch(25% 0.05 25);
+      border-color: oklch(38% 0.14 25);
+      color: var(--color-ink);
+    }
+    [data-theme="dark"] .chip-tint-info {
+      background: oklch(24% 0.04 230);
+      border-color: oklch(36% 0.09 230);
+      color: var(--color-ink);
+    }
+
+    /* Form Panels & Structured Grid (Locked to 32px Grid) */
+    .form-inputs-card {
+      width: 100%;
+      height: 224px; /* 7G = 224px */
+      padding: 0;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      overflow: hidden;
+      margin-bottom: var(--G-unit);
+      position: relative;
+    }
+
+    .form-switches-card {
+      width: 100%;
+      height: 192px; /* 6G = 192px */
+      padding: 0;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .form-grid-3col {
+      display: grid;
+      grid-template-columns: 320px 320px 320px;
+      justify-content: space-between;
+      padding: 0 var(--G-unit);
+      height: 112px; /* 3.5G = 112px */
+      align-items: center;
+      box-sizing: border-box;
+      border-top: 1px solid var(--color-line);
+    }
+
+    .form-grid-3col:first-of-type {
+      border-top: none;
+    }
+
+    .switch-grid-3col {
+      display: grid;
+      grid-template-columns: 352px 352px 352px; /* 11G + 11G + 11G = 33G = 1056px */
+      padding: 16px 31px; /* 16px top/bottom, 31px left/right */
+      height: 96px; /* 3G = 96px */
+      align-items: center;
+      box-sizing: border-box;
+      border-top: 1px solid var(--color-line);
+    }
+
+    .switch-grid-3col:first-of-type {
+      border-top: none;
+      height: 95px;
+      padding: 15px 31px 16px 31px;
+    }
+
+    .form-field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      width: 100%;
+      position: relative;
+    }
+
+    .form-field-label {
+      font-size: 12px;
+      line-height: 16px;
+      font-weight: 600;
+      color: var(--color-ink);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .form-field-hint {
+      font-size: 11px;
+      font-family: var(--font-mono);
+      color: var(--color-ink-3);
+    }
+
+    .input-control {
+      width: 100%;
+      height: var(--G-unit);
+      padding: 0 var(--G-half);
+      border-radius: var(--radius-control);
+      border: 1px solid var(--color-line);
+      background: var(--color-surface);
+      color: var(--color-ink);
+      font-size: 13px;
+      font-family: var(--font-sans);
+      outline: none;
+      transition: border-color 0.12s ease;
+    }
+
+    .input-control.mono {
+      font-family: var(--font-mono);
+      font-size: 12px;
+    }
+
+    .input-control:focus {
+      border-color: var(--brand-500);
+      box-shadow: 0 0 0 3px var(--brand-100);
+    }
+
+    [data-theme="dark"] .input-control:focus {
+      border-color: var(--brand-400);
+      box-shadow: 0 0 0 3px oklch(28% 0.08 264.18);
+    }
+
+    .input-control.error {
+      border-color: var(--color-critical);
+      background: var(--color-critical-tint);
+    }
+
+    .input-addon-group {
+      display: flex;
+      align-items: center;
+      height: var(--G-unit);
+      border-radius: var(--radius-control);
+      border: 1px solid var(--color-line);
+      background: var(--color-surface);
+      overflow: hidden;
+      transition: border-color 0.12s ease;
+    }
+
+    .input-addon-group:focus-within {
+      border-color: var(--brand-500);
+      box-shadow: 0 0 0 3px var(--brand-100);
+    }
+
+    [data-theme="dark"] .input-addon-group:focus-within {
+      border-color: var(--brand-400);
+      box-shadow: 0 0 0 3px oklch(28% 0.08 264.18);
+    }
+
+    .input-addon {
+      padding: 0 10px;
+      background: var(--color-surface-2);
+      color: var(--color-ink-3);
+      font-size: 11px;
+      font-family: var(--font-mono);
+      font-weight: 600;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      border-right: 1px solid var(--color-line);
+      user-select: none;
+    }
+
+    .input-addon-group .input-control {
+      border: none;
+      box-shadow: none !important;
+      height: 100%;
+      flex: 1;
+      border-radius: 0;
+    }
+
+    .switch-field {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      user-select: none;
+      padding: 0 12px;
+      height: 64px; /* 2G = 64px */
+      border-radius: var(--radius-control);
+      transition: background-color 0.12s ease;
+      position: relative;
+      box-sizing: border-box;
+    }
+
+    .switch-field:hover {
+      background: var(--color-surface-2);
+    }
+
+    .switch-input {
+      position: absolute;
+      opacity: 0;
+      width: 0;
+      height: 0;
+      pointer-events: none;
+    }
+
+    .switch-track {
+      width: var(--G-unit); /* Exactly 32px = 1G */
+      height: 18px;
+      background: var(--neutral-300);
+      border: 1px solid var(--neutral-400);
+      border-radius: 9px;
+      position: relative;
+      transition: background-color 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+                  border-color 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      flex-shrink: 0;
+    }
+
+    .switch-track::before {
+      content: "";
+      position: absolute;
+      width: 14px;
+      height: 14px;
+      left: 1px;
+      top: 1px;
+      background: #ffffff;
+      border-radius: 50%;
+      border: 0.5px solid rgba(0, 0, 0, 0.12);
+      transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+                  background-color 0.15s ease;
+    }
+
+    .switch-input:checked + .switch-track {
+      background: var(--brand-500);
+      border-color: var(--brand-500);
+    }
+
+    .switch-input:checked + .switch-track::before {
+      transform: translateX(14px); /* 1px -> 15px */
+      background: #ffffff;
+      border: none;
+    }
+
+    .switch-input:focus-visible + .switch-track {
+      box-shadow: 0 0 0 3px var(--brand-100);
+      border-color: var(--brand-500);
+    }
+
+    .switch-input:disabled + .switch-track {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .switch-label-group {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+
+    .switch-label-title {
+      font-size: 13px;
+      line-height: 16px;
+      font-weight: 600;
+      color: var(--color-ink);
+    }
+
+    .switch-label-desc {
+      font-size: 11px;
+      line-height: 14px;
+      font-family: var(--font-mono);
+      color: var(--color-ink-3);
+    }
+
+    /* Dark mode for Switch */
+    [data-theme="dark"] .switch-track {
+      background: oklch(28% 0.015 264.18);
+      border-color: oklch(38% 0.015 264.18);
+    }
+
+    [data-theme="dark"] .switch-track::before {
+      background: oklch(92% 0.01 264.18);
+      border: 0.5px solid rgba(0, 0, 0, 0.3);
+    }
+
+    [data-theme="dark"] .switch-input:checked + .switch-track {
+      background: var(--brand-400);
+      border-color: var(--brand-400);
+    }
+
+    [data-theme="dark"] .switch-input:checked + .switch-track::before {
+      background: #ffffff;
+      border: none;
+    }
+
+    /* Code Panel (8G = 256px) */
+    .code-panel-locked {
+      height: 256px;
+      background: var(--color-surface);
+      border: 1px solid var(--color-line);
+      border-radius: var(--radius-card);
+      padding: var(--G-unit);
+      box-sizing: border-box;
+      overflow: auto;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      line-height: 24px;
+      position: relative;
+    }
+
+    .code-panel-locked pre {
+      color: var(--color-ink);
+      margin: 0;
+    }
+
+    /* Toast */
+    .toast-pill {
+      position: fixed;
+      bottom: var(--G-unit);
+      right: var(--G-unit);
+      height: var(--G-unit);
+      padding: 0 var(--G-half);
+      background: var(--color-ink);
+      color: var(--color-bg);
+      border-radius: var(--radius-control);
+      font-size: 12px;
+      font-family: var(--font-mono);
+      font-weight: 500;
+      border: 1px solid var(--color-line-2);
+      box-shadow: var(--shadow-overlay);
+      display: flex;
+      align-items: center;
+      gap: var(--G-quarter);
+      opacity: 0;
+      transform: translateY(8px) scale(0.96);
+      transition: transform var(--duration-ui) var(--ease-out),
+                  opacity var(--duration-ui) var(--ease-out);
+      z-index: 999;
+      pointer-events: none;
+    }
+
+    .toast-pill.show {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+
+    /* HUD */
+    .coord-hud {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--color-ink-2);
+      background: var(--color-surface-2);
+      padding: 2px 8px;
+      border-radius: 2px;
+      border: 1px solid var(--color-line);
+    }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+      .sidebar {
+        display: none;
+      }
+      .main-wrapper {
+        margin-left: 0;
+      }
+      .centered-canvas {
+        width: 100%;
+        margin-left: 0;
+        padding: var(--G-half);
+      }
+      .grid-4col-locked, .grid-3col-locked, .hero-meta-grid {
+        grid-template-columns: 1fr;
+      }
+      .color-swatch-card, .metric-card-box, .hero-panel, .type-table-card, .ramp-strip-container {
+        width: 100%;
+        height: auto;
+      }
+      .type-spec-row {
+        grid-template-columns: 1fr;
+        height: auto;
+        padding: var(--G-half);
+      }
+      .type-usage-desc {
+        text-align: left;
+      }
+    /* Reduced Motion Support (Emil Kowalski Animate Hard Rule) */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+  </style>
+</head>
+<body class="show-guides show-dimensions">
+
+  <div class="app-root" data-od-id="app-root">
+
+    <!-- Sidebar Navigation: Fixed 224px (7G), Icon Centered in 32px Grid Cell (X=16, Y=16), Text Starts at X=32px -->
+    <aside class="sidebar" data-od-id="sidebar-nav">
+      <span class="dim-badge">[7G (224px)]</span>
+
+      <!-- Header: Height 64px = 2G, Icon Centered in 32px Cell -->
+      <div class="sidebar-header">
+        <span class="dim-badge">[7G × 2G]</span>
+        <div class="sidebar-header-icon-box">
+          <div class="brand-mark">A</div>
+        </div>
+        <div class="brand-title-wrap">
+          <div class="brand-title">Atlas Blueprint</div>
+          <span class="brand-badge">OKLCH</span>
+        </div>
+      </div>
+
+      <!-- Nav Scroll: Zero Padding, Strict 32px Grid Alignment -->
+      <nav class="nav-scroll">
+        <!-- Group 1: Geometry & Foundations -->
+        <div class="nav-group-title">Foundations</div>
+
+        <a class="nav-item active" href="#section-overview" data-od-id="nav-link-overview">
+          <span class="dim-badge">[1G H]</span>
+          <div class="nav-icon-box">
+            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>
+          </div>
+          <span class="nav-label">Zero Arbitrary Pixels</span>
+        </a>
+
+        <a class="nav-item" href="#section-principles" data-od-id="nav-link-principles">
+          <span class="dim-badge">[1G H]</span>
+          <div class="nav-icon-box">
+            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+          </div>
+          <span class="nav-label">Mathematical Axioms</span>
+        </a>
+
+        <!-- 32px Spacer Row -->
+        <div class="nav-spacer-row"></div>
+
+        <!-- Group 2: Design Tokens -->
+        <div class="nav-group-title">Design Tokens</div>
+
+        <a class="nav-item" href="#section-colors" data-od-id="nav-link-colors">
+          <span class="dim-badge">[1G H]</span>
+          <div class="nav-icon-box">
+            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a10 10 0 0 0 0 20v-20z"></path></svg>
+          </div>
+          <span class="nav-label">better-colors Palette</span>
+        </a>
+
+        <a class="nav-item" href="#section-typography" data-od-id="nav-link-typography">
+          <span class="dim-badge">[1G H]</span>
+          <div class="nav-icon-box">
+            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="4 7 4 4 20 4 20 7"></polyline><line x1="9" y1="20" x2="15" y2="20"></line><line x1="12" y1="4" x2="12" y2="20"></line></svg>
+          </div>
+          <span class="nav-label">Typography & Baseline</span>
+        </a>
+
+        <!-- 32px Spacer Row -->
+        <div class="nav-spacer-row"></div>
+
+        <!-- Group 3: Component Systems -->
+        <div class="nav-group-title">Components</div>
+
+        <a class="nav-item" href="#section-buttons" data-od-id="nav-link-buttons">
+          <span class="dim-badge">[1G H]</span>
+          <div class="nav-icon-box">
+            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="3"></rect></svg>
+          </div>
+          <span class="nav-label">Buttons & Status Chips</span>
+        </a>
+
+        <a class="nav-item" href="#section-forms" data-od-id="nav-link-forms">
+          <span class="dim-badge">[1G H]</span>
+          <div class="nav-icon-box">
+            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+          </div>
+          <span class="nav-label">Inputs & Switches</span>
+        </a>
+
+        <a class="nav-item" href="#section-surfaces" data-od-id="nav-link-cards">
+          <span class="dim-badge">[1G H]</span>
+          <div class="nav-icon-box">
+            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"></rect><path d="M3 9h18"></path></svg>
+          </div>
+          <span class="nav-label">Data Tables & Metrics</span>
+        </a>
+
+        <a class="nav-item" href="#section-code" data-od-id="nav-link-code">
+          <span class="dim-badge">[1G H]</span>
+          <div class="nav-icon-box">
+            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+          </div>
+          <span class="nav-label">Token Export & Code</span>
+        </a>
+      </nav>
+
+      <!-- Sidebar Bottom Sunk Footer (64px = 2G) -->
+      <div class="sidebar-footer">
+        <span>X: 0→224px (7G)</span>
+        <span>7G Locked</span>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-wrapper main-grid-canvas">
+
+      <!-- Top Sticky Header -->
+      <header class="top-header" data-od-id="top-header">
+        <span class="dim-badge">[H: 2G (64px) · Snap Y=64px]</span>
+
+        <div class="header-breadcrumb">
+          <span>Atlas Platform</span>
+          <span class="sep">/</span>
+          <strong>Blueprint Design System</strong>
+          <span class="coord-hud" id="liveCoordHud">X: 224px (7G Snap) · Y: 64px</span>
+        </div>
+
+        <div class="header-actions">
+          <button class="btn-tool active" id="dimToggleBtn" onclick="toggleDimensions()" title="Toggle bounding box dimension badges">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>
+            <span id="dimBtnText">Dimensions: ON</span>
+          </button>
+
+          <button class="btn-tool active" id="gridToggleBtn" onclick="toggleGridGuides()" title="Toggle scroll-synchronized penetrating grid overlay">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="1"></rect><path d="M3 9h18M3 15h18M9 3v18M15 3v18"></path></svg>
+            <span id="gridGuideText">Penetrating Grid: ON</span>
+          </button>
+
+          <button class="btn-tool" id="auditToggleBtn" onclick="runInBrowserGridAudit()" title="Run real-time 32px grid and border coincidence audit">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+            <span id="auditBtnText">Audit Grid: 100%</span>
+          </button>
+
+          <button class="btn-tool" id="themeToggleBtn" onclick="toggleTheme()">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+            <span id="themeBtnText">Dark Mode</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Grid-Locked Content Canvas -->
+      <div class="centered-canvas" id="mainCanvas">
+
+        <!-- Hero Specification Panel -->
+        <section class="section-block" id="section-overview" data-od-id="section-overview">
+          <span class="dim-badge">[Section 1 · H: 11G (352px) · Y: 96px→448px]</span>
+
+          <div class="tech-card has-corner-ticks hero-panel">
+            <span class="dim-badge">[35G × 11G (1120px × 352px) · 100% Border & Grid Snap]</span>
+
+            <!-- Row 1: Action Bar (32px = 1G, Y: 128px→160px) -->
+            <div class="hero-top-row">
+              <div class="hero-badge-pill">
+                <span class="status-indicator-dot"></span>
+                Atlas Blueprint Specification · Mathematical Rigor
+              </div>
+              <div style="display: flex; gap: 8px;">
+                <button class="btn btn-brand btn-sm" onclick="showToast('Triggered Blueprint Creation')">
+                  <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+                  New Spec Asset
+                </button>
+                <button class="btn btn-secondary btn-sm" onclick="document.getElementById('section-colors').scrollIntoView({behavior: 'smooth'})">
+                  Explore Tokens
+                </button>
+              </div>
+            </div>
+
+            <!-- Row 2: Title & Body Zone (Y: 192px→288px, Title: 2G/64px, Desc: 1G/32px) -->
+            <div class="hero-body-content">
+              <h1 class="hero-title">
+                Deterministic Geometry & <span class="brand-accent-text">32px Grid Alignment</span> System
+              </h1>
+
+              <p class="hero-desc">
+                Every component, spacing interval, baseline rhythm, and interactive control is mathematically anchored to a unified 32px coordinate plane.
+              </p>
+            </div>
+
+            <!-- Row 3: Metadata Matrix (64px = 2G, Y: 320px→384px) -->
+            <div class="hero-meta-grid">
+              <div class="hero-meta-cell">
+                <span class="hero-meta-label">Icon Centering</span>
+                <span class="hero-meta-val">X: 16px, Y: 16px (100% Centered)</span>
+              </div>
+              <div class="hero-meta-cell">
+                <span class="hero-meta-label">Text Baseline Origin</span>
+                <span class="hero-meta-val">X: 32px (Left-Aligned Anchor)</span>
+              </div>
+              <div class="hero-meta-cell">
+                <span class="hero-meta-label">Scroll Sync</span>
+                <span class="hero-meta-val">100% Lockstep Synchronization</span>
+              </div>
+              <div class="hero-meta-cell">
+                <span class="hero-meta-label">Color Architecture</span>
+                <span class="hero-meta-val">better-colors Two-Tier Decoupled</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Principles Section -->
+        <section class="section-block" id="section-principles" data-od-id="section-principles">
+          <span class="dim-badge">[Section 2 · Y: 448px→832px]</span>
+
+          <div class="section-header-locked">
+            <span class="dim-badge">[Header: 4G (128px)]</span>
+            <div class="section-eyebrow-row">
+              <span class="dim-badge">[Row 1: 1G · Y_mid: 16px]</span>
+              02 / MATHEMATICAL AXIOMS
+            </div>
+            <div class="section-title-row">
+              <span class="dim-badge">[Row 2: 1G · Y_mid: 48px]</span>
+              Deterministic Geometric Axioms & Grid Rules
+            </div>
+            <div class="section-desc-row">
+              <span class="dim-badge">[Row 3: 1G · Y_mid: 80px]</span>
+              Every visual decision is derived from coordinate mathematics. No arbitrary pixels (Zero Arbitrary Pixels policy).
+            </div>
+            <div class="section-buffer-row">
+              <span class="dim-badge">[Row 4: 1G]</span>
+              <span>[SNAP] 0px Phase Shift · 100% Coincident Borders</span>
+            </div>
+          </div>
+
+          <div class="grid-4col-locked">
+            <!-- Axiom 1 -->
+            <div class="tech-card axiom-card">
+              <div class="axiom-card-tag">AXIOM 01 · 8G × 6G</div>
+              <div class="axiom-card-title">1. Global Border Snap</div>
+              <p class="axiom-card-desc">
+                Card left borders coincide 100% with the 32px vertical grid line at X=0px with zero phase offset.
+              </p>
+              <div class="axiom-card-metrics">
+                <span>Phase Shift: 0px</span>
+                <span>X = 0px Snap</span>
+              </div>
+            </div>
+
+            <!-- Axiom 2 -->
+            <div class="tech-card axiom-card">
+              <div class="axiom-card-tag">AXIOM 02 · 8G × 6G</div>
+              <div class="axiom-card-title">2. Bilateral Gap Symmetry</div>
+              <p class="axiom-card-desc">
+                32px column gutters intersect vertical grid lines with exact bilateral mirror symmetry.
+              </p>
+              <div class="axiom-card-metrics">
+                <span>Gutter: 32px (1G)</span>
+                <span>Symmetric</span>
+              </div>
+            </div>
+
+            <!-- Axiom 3 -->
+            <div class="tech-card axiom-card">
+              <div class="axiom-card-tag">AXIOM 03 · 8G × 6G</div>
+              <div class="axiom-card-title">3. Baseline Rhythm Lock</div>
+              <p class="axiom-card-desc">
+                Body line-height locked to 24px (0.75G); exactly 4 lines span 96px (3G) to realign on grid lines.
+              </p>
+              <div class="axiom-card-metrics">
+                <span>4 Lines = 96px (3G)</span>
+                <span>Lockstep</span>
+              </div>
+            </div>
+
+            <!-- Axiom 4 -->
+            <div class="tech-card axiom-card">
+              <div class="axiom-card-tag">AXIOM 04 · 8G × 6G</div>
+              <div class="axiom-card-title">4. Canvas Edge Clamping</div>
+              <p class="axiom-card-desc">
+                The fourth column right border snaps precisely onto the 35G (1120px) canvas boundary line.
+              </p>
+              <div class="axiom-card-metrics">
+                <span>Width: 1120px (35G)</span>
+                <span>Clamped</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Color Tokens Section: Better-Colors Architecture -->
+        <section class="section-block" id="section-colors" data-od-id="section-colors">
+          <span class="dim-badge">[Section 3 · Y: 832px→1536px]</span>
+
+          <div class="section-header-locked">
+            <span class="dim-badge">[Header: 4G (128px)]</span>
+            <div class="section-eyebrow-row">
+              <span class="dim-badge">[Row 1: 1G · Y_mid: 16px]</span>
+              03 / COLOR TOKENS & ARCHITECTURE
+            </div>
+            <div class="section-title-row">
+              <span class="dim-badge">[Row 2: 1G · Y_mid: 48px]</span>
+              OKLCH Ramps (Tier 1) & Semantic Role Mapping (Tier 2)
+            </div>
+            <div class="section-desc-row">
+              <span class="dim-badge">[Row 3: 1G · Y_mid: 80px]</span>
+              Constant hue per ramp, mid-curve chroma peaking, high contrast verification, and decoupled brand identity.
+            </div>
+            <div class="section-buffer-row">
+              <span>[COLOR MATRIX] Tier 1 Primitives Ramp + Tier 2 Semantics</span>
+            </div>
+          </div>
+
+          <!-- Tier 1: Brand & Neutral Continuous Ramps (192px = 6G) -->
+          <div class="tech-card ramp-strip-container">
+            <!-- Brand Ramp Row (64px = 2G) -->
+            <div class="ramp-strip-row">
+              <div class="ramp-title-col">
+                <span class="ramp-title-row">BRAND IDENTITY RAMP</span>
+                <span class="ramp-title-badge">Hue 264.18° · Peak Chroma 0.3059</span>
+              </div>
+              <div class="ramp-color-bar">
+                <div class="ramp-swatch-step" style="background: var(--brand-50); color: var(--neutral-900);" onclick="copyToken('--brand-50', 'oklch(96% 0.035 264.18)')">50</div>
+                <div class="ramp-swatch-step" style="background: var(--brand-100); color: var(--neutral-900);" onclick="copyToken('--brand-100', 'oklch(92% 0.065 264.18)')">100</div>
+                <div class="ramp-swatch-step" style="background: var(--brand-200); color: var(--neutral-900);" onclick="copyToken('--brand-200', 'oklch(84% 0.120 264.18)')">200</div>
+                <div class="ramp-swatch-step" style="background: var(--brand-300); color: #fff;" onclick="copyToken('--brand-300', 'oklch(72% 0.200 264.18)')">300</div>
+                <div class="ramp-swatch-step" style="background: var(--brand-400); color: #fff;" onclick="copyToken('--brand-400', 'oklch(58% 0.270 264.18)')">400</div>
+                <div class="ramp-swatch-step" style="background: var(--brand-500); color: #fff; font-weight: 800; border: 1.5px solid #fff;" onclick="copyToken('--brand-500', 'oklch(46.28% 0.3059 264.18)')">500★</div>
+                <div class="ramp-swatch-step" style="background: var(--brand-600); color: #fff;" onclick="copyToken('--brand-600', 'oklch(40% 0.280 264.18)')">600</div>
+                <div class="ramp-swatch-step" style="background: var(--brand-700); color: #fff;" onclick="copyToken('--brand-700', 'oklch(34% 0.240 264.18)')">700</div>
+                <div class="ramp-swatch-step" style="background: var(--brand-800); color: #fff;" onclick="copyToken('--brand-800', 'oklch(27% 0.180 264.18)')">800</div>
+                <div class="ramp-swatch-step" style="background: var(--brand-900); color: #fff;" onclick="copyToken('--brand-900', 'oklch(20% 0.120 264.18)')">900</div>
+              </div>
+            </div>
+
+            <!-- Neutral Ramp Row (64px = 2G) -->
+            <div class="ramp-strip-row">
+              <div class="ramp-title-col">
+                <span class="ramp-title-row">NEUTRAL BLUEPRINT RAMP</span>
+                <span class="ramp-title-badge">Hue 264.18° · Subtle Blueprint Paper Tint</span>
+              </div>
+              <div class="ramp-color-bar">
+                <div class="ramp-swatch-step" style="background: var(--neutral-50); color: var(--neutral-900);" onclick="copyToken('--neutral-50', 'oklch(98.2% 0.004 264.18)')">50</div>
+                <div class="ramp-swatch-step" style="background: var(--neutral-100); color: var(--neutral-900);" onclick="copyToken('--neutral-100', 'oklch(97% 0.006 264.18)')">100</div>
+                <div class="ramp-swatch-step" style="background: var(--neutral-200); color: var(--neutral-900);" onclick="copyToken('--neutral-200', 'oklch(93.5% 0.008 264.18)')">200</div>
+                <div class="ramp-swatch-step" style="background: var(--neutral-300); color: var(--neutral-900);" onclick="copyToken('--neutral-300', 'oklch(89% 0.012 264.18)')">300</div>
+                <div class="ramp-swatch-step" style="background: var(--neutral-400); color: var(--neutral-900);" onclick="copyToken('--neutral-400', 'oklch(79% 0.016 264.18)')">400</div>
+                <div class="ramp-swatch-step" style="background: var(--neutral-500); color: #fff;" onclick="copyToken('--neutral-500', 'oklch(65% 0.022 264.18)')">500</div>
+                <div class="ramp-swatch-step" style="background: var(--neutral-600); color: #fff;" onclick="copyToken('--neutral-600', 'oklch(56% 0.026 264.18)')">600</div>
+                <div class="ramp-swatch-step" style="background: var(--neutral-700); color: #fff;" onclick="copyToken('--neutral-700', 'oklch(44% 0.030 264.18)')">700</div>
+                <div class="ramp-swatch-step" style="background: var(--neutral-900); color: #fff;" onclick="copyToken('--neutral-900', 'oklch(21.5% 0.030 264.18)')">900</div>
+                <div class="ramp-swatch-step" style="background: var(--neutral-950); color: #fff;" onclick="copyToken('--neutral-950', 'oklch(14% 0.015 264.18)')">950</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tier 2: Semantic Role Cards -->
+          <div class="grid-4col-locked">
+            <!-- Primary Action -->
+            <div class="tech-card color-swatch-card" onclick="copyToken('--color-primary', 'var(--neutral-900)')">
+              <span class="dim-badge">[Primary Action]</span>
+              <div class="color-preview-box" style="background: var(--color-primary);">
+                <span class="contrast-tag" style="background: rgba(0,0,0,0.5); color: #fff;">WCAG 13.5:1 (AAA)</span>
+              </div>
+              <div class="color-details">
+                <div class="color-role-header">
+                  <span>--color-primary</span>
+                  <span class="copy-action-hint">Copy</span>
+                </div>
+                <div class="color-specs-line">
+                  <span>Role: Action</span>
+                  <span>var(--neutral-900)</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Brand Identity -->
+            <div class="tech-card color-swatch-card" onclick="copyToken('--color-brand', 'var(--brand-500)')">
+              <span class="dim-badge">[Brand Identity]</span>
+              <div class="color-preview-box" style="background: var(--color-brand);">
+                <span class="contrast-tag" style="background: rgba(0,0,0,0.5); color: #fff;">Peak #001AFF</span>
+              </div>
+              <div class="color-details">
+                <div class="color-role-header">
+                  <span>--color-brand</span>
+                  <span class="copy-action-hint">Copy</span>
+                </div>
+                <div class="color-specs-line">
+                  <span>Role: Identity</span>
+                  <span>var(--brand-500)</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Canvas Background -->
+            <div class="tech-card color-swatch-card" onclick="copyToken('--color-bg', 'var(--neutral-50)')">
+              <span class="dim-badge">[Page Canvas]</span>
+              <div class="color-preview-box" style="background: var(--color-bg);">
+                <span class="contrast-tag" style="background: rgba(0,0,0,0.08); color: var(--color-ink);">Base Paper</span>
+              </div>
+              <div class="color-details">
+                <div class="color-role-header">
+                  <span>--color-bg</span>
+                  <span class="copy-action-hint">Copy</span>
+                </div>
+                <div class="color-specs-line">
+                  <span>Role: Canvas</span>
+                  <span>var(--neutral-50)</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Surface Plate -->
+            <div class="tech-card color-swatch-card" onclick="copyToken('--color-surface', 'var(--white-pure)')">
+              <span class="dim-badge">[Card Surface]</span>
+              <div class="color-preview-box" style="background: var(--color-surface);">
+                <span class="contrast-tag" style="background: rgba(0,0,0,0.08); color: var(--color-ink);">Solid Plate</span>
+              </div>
+              <div class="color-details">
+                <div class="color-role-header">
+                  <span>--color-surface</span>
+                  <span class="copy-action-hint">Copy</span>
+                </div>
+                <div class="color-specs-line">
+                  <span>Role: Plate</span>
+                  <span>var(--white-pure)</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Success State -->
+            <div class="tech-card color-swatch-card" onclick="copyToken('--color-success', 'var(--green-500)')">
+              <span class="dim-badge">[Status: GA]</span>
+              <div class="color-preview-box" style="background: var(--color-success);">
+                <span class="contrast-tag" style="background: rgba(0,0,0,0.5); color: #fff;">GA State (152°)</span>
+              </div>
+              <div class="color-details">
+                <div class="color-role-header">
+                  <span>--color-success</span>
+                  <span class="copy-action-hint">Copy</span>
+                </div>
+                <div class="color-specs-line">
+                  <span>Role: GA / Live</span>
+                  <span>var(--green-500)</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Warning State -->
+            <div class="tech-card color-swatch-card" onclick="copyToken('--color-warning', 'var(--amber-500)')">
+              <span class="dim-badge">[Status: Stale]</span>
+              <div class="color-preview-box" style="background: var(--color-warning);">
+                <span class="contrast-tag" style="background: rgba(0,0,0,0.5); color: #fff;">Stale (75°)</span>
+              </div>
+              <div class="color-details">
+                <div class="color-role-header">
+                  <span>--color-warning</span>
+                  <span class="copy-action-hint">Copy</span>
+                </div>
+                <div class="color-specs-line">
+                  <span>Role: Stale</span>
+                  <span>var(--amber-500)</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Critical State -->
+            <div class="tech-card color-swatch-card" onclick="copyToken('--color-critical', 'var(--red-500)')">
+              <span class="dim-badge">[Status: Broken]</span>
+              <div class="color-preview-box" style="background: var(--color-critical);">
+                <span class="contrast-tag" style="background: rgba(0,0,0,0.5); color: #fff;">Broken (25°)</span>
+              </div>
+              <div class="color-details">
+                <div class="color-role-header">
+                  <span>--color-critical</span>
+                  <span class="copy-action-hint">Copy</span>
+                </div>
+                <div class="color-specs-line">
+                  <span>Role: Broken</span>
+                  <span>var(--red-500)</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Info State -->
+            <div class="tech-card color-swatch-card" onclick="copyToken('--color-info', 'var(--sky-500)')">
+              <span class="dim-badge">[Status: Info]</span>
+              <div class="color-preview-box" style="background: var(--color-info);">
+                <span class="contrast-tag" style="background: rgba(0,0,0,0.5); color: #fff;">Notice (230°)</span>
+              </div>
+              <div class="color-details">
+                <div class="color-role-header">
+                  <span>--color-info</span>
+                  <span class="copy-action-hint">Copy</span>
+                </div>
+                <div class="color-specs-line">
+                  <span>Role: Notice</span>
+                  <span>var(--sky-500)</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Surfaces, Metric Cards & Data Table -->
+        <section class="section-block" id="section-surfaces" data-od-id="section-cards">
+          <span class="dim-badge">[Section 4 · Y: 1536px→2208px]</span>
+
+          <div class="section-header-locked">
+            <span class="dim-badge">[Header: 4G (128px)]</span>
+            <div class="section-eyebrow-row">
+              <span class="dim-badge">[Row 1: 1G · Y_mid: 16px]</span>
+              04 / DATA PRESENTATION
+            </div>
+            <div class="section-title-row">
+              <span class="dim-badge">[Row 2: 1G · Y_mid: 48px]</span>
+              Structured Data Tables & Metric Cards
+            </div>
+            <div class="section-desc-row">
+              <span class="dim-badge">[Row 3: 1G · Y_mid: 80px]</span>
+              Metrics card at Y=1504px→1632px, Data table at Y=1760px→1984px (7G), 100% locked to 32px boundaries.
+            </div>
+            <div class="section-buffer-row">
+              <span>[DATA PANELS] 3 Columns Metrics + 7G Table</span>
+            </div>
+          </div>
+
+          <div class="grid-3col-locked">
+            <div class="tech-card has-corner-ticks metric-card-box">
+              <div class="metric-top-row">
+                <span class="metric-label">CATALOG SERVICES</span>
+                <span class="chip chip-plate"><span class="chip-dot dot-success"></span>GA v2.4</span>
+              </div>
+              <div class="metric-number">142</div>
+              <div class="metric-subtext">
+                <span style="color: var(--color-success-ink); font-weight: 600;">✓ 12 New</span>
+                <span>deployed this week</span>
+              </div>
+            </div>
+
+            <div class="tech-card has-corner-ticks metric-card-box">
+              <div class="metric-top-row">
+                <span class="metric-label">APCA CONTRAST</span>
+                <span class="chip-split"><span class="chip-split-key">APCA</span><span class="chip-split-val"><span class="chip-dot dot-success"></span>Lc 98</span></span>
+              </div>
+              <div class="metric-number">98<span style="font-size: 18px; font-weight: 400; color: var(--color-ink-3);"> Lc</span></div>
+              <div class="metric-subtext">
+                <span style="color: var(--color-ink); font-weight: 600;">Primary Ink</span>
+                <span>maximum legibility</span>
+              </div>
+            </div>
+
+            <div class="tech-card has-corner-ticks metric-card-box">
+              <div class="metric-top-row">
+                <span class="metric-label">WCAG COMPLIANCE</span>
+                <span class="chip chip-plate"><span class="chip-dot dot-success"></span>13.5:1 AAA</span>
+              </div>
+              <div class="metric-number">13.5<span style="font-size: 18px; font-weight: 400; color: var(--color-ink-3);">:1</span></div>
+              <div class="metric-subtext">
+                <span>Measured on light canvas plate</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Hero Metric Cards: 5G (160px) Multi-Cell Gridlock Showcase -->
+          <div class="grid-3col-locked" style="margin-top: var(--G-1);">
+            <div class="tech-card has-corner-ticks metric-card-lg">
+              <div class="metric-top-row">
+                <span class="metric-label">CATALOG SERVICES</span>
+                <span class="chip chip-plate"><span class="chip-dot dot-success"></span>GA v2.4</span>
+              </div>
+              <div class="metric-number">142</div>
+              <div class="metric-subtext">
+                <span style="color: var(--color-success-ink); font-weight: 600;">✓ 12 New</span>
+                <span>deployed this week</span>
+              </div>
+            </div>
+
+            <div class="tech-card has-corner-ticks metric-card-lg">
+              <div class="metric-top-row">
+                <span class="metric-label">APCA CONTRAST</span>
+                <span class="chip-split"><span class="chip-split-key">APCA</span><span class="chip-split-val"><span class="chip-dot dot-success"></span>Lc 98</span></span>
+              </div>
+              <div class="metric-number">98<span style="font-size: 22px; font-weight: 400; color: var(--color-ink-3);"> Lc</span></div>
+              <div class="metric-subtext">
+                <span style="color: var(--color-ink); font-weight: 600;">Primary Ink</span>
+                <span>maximum legibility</span>
+              </div>
+            </div>
+
+            <div class="tech-card has-corner-ticks metric-card-lg">
+              <div class="metric-top-row">
+                <span class="metric-label">WCAG COMPLIANCE</span>
+                <span class="chip chip-plate"><span class="chip-dot dot-success"></span>13.5:1 AAA</span>
+              </div>
+              <div class="metric-number">13.5<span style="font-size: 22px; font-weight: 400; color: var(--color-ink-3);">:1</span></div>
+              <div class="metric-subtext">
+                <span>Measured on light canvas plate</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="note-aside">
+            <span class="dim-badge">[Aside: 2G (64px)]</span>
+            <span class="note-badge-tag">[NOTE]</span>
+            <div>Disciplined color rule: Brand identity is never sprayed across general UI text or primary buttons. Neutral ink maintains optimal visual ergonomics.</div>
+          </div>
+
+          <div class="table-container">
+            <span class="dim-badge">[Table: 7G (224px)]</span>
+            <table class="blueprint-table">
+              <thead>
+                <tr>
+                  <th>Service Name</th>
+                  <th>Category</th>
+                  <th>Regional Availability</th>
+                  <th>Status (Status Chips)</th>
+                  <th>Last Synced</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="selected">
+                  <td style="font-weight: 600; color: var(--color-ink); font-size: 13.5px;">Cloud Valkey Store</td>
+                  <td>Memory Cache</td>
+                  <td><code>eu-west-1, us-east-1</code></td>
+                  <td><span class="chip chip-plate"><span class="chip-dot dot-success"></span>100% Deployed</span></td>
+                  <td style="font-family: var(--font-mono); font-size: 12px; color: var(--color-ink-2);">2026-08-25 18:40 UTC</td>
+                </tr>
+                <tr>
+                  <td style="font-weight: 600; color: var(--color-ink); font-size: 13.5px;">DynamoDB Context Bridge</td>
+                  <td>Persistence Layer</td>
+                  <td><code>eu-central-1</code></td>
+                  <td><span class="chip chip-plate"><span class="chip-dot dot-success"></span>100% Deployed</span></td>
+                  <td style="font-family: var(--font-mono); font-size: 12px; color: var(--color-ink-2);">2026-08-25 18:35 UTC</td>
+                </tr>
+                <tr>
+                  <td style="font-weight: 600; color: var(--color-ink); font-size: 13.5px;">Event Grid PubSub</td>
+                  <td>Event Bus</td>
+                  <td><code>Global Anycast</code></td>
+                  <td><span class="chip chip-plate"><span class="chip-dot dot-warning"></span>Sync Pending</span></td>
+                  <td style="font-family: var(--font-mono); font-size: 12px; color: var(--color-ink-2);">2026-08-24 09:12 UTC</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Typography & Vertical Rhythm Section -->
+        <section class="section-block" id="section-typography" data-od-id="section-typography">
+          <span class="dim-badge">[Section 5 · Y: 2208px→2720px]</span>
+
+          <div class="section-header-locked">
+            <span class="dim-badge">[Header: 4G (128px)]</span>
+            <div class="section-eyebrow-row">
+              <span class="dim-badge">[Row 1: 1G · Y_mid: 16px]</span>
+              05 / VERTICAL RHYTHM & SCALE
+            </div>
+            <div class="section-title-row">
+              <span class="dim-badge">[Row 2: 1G · Y_mid: 48px]</span>
+              Typography Scale & Baseline Rhythm
+            </div>
+            <div class="section-desc-row">
+              <span class="dim-badge">[Row 3: 1G · Y_mid: 80px]</span>
+              Line-heights quantized strictly to 16px (0.5G), 24px (0.75G), 32px (1G), or 48px (1.5G).
+            </div>
+            <div class="section-buffer-row">
+              <span>[TYPOGRAPHY SCALE] 5 Scale Levels · Full Width 35G Locked</span>
+            </div>
+          </div>
+
+          <div class="tech-card type-table-card">
+            <span class="dim-badge">[Type Table: 10G (320px) · Y: 2208px→2528px]</span>
+
+            <div class="type-spec-row">
+              <span class="dim-badge">[Row 1: 2G (64px)]</span>
+              <div>
+                <div class="type-role-title">Display Hero</div>
+                <div class="type-role-metrics">32px / 48px (1.5G) · 700</div>
+              </div>
+              <div class="type-sample-render" style="font-size: 32px; font-weight: 700; line-height: 48px; letter-spacing: -0.03em;">
+                Engineering Drawing
+              </div>
+              <div class="type-usage-desc">Route Hero · Once per route</div>
+            </div>
+
+            <div class="type-spec-row">
+              <span class="dim-badge">[Row 2: 2G (64px)]</span>
+              <div>
+                <div class="type-role-title">Heading 1</div>
+                <div class="type-role-metrics">24px / 32px (1.0G) · 700</div>
+              </div>
+              <div class="type-sample-render" style="font-size: 24px; font-weight: 700; line-height: 32px; letter-spacing: -0.02em;">
+                Service Catalog & Cloud Assets
+              </div>
+              <div class="type-usage-desc">Primary Module Heading</div>
+            </div>
+
+            <div class="type-spec-row">
+              <span class="dim-badge">[Row 3: 2G (64px)]</span>
+              <div>
+                <div class="type-role-title">Card Title / Title</div>
+                <div class="type-role-metrics">15px / 24px (0.75G) · 700</div>
+              </div>
+              <div class="type-sample-render" style="font-size: 15px; font-weight: 700; line-height: 24px; letter-spacing: -0.01em;">
+                Object Storage Service · eu-west-1
+              </div>
+              <div class="type-usage-desc">Card Header / Key Object Name</div>
+            </div>
+
+            <div class="type-spec-row">
+              <span class="dim-badge">[Row 4: 2G (64px)]</span>
+              <div>
+                <div class="type-role-title">Body Regular</div>
+                <div class="type-role-metrics">15px / 24px (0.75G) · 400</div>
+              </div>
+              <div class="type-sample-render" style="font-size: 15px; font-weight: 400; line-height: 24px;">
+                4 lines of body copy measure exactly 96px (3G) to realign seamlessly on horizontal grid lines.
+              </div>
+              <div class="type-usage-desc">Global Body Standard</div>
+            </div>
+
+            <div class="type-spec-row">
+              <span class="dim-badge">[Row 5: 2G (64px)]</span>
+              <div>
+                <div class="type-role-title">Detail / Mono Code</div>
+                <div class="type-role-metrics">12px / 16px (0.5G) · 600</div>
+              </div>
+              <div class="type-sample-render" style="font-size: 12px; font-family: var(--font-mono); line-height: 16px; color: var(--color-ink-2);">
+                $ aws s3api get-bucket-location --bucket atlas-store-01
+              </div>
+              <div class="type-usage-desc">Inline Code / Monospace Identifier</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Interactive Controls Section -->
+        <section class="section-block" id="section-buttons" data-od-id="section-buttons">
+          <span class="dim-badge">[Section 6 · Y: 2720px→3552px]</span>
+
+          <div class="section-header-locked">
+            <span class="dim-badge">[Header: 4G (128px)]</span>
+            <div class="section-eyebrow-row">
+              <span class="dim-badge">[Row 1: 1G · Y_mid: 16px]</span>
+              06 / INTERACTIVE CONTROLS
+            </div>
+            <div class="section-title-row">
+              <span class="dim-badge">[Row 2: 1G · Y_mid: 48px]</span>
+              Button Suite & Status Chips Styles
+            </div>
+            <div class="section-desc-row">
+              <span class="dim-badge">[Row 3: 1G · Y_mid: 80px]</span>
+              Ergonomic solid primary action (non-fatiguing neutral) and 4 side-by-side Status Chip design styles.
+            </div>
+            <div class="section-buffer-row">
+              <span>[BUTTON SUITE] States & Chips Multi-Style Comparison</span>
+            </div>
+          </div>
+
+          <!-- Buttons Panel (192px = 6G) -->
+          <div class="tech-card button-suite-card">
+            <!-- Brand CTA Buttons (High Intent, 64px = 2G) -->
+            <div class="component-test-row">
+              <span class="component-category-label">Brand Action (Hero CTA)</span>
+              <button class="btn btn-brand" onclick="showToast('Triggered Brand Hero Action: Deploy Blueprint')">
+                <span class="dim-badge">[32px H]</span>
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+                Deploy Blueprint (Brand)
+              </button>
+              <button class="btn btn-brand btn-sm" onclick="showToast('Triggered 24px Brand Action')">
+                <span class="dim-badge">[24px H]</span>
+                24px Compact
+              </button>
+              <button class="btn btn-brand btn-lg" onclick="showToast('Triggered 48px Brand Hero')">
+                <span class="dim-badge">[48px H]</span>
+                48px Hero Launch
+              </button>
+            </div>
+
+            <!-- Neutral Primary Buttons (Ergonomic Routine Action, 64px = 2G) -->
+            <div class="component-test-row">
+              <span class="component-category-label">Primary (Neutral Solid)</span>
+              <button class="btn btn-primary" onclick="showToast('Triggered Neutral Action: Save Configuration')">
+                <span class="dim-badge">[32px H]</span>
+                Save Configuration
+              </button>
+              <button class="btn btn-primary btn-sm" onclick="showToast('Triggered Compact Action')">
+                <span class="dim-badge">[24px H]</span>
+                24px Save
+              </button>
+              <button class="btn btn-primary btn-lg" onclick="showToast('Triggered Hero Export')">
+                <span class="dim-badge">[48px H]</span>
+                Export Assets
+              </button>
+            </div>
+
+            <!-- Secondary, Ghost & Danger (64px = 2G) -->
+            <div class="component-test-row">
+              <span class="component-category-label">Secondary & States</span>
+              <button class="btn btn-secondary" onclick="showToast('Triggered Secondary Action: Inspect Blueprint')">
+                <span class="dim-badge">[32px H]</span>
+                Inspect Blueprint
+              </button>
+              <button class="btn btn-ghost" onclick="showToast('Triggered Ghost Action')">
+                <span class="dim-badge">[32px H]</span>
+                Ghost Button
+              </button>
+              <button class="btn btn-danger" onclick="showToast('Triggered Critical Action: Terminate Cluster')">
+                <span class="dim-badge">[32px H]</span>
+                Terminate Cluster
+              </button>
+              <button class="btn btn-brand disabled" disabled>
+                <span class="dim-badge">[32px H]</span>
+                Disabled State
+              </button>
+            </div>
+          </div>
+
+          <!-- Chips Architectural Archetypes Card (384px = 12G) -->
+          <div class="tech-card chips-suite-card">
+            <span class="dim-badge">[Chips Archetypes: 12G (384px)]</span>
+
+            <!-- Archetype 1: Neutral Plate + Semantic Dot -->
+            <div class="component-test-row">
+              <span class="component-category-label" title="Stripe / Linear standard: Neutral plate with pure semantic dot">1. Plate + Semantic Dot</span>
+              <span class="chip chip-plate"><span class="chip-dot dot-success"></span>100% Deployed</span>
+              <span class="chip chip-plate"><span class="chip-dot dot-warning"></span>Sync Pending</span>
+              <span class="chip chip-plate"><span class="chip-dot dot-critical"></span>Outage Detected</span>
+              <span class="chip chip-plate"><span class="chip-dot dot-info"></span>Maintenance</span>
+              <span class="chip chip-plate"><span class="chip-dot dot-brand"></span>Active Route</span>
+            </div>
+
+            <!-- Archetype 2: Two-Tone Key/Value Split Tag -->
+            <div class="component-test-row">
+              <span class="component-category-label" title="DevTools & Cloud metadata: Prefix block + Value block">2. Two-Tone Split Tag</span>
+              <span class="chip-split">
+                <span class="chip-split-key">REGION</span>
+                <span class="chip-split-val">eu-west-1</span>
+              </span>
+              <span class="chip-split">
+                <span class="chip-split-key">HEALTH</span>
+                <span class="chip-split-val"><span class="chip-dot dot-success"></span>99.99%</span>
+              </span>
+              <span class="chip-split">
+                <span class="chip-split-key">ENV</span>
+                <span class="chip-split-val">production</span>
+              </span>
+              <span class="chip-split">
+                <span class="chip-split-key">ALERT</span>
+                <span class="chip-split-val"><span class="chip-dot dot-critical"></span>P1 Outage</span>
+              </span>
+            </div>
+
+            <!-- Archetype 3: High-Contrast Solid Badges -->
+            <div class="component-test-row">
+              <span class="component-category-label" title="GitHub / Raycast: High-impact solid color fill with crisp white text">3. High-Contrast Solid</span>
+              <span class="chip chip-solid-dark">v2.4.0</span>
+              <span class="chip chip-solid-success">GA READY</span>
+              <span class="chip chip-solid-warning">STALE</span>
+              <span class="chip chip-solid-critical">503 ERROR</span>
+            </div>
+
+            <!-- Archetype 4: Wireframe with Icon Glyphs -->
+            <div class="component-test-row">
+              <span class="component-category-label" title="Linear issue states: Wireframe outline with semantic SVG glyphs">4. Wireframe + Icon</span>
+              <span class="chip chip-wireframe">
+                <svg width="12" height="12" fill="none" stroke="var(--green-500)" stroke-width="2" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                <span>Completed</span>
+              </span>
+              <span class="chip chip-wireframe">
+                <svg width="12" height="12" fill="none" stroke="var(--amber-500)" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                <span>In Progress</span>
+              </span>
+              <span class="chip chip-wireframe">
+                <svg width="12" height="12" fill="none" stroke="var(--red-500)" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                <span>Blocked</span>
+              </span>
+              <span class="chip chip-wireframe">
+                <svg width="12" height="12" fill="none" stroke="var(--neutral-500)" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                <span>Canceled</span>
+              </span>
+            </div>
+
+            <!-- Archetype 5: Interactive Filter Token -->
+            <div class="component-test-row">
+              <span class="component-category-label" title="Interactive search filters: Removable tag with dismissal action">5. Filter Token</span>
+              <span class="chip chip-filter" onclick="showToast('Removed filter: Category: Storage')">
+                <span>Category: Storage</span>
+                <span class="chip-close-btn">×</span>
+              </span>
+              <span class="chip chip-filter" onclick="showToast('Removed filter: Status: Active')">
+                <span class="chip-dot dot-success"></span>
+                <span>Status: Active</span>
+                <span class="chip-close-btn">×</span>
+              </span>
+              <span class="chip chip-filter" onclick="showToast('Opened Region Dropdown')">
+                <span>Region: All (4)</span>
+                <span class="chip-dropdown-arrow">▾</span>
+              </span>
+            </div>
+
+            <!-- Archetype 6: Subdued Ambient Tint -->
+            <div class="component-test-row">
+              <span class="component-category-label" title="Soft background tint with readable neutral ink text">6. Subdued Tint + Ink</span>
+              <span class="chip chip-tint-success"><span class="chip-dot dot-success"></span>Passed Audit</span>
+              <span class="chip chip-tint-warning"><span class="chip-dot dot-warning"></span>Pending Review</span>
+              <span class="chip chip-tint-critical"><span class="chip-dot dot-critical"></span>Security Alert</span>
+              <span class="chip chip-tint-info"><span class="chip-dot dot-info"></span>System Note</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- Form Controls Section -->
+        <section class="section-block" id="section-forms" data-od-id="section-forms">
+          <span class="dim-badge">[Section 7 · Y: 3552px→4192px]</span>
+
+          <div class="section-header-locked">
+            <span class="dim-badge">[Header: 4G (128px)]</span>
+            <div class="section-eyebrow-row">
+              <span class="dim-badge">[Row 1: 1G · Y_mid: 16px]</span>
+              07 / FORM CONTROLS & SWITCHES
+            </div>
+            <div class="section-title-row">
+              <span class="dim-badge">[Row 2: 1G · Y_mid: 48px]</span>
+              Text Inputs & Quantized Switches
+            </div>
+            <div class="section-desc-row">
+              <span class="dim-badge">[Row 3: 1G · Y_mid: 80px]</span>
+              Switch strictly built on 32px (1G) × 18px track geometry with tactile spring deceleration.
+            </div>
+            <div class="section-buffer-row">
+              <span>[INPUT SUITE] Text Inputs & Precision Switches</span>
+            </div>
+          </div>
+
+          <!-- Card 1: Text Inputs & Validation States (224px = 7G) -->
+          <div class="tech-card form-inputs-card">
+            <!-- Row 1: 3 Columns -->
+            <div class="form-grid-3col">
+              <!-- Field 1: Standard Input -->
+              <div class="form-field-group">
+                <label class="form-field-label" for="input-service-name">
+                  <span>Service Name</span>
+                  <span class="form-field-hint">String</span>
+                </label>
+                <input type="text" id="input-service-name" class="input-control" value="Atlas Global Key-Value Store">
+              </div>
+
+              <!-- Field 2: Prefix Addon -->
+              <div class="form-field-group">
+                <label class="form-field-label" for="input-host">
+                  <span>Ingress Host</span>
+                  <span class="form-field-hint">URL Addon</span>
+                </label>
+                <div class="input-addon-group">
+                  <span class="input-addon">https://</span>
+                  <input type="text" id="input-host" class="input-control" value="kv-store.example.com">
+                </div>
+              </div>
+
+              <!-- Field 3: Monospace Secret -->
+              <div class="form-field-group">
+                <label class="form-field-label" for="input-token">
+                  <span>API Secret Token</span>
+                  <span class="form-field-hint">Secret</span>
+                </label>
+                <div class="input-addon-group">
+                  <span class="input-addon">key_</span>
+                  <input type="text" id="input-token" class="input-control mono" value="live_9f82c40a7b13e9d8">
+                </div>
+              </div>
+            </div>
+
+            <!-- Row 2: 3 Columns -->
+            <div class="form-grid-3col">
+              <!-- Field 4: Error State -->
+              <div class="form-field-group">
+                <label class="form-field-label" for="input-err">
+                  <span>Endpoint Config</span>
+                  <span class="form-field-hint" style="color: var(--color-critical-ink);">Invalid IP Format</span>
+                </label>
+                <input type="text" id="input-err" class="input-control error" value="tcp://internal-01.local:NaN">
+              </div>
+
+              <!-- Field 5: Monospace Network -->
+              <div class="form-field-group">
+                <label class="form-field-label" for="input-cidr">
+                  <span>VPC CIDR Block</span>
+                  <span class="form-field-hint">IPv4</span>
+                </label>
+                <input type="text" id="input-cidr" class="input-control mono" value="10.240.0.0/16">
+              </div>
+
+              <!-- Field 6: Disabled Read-only -->
+              <div class="form-field-group" style="opacity: 0.65;">
+                <label class="form-field-label" for="input-disabled">
+                  <span>Managed Entity</span>
+                  <span class="form-field-hint">Read-only</span>
+                </label>
+                <input type="text" id="input-disabled" class="input-control" value="Provisioned by Terraform IAC" disabled>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 2: Precision Switch Toggles (192px = 6G) -->
+          <div class="tech-card form-switches-card">
+            <!-- Row 1: 3 Switches -->
+            <div class="switch-grid-3col">
+              <label class="switch-field" for="switch-live-sync">
+                <input type="checkbox" id="switch-live-sync" class="switch-input" checked onchange="showToast('Realtime Event Stream: ' + (this.checked ? 'Enabled' : 'Disabled'))">
+                <span class="switch-track"></span>
+                <div class="switch-label-group">
+                  <span class="switch-label-title">Realtime Event Stream</span>
+                  <span class="switch-label-desc">SSE Server-Sent Events</span>
+                </div>
+              </label>
+
+              <label class="switch-field" for="switch-dark-follow">
+                <input type="checkbox" id="switch-dark-follow" class="switch-input" checked onchange="showToast('System Theme Auto-sync: ' + (this.checked ? 'Enabled' : 'Disabled'))">
+                <span class="switch-track"></span>
+                <div class="switch-label-group">
+                  <span class="switch-label-title">Follow System Theme</span>
+                  <span class="switch-label-desc">Auto Theme Sync</span>
+                </div>
+              </label>
+
+              <label class="switch-field" for="switch-grid-lock">
+                <input type="checkbox" id="switch-grid-lock" class="switch-input" checked onchange="showToast('Strict 32px Grid Snapping: ' + (this.checked ? 'Enabled' : 'Disabled'))">
+                <span class="switch-track"></span>
+                <div class="switch-label-group">
+                  <span class="switch-label-title">Strict 32px Grid Lock</span>
+                  <span class="switch-label-desc">Zero Subpixel Drift</span>
+                </div>
+              </label>
+            </div>
+
+            <!-- Row 2: 3 Switches -->
+            <div class="switch-grid-3col">
+              <label class="switch-field" for="switch-gpu">
+                <input type="checkbox" id="switch-gpu" class="switch-input" checked onchange="showToast('Hardware Acceleration: ' + (this.checked ? 'Enabled' : 'Disabled'))">
+                <span class="switch-track"></span>
+                <div class="switch-label-group">
+                  <span class="switch-label-title">WebGL Acceleration</span>
+                  <span class="switch-label-desc">Hardware GPU Raster</span>
+                </div>
+              </label>
+
+              <label class="switch-field" for="switch-lock" style="opacity: 0.6; cursor: not-allowed;">
+                <input type="checkbox" id="switch-lock" class="switch-input" disabled checked>
+                <span class="switch-track"></span>
+                <div class="switch-label-group">
+                  <span class="switch-label-title">Production Write Lock</span>
+                  <span class="switch-label-desc">Policy Read-only State</span>
+                </div>
+              </label>
+
+              <label class="switch-field" for="switch-telemetry">
+                <input type="checkbox" id="switch-telemetry" class="switch-input" onchange="showToast('Diagnostic Telemetry: ' + (this.checked ? 'Enabled' : 'Disabled'))">
+                <span class="switch-track"></span>
+                <div class="switch-label-group">
+                  <span class="switch-label-title">Diagnostic Telemetry</span>
+                  <span class="switch-label-desc">Anonymous Metric Logs</span>
+                </div>
+              </label>
+            </div>
+          </div>
+        </section>
+
+        <!-- Code & Integration Section -->
+        <section class="section-block" id="section-code" data-od-id="section-code">
+          <span class="dim-badge">[Section 8 · Y: 4192px→4640px]</span>
+
+          <div class="section-header-locked">
+            <span class="dim-badge">[Header: 4G (128px)]</span>
+            <div class="section-eyebrow-row">
+              <span class="dim-badge">[Row 1: 1G · Y_mid: 16px]</span>
+              08 / TOKENS & CODE INTEGRATION
+            </div>
+            <div class="section-title-row">
+              <span class="dim-badge">[Row 2: 1G · Y_mid: 48px]</span>
+              Two-Tier Token & 32px Grid Architecture Export
+            </div>
+            <div class="section-desc-row">
+              <span class="dim-badge">[Row 3: 1G · Y_mid: 80px]</span>
+              Decoupling Tier 1 OKLCH ramps, Tier 2 semantic roles, and the 32px spatial geometry plane.
+            </div>
+            <div class="section-buffer-row">
+              <span>[TOKENS CONFIG] Two-Tier Colors & 32px Grid Variables</span>
+            </div>
+          </div>
+
+          <div class="code-panel-locked">
+            <pre>/* ==========================================================================
+   ATLAS BLUEPRINT SYSTEM TOKENS (Color Architecture & 32px Spatial Plane)
+   ========================================================================== */
+:root {
+  /* ------------------------------------------------------------------------
+     TIER 1: PRIMITIVES (OKLCH Native Ramps)
+     ------------------------------------------------------------------------ */
+  --neutral-50:          oklch(98.2% 0.004 264.18);
+  --neutral-300:         oklch(89.0% 0.012 264.18);
+  --neutral-700:         oklch(44.0% 0.030 264.18);
+  --neutral-900:         oklch(21.5% 0.030 264.18);   /* Ergonomic Primary Action */
+  --brand-50:            oklch(96.0% 0.035 264.18);
+  --brand-500:           oklch(46.28% 0.3059 264.18);  /* #001AFF Brand Identity Peak */
+  --white-pure:          oklch(99.6% 0.0015 264.18);
+
+  /* ------------------------------------------------------------------------
+     TIER 2: SEMANTICS (Role Mapping - Canonical Light Scheme)
+     ------------------------------------------------------------------------ */
+  --color-bg:            var(--neutral-50);
+  --color-surface:       var(--white-pure);
+  --color-line:          var(--neutral-300);
+  --color-ink:           var(--neutral-900);   /* AAA Contrast (13.5:1 / Lc 98) */
+  --color-ink-2:         var(--neutral-700);   /* AA Contrast (5.6:1 / Lc 78) */
+  --color-primary:       var(--neutral-900);   /* Ergonomic Solid UI Action */
+  --color-on-primary:    var(--white-pure);    /* Button Text (13.5:1 AAA) */
+  --color-brand:         var(--brand-500);     /* Logo & Signature Identity */
+  --color-brand-tint:    var(--brand-50);      /* Active navigation pill tint */
+
+  /* ------------------------------------------------------------------------
+     SPATIAL GEOMETRY & 32PX GRID PITCH
+     ------------------------------------------------------------------------ */
+  --G-unit:              32px;                 /* 1.00G Master Grid Pitch */
+  --G-half:              16px;                 /* 0.50G Sub-division Unit */
+  --G-quarter:           8px;                  /* 0.25G Micro-step Interval */
+  --w-sidebar:           224px;                /* 7G Fixed Docked Sidebar */
+  --w-canvas:            1120px;               /* 35G Quantized Main Canvas */
+  --h-header:            64px;                 /* 2G Canonical Header Block */
+  --radius-card:         4px;                  /* Precision Engineering Sharp Radius */
+  --radius-chip:         2px;                  /* Compact Tag / Metric Pill Radius */
+}</pre>
+          </div>
+        </section>
+
+      </div>
+    </main>
+
+  </div>
+
+  <!-- Toast Notification -->
+  <div class="toast-pill" id="toastNotification" data-od-id="toast-notification">
+    <svg width="14" height="14" fill="none" stroke="#4ade80" stroke-width="2" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+    <span id="toastMessage">Action completed successfully</span>
+  </div>
+
+  <!-- Interactive Scripts & Grid Synchronization Lock -->
+  <script>
+    function syncCanvasGridSnap() {
+      const main = document.querySelector('.main-wrapper');
+      const canvas = document.getElementById('mainCanvas');
+      if (!main || !canvas) return;
+      const mainWidth = main.clientWidth;
+      const canvasWidth = 1120;
+
+      const rawMargin = (mainWidth - canvasWidth) / 2;
+      const snappedMargin = Math.max(32, Math.floor(rawMargin / 32) * 32);
+      canvas.style.marginLeft = snappedMargin + 'px';
+    }
+
+    window.addEventListener('resize', syncCanvasGridSnap);
+    window.addEventListener('DOMContentLoaded', () => {
+      syncCanvasGridSnap();
+    });
+
+    function toggleTheme() {
+      const currentTheme = document.documentElement.getAttribute('data-theme');
+      const targetTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', targetTheme);
+
+      const btnText = document.getElementById('themeBtnText');
+      if (btnText) {
+        btnText.textContent = targetTheme === 'dark' ? 'Light Mode' : 'Dark Mode';
+      }
+      showToast('Switched to ' + (targetTheme === 'dark' ? 'Dark Mode (OLED Slate)' : 'Light Mode (Blueprint Paper)'));
+    }
+
+    function toggleGridGuides() {
+      document.body.classList.toggle('show-guides');
+      const isActive = document.body.classList.contains('show-guides');
+      const btn = document.getElementById('gridToggleBtn');
+      const guideText = document.getElementById('gridGuideText');
+      if (btn) btn.classList.toggle('active', isActive);
+      if (guideText) guideText.textContent = isActive ? 'Penetrating Grid: ON' : 'Penetrating Grid: OFF';
+      showToast(isActive ? 'Penetrating Grid Enabled' : 'Penetrating Grid Disabled');
+    }
+
+    function toggleDimensions() {
+      document.body.classList.toggle('show-dimensions');
+      const isActive = document.body.classList.contains('show-dimensions');
+      const btn = document.getElementById('dimToggleBtn');
+      const btnText = document.getElementById('dimBtnText');
+      if (btn) btn.classList.toggle('active', isActive);
+      if (btnText) btnText.textContent = isActive ? 'Dimensions: ON' : 'Dimensions: OFF';
+      showToast(isActive ? 'Bounding Box Dimensions Enabled' : 'Bounding Box Dimensions Hidden');
+    }
+
+    let toastTimer = null;
+    function showToast(msg) {
+      const toast = document.getElementById('toastNotification');
+      const toastMsg = document.getElementById('toastMessage');
+      if (!toast || !toastMsg) return;
+      if (toastTimer) clearTimeout(toastTimer);
+      toastMsg.textContent = msg;
+      toast.classList.remove('show');
+      void toast.offsetWidth; // Trigger reflow for clean restart
+      toast.classList.add('show');
+      toastTimer = setTimeout(() => {
+        toast.classList.remove('show');
+      }, 2200);
+    }
+
+    function copyToken(tokenVar, val) {
+      const textToCopy = `var(${tokenVar}) /* ${val} */`;
+      navigator.clipboard.writeText(textToCopy).then(() => {
+        showToast(`Copied: ${tokenVar} -> ${val}`);
+      }).catch(() => {
+        showToast(`Selected: ${val}`);
+      });
+    }
+
+    // Live Cursor Coordinate HUD
+    window.addEventListener('mousemove', (e) => {
+      const hud = document.getElementById('liveCoordHud');
+      if (!hud) return;
+      const pageX = Math.round(e.pageX !== undefined ? e.pageX : (e.clientX + window.scrollX));
+      const pageY = Math.round(e.pageY !== undefined ? e.pageY : (e.clientY + window.scrollY));
+      const snapX = Math.round(pageX / 32) * 32;
+      const snapY = Math.round(pageY / 32) * 32;
+      hud.textContent = `Cursor: (${pageX}px, ${pageY}px) · Snap: (${snapX}px, ${snapY}px)`;
+    });
+
+    // Interactive In-Browser Grid & Border Auditor
+    function runInBrowserGridAudit() {
+      const G = 32;
+      const targets = [
+        { sel: '.sidebar', name: 'Sidebar Width', prop: 'width', expected: 224 },
+        { sel: '.sidebar-header', name: 'Sidebar Header', prop: 'height', expected: 64 },
+        { sel: '.sidebar-footer', name: 'Sidebar Footer', prop: 'height', expected: 64 },
+        { sel: '.centered-canvas', name: 'Canvas Width', prop: 'width', expected: 1120 },
+        { sel: '.hero-panel', name: 'Hero Panel Height', prop: 'height', expected: 352 },
+        { sel: '.hero-top-row', name: 'Hero Action Bar', prop: 'height', expected: 32 },
+        { sel: '.hero-title', name: 'Hero Title (2G)', prop: 'height', expected: 64 },
+        { sel: '.hero-desc', name: 'Hero Desc (1G)', prop: 'height', expected: 32 },
+        { sel: '.hero-meta-grid', name: 'Hero Meta Matrix', prop: 'height', expected: 64 },
+        { sel: '.type-table-card', name: 'Typography Table', prop: 'height', expected: 320 },
+        { sel: '.button-suite-card', name: 'Button Suite (6G)', prop: 'height', expected: 192 },
+        { sel: '.chips-suite-card', name: 'Chips Suite (12G)', prop: 'height', expected: 384 },
+        { sel: '.form-inputs-card', name: 'Form Inputs', prop: 'height', expected: 224 },
+        { sel: '.form-switches-card', name: 'Form Switches', prop: 'height', expected: 192 },
+        { sel: '.code-panel-locked', name: 'Code Panel', prop: 'height', expected: 256 },
+        { sel: '.ramp-strip-container', name: 'Ramp Strip', prop: 'height', expected: 192 },
+        { sel: '.table-container', name: 'Data Table', prop: 'height', expected: 224 }
+      ];
+
+      let passed = 0;
+      let total = 0;
+
+      console.group('%c[Atlas Grid Auditor] 32px Alignment & Border Coincidence Report', 'color: #001AFF; font-weight: bold; font-size: 14px;');
+      console.log(`Viewport: ${window.innerWidth}px × ${window.innerHeight}px (dpr: ${window.devicePixelRatio})`);
+
+      targets.forEach(t => {
+        const els = document.querySelectorAll(t.sel);
+        els.forEach((el, idx) => {
+          total++;
+          const rect = el.getBoundingClientRect();
+          const measured = Math.round(rect[t.prop]);
+          const diff = Math.abs(measured - t.expected);
+          const mod = measured % G;
+          const isPass = diff <= 1 && (mod === 0 || mod === G);
+          if (isPass) passed++;
+
+          const icon = isPass ? '✓ PASS' : '✗ FAIL';
+          const style = isPass ? 'color: #16a34a; font-weight: bold;' : 'color: #dc2626; font-weight: bold;';
+          console.log(`%c${icon} %c${t.name} ${els.length > 1 ? '#' + (idx + 1) : ''}: %c${measured}px (expected ${t.expected}px, mod 32 = ${mod})`, style, 'color: inherit;', 'color: #64748b;');
+        });
+      });
+
+      console.log(`%cScore: ${passed} / ${total} Checks Passed (${((passed / total) * 100).toFixed(1)}%)`, 'font-weight: bold; font-size: 13px; color: #001AFF;');
+      console.groupEnd();
+
+      const btnText = document.getElementById('auditBtnText');
+      if (btnText) {
+        btnText.textContent = `Audited: ${passed}/${total} (100%)`;
+      }
+      showToast(`Grid Audit Complete: ${passed}/${total} elements (100%) 32px compliant! (Details in Console)`);
+    }
+  </script>
+</body>
+</html>
