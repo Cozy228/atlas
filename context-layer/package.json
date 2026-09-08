@@ -33,22 +33,22 @@
     "@atlas/logging": "workspace:*",
     "@atlas/schema": "workspace:*",
     "@aws-crypto/sha256-js": "5.2.0",
-    "@aws-sdk/client-dynamodb": "3.1115.0",
-    "@aws-sdk/credential-provider-node": "3.972.80",
-    "@aws-sdk/lib-dynamodb": "3.1115.0",
+    "@aws-sdk/client-dynamodb": "3.1127.0",
+    "@aws-sdk/credential-provider-node": "3.972.82",
+    "@aws-sdk/lib-dynamodb": "3.1127.0",
     "@modelcontextprotocol/server": "2.0.0",
     "@smithy/signature-v4": "5.7.3",
     "iovalkey": "0.4.0",
-    "node-html-parser": "^9.0.1",
-    "undici": "8.10.0",
+    "node-html-parser": "^9.0.4",
+    "undici": "8.10.2",
     "yaml": "2.9.0",
-    "zod": "4.4.3"
+    "zod": "4.5.4"
   },
   "devDependencies": {
     "@modelcontextprotocol/client": "2.0.0",
-    "@types/node": "26.2.0",
+    "@types/node": "26.5.0",
     "typescript": "7.0.2",
     "vite": "8.2.2",
-    "vitest": "4.1.11"
+    "vitest": "5.0.0"
   }
 }
