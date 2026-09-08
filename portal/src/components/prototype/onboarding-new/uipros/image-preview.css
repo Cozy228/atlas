@@ -1,0 +1,159 @@
+.on-image-preview .on-image-trigger {
+  min-height: 320px;
+}
+
+.on-image-preview .on-image-trigger[data-open="true"] {
+  min-height: 320px;
+}
+
+.on-image-preview .on-image-trigger > .on-image-shared {
+  position: relative;
+  inset: auto;
+  display: flex;
+  width: 100%;
+  height: 320px;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 0;
+  border: 0;
+  border-radius: 3px;
+  background: var(--color-surface);
+  color: inherit;
+  font-size: inherit;
+  gap: 0;
+}
+
+.on-image-preview .on-image-shared img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.on-image-preview .on-image-trigger > .on-image-trigger-overlay {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  display: flex;
+  width: auto;
+  height: auto;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border: 1px solid var(--color-line);
+  border-radius: 3px;
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font-size: 12px;
+}
+
+.on-image-dialog.on-image-dialog {
+  transform: none;
+  transition: none;
+}
+
+.on-image-dialog.on-image-dialog:is([data-starting-style], [data-ending-style]) {
+  transform: none;
+}
+
+.on-image-dialog.on-image-dialog[data-starting-style] {
+  opacity: 1;
+}
+
+.on-image-dialog.on-image-dialog[data-ending-style] {
+  opacity: 1;
+}
+
+.on-image-dialog .on-image-shared-expanded {
+  display: flex;
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  max-height: calc(100dvh - 208px);
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 3px;
+  background: var(--color-surface);
+}
+
+.on-image-dialog .on-image-shared img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.on-image-dialog.on-image-dialog[data-motion="instant"],
+.on-image-dialog.on-image-dialog[data-motion="instant"] * {
+  animation-duration: 0ms !important;
+  transition-duration: 0ms !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .on-image-dialog.on-image-dialog,
+  .on-image-dialog.on-image-dialog:is([data-starting-style], [data-ending-style]),
+  .on-image-backdrop.on-image-backdrop,
+  .on-image-preview .on-image-shared,
+  .on-image-preview .on-image-shared img {
+    animation-duration: 0ms !important;
+    transition-duration: 0ms !important;
+  }
+}
+
+.on-image-dialog.on-image-flight-dialog {
+  inset: 0;
+  translate: none;
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  padding: 32px;
+  border: 0;
+  background: transparent;
+  overflow: visible;
+  pointer-events: none;
+}
+.on-image-flight-dialog .on-image-toolbar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1;
+  margin: 0;
+  padding: 8px 12px;
+  background: var(--color-surface);
+  border: 0;
+  border-bottom: 1px solid var(--color-line);
+  pointer-events: auto;
+}
+.on-image-flight-dialog .on-image-toolbar h2 {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.on-image-flight-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  translate: -50% -50%;
+  width: min(1120px, calc(100vw - 128px), calc((100dvh - 192px) * 1.5));
+  aspect-ratio: 3 / 2;
+}
+.on-image-flight-panel {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: 3px;
+  background: var(--color-surface);
+}
+.on-image-flight-center img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 3px;
+  pointer-events: auto;
+}

@@ -9,16 +9,24 @@
  *
  * Data: the chat + search are the production components, not mocks.
  */
-import { Suspense, lazy } from "react";
+import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
+import { Suspense, lazy, type RefObject } from "react";
 import { Link } from "@tanstack/react-router";
 import { IconMessageCircle, IconSearch } from "@tabler/icons-react";
 
 import { AskAtlasSearch } from "@/components/ask/ask-atlas-search";
 import { ClientOnly } from "@/components/client-only";
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogPortal,
+  DialogOverlay,
+  DialogDescription,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/utils";
+import "./ask-overlay.css";
 
 // Feature flag: the AI chat mode is hidden for now. The code below stays wired so
 // turning this on restores the Search ⇄ Ask toggle and the cited conversation.
@@ -44,91 +52,98 @@ export function AskOverlay({
   onOpenChange,
   tab = "search",
   onTabChange,
+  returnFocus,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   tab?: AskTab;
   onTabChange?: (tab: AskTab) => void;
+  returnFocus?: RefObject<HTMLElement | null>;
 }) {
   // With AI hidden, the overlay is always search.
   const activeTab: AskTab = SHOW_AI ? tab : "search";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        showCloseButton={false}
-        className={cn(
-          "flex w-full max-w-2xl flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl",
-          activeTab === "ask"
-            ? "h-[min(640px,calc(100vh-6rem))]"
-            : "max-h-[min(640px,calc(100vh-6rem))]",
-        )}
-      >
-        <DialogTitle className="sr-only">Search</DialogTitle>
-        <DialogDescription className="sr-only">
-          Search the catalog for services, sources, and pages.
-        </DialogDescription>
+      <DialogPortal>
+        <DialogOverlay className="atlas-ask-overlay-backdrop" />
+        <DialogPrimitive.Popup
+          finalFocus={returnFocus ?? undefined}
+          className={cn(
+            "atlas-ask-overlay-dialog fixed left-1/2 bg-popover text-popover-foreground border border-border outline-none flex w-full max-w-[640px] flex-col gap-0 overflow-hidden p-0 sm:max-w-[640px]",
+            activeTab === "ask"
+              ? "h-[min(640px,calc(100vh-6rem))]"
+              : "max-h-[min(640px,calc(100vh-6rem))]",
+          )}
+        >
+          <DialogTitle className="sr-only">Search</DialogTitle>
+          <DialogDescription className="sr-only">
+            Search the catalog for services, sources, and pages.
+          </DialogDescription>
 
-        <header className="flex shrink-0 items-center justify-between gap-3 px-4 pt-3.5 pb-3">
-          <span className="text-sm font-semibold text-foreground">Search</span>
-          {SHOW_AI ? (
-            <ToggleGroup
-              type="single"
-              value={activeTab}
-              onValueChange={(value) => {
-                if (value === "search" || value === "ask") onTabChange?.(value);
-              }}
-              size="sm"
-              spacing={1}
-              className="gap-0.5 rounded-lg bg-muted p-0.5"
-            >
-              <ToggleGroupItem
-                value="search"
-                className="rounded-md border-0 bg-transparent text-xs font-medium aria-pressed:bg-background aria-pressed:shadow-sm"
-              >
-                <IconSearch className="size-3.5" data-icon="inline-start" />
-                Search
-              </ToggleGroupItem>
-              <ToggleGroupItem
-                value="ask"
-                className="rounded-md border-0 bg-transparent text-xs font-medium aria-pressed:bg-background aria-pressed:shadow-sm"
-              >
-                <IconMessageCircle className="size-3.5" data-icon="inline-start" />
-                Ask
-              </ToggleGroupItem>
-            </ToggleGroup>
-          ) : null}
-        </header>
+          {SHOW_AI && (
+            <header className="flex shrink-0 items-center justify-between gap-3 px-4 pt-3.5 pb-3">
+              <span className="text-sm font-semibold text-foreground">Search</span>
+              {SHOW_AI ? (
+                <ToggleGroup
+                  type="single"
+                  value={activeTab}
+                  onValueChange={(value) => {
+                    if (value === "search" || value === "ask") onTabChange?.(value);
+                  }}
+                  size="sm"
+                  spacing={1}
+                  className="gap-0.5 rounded-lg bg-muted p-0.5"
+                >
+                  <ToggleGroupItem
+                    value="search"
+                    className="rounded-md border-0 bg-transparent text-xs font-medium aria-pressed:bg-background aria-pressed:shadow-sm"
+                  >
+                    <IconSearch className="size-3.5" data-icon="inline-start" />
+                    Search
+                  </ToggleGroupItem>
+                  <ToggleGroupItem
+                    value="ask"
+                    className="rounded-md border-0 bg-transparent text-xs font-medium aria-pressed:bg-background aria-pressed:shadow-sm"
+                  >
+                    <IconMessageCircle className="size-3.5" data-icon="inline-start" />
+                    Ask
+                  </ToggleGroupItem>
+                </ToggleGroup>
+              ) : null}
+            </header>
+          )}
 
-        {activeTab === "search" ? (
-          <ClientOnly fallback={<TabSkeleton />}>
-            <AskAtlasSearch
-              onOpenChange={onOpenChange}
-              onSwitchToAsk={SHOW_AI ? () => onTabChange?.("ask") : undefined}
-            />
-          </ClientOnly>
-        ) : (
-          <>
-            <div className="min-h-0 flex-1 overflow-hidden border-t border-border">
-              <ClientOnly fallback={<TabSkeleton />}>
-                <Suspense fallback={<TabSkeleton />}>
-                  <AskAtlasChat suggestions={SUGGESTIONS} className="h-full min-h-0" />
-                </Suspense>
-              </ClientOnly>
-            </div>
-            <div className="flex shrink-0 items-center justify-between gap-3 border-t border-border bg-muted/40 px-4 py-2.5">
-              <span className="text-[12px] text-muted-foreground">Rather ask a person?</span>
-              <Link
-                to="/support"
-                onClick={() => onOpenChange(false)}
-                className="shrink-0 text-[12px] font-semibold text-brand-ink hover:underline"
-              >
-                Owning teams →
-              </Link>
-            </div>
-          </>
-        )}
-      </DialogContent>
+          {activeTab === "search" ? (
+            <ClientOnly fallback={<TabSkeleton />}>
+              <AskAtlasSearch
+                onOpenChange={onOpenChange}
+                onSwitchToAsk={SHOW_AI ? () => onTabChange?.("ask") : undefined}
+              />
+            </ClientOnly>
+          ) : (
+            <>
+              <div className="min-h-0 flex-1 overflow-hidden border-t border-border">
+                <ClientOnly fallback={<TabSkeleton />}>
+                  <Suspense fallback={<TabSkeleton />}>
+                    <AskAtlasChat suggestions={SUGGESTIONS} className="h-full min-h-0" />
+                  </Suspense>
+                </ClientOnly>
+              </div>
+              <div className="flex shrink-0 items-center justify-between gap-3 border-t border-border bg-muted/40 px-4 py-2.5">
+                <span className="text-[12px] text-muted-foreground">Rather ask a person?</span>
+                <Link
+                  to="/support"
+                  onClick={() => onOpenChange(false)}
+                  className="shrink-0 text-[12px] font-semibold text-brand-ink hover:underline"
+                >
+                  Owning teams →
+                </Link>
+              </div>
+            </>
+          )}
+        </DialogPrimitive.Popup>
+      </DialogPortal>
     </Dialog>
   );
 }

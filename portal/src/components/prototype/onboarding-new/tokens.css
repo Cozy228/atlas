@@ -1,0 +1,24 @@
+.onboarding-new,
+.on-sheet,
+.on-image-dialog,
+.on-image-backdrop,
+.on-tooltip,
+.on-sheet-overlay {
+  --on-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --on-ease-move: cubic-bezier(0.77, 0, 0.175, 1);
+  --on-ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  --on-duration-feedback: 150ms;
+  --on-duration-disclosure: 200ms;
+  --on-duration-layout: 250ms;
+  --on-duration-sheet: 500ms;
+  --color-bg: var(--background);
+  --color-surface: var(--card);
+  --color-surface-2: var(--muted);
+  --color-ink: var(--foreground);
+  --color-ink-2: var(--muted-foreground);
+  --color-line: var(--border);
+  --color-brand: var(--brand);
+  --color-brand-tint: var(--brand-tint);
+  --color-on-brand: var(--brand-foreground);
+  --color-error: var(--critical-ink);
+}

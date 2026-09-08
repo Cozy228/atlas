@@ -1,0 +1,14 @@
+{
+  "scope": "Final owner-task desktop observations, not a full route audit",
+  "viewport": { "width": 1440, "height": 1024 },
+  "expandedSidebarResourcesClosed": { "x": 384, "y": 256, "width": 896, "height": 480 },
+  "collapsedSidebarResourcesOpen": {
+    "x": 96,
+    "y": 256,
+    "width": 832,
+    "height": 480,
+    "sheetLeft": 960,
+    "uncovered": true
+  },
+  "gridUnit": 32
+}

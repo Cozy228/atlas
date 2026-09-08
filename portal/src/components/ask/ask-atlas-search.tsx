@@ -1,4 +1,13 @@
-import { useDeferredValue, useMemo, useState } from "react";
+import { LayoutGroup, motion, useReducedMotion } from "motion/react";
+import {
+  useDeferredValue,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+} from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import {
@@ -16,6 +25,7 @@ import Fuse from "fuse.js";
 
 import { resourceCatalogQueryOptions, sourceDiscoveryQueryOptions } from "@/api/queries";
 import { CLASS_LABEL } from "@/components/sources/shared";
+import { DialogClose } from "@/components/ui/dialog";
 import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
 
@@ -93,11 +103,20 @@ export function getNextSearchIndex(current: number, itemCount: number, direction
 
 export function AskAtlasSearch({ onOpenChange, onSwitchToAsk }: AskAtlasSearchProps) {
   const navigate = useNavigate();
+  const reduced = useReducedMotion();
   const [query, setQuery] = useState("");
   // Keep typing responsive on slow machines: the input updates instantly while
   // the fuzzy search over the full result set runs against the deferred value.
   const deferredQuery = useDeferredValue(query);
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const listRef = useRef<HTMLDivElement>(null);
+  const baseId = useId();
+  const listboxId = `${baseId}-listbox`;
+  const highlightLayoutId = `${baseId}-highlight`;
+
+  function optionId(id: string) {
+    return `${baseId}-option-${id}`;
+  }
 
   const { data: catalogData, isLoading: catalogLoading } = useQuery({
     ...resourceCatalogQueryOptions,
@@ -181,30 +200,55 @@ export function AskAtlasSearch({ onOpenChange, onSwitchToAsk }: AskAtlasSearchPr
     return [...map.entries()];
   }, [items]);
 
-  const flatItems = items;
+  const flatItems = useMemo(() => grouped.flatMap(([, groupItems]) => groupItems), [grouped]);
   const isLoading = catalogLoading || sourcesLoading;
+
+  const activeIndex = Math.min(selectedIndex, Math.max(flatItems.length - 1, 0));
+
+  useEffect(() => {
+    const active = listRef.current?.querySelector<HTMLElement>('[data-active="true"]');
+    active?.scrollIntoView({ block: "nearest" });
+  }, [flatItems, activeIndex]);
+
+  const highlightMotionEnabled = !reduced;
 
   function go(to: string) {
     onOpenChange(false);
     void navigate({ to });
   }
 
-  function handleKeyDown(event: React.KeyboardEvent) {
+  function handleKeyDown(event: ReactKeyboardEvent<HTMLDivElement>) {
+    if (!(event.target instanceof HTMLInputElement)) return;
     if (event.key === "ArrowDown") {
       event.preventDefault();
-      setSelectedIndex((i) => getNextSearchIndex(i, flatItems.length, "next"));
+      setSelectedIndex((i) =>
+        getNextSearchIndex(
+          Math.min(i, Math.max(flatItems.length - 1, 0)),
+          flatItems.length,
+          "next",
+        ),
+      );
     } else if (event.key === "ArrowUp") {
       event.preventDefault();
-      setSelectedIndex((i) => getNextSearchIndex(i, flatItems.length, "previous"));
+      setSelectedIndex((i) =>
+        getNextSearchIndex(
+          Math.min(i, Math.max(flatItems.length - 1, 0)),
+          flatItems.length,
+          "previous",
+        ),
+      );
+    } else if (event.key === "Home" || event.key === "End") {
+      event.preventDefault();
+      setSelectedIndex(event.key === "Home" ? 0 : Math.max(0, flatItems.length - 1));
     } else if (event.key === "Enter" && flatItems.length > 0) {
       event.preventDefault();
-      go((flatItems[selectedIndex] ?? flatItems[0]).to);
+      go((flatItems[activeIndex] ?? flatItems[0]).to);
     }
   }
 
   return (
-    <div className="flex flex-col">
-      <div className="border-b border-border px-5 pb-4">
+    <div className="flex flex-col" onKeyDown={handleKeyDown}>
+      <div className="border-b border-border px-4 py-2">
         <label className="flex h-12 w-full items-center gap-3">
           <IconSearch className="size-5 shrink-0 text-muted-foreground" />
           <input
@@ -213,13 +257,26 @@ export function AskAtlasSearch({ onOpenChange, onSwitchToAsk }: AskAtlasSearchPr
               setQuery(event.target.value);
               setSelectedIndex(0);
             }}
-            onKeyDown={handleKeyDown}
+            autoFocus
             type="search"
             placeholder="Search for anything…"
             aria-label="Search the catalog"
+            aria-autocomplete="list"
+            aria-controls={listboxId}
+            aria-expanded="true"
+            aria-activedescendant={
+              flatItems[activeIndex] ? optionId(flatItems[activeIndex].id) : undefined
+            }
+            role="combobox"
             className="h-full flex-1 bg-transparent text-base text-foreground outline-none placeholder:text-muted-foreground"
           />
           {isLoading ? <Spinner className="size-4 text-muted-foreground" /> : null}
+          <DialogClose
+            className="rounded border border-border px-1.5 py-0.5 text-xs text-muted-foreground"
+            aria-label="Close search"
+          >
+            Esc
+          </DialogClose>
         </label>
       </div>
 
@@ -246,23 +303,39 @@ export function AskAtlasSearch({ onOpenChange, onSwitchToAsk }: AskAtlasSearchPr
         </div>
       ) : null}
 
-      <div className="max-h-80 overflow-y-auto p-2">
-        {grouped.map(([category, groupItems]) => (
-          <SearchGroup key={category} label={category}>
-            {groupItems.map((result) => {
-              const globalIndex = flatItems.indexOf(result);
-              return (
-                <SearchItem
-                  key={result.id}
-                  result={result}
-                  selected={globalIndex === selectedIndex}
-                  onSelect={() => go(result.to)}
-                  onHover={() => setSelectedIndex(globalIndex)}
-                />
-              );
-            })}
-          </SearchGroup>
-        ))}
+      <p className="sr-only" role="status">
+        {flatItems.length} search results
+      </p>
+      <div
+        ref={listRef}
+        id={listboxId}
+        role="listbox"
+        aria-label="Search results"
+        className="max-h-96 overflow-y-auto p-2"
+      >
+        <LayoutGroup id={`${baseId}-groups`}>
+          {grouped.map(([category, groupItems]) => (
+            <motion.div key={category} layout={highlightMotionEnabled ? "position" : false}>
+              <SearchGroup label={category}>
+                {groupItems.map((result) => {
+                  const globalIndex = flatItems.indexOf(result);
+                  return (
+                    <SearchItem
+                      key={result.id}
+                      optionId={optionId(result.id)}
+                      result={result}
+                      selected={globalIndex === activeIndex}
+                      highlightLayoutId={highlightLayoutId}
+                      motionEnabled={highlightMotionEnabled}
+                      onSelect={() => go(result.to)}
+                      onHover={() => setSelectedIndex(globalIndex)}
+                    />
+                  );
+                })}
+              </SearchGroup>
+            </motion.div>
+          ))}
+        </LayoutGroup>
       </div>
 
       <footer className="border-t border-border px-5 py-2.5">
@@ -298,11 +371,9 @@ export function AskAtlasSearch({ onOpenChange, onSwitchToAsk }: AskAtlasSearchPr
 
 function SearchGroup({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div>
+    <div role="group" aria-label={label}>
       <div className="px-3 py-1.5">
-        <span className="font-mono type-caption font-semibold uppercase tracking-wider text-muted-foreground">
-          {label}
-        </span>
+        <span className="text-xs font-medium text-muted-foreground">{label}</span>
       </div>
       {children}
     </div>
@@ -310,37 +381,53 @@ function SearchGroup({ label, children }: { label: string; children: React.React
 }
 
 function SearchItem({
+  optionId,
   result,
   selected,
+  highlightLayoutId,
+  motionEnabled,
   onSelect,
   onHover,
 }: {
+  optionId: string;
   result: SearchResult;
   selected: boolean;
+  highlightLayoutId: string;
+  motionEnabled: boolean;
   onSelect: () => void;
   onHover: () => void;
 }) {
   const Icon = result.icon;
   return (
-    <button
-      type="button"
+    <div
+      id={optionId}
+      role="option"
+      aria-selected={selected}
       onClick={onSelect}
       onMouseEnter={onHover}
+      data-active={selected || undefined}
       data-selected={selected || undefined}
-      className={cn(
-        "group flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors",
-        "data-selected:bg-accent",
-      )}
+      className="group relative flex min-h-16 w-full cursor-pointer items-center gap-3 rounded-sm px-3 py-2 text-left transition-colors"
     >
-      <Icon className="size-4 shrink-0 text-muted-foreground" />
-      <span className="flex min-w-0 flex-1 flex-col">
+      {selected && motionEnabled ? (
+        <motion.div
+          layoutId={highlightLayoutId}
+          transition={{ type: "spring", visualDuration: 0.18, bounce: 0.12 }}
+          aria-hidden="true"
+          className="absolute inset-0 rounded-sm bg-accent"
+        />
+      ) : selected ? (
+        <div aria-hidden="true" className="absolute inset-0 rounded-sm bg-accent" />
+      ) : null}
+      <Icon className="relative z-10 size-4 shrink-0 text-muted-foreground" />
+      <span className="relative z-10 flex min-w-0 flex-1 flex-col">
         <span className="truncate text-sm font-medium text-foreground">{result.label}</span>
         <span className="truncate text-xs text-muted-foreground">{result.description}</span>
       </span>
       <IconArrowRight
-        className="size-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-data-selected:opacity-100"
+        className="relative z-10 size-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-data-selected:opacity-100"
         aria-hidden
       />
-    </button>
+    </div>
   );
 }

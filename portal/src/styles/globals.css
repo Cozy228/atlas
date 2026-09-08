@@ -289,27 +289,6 @@
   --overlay: oklch(6% 0.005 264.18);
 }
 
-/*
- * Theme transition: circle-reveal via View Transitions API.
- *
- * Disable the default cross-fade so the programmatic clip-path animation
- * (driven by document.documentElement.animate() in theme.tsx) is the only
- * transition effect. Falls back to instant swap on unsupported browsers.
- */
-::view-transition-old(root),
-::view-transition-new(root) {
-  animation: none;
-  mix-blend-mode: normal;
-}
-
-::view-transition-old(root) {
-  z-index: 1;
-}
-
-::view-transition-new(root) {
-  z-index: 9999;
-}
-
 @layer base {
   * {
     border-color: var(--color-border);

@@ -1,4 +1,4 @@
-import { createContext, use, useCallback, useMemo, useState } from "react";
+import { createContext, use, useCallback, useMemo, useState, useRef, type RefObject } from "react";
 
 type TabValue = "search" | "ask";
 
@@ -8,6 +8,7 @@ type AskAtlasContextValue = {
   // open the same one. Asking is always an overlay over the current surface —
   // never a separate page.
   overlayOpen: boolean;
+  returnFocusRef: RefObject<HTMLElement | null>;
   overlayTab: TabValue;
   openOverlay: (tab?: TabValue) => void;
   setOverlayOpen: (open: boolean) => void;
@@ -17,10 +18,13 @@ type AskAtlasContextValue = {
 const AskAtlasContext = createContext<AskAtlasContextValue | null>(null);
 
 export function AskAtlasProvider({ children }: { children: React.ReactNode }) {
+  const returnFocusRef = useRef<HTMLElement | null>(null);
   const [overlayOpen, setOverlayOpen] = useState(false);
   const [overlayTab, setOverlayTab] = useState<TabValue>("ask");
 
   const openOverlay = useCallback((tab: TabValue = "ask") => {
+    returnFocusRef.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
     setOverlayTab(tab);
     setOverlayOpen(true);
   }, []);
@@ -28,6 +32,7 @@ export function AskAtlasProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo<AskAtlasContextValue>(
     () => ({
       overlayOpen,
+      returnFocusRef,
       overlayTab,
       openOverlay,
       setOverlayOpen,

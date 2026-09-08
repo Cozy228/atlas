@@ -1,0 +1,1892 @@
+[
+  {
+    "id": "onboarding",
+    "title": "New Application Onboarding",
+    "scenario": "onboarding",
+    "objective": "Onboard a new application to the AWS Federated cloud platform.",
+    "destination": { "title": "Application is ready for standard cloud deployment." },
+    "inputs": ["app_code"],
+    "steps": [
+      {
+        "id": "sailpoint-groups",
+        "title": "Create SailPoint / EntraID groups for AWS onboarding",
+        "content": {
+          "blocks": [
+            {
+              "kind": "prose",
+              "spans": [
+                { "text": "AWS Federated Landing Zone is a self-service model: application teams own their accounts and manage their own infrastructure. Start onboarding by requesting the EntraID / SailPoint groups for the app. Who: App IT manager, Senior manager, or Business SME. Dependency: an approved app code." }
+              ]
+            },
+            { "kind": "heading", "text": "Create EntraID groups for AWS onboarding" },
+            {
+              "kind": "list",
+              "ordered": true,
+              "items": [
+                {
+                  "spans": [
+                    { "text": "Open the onboarding template - " },
+                    { "text": "Create a new component (Backstage) - aws-onboarding", "link": { "kind": "external", "url": "https://backstage.example.com/create/templates/default/aws-onboarding" } },
+                    { "text": "." }
+                  ]
+                },
+                { "spans": [ { "text": "In the Application Codes section, use the dropdown of applications where you are IT manager, IT senior manager, or business SME. Select the app code you are onboarding and click REVIEW." } ] },
+                { "spans": [ { "text": "Review the app code and click CREATE to submit the request. " } ] },
+                { "spans": [ { "text": "Allow a few minutes to process, then use the displayed request numbers to complete the group-creation approvals in SailPoint." } ] }
+              ]
+            },
+            { "kind": "image", "filename": "onboarding-template-app-codes.png", "alt": "aws-onboarding Backstage template - Application Codes selection" },
+            {
+              "kind": "callout",
+              "tone": "note",
+              "spans": [
+                { "text": "Manual fallback (bulk request). If the automation does not work, submit a bulk request from SailPoint:" }
+              ],
+              "blocks": [
+                {
+                  "kind": "list",
+                  "ordered": true,
+                  "items": [
+                    { "spans": [ { "text": "Log in to SailPoint, click the hamburger icon, and select Batch Request -> Batch Entitlement Create." } ] },
+                    { "spans": [ { "text": "Click Add New Batch Entitlement Request." } ] },
+                    { "spans": [ { "text": "Click Download EntraID Template to download a spreadsheet (usable for all Harness, TFE, and AWS group creation)." } ] },
+                    { "spans": [ { "text": "Fill in and upload the spreadsheet, then submit the request." } ] }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "artifacts": [
+          {
+            "id": "devops-groups",
+            "name": "SailPoint · DevOps groups",
+            "group": "Access groups",
+            "primary": "Developer",
+            "link": "",
+            "fields": [
+              {
+                "key": "Developer",
+                "label": "Developer",
+                "value": "SSO_DEVOPS_<app_code>_Developer",
+                "editable": false
+              },
+              {
+                "key": "DevLead",
+                "label": "DevLead",
+                "value": "SSO_DEVOPS_<app_code>_DevLead",
+                "editable": false
+              },
+              {
+                "key": "DevMgr",
+                "label": "DevMgr",
+                "value": "SSO_DEVOPS_<app_code>_DevMgr",
+                "editable": false
+              },
+              {
+                "key": "SQA",
+                "label": "SQA",
+                "value": "SSO_DEVOPS_<app_code>_SQA",
+                "editable": false
+              },
+              {
+                "key": "OPS",
+                "label": "OPS",
+                "value": "SSO_DEVOPS_<app_code>_OPS",
+                "editable": false
+              },
+              {
+                "key": "SecretMgr",
+                "label": "SecretMgr",
+                "value": "SSO_DEVOPS_<app_code>_SecretMgr",
+                "editable": false
+              },
+              {
+                "key": "Viewer",
+                "label": "Viewer",
+                "value": "SSO_DEVOPS_<app_code>_Viewer",
+                "editable": false
+              },
+              {
+                "key": "Harness_Viewer",
+                "label": "Harness_Viewer",
+                "value": "SSO_DEVOPS_<app_code>_Harness_Viewer",
+                "editable": false
+              },
+              {
+                "key": "SRE",
+                "label": "SRE",
+                "value": "SSO_DEVOPS_<app_code>_SRE",
+                "editable": false
+              }
+            ]
+          },
+          {
+            "id": "aws-groups",
+            "name": "SailPoint · AWS groups",
+            "group": "Access groups",
+            "primary": "DEV_READONLY",
+            "link": "",
+            "fields": [
+              {
+                "key": "DEV_READONLY",
+                "label": "DEV READONLY",
+                "value": "SSO_AWS_<app_code>_DEV_READONLY",
+                "editable": false
+              },
+              {
+                "key": "DEV_VIEWONLY",
+                "label": "DEV VIEWONLY",
+                "value": "SSO_AWS_<app_code>_DEV_VIEWONLY",
+                "editable": false
+              },
+              {
+                "key": "UAT_READONLY",
+                "label": "UAT READONLY",
+                "value": "SSO_AWS_<app_code>_UAT_READONLY",
+                "editable": false
+              },
+              {
+                "key": "UAT_VIEWONLY",
+                "label": "UAT VIEWONLY",
+                "value": "SSO_AWS_<app_code>_UAT_VIEWONLY",
+                "editable": false
+              },
+              {
+                "key": "PROD_READONLY",
+                "label": "PROD READONLY",
+                "value": "SSO_AWS_<app_code>_PROD_READONLY",
+                "editable": false
+              },
+              {
+                "key": "PROD_VIEWONLY",
+                "label": "PROD VIEWONLY",
+                "value": "SSO_AWS_<app_code>_PROD_VIEWONLY",
+                "editable": false
+              }
+            ]
+          },
+          {
+            "id": "tfe-groups",
+            "name": "SailPoint · TFE groups",
+            "group": "Access groups",
+            "primary": "VIEWER",
+            "link": "",
+            "fields": [
+              {
+                "key": "VIEWER",
+                "label": "VIEWER",
+                "value": "SSO_TFE_PROD_<app_code>_PRJ_VIEWER",
+                "editable": false
+              },
+              {
+                "key": "OPERATOR",
+                "label": "OPERATOR",
+                "value": "SSO_TFE_PROD_<app_code>_PRJ_OPERATOR",
+                "editable": false
+              }
+            ]
+          },
+          {
+            "id": "group-creation",
+            "name": "Group creation request",
+            "group": "Requests & tickets",
+            "primary": "number",
+            "link": "url",
+            "fields": [
+              {
+                "key": "number",
+                "label": "Request ID",
+                "value": "",
+                "editable": true
+              },
+              {
+                "key": "url",
+                "label": "Details URL",
+                "value": "",
+                "editable": true
+              },
+              {
+                "key": "status",
+                "label": "Status",
+                "value": "",
+                "editable": true
+              }
+            ]
+          }
+        ],
+        "tasks": [
+          {
+            "id": "request-sailpoint-groups",
+            "title": "Request the EntraID / SailPoint groups for the app",
+            "required": true,
+            "capability": { "ref": "request-sailpoint-groups", "link": "https://backstage.example.com/create/templates/default/aws-onboarding" }
+          }
+        ]
+      },
+      {
+        "id": "group-mapping",
+        "title": "Create group-mapping RITM requests",
+        "content": {
+          "blocks": [
+            {
+              "kind": "prose",
+              "spans": [
+                { "text": "Once the groups are created, raise group-mapping RITM requests for Harness, AWS, and TFE. Follow the process during business days." }
+              ]
+            },
+            {
+              "kind": "list",
+              "ordered": true,
+              "items": [
+                {
+                  "spans": [
+                    { "text": "Open " },
+                    { "text": "Create a new component (Backstage) - aws-onboarding-servicenow", "link": { "kind": "external", "url": "https://backstage.example.com/create/templates/default/aws-onboarding-servicenow" } },
+                    { "text": " to open the Harness and AWS group-mapping requests, then follow the same steps as the aws-onboarding template to create the RITM tickets to the IDAM team." }
+                  ]
+                },
+                {
+                  "spans": [
+                    { "text": "Email " },
+                    { "text": "idam-ops@example.com", "link": { "kind": "email", "address": "idam-ops@example.com" } },
+                    { "text": " with the ticket ID, application name, security group names, and app-owner approval." }
+                  ]
+                }
+              ]
+            },
+            {
+              "kind": "callout",
+              "tone": "note",
+              "spans": [
+                { "text": "Harness group mapping - assign the RITM to the IDAM operations group and request the Azure AD SSO update for the Harness production connection to include:" }
+              ],
+              "blocks": [
+                {
+                  "kind": "list",
+                  "ordered": false,
+                  "items": [
+                    { "spans": [ { "text": "SSO_DEVOPS_<App Code>_Developer, _DevLead, _DevMgr, _SQA, _OPS" } ] },
+                    { "spans": [ { "text": "SSO_DEVOPS_<App Code>_SecretMgr, _Viewer, _Harness_Viewer, _SRE" } ] }
+                  ]
+                }
+              ]
+            },
+            {
+              "kind": "callout",
+              "tone": "note",
+              "spans": [
+                { "text": "AWS group mapping - request the SSO_AWS_<App Code>_<ENV>_READONLY and _VIEWONLY groups (DEV / UAT / PROD) be mapped to the AWS SSO application." }
+              ]
+            },
+            {
+              "kind": "callout",
+              "tone": "note",
+              "spans": [
+                { "text": "TFE group mapping - add SSO_TFE_PROD_<APP_CODE>_PRJ_VIEWER and _PRJ_OPERATOR to Entra for the Terraform Enterprise production application (<app_code> is your project/application code, e.g. APP1)." }
+              ]
+            }
+          ]
+        },
+        "artifacts": [
+          {
+            "id": "harness-mapping",
+            "name": "Harness group-mapping request",
+            "group": "Requests & tickets",
+            "primary": "number",
+            "link": "url",
+            "fields": [
+              {
+                "key": "number",
+                "label": "Request ID",
+                "value": "",
+                "editable": true
+              },
+              {
+                "key": "url",
+                "label": "Details URL",
+                "value": "",
+                "editable": true
+              },
+              {
+                "key": "status",
+                "label": "Status",
+                "value": "",
+                "editable": true
+              }
+            ]
+          },
+          {
+            "id": "aws-mapping",
+            "name": "AWS group-mapping request",
+            "group": "Requests & tickets",
+            "primary": "number",
+            "link": "url",
+            "fields": [
+              {
+                "key": "number",
+                "label": "Request ID",
+                "value": "",
+                "editable": true
+              },
+              {
+                "key": "url",
+                "label": "Details URL",
+                "value": "",
+                "editable": true
+              },
+              {
+                "key": "status",
+                "label": "Status",
+                "value": "",
+                "editable": true
+              }
+            ]
+          },
+          {
+            "id": "tfe-mapping",
+            "name": "TFE group-mapping request",
+            "group": "Requests & tickets",
+            "primary": "number",
+            "link": "url",
+            "fields": [
+              {
+                "key": "number",
+                "label": "Request ID",
+                "value": "",
+                "editable": true
+              },
+              {
+                "key": "url",
+                "label": "Details URL",
+                "value": "",
+                "editable": true
+              },
+              {
+                "key": "status",
+                "label": "Status",
+                "value": "",
+                "editable": true
+              }
+            ]
+          }
+        ],
+        "tasks": [
+          {
+            "id": "raise-group-mapping-ritm",
+            "title": "Raise the Harness / AWS / TFE group-mapping RITM",
+            "required": true,
+            "capability": { "ref": "raise-group-mapping-ritm", "link": "https://backstage.example.com/create/templates/default/aws-onboarding-servicenow" }
+          }
+        ]
+      },
+      {
+        "id": "harness-onboarding",
+        "title": "Harness onboarding",
+        "content": {
+          "blocks": [
+            {
+              "kind": "prose",
+              "spans": [
+                { "text": "Create the Harness EntraID groups (done for you by the SailPoint automation), integrate SCIM, then validate or create the Harness org and project. The DevOps groups and their access:" }
+              ]
+            },
+            {
+              "kind": "table",
+              "caption": "Harness DevOps groups",
+              "rows": [
+                { "cells": [ { "spans": [ { "text": "Group" } ], "header": true }, { "spans": [ { "text": "Access" } ], "header": true } ] },
+                { "cells": [ { "spans": [ { "text": "SSO_DEVOPS_<app code>_Developer" } ] }, { "spans": [ { "text": "Git PR approver; create/edit Harness services; pipeline creator/executor; org-level templates." } ] } ] },
+                { "cells": [ { "spans": [ { "text": "SSO_DEVOPS_<app code>_DevLead" } ] }, { "spans": [ { "text": "Git PR approver; delete services/pipelines; pipeline approval; connectors and variables." } ] } ] },
+                { "cells": [ { "spans": [ { "text": "SSO_DEVOPS_<app code>_DevMgr" } ] }, { "spans": [ { "text": "Delete environments, templates, variables, connectors at org level; pipeline approval." } ] } ] },
+                { "cells": [ { "spans": [ { "text": "SSO_DEVOPS_<app code>_SQA" } ] }, { "spans": [ { "text": "View all org resources; UAT deployment approval." } ] } ] },
+                { "cells": [ { "spans": [ { "text": "SSO_DEVOPS_<app code>_OPS" } ] }, { "spans": [ { "text": "View all org resources; PROD deployment approval." } ] } ] },
+                { "cells": [ { "spans": [ { "text": "SSO_DEVOPS_<app code>_SecretMgr" } ] }, { "spans": [ { "text": "Set up org secrets in Harness Secrets." } ] } ] },
+                { "cells": [ { "spans": [ { "text": "SSO_DEVOPS_<app code>_Viewer" } ] }, { "spans": [ { "text": "Read-only across DevOps tools + Harness; needed for container-vulnerability views." } ] } ] },
+                { "cells": [ { "spans": [ { "text": "SSO_DEVOPS_<app code>_Harness_Viewer" } ] }, { "spans": [ { "text": "View all Harness resources for the org; not other DevOps tools like the Viewer role." } ] } ] },
+                { "cells": [ { "spans": [ { "text": "SSO_DEVOPS_<app code>_SRE" } ] }, { "spans": [ { "text": "Replicates SRE (OPS + SRE) function; PROD & BUAT only." } ] } ] }
+              ]
+            },
+            {
+              "kind": "callout",
+              "tone": "note",
+              "spans": [
+                { "text": "SCIM integration is raised for you if you ran the group-mapping automation. To do it manually, email the IDAM operations team with the ticket ID (assign to the IDAM operations group) to sync the EntraID groups with Harness." }
+              ]
+            },
+            {
+              "kind": "list",
+              "ordered": true,
+              "items": [
+                {
+                  "spans": [
+                    { "text": "Validate the Harness org exists; if not, create it - " },
+                    { "text": "How to create a new ORG", "link": { "kind": "external", "url": "https://wiki.example.com/devops/how-to-create-a-new-org" } },
+                    { "text": "." }
+                  ]
+                },
+                {
+                  "spans": [
+                    { "text": "Create the Harness project, Git repo, and Artifactory repo if they do not exist - " },
+                    { "text": "How to create a new project", "link": { "kind": "external", "url": "https://wiki.example.com/devops/how-to-create-a-new-project" } },
+                    { "text": "." }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "artifacts": [
+          {
+            "id": "harness",
+            "name": "Harness onboarding",
+            "group": "Systems & access",
+            "primary": "organization",
+            "link": "url",
+            "fields": [
+              {
+                "key": "organization",
+                "label": "Organization",
+                "value": "",
+                "editable": true
+              },
+              {
+                "key": "project",
+                "label": "Project",
+                "value": "",
+                "editable": true
+              },
+              {
+                "key": "artifactory",
+                "label": "Artifactory repository",
+                "value": "",
+                "editable": true
+              },
+              {
+                "key": "url",
+                "label": "System URL",
+                "value": "",
+                "editable": true
+              }
+            ]
+          }
+        ],
+        "tasks": [
+          {
+            "id": "create-harness-project",
+            "title": "Validate or create the Harness org, project, and Artifactory repo",
+            "required": true,
+            "capability": { "ref": "create-harness-project", "link": "https://harness.example.com" }
+          }
+        ]
+      },
+      {
+        "id": "git-onboarding",
+        "title": "Git onboarding",
+        "content": {
+          "blocks": [
+            {
+              "kind": "prose",
+              "spans": [
+                { "text": "Create the Git AD groups (if they do not exist), then create the Git repository for your infrastructure-as-code. The repo can be created by the Harness self-service pipeline during project creation, or manually via an infrastructure engineering RITM." }
+              ]
+            },
+            {
+              "kind": "table",
+              "caption": "Git AD groups",
+              "rows": [
+                { "cells": [ { "spans": [ { "text": "Group" } ], "header": true }, { "spans": [ { "text": "Access" } ], "header": true } ] },
+                { "cells": [ { "spans": [ { "text": "SSO_GIT_<app_code>_Developer" } ] }, { "spans": [ { "text": "Access and modify code, build, and distribute. Owner: Application Manager." } ] } ] },
+                { "cells": [ { "spans": [ { "text": "SSO_GIT_<app_code>_DevLead" } ] }, { "spans": [ { "text": "Recommend release of the code. Owner: Application Manager." } ] } ] },
+                { "cells": [ { "spans": [ { "text": "SSO_GIT_<app_code>_DevMgr" } ] }, { "spans": [ { "text": "Approve code reviews and CRs for UAT+. Officer and above; owner is the app SVP. Cannot approve their own commits." } ] } ] }
+              ]
+            },
+            {
+              "kind": "list",
+              "ordered": true,
+              "items": [
+                {
+                  "spans": [
+                    { "text": "Request the AD groups via SailPoint if they do not exist - " },
+                    { "text": "Creating a SailPoint Group", "link": { "kind": "external", "url": "https://wiki.example.com/devops/creating-a-sailpoint-group" } },
+                    { "text": "." }
+                  ]
+                },
+                {
+                  "spans": [
+                    { "text": "Create the Git repo via the Harness self-service pipeline (project creation), or manually raise an " },
+                    { "text": "infrastructure engineering / ServiceNow RITM", "link": { "kind": "external", "url": "https://servicenow.example.com/catalog/infrastructure-engineering-request" } },
+                    { "text": "." }
+                  ]
+                }
+              ]
+            },
+            {
+              "kind": "callout",
+              "tone": "caution",
+              "spans": [
+                { "text": "The Git repo must be created before requesting a TFE workspace." }
+              ]
+            }
+          ]
+        },
+        "artifacts": [
+          {
+            "id": "git",
+            "name": "Git onboarding",
+            "group": "Systems & access",
+            "primary": "organization",
+            "link": "url",
+            "fields": [
+              {
+                "key": "organization",
+                "label": "Organization",
+                "value": "",
+                "editable": true
+              },
+              {
+                "key": "access",
+                "label": "Access groups",
+                "value": "",
+                "editable": true
+              },
+              {
+                "key": "url",
+                "label": "System URL",
+                "value": "",
+                "editable": true
+              }
+            ]
+          }
+        ],
+        "tasks": [
+          {
+            "id": "create-git-iac-repo",
+            "title": "Create the Git repository for infrastructure code (IaC)",
+            "required": true,
+            "capability": { "ref": "create-git-iac-repo", "link": "https://servicenow.example.com" }
+          }
+        ]
+      },
+      {
+        "id": "tfe-access",
+        "title": "Terraform Enterprise - create AD groups and enable access",
+        "content": {
+          "blocks": [
+            {
+              "kind": "prose",
+              "spans": [
+                { "text": "Create the EntraID groups for TFE, then enable access. The project is not visible in TFE until these groups are added to the Terraform Enterprise production application in Entra." }
+              ]
+            },
+            {
+              "kind": "table",
+              "caption": "TFE EntraID groups",
+              "rows": [
+                { "cells": [ { "spans": [ { "text": "Group" } ], "header": true }, { "spans": [ { "text": "Access" } ], "header": true } ] },
+                { "cells": [ { "spans": [ { "text": "SSO_TFE_PROD_<appcode>_PRJ_VIEWER" } ] }, { "spans": [ { "text": "Viewer access to the project." } ] } ] },
+                { "cells": [ { "spans": [ { "text": "SSO_TFE_PROD_<appcode>_PRJ_OPERATOR" } ] }, { "spans": [ { "text": "Create project-specific variable sets. Limit membership; cloud-specific variable sets are managed by the TFE team via demand intake." } ] } ] }
+              ]
+            },
+            {
+              "kind": "callout",
+              "tone": "note",
+              "spans": [
+                { "text": "Access enablement is mandatory: after the Entra groups are created, raise a ServiceNow Service Request so they are added to the Terraform Enterprise production application. Assign to the IDAM operations group; short description \\\"Add TFE viewer and operator groups to Entra for the Terraform Enterprise production app\\\". Log out and back in to refresh access." }
+              ]
+            },
+            {
+              "kind": "list",
+              "ordered": true,
+              "items": [
+                {
+                  "spans": [
+                    { "text": "Raise the Service Request to add the viewer and operator groups to Entra - " },
+                    { "text": "ServiceNow catalog item", "link": { "kind": "external", "url": "https://servicenow.example.com/catalog/enable-tfe-access" } },
+                    { "text": "." }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "artifacts": [
+          {
+            "id": "tfe-access",
+            "name": "Terraform Enterprise access",
+            "group": "Systems & access",
+            "primary": "organization",
+            "link": "url",
+            "fields": [
+              {
+                "key": "organization",
+                "label": "Organization",
+                "value": "",
+                "editable": true
+              },
+              {
+                "key": "access",
+                "label": "Access level",
+                "value": "",
+                "editable": true
+              },
+              {
+                "key": "url",
+                "label": "System URL",
+                "value": "",
+                "editable": true
+              }
+            ]
+          }
+        ],
+        "tasks": [
+          {
+            "id": "enable-tfe-access",
+            "title": "Raise the RITM to enable TFE access in Entra",
+            "required": true,
+            "capability": { "ref": "enable-tfe-access", "link": "https://servicenow.example.com/catalog/enable-tfe-access" }
+          }
+        ]
+      },
+      {
+        "id": "tfe-project",
+        "title": "Create the Terraform Enterprise project",
+        "content": {
+          "blocks": [
+            {
+              "kind": "prose",
+              "spans": [
+                { "text": "One-time activity: raise the Terraform Enterprise project-onboarding request, fill in the form, then Add to Cart and Proceed to Checkout." }
+              ]
+            }
+          ]
+        },
+        "artifacts": [
+          {
+            "id": "tfe-project-request",
+            "name": "TFE project request",
+            "group": "Requests & tickets",
+            "primary": "number",
+            "link": "url",
+            "fields": [
+              {
+                "key": "number",
+                "label": "Request ID",
+                "value": "",
+                "editable": true
+              },
+              {
+                "key": "url",
+                "label": "Details URL",
+                "value": "",
+                "editable": true
+              },
+              {
+                "key": "status",
+                "label": "Status",
+                "value": "",
+                "editable": true
+              }
+            ]
+          },
+          {
+            "id": "tfe-project",
+            "name": "Terraform project",
+            "group": "Systems & access",
+            "primary": "project",
+            "link": "url",
+            "fields": [
+              {
+                "key": "project",
+                "label": "Project",
+                "value": "",
+                "editable": true
+              },
+              {
+                "key": "url",
+                "label": "System URL",
+                "value": "",
+                "editable": true
+              }
+            ]
+          }
+        ],
+        "tasks": [
+          {
+            "id": "create-tfe-project",
+            "title": "Raise the TFE project-onboarding request",
+            "required": true,
+            "capability": { "ref": "create-tfe-project", "link": "https://servicenow.example.com/catalog/tfe-project-onboarding" }
+          }
+        ]
+      },
+      {
+        "id": "tfe-workspace",
+        "title": "Create the Terraform Enterprise workspace",
+        "content": {
+          "blocks": [
+            {
+              "kind": "prose",
+              "spans": [
+                { "text": "Create the Git repository and Terraform project before requesting a workspace, to avoid ticket failures. Validate both exist, then raise the workspace request." }
+              ]
+            },
+            {
+              "kind": "list",
+              "ordered": true,
+              "items": [
+                {
+                  "spans": [
+                    { "text": "If the Git repository must be created manually, raise an RITM to the infrastructure engineering team - " },
+                    { "text": "Infrastructure Engineering Request", "link": { "kind": "external", "url": "https://servicenow.example.com/catalog/infrastructure-engineering-request" } },
+                    { "text": "." }
+                  ]
+                },
+                {
+                  "spans": [
+                    { "text": "Create the Terraform workspace - " },
+                    { "text": "ServiceNow catalog item", "link": { "kind": "external", "url": "https://servicenow.example.com/catalog/tfe-workspace-creation" } },
+                    { "text": " - then Add to Cart and Proceed to Checkout." }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "artifacts": [
+          {
+            "id": "tfe-workspace-request",
+            "name": "TFE workspace request",
+            "group": "Requests & tickets",
+            "primary": "number",
+            "link": "url",
+            "fields": [
+              {
+                "key": "number",
+                "label": "Request ID",
+                "value": "",
+                "editable": true
+              },
+              {
+                "key": "url",
+                "label": "Details URL",
+                "value": "",
+                "editable": true
+              },
+              {
+                "key": "status",
+                "label": "Status",
+                "value": "",
+                "editable": true
+              }
+            ]
+          },
+          {
+            "id": "tfe-workspace",
+            "name": "Terraform workspace",
+            "group": "Systems & access",
+            "primary": "workspace",
+            "link": "url",
+            "fields": [
+              {
+                "key": "workspace",
+                "label": "Workspace",
+                "value": "",
+                "editable": true
+              },
+              {
+                "key": "environment",
+                "label": "Environment",
+                "value": "",
+                "editable": true
+              },
+              {
+                "key": "url",
+                "label": "System URL",
+                "value": "",
+                "editable": true
+              }
+            ]
+          }
+        ],
+        "tasks": [
+          {
+            "id": "create-tfe-workspace",
+            "title": "Raise the TFE workspace-creation request",
+            "required": true,
+            "capability": { "ref": "create-tfe-workspace", "link": "https://servicenow.example.com/catalog/tfe-workspace-creation" }
+          }
+        ]
+      },
+      {
+        "id": "aws-email-dl",
+        "title": "Request the AWS account email distribution list",
+        "content": {
+          "blocks": [
+            {
+              "kind": "prose",
+              "spans": [
+                { "text": "Request a unique email distribution list used during AWS account creation; all account communications go to it. Naming: awsf-wkld-{env}-{app-code}-team@example.com (e.g. awsf-wkld-dev-app1-team@example.com)." }
+              ]
+            },
+            {
+              "kind": "list",
+              "ordered": true,
+              "items": [
+                {
+                  "spans": [
+                    { "text": "Follow the DL request instructions " },
+                    { "text": "here", "link": { "kind": "external", "url": "https://intranet.example.com/it/distribution-list-request" } },
+                    { "text": ", and completely fill out all required fields on the form." }
+                  ]
+                },
+                {
+                  "spans": [
+                    { "text": "Have a Standard Authorized Approver forward the request to " },
+                    { "text": "email-security@example.com", "link": { "kind": "email", "address": "email-security@example.com" } },
+                    { "text": " for processing." }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "artifacts": [
+          {
+            "id": "aws-email",
+            "name": "AWS account email",
+            "group": "Accounts & values",
+            "primary": "email",
+            "link": "",
+            "fields": [
+              {
+                "key": "email",
+                "label": "Email address",
+                "value": "",
+                "editable": true
+              }
+            ]
+          }
+        ],
+        "tasks": [
+          {
+            "id": "request-email-dl",
+            "title": "Request the email DL for all environments",
+            "required": true,
+            "capability": { "ref": "request-email-dl", "link": "https://intranet.example.com/it/distribution-list-request" }
+          }
+        ]
+      },
+      {
+        "id": "aws-group-mapping",
+        "title": "AWS console groups and SCIM mapping",
+        "content": {
+          "blocks": [
+            {
+              "kind": "prose",
+              "spans": [
+                { "text": "Create the EntraID groups for AWS console access (created for you by the SailPoint automation), then map them to AWS via SCIM. App teams get read-only and view-only birthright access to the console." }
+              ]
+            },
+            {
+              "kind": "table",
+              "caption": "AWS console EntraID groups",
+              "rows": [
+                { "cells": [ { "spans": [ { "text": "Group" } ], "header": true }, { "spans": [ { "text": "Access" } ], "header": true } ] },
+                { "cells": [ { "spans": [ { "text": "SSO_AWS_<APPCODE>_<ENV>_VIEWONLY" } ] }, { "spans": [ { "text": "View AWS resources and metadata; no changes." } ] } ] },
+                { "cells": [ { "spans": [ { "text": "SSO_AWS_<APPCODE>_<ENV>_READONLY" } ] }, { "spans": [ { "text": "Highly restrictive read-only; observe structure and configuration only." } ] } ] }
+              ]
+            },
+            {
+              "kind": "callout",
+              "tone": "note",
+              "spans": [
+                { "text": "The SCIM RITM is raised for you if you ran the group-mapping automation. To do it manually, email the IDAM operations team with the ticket ID, application name, group names, and app-owner approval; the groups are mapped to the AWS SSO application." }
+              ]
+            }
+          ]
+        },
+        "artifacts": [
+          {
+            "id": "aws-scim",
+            "name": "AWS SCIM mapping request",
+            "group": "Requests & tickets",
+            "primary": "number",
+            "link": "url",
+            "fields": [
+              {
+                "key": "number",
+                "label": "Request ID",
+                "value": "",
+                "editable": true
+              },
+              {
+                "key": "url",
+                "label": "Details URL",
+                "value": "",
+                "editable": true
+              },
+              {
+                "key": "status",
+                "label": "Status",
+                "value": "",
+                "editable": true
+              }
+            ]
+          }
+        ],
+        "tasks": [
+          {
+            "id": "map-aws-groups",
+            "title": "Raise the SCIM integration RITM for AWS",
+            "required": true,
+            "capability": { "ref": "map-aws-groups", "link": "https://servicenow.example.com/catalog/scim-integration-request" }
+          }
+        ]
+      },
+      {
+        "id": "aws-account",
+        "title": "Request the AWS account",
+        "content": {
+          "blocks": [
+            {
+              "kind": "prose",
+              "spans": [
+                { "text": "Once the EntraID groups, SCIM integration, and email DL are in place, raise the AWS application on-boarding request." }
+              ]
+            },
+            {
+              "kind": "list",
+              "ordered": true,
+              "items": [
+                {
+                  "spans": [
+                    { "text": "Raise the request using the " },
+                    { "text": "AWS application on-boarding request", "link": { "kind": "external", "url": "https://servicenow.example.com/catalog/aws-application-onboarding" } },
+                    { "text": "." }
+                  ]
+                },
+                {
+                  "spans": [
+                    { "text": "Follow the form-filling instructions on the " },
+                    { "text": "Instructions to fill application on-boarding form for AWS", "link": { "kind": "external", "url": "https://wiki.example.com/cloud/aws-onboarding-form-instructions" } },
+                    { "text": " page." }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "artifacts": [
+          {
+            "id": "aws-account-request",
+            "name": "AWS account request",
+            "group": "Requests & tickets",
+            "primary": "number",
+            "link": "url",
+            "fields": [
+              {
+                "key": "number",
+                "label": "Request ID",
+                "value": "",
+                "editable": true
+              },
+              {
+                "key": "url",
+                "label": "Details URL",
+                "value": "",
+                "editable": true
+              },
+              {
+                "key": "status",
+                "label": "Status",
+                "value": "",
+                "editable": true
+              }
+            ]
+          },
+          {
+            "id": "aws-account",
+            "name": "AWS account",
+            "group": "Accounts & values",
+            "primary": "account",
+            "link": "url",
+            "fields": [
+              {
+                "key": "account",
+                "label": "Account ID",
+                "value": "",
+                "editable": true
+              },
+              {
+                "key": "name",
+                "label": "Account name",
+                "value": "",
+                "editable": true
+              },
+              {
+                "key": "environment",
+                "label": "Environment",
+                "value": "",
+                "editable": true
+              },
+              {
+                "key": "url",
+                "label": "Console URL",
+                "value": "",
+                "editable": true
+              }
+            ]
+          }
+        ],
+        "tasks": [
+          {
+            "id": "request-aws-account",
+            "title": "Raise the AWS application on-boarding request",
+            "required": true,
+            "capability": { "ref": "request-aws-account", "link": "https://servicenow.example.com/catalog/aws-application-onboarding" }
+          }
+        ]
+      },
+      {
+        "id": "aws-connector",
+        "title": "Create the AWS connector in Harness (ORG level)",
+        "content": {
+          "blocks": [
+            {
+              "kind": "prose",
+              "spans": [
+                { "text": "With the AWS account provisioned, wire an org-level AWS connector in Harness so deployments can reach the account. This is a one-time setup per AWS account, not per service. See " },
+                { "text": "Task 2: Creating AWS Connector using OIDC", "link": { "kind": "external", "url": "https://wiki.example.com/devops/creating-aws-connector-oidc" } },
+                { "text": " for the full walkthrough. Skip this step if a connector already exists for the org." }
+              ]
+            },
+            {
+              "kind": "list",
+              "ordered": false,
+              "items": [
+                { "spans": [ { "text": "Create an OIDC connector for every AWS account (DEV / UAT / BUAT / PROD)." } ] },
+                { "spans": [ { "text": "The test region must match the deploy region (e.g. deploy to us-east-1 -> test region us-east-1)." } ] },
+                { "spans": [ { "text": "Connect through the Harness Delegate and pick the delegate for your region: us-east-1 -> awsf-use1-cd-delegate; ca-central-1 -> awsf-cac1-cd-delegate." } ] },
+                { "spans": [ { "text": "The AWS Backoff Strategy step can be skipped." } ] }
+              ]
+            }
+          ]
+        },
+        "artifacts": [
+          {
+            "id": "aws-connector",
+            "name": "Harness AWS connector",
+            "group": "Systems & access",
+            "primary": "connector",
+            "link": "url",
+            "fields": [
+              {
+                "key": "connector",
+                "label": "Connector ID",
+                "value": "",
+                "editable": true
+              },
+              {
+                "key": "region",
+                "label": "Region",
+                "value": "",
+                "editable": true
+              },
+              {
+                "key": "delegate",
+                "label": "Delegate",
+                "value": "",
+                "editable": true
+              },
+              {
+                "key": "url",
+                "label": "System URL",
+                "value": "",
+                "editable": true
+              }
+            ]
+          }
+        ],
+        "tasks": [
+          { "id": "create-aws-connector", "title": "Create the org-level AWS OIDC connector (if not already present)" }
+        ]
+      },
+      {
+        "id": "vault-unix",
+        "title": "Vault / Unix ID creation",
+        "content": {
+          "blocks": [
+            {
+              "kind": "prose",
+              "spans": [
+                { "text": "Create the Unix user and ESF if your application needs them. The source page links no procedure here - this step is a placeholder." }
+              ]
+            }
+          ]
+        },
+        "artifacts": [
+          {
+            "id": "vault-unix",
+            "name": "Vault / Unix identity",
+            "group": "Systems & access",
+            "primary": "username",
+            "link": "url",
+            "fields": [
+              {
+                "key": "username",
+                "label": "Unix user",
+                "value": "",
+                "editable": true
+              },
+              {
+                "key": "vault",
+                "label": "Vault path",
+                "value": "",
+                "editable": true
+              },
+              {
+                "key": "url",
+                "label": "System URL",
+                "value": "",
+                "editable": true
+              }
+            ]
+          }
+        ],
+        "tasks": [
+          {
+            "id": "create-unix-user",
+            "title": "Create the Unix user and ESF (if needed)"
+          }
+        ]
+      },
+      {
+        "id": "cyberark-groups",
+        "title": "CyberArk - request entitlements and groups",
+        "content": {
+          "blocks": [
+            {
+              "kind": "prose",
+              "spans": [
+                { "text": "Request and set up the CyberArk entitlements needed to reach the vaulted AWS roles. See the " },
+                { "text": "CyberArk Onboarding Workflow", "link": { "kind": "external", "url": "https://wiki.example.com/pam/cyberark-onboarding-workflow" } },
+                { "text": "." }
+              ]
+            },
+            {
+              "kind": "list",
+              "ordered": true,
+              "items": [
+                {
+                  "spans": [
+                    { "text": "Request the CyberArk production users entitlement to access the CyberArk WebUI - " },
+                    { "text": "Request access to CyberArk using SailPoint", "link": { "kind": "external", "url": "https://intranet.example.com/pam/request-sailpoint-entitlements" } },
+                    { "text": "." }
+                  ]
+                },
+                {
+                  "spans": [
+                    { "text": "Create the FC Connect group (e.g. PAM_<APPCODE>_FC_Connect) - " },
+                    { "text": "Create new CyberArk Entitlements/Groups using SailPoint", "link": { "kind": "external", "url": "https://intranet.example.com/pam/create-entitlements-sailpoint" } },
+                    { "text": "." }
+                  ]
+                },
+                {
+                  "spans": [
+                    { "text": "Create the Approvers group (e.g. PAM_<APPCODE>_FC_Approvers) - " },
+                    { "text": "Create new CyberArk Approvers Entitlements/Groups using SailPoint", "link": { "kind": "external", "url": "https://intranet.example.com/pam/create-approval-entitlements-sailpoint" } },
+                    { "text": "." }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "artifacts": [
+          {
+            "id": "cyberark-group",
+            "name": "CyberArk group",
+            "group": "Access groups",
+            "primary": "group",
+            "link": "",
+            "fields": [
+              {
+                "key": "group",
+                "label": "Group",
+                "value": "PAM_<app_code>_FC_Connect",
+                "editable": false
+              }
+            ]
+          },
+          {
+            "id": "cyberark-request",
+            "name": "CyberArk entitlement request",
+            "group": "Requests & tickets",
+            "primary": "number",
+            "link": "url",
+            "fields": [
+              {
+                "key": "number",
+                "label": "Request ID",
+                "value": "",
+                "editable": true
+              },
+              {
+                "key": "url",
+                "label": "Details URL",
+                "value": "",
+                "editable": true
+              },
+              {
+                "key": "status",
+                "label": "Status",
+                "value": "",
+                "editable": true
+              }
+            ]
+          }
+        ],
+        "tasks": [
+          {
+            "id": "request-cyberark-groups",
+            "title": "Request the CyberArk entitlements and groups",
+            "required": true,
+            "capability": { "ref": "request-cyberark-groups", "link": "https://intranet.example.com/pam/request-sailpoint-entitlements" }
+          }
+        ]
+      },
+      {
+        "id": "cyberark-role",
+        "title": "CyberArk - customize the AWS role",
+        "content": {
+          "blocks": [
+            {
+              "kind": "prose",
+              "spans": [
+                { "text": "Submit a ServiceNow request to the CyberArk Operations team with the AWS Account ID and ARN details for the privileged roles (App-PrivilegedRole-cyberark-ssm and App-PrivilegedRole-cyberark-console). CyberArk Operations then onboards and customizes the AWS role for the account and confirms to the app team." }
+              ]
+            },
+            {
+              "kind": "list",
+              "ordered": true,
+              "items": [
+                {
+                  "spans": [
+                    { "text": "Follow " },
+                    { "text": "How to request a SNOW ticket", "link": { "kind": "external", "url": "https://intranet.example.com/pam/how-to-request-snow-ticket" } },
+                    { "text": "." }
+                  ]
+                },
+                {
+                  "spans": [
+                    { "text": "Once onboarded, log in to the CyberArk WebUI and access the roles per the " },
+                    { "text": "CyberArk Onboarding Workflow", "link": { "kind": "external", "url": "https://wiki.example.com/pam/cyberark-onboarding-workflow" } },
+                    { "text": "." }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "artifacts": [
+          {
+            "id": "cyberark-role",
+            "name": "CyberArk AWS role",
+            "group": "Systems & access",
+            "primary": "role",
+            "link": "url",
+            "fields": [
+              {
+                "key": "role",
+                "label": "Role ARN",
+                "value": "",
+                "editable": true
+              },
+              {
+                "key": "safe",
+                "label": "Safe",
+                "value": "",
+                "editable": true
+              },
+              {
+                "key": "url",
+                "label": "System URL",
+                "value": "",
+                "editable": true
+              }
+            ]
+          }
+        ],
+        "tasks": [
+          {
+            "id": "customize-cyberark-role",
+            "title": "Request the AWS-role customization from CyberArk Operations",
+            "required": true,
+            "capability": { "ref": "customize-cyberark-role", "link": "https://intranet.example.com/pam/how-to-request-snow-ticket" }
+          }
+        ]
+      },
+      {
+        "id": "launch-ecs",
+        "title": "Launch an ECS service",
+        "journeyRef": "ecs-service",
+        "artifacts": [],
+        "tasks": []
+      }
+    ]
+  },
+  {
+    "id": "ecs-service",
+    "title": "Launch an ECS service",
+    "scenario": "launch-ecs",
+    "objective": "Stand up a new ECS Fargate service and reach a first DEV deployment.",
+    "destination": { "title": "Service is live in DEV." },
+    "inputs": ["app_code", "aws_account_id"],
+    "steps": [
+      {
+        "id": "service-repos",
+        "title": "Set up the service repositories and Harness project",
+        "content": {
+          "blocks": [
+            {
+              "kind": "prose",
+              "spans": [
+                { "text": "This journey deploys an ECS service on your ECS cluster using the private Terraform modules published by the AWSF platform team. It assumes onboarding is complete (Harness org, TFE workspace, and the AWS account are already in place) and builds the per-service resources on top of that." }
+              ]
+            },
+            {
+              "kind": "prose",
+              "spans": [
+                { "text": "Each service needs two separate Git repositories - one for AWS infrastructure (Terraform) and one for application/service source code - plus its own Harness App project. The Infra Harness project is shared by all services; applications with multiple microservices set up a separate App project per service." }
+              ]
+            },
+            {
+              "kind": "table",
+              "caption": "Naming conventions",
+              "rows": [
+                { "cells": [ { "spans": [ { "text": "Resource" } ], "header": true }, { "spans": [ { "text": "Convention" } ], "header": true }, { "spans": [ { "text": "Example" } ], "header": true } ] },
+                { "cells": [ { "spans": [ { "text": "Infra code repo" } ] }, { "spans": [ { "text": "{Git_Org}_ws_aws_{IDENTIFIER}" } ] }, { "spans": [ { "text": "APP_ws_aws_infra" } ] } ] },
+                { "cells": [ { "spans": [ { "text": "App code repo" } ] }, { "spans": [ { "text": "{Git_Org}_{IDENTIFIER}" } ] }, { "spans": [ { "text": "APP_ui_service" } ] } ] },
+                { "cells": [ { "spans": [ { "text": "TFE workspace" } ] }, { "spans": [ { "text": "{Git_Org}_ws_aws_{WORKSPACE_Description}" } ] }, { "spans": [ { "text": "APP_ws_aws_infra" } ] } ] }
+              ]
+            },
+            {
+              "kind": "list",
+              "ordered": false,
+              "items": [
+                { "spans": [ { "text": "The Harness project MUST have the same name as the Git repository." } ] },
+                { "spans": [ { "text": "Application Artifactory repository must be of Docker type; the infrastructure Artifactory repository can be of General type." } ] }
+              ]
+            },
+            {
+              "kind": "prose",
+              "spans": [
+                { "text": "To create the GitHub repository, Artifactory repository, and Harness project, run the Harness self-service pipeline " },
+                { "text": "Create_Github_Harness_Artifactory_Repo", "link": { "kind": "external", "url": "https://harness.example.com/pipelines/Create_Github_Harness_Artifactory_Repo/executions" } },
+                { "text": "." }
+              ]
+            }
+          ]
+        },
+        "artifacts": [
+          {
+            "id": "infra-repository",
+            "name": "Infrastructure repository",
+            "group": "Code & delivery",
+            "primary": "repository",
+            "link": "url",
+            "fields": [
+              {
+                "key": "repository",
+                "label": "Repository",
+                "value": "",
+                "editable": true
+              },
+              {
+                "key": "url",
+                "label": "System URL",
+                "value": "",
+                "editable": true
+              }
+            ]
+          },
+          {
+            "id": "app-repository",
+            "name": "Application repository",
+            "group": "Code & delivery",
+            "primary": "repository",
+            "link": "url",
+            "fields": [
+              {
+                "key": "repository",
+                "label": "Repository",
+                "value": "",
+                "editable": true
+              },
+              {
+                "key": "url",
+                "label": "System URL",
+                "value": "",
+                "editable": true
+              }
+            ]
+          },
+          {
+            "id": "service-project",
+            "name": "Harness service project",
+            "group": "Code & delivery",
+            "primary": "project",
+            "link": "url",
+            "fields": [
+              {
+                "key": "project",
+                "label": "Project",
+                "value": "",
+                "editable": true
+              },
+              {
+                "key": "url",
+                "label": "System URL",
+                "value": "",
+                "editable": true
+              }
+            ]
+          }
+        ],
+        "tasks": [
+          { "id": "setup-service-repos", "title": "Create the infra + app-code repos, Harness App project, and Artifactory repo" }
+        ]
+      },
+      {
+        "id": "generate-stack",
+        "title": "Generate the service stack",
+        "content": {
+          "blocks": [
+            {
+              "kind": "prose",
+              "spans": [
+                { "text": "Deployments in AWS Federated use Terraform Enterprise (TFE) for infrastructure-as-code and Harness for CI/CD, following Enterprise standards. The platform team publishes hardened L1 modules; application teams extend them into L2 code that deploys their own infrastructure." }
+              ]
+            },
+            {
+              "kind": "list",
+              "ordered": false,
+              "items": [
+                {
+                  "spans": [
+                    { "text": "Browse the published L1 modules in the " },
+                    { "text": "TFE Private Module Registry", "link": { "kind": "external", "url": "https://tfe.example.com/registry/private/modules?provider=aws" } },
+                    { "text": "." }
+                  ]
+                },
+                {
+                  "spans": [
+                    { "text": "Reference the " },
+                    { "text": "app/app_terraform-l2-examples", "link": { "kind": "external", "url": "https://git.example.com/app/app_terraform-l2-examples" } },
+                    { "text": " repository for L2 implementations of the service stack." }
+                  ]
+                }
+              ]
+            },
+            {
+              "kind": "prose",
+              "spans": [
+                { "text": "Run the self-service pipeline " },
+                { "text": "Create_Harness_Resources_For_AWS", "link": { "kind": "external", "url": "https://harness.example.com/pipelines/Create_Harness_Resources_For_AWS/pipeline-studio" } },
+                { "text": " once per ECS service to create the Harness environment, file store, service overrides, etc. Finalize the Cluster Name, Service Name, and ECR Repository before running." }
+              ]
+            },
+            {
+              "kind": "table",
+              "caption": "Self-service required inputs",
+              "rows": [
+                { "cells": [ { "spans": [ { "text": "Parameter" } ], "header": true }, { "spans": [ { "text": "Description" } ], "header": true }, { "spans": [ { "text": "Example" } ], "header": true } ] },
+                { "cells": [ { "spans": [ { "text": "project_name" } ] }, { "spans": [ { "text": "Existing Harness project name - ${lower_3letter_app_code}_${app_specific_name}." } ] }, { "spans": [ { "text": "app_ui_service" } ] } ] },
+                { "cells": [ { "spans": [ { "text": "environment_name" } ] }, { "spans": [ { "text": "Target environment - ${account_name}_{env_name}." } ] }, { "spans": [ { "text": "app_wkl_001_dev" } ] } ] },
+                { "cells": [ { "spans": [ { "text": "environment_class" } ] }, { "spans": [ { "text": "Environment class. Supported: DEV, UAT, BUAT, PROD." } ] }, { "spans": [ { "text": "DEV/UAT/PROD/BUAT" } ] } ] },
+                { "cells": [ { "spans": [ { "text": "infrastructure_name" } ] }, { "spans": [ { "text": "Deployment resource (ecs_cluster) in the AWS account - ${region_name}_{cluster_name}." } ] }, { "spans": [ { "text": "use1_csm-cluster" } ] } ] },
+                { "cells": [ { "spans": [ { "text": "service_name" } ] }, { "spans": [ { "text": "Service name to deploy in the AWS ECS cluster." } ] }, { "spans": [ { "text": "ui-service" } ] } ] },
+                { "cells": [ { "spans": [ { "text": "aws_connector_id" } ] }, { "spans": [ { "text": "AWS OIDC connector ID (created during onboarding) - org.{connector_id}." } ] }, { "spans": [ { "text": "org.appdevuselconnector" } ] } ] },
+                { "cells": [ { "spans": [ { "text": "target_cluster" } ] }, { "spans": [ { "text": "ECS cluster name in the AWS account (intended name if not yet provisioned)." } ] }, { "spans": [ { "text": "csm-cluster" } ] } ] },
+                { "cells": [ { "spans": [ { "text": "aws_vars_file_path" } ] }, { "spans": [ { "text": "Location of the task-definition file in the app-code repo." } ] }, { "spans": [ { "text": "ecs_task-definition/dev.yaml" } ] } ] },
+                { "cells": [ { "spans": [ { "text": "ecr_repository_name" } ] }, { "spans": [ { "text": "ECR repository for the ECS service image - ${artifactory-docker-repo-name}/{image-name}." } ] }, { "spans": [ { "text": "app_ui_service-docker-deploy/ui-service" } ] } ] }
+              ]
+            },
+            {
+              "kind": "list",
+              "ordered": false,
+              "items": [
+                { "spans": [ { "text": "Set the self-service pipeline branch to Release." } ] },
+                { "spans": [ { "text": "The ECS Cluster Name is case-sensitive." } ] },
+                { "spans": [ { "text": "The AWS OIDC connector for this account is created during onboarding - reference it here (one per account: DEV / UAT / BUAT / PROD)." } ] }
+              ]
+            },
+            {
+              "kind": "prose",
+              "spans": [
+                { "text": "Once complete, the pipeline creates the Service, Overrides, Environment, File Store files, and the ECS Deployment Pipeline under the application Harness project (confirm under Project Setting -> File Store / Overrides / Environment and Project -> Pipelines)." }
+              ]
+            },
+            {
+              "kind": "callout",
+              "tone": "note",
+              "spans": [
+                { "text": "Manual alternative: the self-service pipeline automates what Tasks 4-6 describe by hand (Harness Service, Environment/Infrastructure, Service Overrides). Use one path or the other, not both - " },
+                { "text": "Task 4", "link": { "kind": "external", "url": "https://wiki.example.com/devops/task-4" } },
+                { "text": ", " },
+                { "text": "Task 5", "link": { "kind": "external", "url": "https://wiki.example.com/devops/task-5" } },
+                { "text": ", " },
+                { "text": "Task 6", "link": { "kind": "external", "url": "https://wiki.example.com/devops/task-6" } },
+                { "text": "." }
+              ]
+            },
+            {
+              "kind": "callout",
+              "tone": "note",
+              "spans": [
+                { "text": "For multiple isolated QA environments in the same account/class (e.g. DEV-QA1, DEV-QA2), run Create_Harness_Resources_For_AWS separately per environment with a unique infrastructure_name and environment_name." }
+              ]
+            }
+          ]
+        },
+        "artifacts": [
+          {
+            "id": "service-stack",
+            "name": "Service stack",
+            "group": "Code & delivery",
+            "primary": "stack",
+            "link": "url",
+            "fields": [
+              {
+                "key": "stack",
+                "label": "Stack name",
+                "value": "",
+                "editable": true
+              },
+              {
+                "key": "environment",
+                "label": "Environment",
+                "value": "",
+                "editable": true
+              },
+              {
+                "key": "url",
+                "label": "System URL",
+                "value": "",
+                "editable": true
+              }
+            ]
+          }
+        ],
+        "tasks": [
+          {
+            "id": "generate-and-open-pr",
+            "title": "Generate the IaC + pipeline stack and open a PR",
+            "required": true,
+            "capability": { "ref": "generate-service-stack", "link": "https://git.example.com" }
+          }
+        ]
+      },
+      {
+        "id": "infra-pipeline",
+        "title": "Create the infra-provisioning pipeline",
+        "content": {
+          "blocks": [
+            {
+              "kind": "prose",
+              "spans": [
+                { "text": "Set up a pipeline in the infrastructure Harness project to deploy AWS services such as the ECS cluster, Load Balancer (ALB), ECS service, and ECR repository. Teams must have a separate Harness project for infrastructure (Terraform)." }
+              ]
+            },
+            {
+              "kind": "list",
+              "ordered": false,
+              "items": [
+                {
+                  "spans": [
+                    { "text": "Put the Terraform L2 code in the infra Git repository - use the " },
+                    { "text": "sample ecs-l2 code", "link": { "kind": "external", "url": "https://git.example.com/app/app_terraform-l2-examples/tree/ecs-l2" } },
+                    { "text": "." }
+                  ]
+                },
+                { "spans": [ { "text": "Branches map to workspace environments: develop -> dev, release -> uat, master -> prod (same for the tfvars layout dev/uat/prod with region-specific use1.tfvars, cac1.tfvars, global.tfvars)." } ] },
+                { "spans": [ { "text": "Choose the Terraform module version available in TFE prod; check the module docs for the required provider version." } ] },
+                { "spans": [ { "text": "The AWS account has a VPC and KMS key pre-provisioned; the ECR repository, IAM roles for ECS tasks, and CloudWatch log groups must be created in the IaC process before starting the ECS deployment pipeline." } ] }
+              ]
+            },
+            {
+              "kind": "prose",
+              "spans": [
+                { "text": "Set up the pipeline per " },
+                { "text": "Create Terraform Provisioning Pipeline with Harness", "link": { "kind": "external", "url": "https://wiki.example.com/ace/create-terraform-provisioning-pipeline" } },
+                { "text": ", then trigger it. The sample ECS deployment creates the security group, ALB, ECS cluster, ACM certificate, ECS service, Cloud Map records, IAM roles, CloudWatch log group, S3 bucket, and ECR repository. IAM role naming: {APP_CODE}-{DEV/UAT/BUAT/PROD}-ecs-{task/task-exec}-role." }
+              ]
+            },
+            {
+              "kind": "callout",
+              "tone": "warning",
+              "spans": [
+                { "text": "Harness has no status API - verify provisioning by reading logs: Harness console (Project -> Pipeline -> Executions) and the TFE prod UI (Workspaces -> the run -> Plan / Apply logs). Success degrades to unknown, never a fabricated done." }
+              ]
+            }
+          ]
+        },
+        "artifacts": [
+          {
+            "id": "infra-pipeline",
+            "name": "Infrastructure pipeline",
+            "group": "Code & delivery",
+            "primary": "pipeline",
+            "link": "url",
+            "fields": [
+              {
+                "key": "pipeline",
+                "label": "Pipeline ID",
+                "value": "",
+                "editable": true
+              },
+              {
+                "key": "url",
+                "label": "System URL",
+                "value": "",
+                "editable": true
+              }
+            ]
+          }
+        ],
+        "tasks": [
+          { "id": "create-infra-pipeline", "title": "Set up and trigger the Terraform infra-provisioning pipeline" }
+        ]
+      },
+      {
+        "id": "app-deploy-pipeline",
+        "title": "Create the application deployment pipeline",
+        "content": {
+          "blocks": [
+            {
+              "kind": "prose",
+              "spans": [
+                { "text": "Build the application artifact (jar, Docker image, etc.) and push it to JFrog Artifactory, then set up a pipeline to deploy the service on the ECS cluster in the application/service Harness project. Prerequisites: IAM roles and the CloudWatch log group available, the task-definition YAML present in the app Git repo, and a Docker image in the project's Artifactory repository." }
+              ]
+            },
+            {
+              "kind": "prose",
+              "spans": [
+                { "text": "App teams provide only the main application container definition - not the full task definition. During execution Harness injects the standard platform sidecars (OTEL, AquaSec) and generates the final task definition dynamically. See " },
+                { "text": "Task 3: Creating the YAML file for Task Definition", "link": { "kind": "external", "url": "https://wiki.example.com/devops/task-3" } },
+                { "text": " and the " },
+                { "text": "AWS ECS task-definition parameters", "link": { "kind": "external", "url": "https://docs.aws.amazon.com/AmazonECS/latest/userguide/task_definition_parameters.html" } },
+                { "text": "." }
+              ]
+            },
+            {
+              "kind": "table",
+              "caption": "Container definition fields",
+              "rows": [
+                { "cells": [ { "spans": [ { "text": "Field" } ], "header": true }, { "spans": [ { "text": "Description" } ], "header": true }, { "spans": [ { "text": "Required" } ], "header": true } ] },
+                { "cells": [ { "spans": [ { "text": "name / image" } ] }, { "spans": [ { "text": "Container name and Docker image." } ] }, { "spans": [ { "text": "Yes" } ] } ] },
+                { "cells": [ { "spans": [ { "text": "portMappings" } ] }, { "spans": [ { "text": "containerPort, hostPort, protocol, appProtocol." } ] }, { "spans": [ { "text": "Yes" } ] } ] },
+                { "cells": [ { "spans": [ { "text": "cpu / memory" } ] }, { "spans": [ { "text": "CPU units and memory (MiB) reserved for the container." } ] }, { "spans": [ { "text": "Yes" } ] } ] },
+                { "cells": [ { "spans": [ { "text": "taskRoleArn / executionRoleArn" } ] }, { "spans": [ { "text": "IAM roles for task AWS access and for ECS to pull images / publish logs." } ] }, { "spans": [ { "text": "Yes" } ] } ] },
+                { "cells": [ { "spans": [ { "text": "volumes / mountPoints" } ] }, { "spans": [ { "text": "Shared storage between containers; mount to container paths." } ] }, { "spans": [ { "text": "Yes for OTEL" } ] } ] },
+                { "cells": [ { "spans": [ { "text": "environment / logConfiguration" } ] }, { "spans": [ { "text": "Environment variables and log driver/options." } ] }, { "spans": [ { "text": "Optional" } ] } ] }
+              ]
+            },
+            {
+              "kind": "prose",
+              "spans": [
+                { "text": "For file-based logging with OpenTelemetry and Fluentbit, a shared volume mounted at /var/log is mandatory: the app writes logs there and the OTEL sidecar reads them and pushes to CloudWatch." }
+              ]
+            },
+            {
+              "kind": "table",
+              "caption": "Required OTEL environment variables",
+              "rows": [
+                { "cells": [ { "spans": [ { "text": "Variable" } ], "header": true }, { "spans": [ { "text": "Purpose" } ], "header": true } ] },
+                { "cells": [ { "spans": [ { "text": "CLOUDWATCH_LOG_GROUP_NAME" } ] }, { "spans": [ { "text": "CloudWatch log group (provisioned by the infra pipeline) that OTEL pushes to." } ] } ] },
+                { "cells": [ { "spans": [ { "text": "OTEL_LOG_FILE_PATH" } ] }, { "spans": [ { "text": "Path to the log file written by the app container (e.g. /var/log/application.log)." } ] } ] },
+                { "cells": [ { "spans": [ { "text": "OTEL_TIMESTAMP_LAYOUT" } ] }, { "spans": [ { "text": "Timestamp format in the log file; must match the log format." } ] } ] },
+                { "cells": [ { "spans": [ { "text": "OTEL_LOG_REGEX_PATTERN" } ] }, { "spans": [ { "text": "Regex to parse log lines; named groups (timestamp_field, log_body, ...) required." } ] } ] }
+              ]
+            },
+            {
+              "kind": "prose",
+              "spans": [
+                { "text": "Create the pipeline using ECSDeployment_Pipeline_CD - select beta version 1.5.5-Beta or above - then fill the inputs and run it. See " },
+                { "text": "Task 7: Create a pipeline using ECSDeployment_Pipeline_CD", "link": { "kind": "external", "url": "https://wiki.example.com/devops/task-7" } },
+                { "text": "." }
+              ]
+            },
+            {
+              "kind": "table",
+              "caption": "Deployment pipeline inputs",
+              "rows": [
+                { "cells": [ { "spans": [ { "text": "Input" } ], "header": true }, { "spans": [ { "text": "Description" } ], "header": true } ] },
+                { "cells": [ { "spans": [ { "text": "PerformECSDeployment" } ] }, { "spans": [ { "text": "Default Yes. No = image promotion (Artifactory -> ECR) only; Yes = promotion and ECS deployment." } ] } ] },
+                { "cells": [ { "spans": [ { "text": "CI codebase / Repository / Artifact Path / Tag" } ] }, { "spans": [ { "text": "The repo where vars.yaml lives, Artifactory repo, image path, and image tag." } ] } ] },
+                { "cells": [ { "spans": [ { "text": "Service / Environment / Infrastructure" } ] }, { "spans": [ { "text": "The service, environment, and target infrastructure created earlier." } ] } ] }
+              ]
+            }
+          ]
+        },
+        "artifacts": [
+          {
+            "id": "app-pipeline",
+            "name": "Application pipeline",
+            "group": "Code & delivery",
+            "primary": "pipeline",
+            "link": "url",
+            "fields": [
+              {
+                "key": "pipeline",
+                "label": "Pipeline ID",
+                "value": "",
+                "editable": true
+              },
+              {
+                "key": "image",
+                "label": "Container image",
+                "value": "",
+                "editable": true
+              },
+              {
+                "key": "url",
+                "label": "System URL",
+                "value": "",
+                "editable": true
+              }
+            ]
+          }
+        ],
+        "tasks": [
+          { "id": "create-app-deploy-pipeline", "title": "Set up the ECSDeployment_Pipeline_CD application pipeline" }
+        ]
+      },
+      {
+        "id": "dev-deploy-success",
+        "title": "Dev deployment successful",
+        "content": {
+          "blocks": [
+            {
+              "kind": "prose",
+              "spans": [
+                { "text": "The CD process runs in the target AWS account: it provisions infrastructure with Terraform Enterprise and deploys the application. Trigger it from your application's Harness pipeline." }
+              ]
+            },
+            {
+              "kind": "callout",
+              "tone": "warning",
+              "spans": [
+                { "text": "Harness exposes no status API, so a successful deployment is reported as unknown rather than a confirmed done - verify the outcome in Harness directly." }
+              ]
+            },
+            {
+              "kind": "prose",
+              "spans": [
+                { "text": "After a successful deployment, verify accessibility via Route 53 DNS: open the AWS Management Console -> Route 53 -> Hosted Zones -> the relevant hosted zone, search for your service name, copy the record value / DNS name, and open it in a browser." }
+              ]
+            }
+          ]
+        },
+        "artifacts": [
+          {
+            "id": "deployment",
+            "name": "Development deployment",
+            "group": "Code & delivery",
+            "primary": "service",
+            "link": "url",
+            "fields": [
+              {
+                "key": "service",
+                "label": "Service",
+                "value": "",
+                "editable": true
+              },
+              {
+                "key": "environment",
+                "label": "Environment",
+                "value": "",
+                "editable": true
+              },
+              {
+                "key": "version",
+                "label": "Version",
+                "value": "",
+                "editable": true
+              },
+              {
+                "key": "url",
+                "label": "System URL",
+                "value": "",
+                "editable": true
+              }
+            ]
+          }
+        ],
+        "tasks": [
+          {
+            "id": "trigger-dev-deploy",
+            "title": "Trigger the dev deployment via Harness",
+            "required": true,
+            "capability": { "ref": "trigger-dev-deploy", "link": "https://harness.example.com" }
+          }
+        ]
+      },
+      {
+        "id": "setup-summary",
+        "title": "Setup summary & support",
+        "presentation": "summary",
+        "content": {
+          "blocks": [
+            {
+              "kind": "heading",
+              "text": "Support"
+            },
+            {
+              "kind": "prose",
+              "spans": [
+                {
+                  "text": "Need a hand? Include your application code <app_code>, the task name, and any request or ticket link."
+                }
+              ]
+            },
+            {
+              "kind": "list",
+              "items": [
+                {
+                  "spans": [
+                    {
+                      "text": "Contact platform support",
+                      "link": {
+                        "address": "platform-support@example.com"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "spans": [
+                    {
+                      "text": "Browse setup documentation",
+                      "link": {
+                        "url": "https://docs.example.com/platform/onboarding"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "artifacts": [],
+        "tasks": [
+          {
+            "id": "review-setup-summary",
+            "title": "Review setup artifacts and support options",
+            "required": false
+          }
+        ]
+      }
+    ]
+  }
+]

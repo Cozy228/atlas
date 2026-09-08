@@ -1,0 +1,42 @@
+/* UIPros motion-ui command-palette: one container entrance, quicker return. */
+.atlas-ask-overlay-dialog {
+  top: 160px;
+  translate: -50% 0;
+  z-index: 101;
+  border-radius: 4px;
+  opacity: 1;
+  transform: translateY(0px);
+  animation: none !important;
+  transition:
+    opacity 240ms cubic-bezier(0.23, 1, 0.32, 1),
+    transform 300ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.atlas-ask-overlay-dialog[data-starting-style] {
+  opacity: 0;
+  transform: translateY(16px);
+}
+.atlas-ask-overlay-dialog[data-ending-style] {
+  opacity: 0;
+  transform: translateY(10px);
+  transition-duration: 150ms;
+}
+@media (prefers-reduced-motion: reduce) {
+  .atlas-ask-overlay-dialog {
+    transition: none;
+  }
+}
+
+.atlas-ask-overlay-backdrop {
+  z-index: 100;
+  animation: none !important;
+  opacity: 1;
+  transition: opacity 180ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.atlas-ask-overlay-backdrop:is([data-starting-style], [data-ending-style]) {
+  opacity: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .atlas-ask-overlay-backdrop {
+    transition: none;
+  }
+}

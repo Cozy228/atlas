@@ -14,7 +14,7 @@ const AskOverlay = lazy(() =>
  * component just owns the keyboard shortcut and lazy-mounts the overlay.
  */
 export function AskAtlasFab() {
-  const { overlayOpen, openOverlay, setOverlayOpen } = useAskAtlas();
+  const { overlayOpen, openOverlay, setOverlayOpen, returnFocusRef } = useAskAtlas();
 
   // Only mount (and fetch the chunk for) the overlay once it has been opened.
   const [hasOpened, setHasOpened] = useState(false);
@@ -32,12 +32,12 @@ export function AskAtlasFab() {
     }
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [overlayOpen, openOverlay, setOverlayOpen]);
+  }, [overlayOpen, openOverlay, setOverlayOpen, returnFocusRef]);
 
   if (!hasOpened) return null;
   return (
     <Suspense fallback={null}>
-      <AskOverlay open={overlayOpen} onOpenChange={setOverlayOpen} />
+      <AskOverlay open={overlayOpen} onOpenChange={setOverlayOpen} returnFocus={returnFocusRef} />
     </Suspense>
   );
 }
