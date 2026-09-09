@@ -22,3 +22,13 @@
   --color-on-brand: var(--brand-foreground);
   --color-error: var(--critical-ink);
 }
+
+/* GitHub Primer pull request status semantics. */
+.onboarding-new {
+  --color-pr-open: #1a7f37;
+  --color-pr-merged: #8250df;
+}
+.dark .onboarding-new {
+  --color-pr-open: #3fb950;
+  --color-pr-merged: #a371f7;
+}

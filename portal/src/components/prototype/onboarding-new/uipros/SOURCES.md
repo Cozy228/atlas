@@ -70,3 +70,21 @@ Completion follows `motion-ui/motion-ui/multi-state-button/index.tsx`: opacity/b
 ### Resource sheet timing
 
 Reference: `motion-ui/motion-ui/sheet/index.tsx` and `motion-ui/ui-theme/index.ts`. The source uses `gentle` for large surfaces, default duration 0.5 seconds. Both right-sheet directions and workspace action layout now use 500ms; Base UI still owns presence, dismissal and focus. The resource trigger receives its own position projection because its right-aligned position changes when its parent width changes.
+
+- `tabs.tsx`: `motion-examples/react/base-tabs/index.tsx`. Uses Base UI Root/List/Tab with a shared-layout underline and keyed opacity/blur panel transitions. Adds Base UI Panel semantics and preserves the exiting panel until AnimatePresence finishes; inactive panels remain inert. Blur is reduced to 2px for Atlas, and reduced-motion preferences are respected.
+- Environment selections reuse the shared `layoutId` pill choreography from `motion-ui/motion-ui/segmented-toggle/index.tsx`. Each field has its own indicator identity; access cards use stationary opacity highlights and checks crossfade in a reserved slot, and keyboard activation retains motion unless the user requests reduced motion.
+
+### ECS architecture and file preview
+
+- `scaffold-preview.tsx` composes the existing UIPros Base Tabs, Accordion and Button adapters. Tab panels retain the same separate enter/exit timing and reduced-motion behavior.
+- Architecture uses the project's existing AWS icon dependency and a scoped SVG topology. The file browser follows the selected design reference; its generated examples are public-safe prototype data, not a repository diff.
+
+- Latest architecture layout references `/Users/ziyu/.agents/skills/archify/SKILL.md` and the user-selected conversation “React生成AWS架构图方案”: AWS icons, light group boundaries, primary traffic flow and collapsed supporting resources. The SVG is a local React composition, not an imported UIPros graph component. Environment/access selectors were removed in favor of fixed defaults; build methods retain the existing Accordion/Button adapters.
+
+### Nested ECS journey
+
+The child journey reuses the onboarding task-list selected-row projection, completion crossfade and collapsed rail. Review retains UIPros Base Tabs; setup details use the existing UIPros Accordion/Input/Button adapters. Stage transitions use restrained opacity/2px blur in Motion. Domain-specific PR outcomes and pipeline handoff panels are local composition, not imported UIPros blocks.
+
+### ECS stack execution
+
+The preview and execution graph share a Motion layout identity. The execution view keeps that graph mounted across simulated GitHub, Harness, TFE plan/apply and deployment checks. Existing onboarding disclosure, button and file-preview adapters remain in use. Phase state drives node availability and creation feedback; reduced motion removes spatial transitions and repeating effects. This is a local simulation, not a live integration.

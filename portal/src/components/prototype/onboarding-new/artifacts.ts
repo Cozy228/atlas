@@ -1,6 +1,16 @@
 import { formatSourceText } from "./source-text";
 import type { Progress, Task } from "./flow";
 
+export function artifactUrl(value: string | undefined) {
+  if (!value?.trim()) return undefined;
+  try {
+    const url = new URL(value.trim());
+    return ["http:", "https:"].includes(url.protocol) ? url.href : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export type ArtifactDefinition = {
   id: string;
   name: string;
@@ -27,7 +37,7 @@ export function resolveTaskArtifacts(tasks: Task[], progress: Progress, index: n
       return { ...field, storageKey, value: progress.values[storageKey] ?? template };
     });
     const url = fields.find((field) => field.key === artifact.link)?.value.trim();
-    const link = url && /^https?:\/\//i.test(url) ? url : undefined;
+    const link = artifactUrl(url);
     const value = fields.find((field) => field.key === artifact.primary)?.value ?? "";
     return {
       ...artifact,
@@ -42,8 +52,10 @@ export function resolveTaskArtifacts(tasks: Task[], progress: Progress, index: n
 
 export function collectArtifacts(tasks: Task[], progress: Progress) {
   return tasks.flatMap((_, index) =>
-    progress.completed.includes(index)
-      ? resolveTaskArtifacts(tasks, progress, index).filter((artifact) => artifact.value.trim())
+    progress.completed.includes(index) || tasks[index].journeyRef === "ecs-service"
+      ? resolveTaskArtifacts(tasks, progress, index).filter(
+          (artifact) => artifact.value.trim() && (artifact.primary !== "url" || !!artifact.link),
+        )
       : [],
   );
 }

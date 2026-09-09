@@ -151,7 +151,8 @@
   font-weight: 500;
 }
 .on-field input,
-.on-field select {
+.on-field select,
+.on-scaffold [data-slot="input"] {
   height: 32px;
   width: 100%;
   padding: 0 12px;

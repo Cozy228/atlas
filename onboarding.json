@@ -226,6 +226,96 @@
       },
       {
         "id": "group-mapping",
+        "guidance": [
+          {
+            "id": "mapping-email",
+            "kind": "email",
+            "label": "Prepare group-mapping email",
+            "recipient": "idam-ops@example.com",
+            "subject": "Group mapping request — {{app_code}}",
+            "body": "Hello IDAM Operations,\n\nPlease map the following application groups.\n\nApplication: {{application_name}} ({{app_code}})\nApp-owner approval reference: {{owner_approval}}\n\nHarness ticket: {{harness_ticket}}\nHarness groups:\n{{harness_groups}}\n\nAWS ticket: {{aws_ticket}}\nAWS groups:\n{{aws_groups}}\n\nTFE ticket: {{tfe_ticket}}\nTFE groups:\n{{tfe_groups}}\n\nPlease confirm when the mappings are available.\nThank you.",
+            "inputs": [
+              {
+                "key": "app_code",
+                "label": "Application code",
+                "source": {
+                  "kind": "input",
+                  "name": "app_code"
+                }
+              },
+              {
+                "key": "application_name",
+                "label": "Application name",
+                "source": {
+                  "kind": "context",
+                  "name": "application_name"
+                }
+              },
+              {
+                "key": "owner_approval",
+                "label": "App-owner approval reference",
+                "source": {
+                  "kind": "context",
+                  "name": "owner_approval"
+                }
+              },
+              {
+                "key": "harness_ticket",
+                "label": "Harness request ID",
+                "source": {
+                  "kind": "artifact",
+                  "artifact": "harness-mapping",
+                  "field": "number"
+                }
+              },
+              {
+                "key": "aws_ticket",
+                "label": "AWS request ID",
+                "source": {
+                  "kind": "artifact",
+                  "artifact": "aws-mapping",
+                  "field": "number"
+                }
+              },
+              {
+                "key": "tfe_ticket",
+                "label": "TFE request ID",
+                "source": {
+                  "kind": "artifact",
+                  "artifact": "tfe-mapping",
+                  "field": "number"
+                }
+              },
+              {
+                "key": "harness_groups",
+                "label": "Harness groups",
+                "source": {
+                  "kind": "artifact",
+                  "artifact": "devops-groups",
+                  "field": "*"
+                }
+              },
+              {
+                "key": "aws_groups",
+                "label": "AWS groups",
+                "source": {
+                  "kind": "artifact",
+                  "artifact": "aws-groups",
+                  "field": "*"
+                }
+              },
+              {
+                "key": "tfe_groups",
+                "label": "TFE groups",
+                "source": {
+                  "kind": "artifact",
+                  "artifact": "tfe-groups",
+                  "field": "*"
+                }
+              }
+            ]
+          }
+        ],
         "title": "Create group-mapping RITM requests",
         "content": {
           "blocks": [
@@ -433,6 +523,44 @@
                   ]
                 }
               ]
+            },
+            {
+              "kind": "prose",
+              "spans": [
+                { "text": "Before launching an ECS service, confirm its infrastructure and application repositories and Harness project. Reuse existing resources, or create missing ones with the self-service pipeline." }
+              ]
+            },
+            {
+              "kind": "prose",
+              "spans": [
+                { "text": "Each service needs two separate Git repositories - one for AWS infrastructure (Terraform) and one for application/service source code - plus its own Harness App project. The Infra Harness project is shared by all services; applications with multiple microservices set up a separate App project per service." }
+              ]
+            },
+            {
+              "kind": "table",
+              "caption": "Naming conventions",
+              "rows": [
+                { "cells": [ { "spans": [ { "text": "Resource" } ], "header": true }, { "spans": [ { "text": "Convention" } ], "header": true }, { "spans": [ { "text": "Example" } ], "header": true } ] },
+                { "cells": [ { "spans": [ { "text": "Infra code repo" } ] }, { "spans": [ { "text": "{Git_Org}_ws_aws_{IDENTIFIER}" } ] }, { "spans": [ { "text": "APP_ws_aws_infra" } ] } ] },
+                { "cells": [ { "spans": [ { "text": "App code repo" } ] }, { "spans": [ { "text": "{Git_Org}_{IDENTIFIER}" } ] }, { "spans": [ { "text": "APP_ui_service" } ] } ] },
+                { "cells": [ { "spans": [ { "text": "TFE workspace" } ] }, { "spans": [ { "text": "{Git_Org}_ws_aws_{WORKSPACE_Description}" } ] }, { "spans": [ { "text": "APP_ws_aws_infra" } ] } ] }
+              ]
+            },
+            {
+              "kind": "list",
+              "ordered": false,
+              "items": [
+                { "spans": [ { "text": "The Harness project MUST have the same name as the Git repository." } ] },
+                { "spans": [ { "text": "Application Artifactory repository must be of Docker type; the infrastructure Artifactory repository can be of General type." } ] }
+              ]
+            },
+            {
+              "kind": "prose",
+              "spans": [
+                { "text": "To create the GitHub repository, Artifactory repository, and Harness project, run the Harness self-service pipeline " },
+                { "text": "Create_Github_Harness_Artifactory_Repo", "link": { "kind": "external", "url": "https://harness.example.com/pipelines/Create_Github_Harness_Artifactory_Repo/executions" } },
+                { "text": "." }
+              ]
             }
           ]
         },
@@ -469,6 +597,80 @@
                 "editable": true
               }
             ]
+          },
+          {
+            "id": "infra-repository",
+            "name": "Infrastructure repository",
+            "group": "Code & delivery",
+            "primary": "repository",
+            "link": "url",
+            "fields": [
+              {
+                "key": "repository",
+                "label": "Repository",
+                "value": "",
+                "editable": true
+              },
+              {
+                "key": "url",
+                "label": "System URL",
+                "value": "",
+                "editable": true
+              }
+            ]
+          },
+          {
+            "id": "service-repositories-pipeline",
+            "name": "Repository setup pipeline",
+            "group": "Code & delivery",
+            "primary": "pipeline",
+            "link": "url",
+            "fields": [
+              { "key": "pipeline", "label": "Pipeline ID", "value": "Create_Github_Harness_Artifactory_Repo", "editable": false },
+              { "key": "url", "label": "System URL", "value": "https://harness.example.com/pipelines/Create_Github_Harness_Artifactory_Repo/executions", "editable": false }
+            ]
+          },
+          {
+            "id": "app-repository",
+            "name": "Application repository",
+            "group": "Code & delivery",
+            "primary": "repository",
+            "link": "url",
+            "fields": [
+              {
+                "key": "repository",
+                "label": "Repository",
+                "value": "",
+                "editable": true
+              },
+              {
+                "key": "url",
+                "label": "System URL",
+                "value": "",
+                "editable": true
+              }
+            ]
+          },
+          {
+            "id": "service-project",
+            "name": "Harness service project",
+            "group": "Code & delivery",
+            "primary": "project",
+            "link": "url",
+            "fields": [
+              {
+                "key": "project",
+                "label": "Project",
+                "value": "",
+                "editable": true
+              },
+              {
+                "key": "url",
+                "label": "System URL",
+                "value": "",
+                "editable": true
+              }
+            ]
           }
         ],
         "tasks": [
@@ -476,7 +678,12 @@
             "id": "create-harness-project",
             "title": "Validate or create the Harness org, project, and Artifactory repo",
             "required": true,
-            "capability": { "ref": "create-harness-project", "link": "https://harness.example.com" }
+            "capability": { "ref": "create-harness-project", "link": "https://harness.example.com/pipelines/Create_Github_Harness_Artifactory_Repo/executions" }
+          },
+          {
+            "id": "setup-service-repos",
+            "title": "Create the infra + app-code repos, Harness App project, and Artifactory repo",
+            "required": true
           }
         ]
       },
@@ -551,6 +758,12 @@
                 "editable": true
               },
               {
+                "key": "repository",
+                "label": "Infrastructure repository",
+                "value": "",
+                "editable": true
+              },
+              {
                 "key": "url",
                 "label": "System URL",
                 "value": "",
@@ -570,6 +783,34 @@
       },
       {
         "id": "tfe-access",
+        "guidance": [
+          {
+            "id": "tfe-access-request",
+            "kind": "copy",
+            "label": "Prepare access request",
+            "subject": "Add TFE viewer and operator groups to Entra for the Terraform Enterprise production app",
+            "body": "Application code: {{app_code}}\nAssignment: IDAM operations group\n\nPlease add the following groups to the Terraform Enterprise production application in Entra:\n{{groups}}\n\nOnce access is enabled, the application team will sign out and sign back in to verify access.",
+            "inputs": [
+              {
+                "key": "app_code",
+                "label": "Application code",
+                "source": {
+                  "kind": "input",
+                  "name": "app_code"
+                }
+              },
+              {
+                "key": "groups",
+                "label": "TFE groups",
+                "source": {
+                  "kind": "artifact",
+                  "artifact": "tfe-groups",
+                  "field": "*"
+                }
+              }
+            ]
+          }
+        ],
         "title": "Terraform Enterprise - create AD groups and enable access",
         "content": {
           "blocks": [
@@ -722,6 +963,43 @@
       },
       {
         "id": "tfe-workspace",
+        "guidance": [
+          {
+            "id": "workspace-request",
+            "kind": "copy",
+            "label": "Prepare workspace request",
+            "subject": "Terraform workspace request — {{app_code}}",
+            "body": "Application code: {{app_code}}\nTerraform project: {{project}}\nGit repository: {{repository}}\n\nPlease create a workspace for the project and repository above.",
+            "inputs": [
+              {
+                "key": "app_code",
+                "label": "Application code",
+                "source": {
+                  "kind": "input",
+                  "name": "app_code"
+                }
+              },
+              {
+                "key": "project",
+                "label": "Terraform project",
+                "source": {
+                  "kind": "artifact",
+                  "artifact": "tfe-project",
+                  "field": "project"
+                }
+              },
+              {
+                "key": "repository",
+                "label": "Git repository",
+                "source": {
+                  "kind": "artifact",
+                  "artifact": "git",
+                  "field": "repository"
+                }
+              }
+            ]
+          }
+        ],
         "title": "Create the Terraform Enterprise workspace",
         "content": {
           "blocks": [
@@ -879,6 +1157,60 @@
       },
       {
         "id": "aws-group-mapping",
+        "guidance": [
+          {
+            "id": "aws-scim-email",
+            "kind": "email",
+            "label": "Prepare manual SCIM email",
+            "recipient": "idam-ops@example.com",
+            "subject": "AWS SCIM mapping — {{app_code}}",
+            "body": "Hello IDAM Operations,\n\nPlease map these groups to the AWS SSO application.\n\nApplication: {{application_name}} ({{app_code}})\nTicket: {{ticket}}\nApp-owner approval reference: {{owner_approval}}\n\nSecurity groups:\n{{groups}}\n\nPlease confirm when the mapping is available.\nThank you.",
+            "inputs": [
+              {
+                "key": "app_code",
+                "label": "Application code",
+                "source": {
+                  "kind": "input",
+                  "name": "app_code"
+                }
+              },
+              {
+                "key": "application_name",
+                "label": "Application name",
+                "source": {
+                  "kind": "context",
+                  "name": "application_name"
+                }
+              },
+              {
+                "key": "owner_approval",
+                "label": "App-owner approval reference",
+                "source": {
+                  "kind": "context",
+                  "name": "owner_approval"
+                }
+              },
+              {
+                "key": "ticket",
+                "label": "SCIM request ID",
+                "source": {
+                  "kind": "artifact",
+                  "artifact": "aws-scim",
+                  "field": "number"
+                }
+              },
+              {
+                "key": "groups",
+                "label": "AWS groups",
+                "source": {
+                  "kind": "artifact",
+                  "artifact": "aws-groups",
+                  "field": "*"
+                }
+              }
+            ]
+          }
+        ],
         "title": "AWS console groups and SCIM mapping",
         "content": {
           "blocks": [
@@ -1338,126 +1670,97 @@
   },
   {
     "id": "ecs-service",
+    "experience": {
+      "pipelineSetup": [
+        { "kind": "infra", "label": "Open infrastructure setup guide", "url": "https://wiki.example.com/ace/create-terraform-provisioning-pipeline" },
+        { "kind": "resources", "label": "Open Harness resources pipeline", "url": "https://harness.example.com/pipelines/Create_Harness_Resources_For_AWS/pipeline-studio" }
+      ],
+      "steps": [
+        { "id": "config", "title": "Configure service", "sourceId": "generate-stack", "outputs": [] },
+        { "id": "preview", "title": "Review changes", "sourceId": "generate-stack", "outputs": [], "dependsOn": "config" },
+        { "id": "result", "title": "Infrastructure PR", "sourceId": "generate-stack", "outputs": ["infra-pr", "service-stack"], "dependsOn": "preview" },
+        { "id": "pipelines", "title": "Provision infrastructure", "sourceId": "infra-pipeline", "outputs": ["infra-pipeline"], "dependsOn": "result" },
+        { "id": "task-definition", "title": "Application PR", "sourceId": "update-task-definition", "outputs": ["task-definition", "app-pr"], "dependsOn": "pipelines" },
+        { "id": "resources", "title": "Create Harness resources", "sourceId": "generate-stack", "outputs": ["harness-resources", "harness-resources-pipeline"], "dependsOn": "task-definition" },
+        { "id": "build", "title": "Build application image", "sourceId": "app-ci-pipeline", "outputs": ["ci-pipeline"], "dependsOn": "resources" },
+        { "id": "run", "title": "Deploy ECS service", "sourceId": "app-deploy-pipeline", "outputs": ["app-pipeline"], "dependsOn": "build" },
+        { "id": "verify", "title": "Verify deployment", "sourceId": "dev-deploy-success", "outputs": ["deployment"], "dependsOn": "run" }
+      ],
+      "pipelineRuns": [
+        {
+          "kind": "infra",
+          "stepId": "pipelines",
+          "artifactId": "infra-pipeline",
+          "title": "Run Harness infrastructure pipeline",
+          "instruction": "Run the infrastructure pipeline in Harness, approve the Terraform plan, then return to check the result.",
+          "inputs": [
+            { "key": "serviceName", "label": "Service name", "source": "serviceName" },
+            { "key": "environment", "label": "Environment", "source": "environment" },
+            { "key": "region", "label": "AWS region", "source": "region" },
+            { "key": "cluster", "label": "ECS cluster", "source": "cluster" },
+            { "key": "infraRepo", "label": "Infrastructure repository", "source": "infraRepo" },
+            { "key": "account", "label": "AWS account", "source": "account" }
+          ]
+        },
+        {
+          "kind": "resources",
+          "stepId": "resources",
+          "artifactId": "harness-resources-pipeline",
+          "title": "Run Harness resources pipeline",
+          "instruction": "Run the self-service pipeline in Harness to set up the application delivery resources.",
+          "inputs": [
+            { "key": "projectName", "label": "Harness project", "source": "projectName" },
+            { "key": "environmentName", "label": "Environment name", "source": "environmentName" },
+            { "key": "environmentClass", "label": "Environment class", "source": "environment" },
+            { "key": "infrastructureName", "label": "Infrastructure name", "source": "cluster" },
+            { "key": "serviceName", "label": "Service name", "source": "serviceName" },
+            { "key": "awsConnectorId", "label": "AWS connector ID", "source": "awsConnectorId" },
+            { "key": "targetCluster", "label": "Target ECS cluster", "source": "cluster" },
+            { "key": "awsVarsFilePath", "label": "Task definition path", "source": "taskDefinition" },
+            { "key": "ecrRepositoryName", "label": "ECR repository", "source": "ecrRepositoryName" }
+          ]
+        },
+        {
+          "kind": "ci",
+          "stepId": "build",
+          "artifactId": "ci-pipeline",
+          "title": "Run application CI pipeline",
+          "instruction": "Run the application CI pipeline in Harness to build and publish your container image.",
+          "inputs": [
+            { "key": "appRepo", "label": "Application repository", "source": "appRepo" },
+            { "key": "buildMethod", "label": "Build method", "source": "buildMethod" },
+            { "key": "gitRef", "label": "Git ref", "source": "gitRef" },
+            { "key": "imageTag", "label": "Image tag", "source": "imageTag" }
+          ]
+        },
+        {
+          "kind": "deploy",
+          "stepId": "run",
+          "artifactId": "app-pipeline",
+          "title": "Run ECS service deploy pipeline",
+          "instruction": "Run the deployment pipeline in Harness using the image from the completed build.",
+          "inputs": [
+            { "key": "serviceName", "label": "Service name", "source": "serviceName" },
+            { "key": "environment", "label": "Environment", "source": "environment" },
+            { "key": "cluster", "label": "ECS cluster", "source": "cluster" },
+            { "key": "imageTag", "label": "Image tag", "source": "imageTag" },
+            { "key": "taskDefinition", "label": "Task definition", "source": "taskDefinition" },
+            { "key": "logGroup", "label": "CloudWatch log group", "source": "logGroup" },
+            { "key": "taskRoleArn", "label": "Task role ARN", "source": "taskRoleArn" },
+            { "key": "executionRoleArn", "label": "Execution role ARN", "source": "executionRoleArn" },
+            { "key": "privateSubnetIds", "label": "Private subnets", "source": "privateSubnetIds" },
+            { "key": "taskSecurityGroupIds", "label": "Task security groups", "source": "taskSecurityGroupIds" },
+            { "key": "targetGroupArn", "label": "Target group ARN", "source": "targetGroupArn" }
+          ]
+        }
+      ]
+    },
     "title": "Launch an ECS service",
     "scenario": "launch-ecs",
     "objective": "Stand up a new ECS Fargate service and reach a first DEV deployment.",
     "destination": { "title": "Service is live in DEV." },
     "inputs": ["app_code", "aws_account_id"],
     "steps": [
-      {
-        "id": "service-repos",
-        "title": "Set up the service repositories and Harness project",
-        "content": {
-          "blocks": [
-            {
-              "kind": "prose",
-              "spans": [
-                { "text": "This journey deploys an ECS service on your ECS cluster using the private Terraform modules published by the AWSF platform team. It assumes onboarding is complete (Harness org, TFE workspace, and the AWS account are already in place) and builds the per-service resources on top of that." }
-              ]
-            },
-            {
-              "kind": "prose",
-              "spans": [
-                { "text": "Each service needs two separate Git repositories - one for AWS infrastructure (Terraform) and one for application/service source code - plus its own Harness App project. The Infra Harness project is shared by all services; applications with multiple microservices set up a separate App project per service." }
-              ]
-            },
-            {
-              "kind": "table",
-              "caption": "Naming conventions",
-              "rows": [
-                { "cells": [ { "spans": [ { "text": "Resource" } ], "header": true }, { "spans": [ { "text": "Convention" } ], "header": true }, { "spans": [ { "text": "Example" } ], "header": true } ] },
-                { "cells": [ { "spans": [ { "text": "Infra code repo" } ] }, { "spans": [ { "text": "{Git_Org}_ws_aws_{IDENTIFIER}" } ] }, { "spans": [ { "text": "APP_ws_aws_infra" } ] } ] },
-                { "cells": [ { "spans": [ { "text": "App code repo" } ] }, { "spans": [ { "text": "{Git_Org}_{IDENTIFIER}" } ] }, { "spans": [ { "text": "APP_ui_service" } ] } ] },
-                { "cells": [ { "spans": [ { "text": "TFE workspace" } ] }, { "spans": [ { "text": "{Git_Org}_ws_aws_{WORKSPACE_Description}" } ] }, { "spans": [ { "text": "APP_ws_aws_infra" } ] } ] }
-              ]
-            },
-            {
-              "kind": "list",
-              "ordered": false,
-              "items": [
-                { "spans": [ { "text": "The Harness project MUST have the same name as the Git repository." } ] },
-                { "spans": [ { "text": "Application Artifactory repository must be of Docker type; the infrastructure Artifactory repository can be of General type." } ] }
-              ]
-            },
-            {
-              "kind": "prose",
-              "spans": [
-                { "text": "To create the GitHub repository, Artifactory repository, and Harness project, run the Harness self-service pipeline " },
-                { "text": "Create_Github_Harness_Artifactory_Repo", "link": { "kind": "external", "url": "https://harness.example.com/pipelines/Create_Github_Harness_Artifactory_Repo/executions" } },
-                { "text": "." }
-              ]
-            }
-          ]
-        },
-        "artifacts": [
-          {
-            "id": "infra-repository",
-            "name": "Infrastructure repository",
-            "group": "Code & delivery",
-            "primary": "repository",
-            "link": "url",
-            "fields": [
-              {
-                "key": "repository",
-                "label": "Repository",
-                "value": "",
-                "editable": true
-              },
-              {
-                "key": "url",
-                "label": "System URL",
-                "value": "",
-                "editable": true
-              }
-            ]
-          },
-          {
-            "id": "app-repository",
-            "name": "Application repository",
-            "group": "Code & delivery",
-            "primary": "repository",
-            "link": "url",
-            "fields": [
-              {
-                "key": "repository",
-                "label": "Repository",
-                "value": "",
-                "editable": true
-              },
-              {
-                "key": "url",
-                "label": "System URL",
-                "value": "",
-                "editable": true
-              }
-            ]
-          },
-          {
-            "id": "service-project",
-            "name": "Harness service project",
-            "group": "Code & delivery",
-            "primary": "project",
-            "link": "url",
-            "fields": [
-              {
-                "key": "project",
-                "label": "Project",
-                "value": "",
-                "editable": true
-              },
-              {
-                "key": "url",
-                "label": "System URL",
-                "value": "",
-                "editable": true
-              }
-            ]
-          }
-        ],
-        "tasks": [
-          { "id": "setup-service-repos", "title": "Create the infra + app-code repos, Harness App project, and Artifactory repo" }
-        ]
-      },
       {
         "id": "generate-stack",
         "title": "Generate the service stack",
@@ -1467,6 +1770,12 @@
               "kind": "prose",
               "spans": [
                 { "text": "Deployments in AWS Federated use Terraform Enterprise (TFE) for infrastructure-as-code and Harness for CI/CD, following Enterprise standards. The platform team publishes hardened L1 modules; application teams extend them into L2 code that deploys their own infrastructure." }
+              ]
+            },
+            {
+              "kind": "prose",
+              "spans": [
+                { "text": "This journey creates the infrastructure PR first. After its Harness-managed Terraform run succeeds, the generated application files are refreshed with the real outputs and submitted as a separate application PR." }
               ]
             },
             {
@@ -1492,9 +1801,9 @@
             {
               "kind": "prose",
               "spans": [
-                { "text": "Run the self-service pipeline " },
+                { "text": "After the infrastructure run succeeds and the application PR is merged, run the self-service pipeline " },
                 { "text": "Create_Harness_Resources_For_AWS", "link": { "kind": "external", "url": "https://harness.example.com/pipelines/Create_Harness_Resources_For_AWS/pipeline-studio" } },
-                { "text": " once per ECS service to create the Harness environment, file store, service overrides, etc. Finalize the Cluster Name, Service Name, and ECR Repository before running." }
+                { "text": " once per ECS service to create the Harness environment, file store, service overrides, and deployment pipeline. The journey resolves the Cluster Name, Service Name, and ECR Repository from the merged application configuration before running it." }
               ]
             },
             {
@@ -1551,6 +1860,8 @@
           ]
         },
         "artifacts": [
+          {"id": "infra-pr", "name": "Infrastructure pull request", "group": "Code & delivery", "primary": "url", "link": "url", "fields": [{"key": "url", "label": "Pull request URL", "value": "", "editable": true}]},
+          {"id": "app-pr", "name": "Application pull request", "group": "Code & delivery", "primary": "url", "link": "url", "fields": [{"key": "url", "label": "Pull request URL", "value": "", "editable": true}]},
           {
             "id": "service-stack",
             "name": "Service stack",
@@ -1577,12 +1888,37 @@
                 "editable": true
               }
             ]
+          },
+          {
+            "id": "harness-resources",
+            "name": "Harness service resources",
+            "group": "Code & delivery",
+            "primary": "environment",
+            "link": "url",
+            "fields": [
+              { "key": "service", "label": "Service", "value": "", "editable": true },
+              { "key": "environment", "label": "Environment", "value": "", "editable": true },
+              { "key": "overrides", "label": "Overrides", "value": "", "editable": true },
+              { "key": "fileStore", "label": "File Store", "value": "", "editable": true },
+              { "key": "url", "label": "System URL", "value": "", "editable": true }
+            ]
+          },
+          {
+            "id": "harness-resources-pipeline",
+            "name": "Harness resources pipeline",
+            "group": "Code & delivery",
+            "primary": "pipeline",
+            "link": "url",
+            "fields": [
+              { "key": "pipeline", "label": "Pipeline ID", "value": "", "editable": true },
+              { "key": "url", "label": "System URL", "value": "", "editable": true }
+            ]
           }
         ],
         "tasks": [
           {
             "id": "generate-and-open-pr",
-            "title": "Generate the IaC + pipeline stack and open a PR",
+            "title": "Generate the infrastructure files and open the infrastructure PR",
             "required": true,
             "capability": { "ref": "generate-service-stack", "link": "https://git.example.com" }
           }
@@ -1596,7 +1932,13 @@
             {
               "kind": "prose",
               "spans": [
-                { "text": "Set up a pipeline in the infrastructure Harness project to deploy AWS services such as the ECS cluster, Load Balancer (ALB), ECS service, and ECR repository. Teams must have a separate Harness project for infrastructure (Terraform)." }
+                { "text": "Set up a pipeline in the infrastructure Harness project to provision the shared AWS resources: ECS cluster, Load Balancer (ALB), ECR repository, CloudWatch log group, IAM roles, and supporting network inputs. The application deployment run handles the ECS service resources after the application PR and CI build are ready." }
+              ]
+            },
+            {
+              "kind": "prose",
+              "spans": [
+                { "text": "Run the Harness infrastructure pipeline after the pull request is merged. It provisions the ECS cluster, ALB, ECR repository, CloudWatch log group, IAM roles, and supporting resources. Use the outputs from this run in the task-definition update; a link click alone does not mark the run successful." }
               ]
             },
             {
@@ -1620,7 +1962,7 @@
               "spans": [
                 { "text": "Set up the pipeline per " },
                 { "text": "Create Terraform Provisioning Pipeline with Harness", "link": { "kind": "external", "url": "https://wiki.example.com/ace/create-terraform-provisioning-pipeline" } },
-                { "text": ", then trigger it. The sample ECS deployment creates the security group, ALB, ECS cluster, ACM certificate, ECS service, Cloud Map records, IAM roles, CloudWatch log group, S3 bucket, and ECR repository. IAM role naming: {APP_CODE}-{DEV/UAT/BUAT/PROD}-ecs-{task/task-exec}-role." }
+                { "text": ", then trigger it. This infrastructure run creates the shared AWS resources: security group, ALB, ECS cluster, ACM certificate, IAM roles, CloudWatch log group, S3 bucket, and ECR repository. The later application deployment run invokes Harness and Terraform for the ECS service resources. IAM role naming: {APP_CODE}-{DEV/UAT/BUAT/PROD}-ecs-{task/task-exec}-role." }
               ]
             },
             {
@@ -1660,14 +2002,20 @@
         ]
       },
       {
-        "id": "app-deploy-pipeline",
-        "title": "Create the application deployment pipeline",
+        "id": "update-task-definition",
+        "title": "Review the application PR",
         "content": {
           "blocks": [
             {
               "kind": "prose",
               "spans": [
-                { "text": "Build the application artifact (jar, Docker image, etc.) and push it to JFrog Artifactory, then set up a pipeline to deploy the service on the ECS cluster in the application/service Harness project. Prerequisites: IAM roles and the CloudWatch log group available, the task-definition YAML present in the app Git repo, and a Docker image in the project's Artifactory repository." }
+                { "text": "After the infrastructure pipeline succeeds, use its actual outputs to update the task-definition file in the application repository. Bring forward the cluster, log group, task role, execution role, and other resource values returned by that run before building the application image." }
+              ]
+            },
+            {
+              "kind": "prose",
+              "spans": [
+                { "text": "Review the generated application files, then create the application PR. The Harness resources pipeline remains blocked until this PR is merged." }
               ]
             },
             {
@@ -1708,6 +2056,93 @@
                 { "cells": [ { "spans": [ { "text": "OTEL_LOG_FILE_PATH" } ] }, { "spans": [ { "text": "Path to the log file written by the app container (e.g. /var/log/application.log)." } ] } ] },
                 { "cells": [ { "spans": [ { "text": "OTEL_TIMESTAMP_LAYOUT" } ] }, { "spans": [ { "text": "Timestamp format in the log file; must match the log format." } ] } ] },
                 { "cells": [ { "spans": [ { "text": "OTEL_LOG_REGEX_PATTERN" } ] }, { "spans": [ { "text": "Regex to parse log lines; named groups (timestamp_field, log_body, ...) required." } ] } ] }
+              ]
+            },
+            {
+              "kind": "callout",
+              "tone": "note",
+              "spans": [
+                { "text": "Wait for the infrastructure run to succeed before saving these values. If the run status is unknown, leave this step pending and verify the outputs directly; do not infer success from opening a pipeline link." }
+              ]
+            }
+          ]
+        },
+        "artifacts": [
+          {
+            "id": "task-definition",
+            "name": "ECS task definition",
+            "group": "Code & delivery",
+            "primary": "path",
+            "link": "url",
+            "fields": [
+              { "key": "path", "label": "Task definition path", "value": "", "editable": true },
+              { "key": "taskRoleArn", "label": "Task role ARN", "value": "", "editable": true },
+              { "key": "executionRoleArn", "label": "Execution role ARN", "value": "", "editable": true },
+              { "key": "logGroup", "label": "CloudWatch log group", "value": "", "editable": true },
+              { "key": "revision", "label": "Task definition revision", "value": "", "editable": true }
+            ]
+          }
+        ],
+        "tasks": [
+          { "id": "update-task-definition", "title": "Review the generated application files and open the application PR" }
+        ]
+      },
+      {
+        "id": "app-ci-pipeline",
+        "title": "Create the application CI pipeline",
+        "content": {
+          "blocks": [
+            {
+              "kind": "prose",
+              "spans": [
+                { "text": "Build the application artifact (jar, Docker image, etc.) from the application repository and publish the resulting image to the configured container registry. This CI run produces the image tag consumed by the separate ECS service deployment pipeline." }
+              ]
+            },
+            {
+              "kind": "list",
+              "ordered": false,
+              "items": [
+                { "spans": [ { "text": "Select the application repository and the Git ref that contains the updated task definition." } ] },
+                { "spans": [ { "text": "Choose the repository's build method and record the resulting image tag." } ] },
+                { "spans": [ { "text": "Wait for the CI run to succeed before starting the ECS service deployment." } ] }
+              ]
+            },
+            {
+              "kind": "callout",
+              "tone": "note",
+              "spans": [
+                { "text": "The CI run builds and publishes the application image only. It does not deploy or claim that the ECS service is ready." }
+              ]
+            }
+          ]
+        },
+        "artifacts": [
+          {
+            "id": "ci-pipeline",
+            "name": "Application CI pipeline",
+            "group": "Code & delivery",
+            "primary": "pipeline",
+            "link": "url",
+            "fields": [
+              { "key": "pipeline", "label": "Pipeline ID", "value": "", "editable": true },
+              { "key": "image", "label": "Container image", "value": "", "editable": true },
+              { "key": "url", "label": "System URL", "value": "", "editable": true }
+            ]
+          }
+        ],
+        "tasks": [
+          { "id": "create-app-ci-pipeline", "title": "Build and publish the application image" }
+        ]
+      },
+      {
+        "id": "app-deploy-pipeline",
+        "title": "Create the application deployment pipeline",
+        "content": {
+          "blocks": [
+            {
+              "kind": "prose",
+              "spans": [
+                { "text": "Use the application deployment pipeline to promote the built image and deploy the service on the ECS cluster in the application/service Harness project. Prerequisites: the infrastructure run succeeded, the task definition was updated with its actual outputs, and the application CI run produced an image." }
               ]
             },
             {
@@ -1771,7 +2206,7 @@
             {
               "kind": "prose",
               "spans": [
-                { "text": "The CD process runs in the target AWS account: it provisions infrastructure with Terraform Enterprise and deploys the application. Trigger it from your application's Harness pipeline." }
+                { "text": "The application deployment run uses Harness to invoke Terraform Enterprise in the target AWS account, apply the ECS service resources, and deploy the application. Trigger it from your application's Harness pipeline after the infrastructure run and CI build succeed." }
               ]
             },
             {
@@ -1832,7 +2267,16 @@
             "capability": { "ref": "trigger-dev-deploy", "link": "https://harness.example.com" }
           }
         ]
-      },
+      }
+    ]
+  },
+  {
+    "id": "onboarding-summary",
+    "title": "Summary & support",
+    "objective": "Review setup outputs and find support.",
+    "destination": { "title": "Onboarding reviewed." },
+    "inputs": ["app_code"],
+    "steps": [
       {
         "id": "setup-summary",
         "title": "Setup summary & support",

@@ -6,11 +6,28 @@ afterEach(() => vi.unstubAllGlobals());
 function stored(value: unknown) {
   vi.stubGlobal("localStorage", { getItem: () => JSON.stringify(value) });
 }
+it("returns legacy repository setup runs to ECS configuration without losing parent outputs", () => {
+  const active = tasks.findIndex((task) => task.journeyRef === "ecs-service");
+  stored({
+    active,
+    completed: [],
+    navigation: "expanded",
+    values: {
+      "scaffold:stage": "repos",
+      "journey:ecs-service:run-phase": "waiting-repos",
+      "artifact:infra-repository:repository": "checkout-infra",
+    },
+  });
+  const restored = readProgress();
+  expect(restored.values["scaffold:stage"]).toBe("config");
+  expect(restored.values["journey:ecs-service:run-phase"]).toBe("");
+  expect(restored.values["artifact:infra-repository:repository"]).toBe("checkout-infra");
+});
 describe("source-driven onboarding", () => {
   it("covers each source task once across six phases", () => {
-    const expected = onboarding.flatMap((journey) =>
-      journey.steps.filter((step) => step.tasks.length).map((step) => step.id),
-    );
+    const expected = onboarding
+      .filter((journey) => journey.id !== "ecs-service")
+      .flatMap((journey) => journey.steps.map((step) => step.id));
     expect(phases).toHaveLength(6);
     expect(
       tasks
@@ -20,12 +37,12 @@ describe("source-driven onboarding", () => {
     ).toEqual(expected.sort());
     expect(tasks).toHaveLength(expected.length + 1);
     expect(tasks[0].field).toBe(onboarding[0].inputs[0]);
-    expect(tasks.slice(1).every((task) => task.blocks.length)).toBe(true);
+    expect(tasks.slice(1).every((task) => task.blocks.length || task.journeyRef)).toBe(true);
     expect(tasks.filter((task) => task.field).map((task) => task.field)).toEqual([
       "app_code",
       "aws_account_id",
     ]);
-    expect(tasks.find((task) => task.sourceId === "service-repos")?.field).toBe("aws_account_id");
+    expect(tasks.find((task) => task.sourceId === "launch-ecs")?.journeyRef).toBe("ecs-service");
   });
   it("restores a future task without claiming earlier tasks were completed", () => {
     const saved = { values: { 0: "APP1" }, completed: [0], active: 12, collapsed: true };
@@ -61,7 +78,7 @@ describe("source-driven onboarding", () => {
 
 it("derives input dependency status from both saved values and completion", async () => {
   const { inputDependencies } = await import("./flow");
-  const active = tasks.findIndex((task) => task.sourceId === "generate-stack");
+  const active = tasks.findIndex((task) => task.sourceId === "launch-ecs");
   const accountIndex = tasks.findIndex((task) => task.field === "aws_account_id");
   const progress = {
     ...initialProgress,
@@ -92,4 +109,62 @@ describe("navigation visibility", () => {
       "collapsed",
     );
   });
+});
+
+it("keeps onboarding summary separate from the atomic ECS journey", () => {
+  expect(phases[5].tasks).toHaveLength(1);
+  expect(
+    phases.flatMap((phase) => phase.tasks).some((task) => task.presentation === "summary"),
+  ).toBe(false);
+  expect(tasks.at(-1)?.sourceId).toBe("setup-summary");
+  const ecs = onboarding.find((journey) => journey.id === "ecs-service");
+  expect(ecs?.steps.map((step) => step.id)).toEqual([
+    "generate-stack",
+    "infra-pipeline",
+    "update-task-definition",
+    "app-ci-pipeline",
+    "app-deploy-pipeline",
+    "dev-deploy-success",
+  ]);
+});
+
+it("migrates legacy child task progress into the nested journey without completing the parent", () => {
+  vi.stubGlobal("localStorage", {
+    getItem: (key: string) =>
+      key.endsWith("v3")
+        ? JSON.stringify({
+            active: 18,
+            completed: [0, 10, 15, 16],
+            values: {
+              0: "APP1",
+              10: "123456789012",
+              "artifact:infra-pipeline:url": "https://harness.example.com/pipeline/infra",
+            },
+            navigation: "expanded",
+          })
+        : null,
+  });
+  const restored = readProgress();
+  expect(restored.active).toBe(15);
+  expect(restored.completed).toEqual([0, 10]);
+  expect(restored.values["scaffold:stage"]).toBe("pipelines");
+  expect(restored.values["journey:ecs-service:completed:result"]).toBe("true");
+  expect(restored.values["artifact:infra-pipeline:url"]).toContain("/infra");
+});
+
+it("does not restore a legacy simulated completion as merged PR evidence", () => {
+  stored({
+    active: 15,
+    completed: [0, 15],
+    navigation: "expanded",
+    values: {
+      "scaffold:service_name": "catalog-api",
+      "scaffold:stage": "verify",
+      "journey:ecs-service:run-phase": "complete",
+    },
+  });
+  const restored = readProgress();
+  expect(restored.values["journey:ecs-service:run-phase"]).toBe("waiting-pr");
+  expect(restored.values["journey:ecs-service:pr-state:infra"]).toBe("open");
+  expect(restored.completed).toEqual([0]);
 });

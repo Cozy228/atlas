@@ -1,3 +1,7 @@
+import { EcsNavigation } from "./ecs-navigation";
+import { ecsStage, ecsStages, ecsProgress, ecsArtifactStage } from "./ecs-journey";
+import { EcsScaffold } from "./scaffold";
+import { TaskGuidance } from "./task-guidance";
 import { collectArtifacts, resolveTaskArtifacts } from "./artifacts";
 import { ThemeToggle } from "@/components/theme-toggle";
 import {
@@ -37,7 +41,7 @@ import {
   inputDependencies,
   markComplete,
   phaseStart,
-  phases,
+  sections,
   readProgress,
   STORAGE_KEY,
   tasks,
@@ -109,9 +113,33 @@ export function OnboardingNew() {
   const restoreSidebar = useRef(false);
   const focusSourceTask = useRef(false);
   const phaseIndex = tasks[progress.active].phaseIndex;
-  const phase = phases[phaseIndex];
+  const phase = sections[phaseIndex];
   const task = tasks[progress.active];
   const isSummary = task.presentation === "summary";
+  const isEcs = task.journeyRef === "ecs-service";
+  const isScaffold = isEcs;
+  const setEcsValue = (key: string, value: string) =>
+    setProgress((previous) => ({
+      ...previous,
+      values: { ...previous.values, [key]: value },
+      completed:
+        key.startsWith("journey:ecs-service:completed:") && value === "false"
+          ? previous.completed.filter((index) => tasks[index].journeyRef !== "ecs-service")
+          : previous.completed,
+    }));
+  const exitEcs = () => {
+    const previous = Number(progress.values["journey:ecs-service:return-task"] ?? 0);
+    selectTask(
+      Number.isInteger(previous) &&
+        previous >= 0 &&
+        previous < tasks.length &&
+        tasks[previous].journeyRef !== "ecs-service"
+        ? previous
+        : 0,
+    );
+  };
+  const currentEcsStage = ecsStage(progress.values);
+
   const started = progress.completed.length > 0 || progress.active > 0;
   const finished =
     progress.completed.length === tasks.length && progress.active === tasks.length - 1;
@@ -136,7 +164,6 @@ export function OnboardingNew() {
     let observed: HTMLElement | null = null;
     let observer: ResizeObserver | undefined;
     let taskTimer: ReturnType<typeof setTimeout> | undefined;
-    let settleTimer: ReturnType<typeof setTimeout> | undefined;
     function attach() {
       const element = container?.querySelector<HTMLElement>(
         `[data-task-id="${tasks[progress.active].sourceId}"]`,
@@ -155,14 +182,10 @@ export function OnboardingNew() {
         const height = element.getBoundingClientRect().height;
         if (height === lastHeight) return;
         lastHeight = height;
-        if (settleTimer) clearTimeout(settleTimer);
-        setContentSize({ height, duration: changingTask ? motionDuration.task : 0 });
-        settleTimer = setTimeout(() => {
-          setContentSize({
-            height: Math.ceil(height / 32) * 32,
-            duration: motionDuration.feedback,
-          });
-        }, motionDuration.layout * 1000);
+        setContentSize({
+          height: Math.ceil(height / 32) * 32,
+          duration: changingTask ? motionDuration.task : motionDuration.layout,
+        });
       });
       observer.observe(element);
     }
@@ -173,7 +196,6 @@ export function OnboardingNew() {
       mounting.disconnect();
       observer?.disconnect();
       if (taskTimer) clearTimeout(taskTimer);
-      if (settleTimer) clearTimeout(settleTimer);
     };
   }, [progress.active]);
   function setProgress(next: typeof progress | ((previous: typeof progress) => typeof progress)) {
@@ -195,6 +217,10 @@ export function OnboardingNew() {
     );
   }
   useEffect(() => {
+    if (isScaffold && (currentEcsStage === "config" || currentEcsStage === "preview"))
+      getTaskHeading()?.focus({ preventScroll: true });
+  }, [isScaffold, currentEcsStage]);
+  useEffect(() => {
     if (initialRender.current) {
       initialRender.current = false;
       return;
@@ -203,6 +229,8 @@ export function OnboardingNew() {
   }, [progress.active]);
 
   function selectTask(index: number) {
+    if (tasks[index].journeyRef === "ecs-service" && !isEcs)
+      setEcsValue("journey:ecs-service:return-task", String(progress.active));
     resourceArrival.current?.cancel();
     if (completionTimer.current) clearTimeout(completionTimer.current);
     setCompleting(false);
@@ -293,6 +321,8 @@ export function OnboardingNew() {
   }
 
   function taskList() {
+    if (isScaffold)
+      return <EcsNavigation values={progress.values} onChange={setEcsValue} onExit={exitEcs} />;
     return (
       <nav aria-label="Onboarding tasks" className="on-toc-list">
         <Accordion
@@ -307,7 +337,7 @@ export function OnboardingNew() {
             else selectTask(phaseStart(nextPhase));
           }}
         >
-          {phases.map((item, index) => {
+          {sections.map((item, index) => {
             const count = item.tasks.filter((_, offset) =>
               progress.completed.includes(phaseStart(index) + offset),
             ).length;
@@ -386,6 +416,15 @@ export function OnboardingNew() {
               data-motion={keyboardMotion ? "instant" : undefined}
               onPointerDownCapture={() => setKeyboardMotion(false)}
               onKeyDownCapture={(event) => {
+                if (
+                  event.target instanceof HTMLElement &&
+                  event.target.closest(
+                    ".on-scaffold-stages, .on-scaffold-choice-row, .on-scaffold-radio-list",
+                  )
+                ) {
+                  setKeyboardMotion(false);
+                  return;
+                }
                 const editing =
                   event.target instanceof HTMLElement &&
                   event.target.closest("input, textarea, [contenteditable='true']");
@@ -455,7 +494,9 @@ export function OnboardingNew() {
                     }}
                   >
                     <div className="on-sidebar-heading">
-                      <strong aria-hidden={progress.navigation === "collapsed"}>Onboarding</strong>
+                      <strong aria-hidden={progress.navigation === "collapsed"}>
+                        {isScaffold ? "ECS service" : "Onboarding"}
+                      </strong>
                       <Button
                         variant="ghost"
                         size="icon"
@@ -486,36 +527,45 @@ export function OnboardingNew() {
                       inert={progress.navigation === "expanded"}
                       aria-hidden={progress.navigation === "expanded"}
                     >
-                      {phases.map((item, index) => {
-                        const count = item.tasks.filter((_, offset) =>
-                          progress.completed.includes(phaseStart(index) + offset),
-                        ).length;
-                        return (
-                          <Tooltip key={item.name}>
-                            <TooltipTrigger
-                              render={
-                                <button
-                                  aria-label={`${item.name}, ${count} of ${item.tasks.length} tasks complete`}
-                                  aria-current={index === phaseIndex ? "step" : undefined}
-                                  data-complete={count === item.tasks.length}
-                                  onClick={() => {
-                                    selectTask(phaseStart(index));
-                                    setProgress((previous) => ({
-                                      ...previous,
-                                      navigation: "expanded",
-                                    }));
-                                  }}
-                                />
-                              }
-                            >
-                              <span />
-                            </TooltipTrigger>
-                            <TooltipContent side="right">
-                              {item.name} · {count}/{item.tasks.length} complete
-                            </TooltipContent>
-                          </Tooltip>
-                        );
-                      })}
+                      {isScaffold ? (
+                        <EcsNavigation
+                          collapsed
+                          values={progress.values}
+                          onChange={setEcsValue}
+                          onExit={exitEcs}
+                        />
+                      ) : (
+                        sections.map((item, index) => {
+                          const count = item.tasks.filter((_, offset) =>
+                            progress.completed.includes(phaseStart(index) + offset),
+                          ).length;
+                          return (
+                            <Tooltip key={item.name}>
+                              <TooltipTrigger
+                                render={
+                                  <button
+                                    aria-label={`${item.name}, ${count} of ${item.tasks.length} tasks complete`}
+                                    aria-current={index === phaseIndex ? "step" : undefined}
+                                    data-complete={count === item.tasks.length}
+                                    onClick={() => {
+                                      selectTask(phaseStart(index));
+                                      setProgress((previous) => ({
+                                        ...previous,
+                                        navigation: "expanded",
+                                      }));
+                                    }}
+                                  />
+                                }
+                              >
+                                <span />
+                              </TooltipTrigger>
+                              <TooltipContent side="right">
+                                {item.name} · {count}/{item.tasks.length} complete
+                              </TooltipContent>
+                            </Tooltip>
+                          );
+                        })
+                      )}
                     </nav>
                     <div
                       className="on-sidebar-body"
@@ -523,12 +573,21 @@ export function OnboardingNew() {
                       aria-hidden={progress.navigation === "collapsed"}
                     >
                       <p className="on-toc-caption">
-                        {phases.length} phases · {tasks.length} tasks
+                        {isScaffold
+                          ? `${ecsStages.length} steps · DEV`
+                          : `${sections.length} phases · ${tasks.length} tasks`}
                       </p>
                       {taskList()}
-                      <SetupProgress completed={progress.completed.length} total={tasks.length} />
+                      <SetupProgress
+                        completed={
+                          isScaffold ? ecsProgress(progress.values) : progress.completed.length
+                        }
+                        total={isScaffold ? ecsStages.length : tasks.length}
+                      />
                       <p className="on-sidebar-bottom">
-                        {progress.completed.length} of {tasks.length} tasks complete
+                        {isScaffold
+                          ? `${ecsProgress(progress.values)} of ${ecsStages.length} steps complete`
+                          : `${progress.completed.length} of ${tasks.length} tasks complete`}
                       </p>
                     </div>
                   </motion.aside>
@@ -559,18 +618,21 @@ export function OnboardingNew() {
                   }}
                   className="on-workspace-actions"
                 >
-                  {started && nextUnfinished >= 0 && nextUnfinished !== progress.active && (
-                    <Tooltip>
-                      <TooltipTrigger
-                        render={
-                          <Button variant="outline" onClick={() => selectTask(nextUnfinished)} />
-                        }
-                      >
-                        Continue setup <ArrowNudge size={16} />
-                      </TooltipTrigger>
-                      <TooltipContent>{tasks[nextUnfinished].title}</TooltipContent>
-                    </Tooltip>
-                  )}
+                  {!isScaffold &&
+                    started &&
+                    nextUnfinished >= 0 &&
+                    nextUnfinished !== progress.active && (
+                      <Tooltip>
+                        <TooltipTrigger
+                          render={
+                            <Button variant="outline" onClick={() => selectTask(nextUnfinished)} />
+                          }
+                        >
+                          Continue setup <ArrowNudge size={16} />
+                        </TooltipTrigger>
+                        <TooltipContent>{tasks[nextUnfinished].title}</TooltipContent>
+                      </Tooltip>
+                    )}
                   {started && nextUnfinished === -1 && (
                     <Button
                       variant="ghost"
@@ -744,13 +806,17 @@ export function OnboardingNew() {
                                       setExpandedResource(open ? item.name : "")
                                     }
                                     details={{
-                                      phase: phases[tasks[item.index].phaseIndex].name,
-                                      task: tasks[item.index].title,
+                                      phase: sections[tasks[item.index].phaseIndex].name,
+                                      task:
+                                        ecsArtifactStage(item.id)?.title ?? tasks[item.index].title,
                                       applicationCode: progress.values[0] ?? "",
                                     }}
                                     onViewTask={() => {
                                       focusSourceTask.current = true;
                                       selectTask(item.index);
+                                      const sourceStage = ecsArtifactStage(item.id);
+                                      if (sourceStage)
+                                        setEcsValue("scaffold:stage", sourceStage.id);
                                     }}
                                     onFocus={() => setActiveResource(item.name)}
                                     onCopy={async (copyValue, label) => {
@@ -863,7 +929,9 @@ export function OnboardingNew() {
                           <span>
                             {finished
                               ? "Setup complete"
-                              : `${phase.name} · Task ${progress.active - phaseStart(phaseIndex) + 1} of ${phase.tasks.length}`}
+                              : isScaffold
+                                ? "Onboarding / ECS service"
+                                : `${phase.name} · Task ${progress.active - phaseStart(phaseIndex) + 1} of ${phase.tasks.length}`}
                           </span>
                           {progress.navigation === "hidden" && (
                             <Button
@@ -881,9 +949,14 @@ export function OnboardingNew() {
                           )}
                         </div>
                         <h1 tabIndex={-1}>
-                          {finished ? "Onboarding checklist complete" : task.title}
+                          {finished
+                            ? "Onboarding checklist complete"
+                            : isScaffold
+                              ? ecsStages.find((stage) => stage.id === ecsStage(progress.values))
+                                  ?.title
+                              : task.title}
                         </h1>
-                        {(finished || task.description) && (
+                        {!isEcs && (finished || task.description) && (
                           <p className="on-description">
                             {finished
                               ? "Your recorded steps and artifacts are saved. Confirm deployment outcomes in Harness and AWS."
@@ -942,7 +1015,7 @@ export function OnboardingNew() {
                               complete();
                             }}
                           >
-                            {!isSummary && dependencies.length > 0 && (
+                            {!isSummary && !isScaffold && dependencies.length > 0 && (
                               <div className="on-dependencies" aria-label="Required inputs">
                                 <span>Required inputs</span>
                                 {dependencies.map((dependency) => (
@@ -1006,21 +1079,60 @@ export function OnboardingNew() {
                                 </Field>
                               </motion.div>
                             ) : null}
-                            <SourceContent
-                              blocks={task.blocks}
-                              applicationCode={progress.values[0] ?? ""}
-                            />
-                            {task.action && !hasContentLink(task.blocks, task.action) && (
-                              <a
-                                className="on-source-link"
-                                href={task.action}
-                                target="_blank"
-                                rel="noreferrer"
-                              >
-                                {task.actionLabel} <ArrowNudge size={14} />
-                              </a>
+                            {isScaffold && (
+                              <EcsScaffold
+                                onRepositorySetup={() =>
+                                  selectTask(
+                                    tasks.findIndex(
+                                      (task) =>
+                                        !task.journeyRef &&
+                                        task.artifacts.some(
+                                          (artifact) => artifact.id === "infra-repository",
+                                        ),
+                                    ),
+                                  )
+                                }
+                                values={{
+                                  ...progress.values,
+                                  app_code: progress.values[0] ?? "",
+                                  aws_account_id:
+                                    progress.values[
+                                      String(
+                                        tasks.findIndex((item) => item.field === "aws_account_id"),
+                                      )
+                                    ] ?? "",
+                                }}
+                                onValueChange={setEcsValue}
+                                onFinish={() =>
+                                  setProgress((previous) => ({
+                                    ...markComplete(previous),
+                                    values: {
+                                      ...previous.values,
+                                      "journey:ecs-service:open": "false",
+                                    },
+                                  }))
+                                }
+                              />
                             )}
-                            {outputForms.length > 0 && (
+                            {!isEcs && (
+                              <SourceContent
+                                blocks={task.blocks}
+                                applicationCode={progress.values[0] ?? ""}
+                              />
+                            )}
+                            {!isScaffold &&
+                              task.action &&
+                              !hasContentLink(task.blocks, task.action) && (
+                                <a
+                                  className="on-source-link"
+                                  href={task.action}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                >
+                                  {task.actionLabel} <ArrowNudge size={14} />
+                                </a>
+                              )}
+                            {outputForms.length > 0 && !isEcs && (
                               <div className="on-task-outputs">
                                 {outputForms.map((artifact) => (
                                   <fieldset key={artifact.id}>
@@ -1064,73 +1176,91 @@ export function OnboardingNew() {
                                 ))}
                               </div>
                             )}
-                            <div className="on-actions">
-                              <Button
-                                className="on-primary"
-                                type="submit"
-                                disabled={completing}
-                                data-completing={completing}
-                                data-started={started}
-                              >
-                                <AnimatePresence initial={false} mode="sync">
-                                  <motion.span
-                                    className="on-button-feedback"
-                                    key={completing ? "done" : "next"}
-                                    initial={
-                                      reducedMotion
-                                        ? { opacity: 0 }
-                                        : { opacity: 0, filter: "blur(2px)" }
-                                    }
-                                    animate={{ opacity: 1, filter: "blur(0px)" }}
-                                    exit={{
-                                      opacity: 0,
-                                      filter: reducedMotion ? "blur(0px)" : "blur(2px)",
-                                    }}
-                                    transition={{
-                                      duration: keyboardMotion
-                                        ? 0
-                                        : reducedMotion
-                                          ? motionDuration.feedback
-                                          : 0.32,
-                                      ease: motionEase.out,
-                                    }}
-                                  >
-                                    {completing
-                                      ? "Marked complete"
-                                      : progress.active === tasks.length - 1
-                                        ? "Complete setup"
-                                        : started
-                                          ? "Mark complete and continue"
-                                          : "Continue"}
-                                    {completing ? (
-                                      <svg
-                                        width="16"
-                                        height="16"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        strokeWidth="2"
-                                        aria-hidden="true"
-                                      >
-                                        <motion.path
-                                          d="m5 12 4 4 10-10"
-                                          strokeLinecap="round"
-                                          strokeLinejoin="round"
-                                          initial={{ pathLength: reducedMotion ? 1 : 0 }}
-                                          animate={{ pathLength: 1 }}
-                                          transition={{
-                                            duration: reducedMotion ? 0 : 0.3,
-                                            delay: reducedMotion ? 0 : 0.12,
-                                          }}
-                                        />
-                                      </svg>
-                                    ) : (
-                                      <ArrowNudge size={16} />
-                                    )}
-                                  </motion.span>
-                                </AnimatePresence>
-                              </Button>
-                            </div>
+                            {!isEcs &&
+                              task.guidance.map((action) => (
+                                <TaskGuidance
+                                  key={action.id}
+                                  action={action}
+                                  tasks={tasks}
+                                  progress={progress}
+                                  onSelectTask={selectTask}
+                                  onValueChange={(key, value) =>
+                                    setProgress((previous) => ({
+                                      ...previous,
+                                      values: { ...previous.values, [key]: value },
+                                    }))
+                                  }
+                                />
+                              ))}
+                            {!isEcs && (
+                              <div className="on-actions">
+                                <Button
+                                  className="on-primary"
+                                  type="submit"
+                                  disabled={completing}
+                                  data-completing={completing}
+                                  data-started={started}
+                                >
+                                  <AnimatePresence initial={false} mode="sync">
+                                    <motion.span
+                                      className="on-button-feedback"
+                                      key={completing ? "done" : "next"}
+                                      initial={
+                                        reducedMotion
+                                          ? { opacity: 0 }
+                                          : { opacity: 0, filter: "blur(2px)" }
+                                      }
+                                      animate={{ opacity: 1, filter: "blur(0px)" }}
+                                      exit={{
+                                        opacity: 0,
+                                        filter: reducedMotion ? "blur(0px)" : "blur(2px)",
+                                      }}
+                                      transition={{
+                                        duration: keyboardMotion
+                                          ? 0
+                                          : reducedMotion
+                                            ? motionDuration.feedback
+                                            : 0.32,
+                                        ease: motionEase.out,
+                                      }}
+                                    >
+                                      {completing
+                                        ? "Marked complete"
+                                        : progress.active === tasks.length - 1
+                                          ? "Complete setup"
+                                          : started
+                                            ? "Mark complete and continue"
+                                            : "Continue"}
+                                      {completing ? (
+                                        <svg
+                                          width="16"
+                                          height="16"
+                                          viewBox="0 0 24 24"
+                                          fill="none"
+                                          stroke="currentColor"
+                                          strokeWidth="2"
+                                          aria-hidden="true"
+                                        >
+                                          <motion.path
+                                            d="m5 12 4 4 10-10"
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            initial={{ pathLength: reducedMotion ? 1 : 0 }}
+                                            animate={{ pathLength: 1 }}
+                                            transition={{
+                                              duration: reducedMotion ? 0 : 0.3,
+                                              delay: reducedMotion ? 0 : 0.12,
+                                            }}
+                                          />
+                                        </svg>
+                                      ) : (
+                                        <ArrowNudge size={16} />
+                                      )}
+                                    </motion.span>
+                                  </AnimatePresence>
+                                </Button>
+                              </div>
+                            )}
                             {!saved && (
                               <p className="on-save" role="status">
                                 Progress could not be saved on this device.
