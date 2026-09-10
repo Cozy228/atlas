@@ -26,6 +26,7 @@ import { Route as PrototypeIndexRouteImport } from './routes/prototype/index'
 import { Route as PrototypeAppIdRouteImport } from './routes/prototype/$appId'
 import { Route as PrototypeCodexRouteImport } from './routes/prototype/codex'
 import { Route as PrototypeKimiRouteImport } from './routes/prototype/kimi'
+import { Route as PrototypeNavigationRouteImport } from './routes/prototype/navigation'
 import { Route as PrototypeOnboardRouteImport } from './routes/prototype/onboard'
 import { Route as PrototypeOnboardingNewRouteImport } from './routes/prototype/onboarding-new'
 import { Route as PrototypeOpusRouteImport } from './routes/prototype/opus'
@@ -147,6 +148,11 @@ const PrototypeCodexRoute = PrototypeCodexRouteImport.update({
 const PrototypeKimiRoute = PrototypeKimiRouteImport.update({
   id: '/prototype/kimi',
   path: '/prototype/kimi',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrototypeNavigationRoute = PrototypeNavigationRouteImport.update({
+  id: '/prototype/navigation',
+  path: '/prototype/navigation',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PrototypeOnboardRoute = PrototypeOnboardRouteImport.update({
@@ -352,6 +358,7 @@ export interface FileRoutesByFullPath {
   '/prototype/$appId': typeof PrototypeAppIdRouteWithChildren
   '/prototype/codex': typeof PrototypeCodexRouteWithChildren
   '/prototype/kimi': typeof PrototypeKimiRouteWithChildren
+  '/prototype/navigation': typeof PrototypeNavigationRoute
   '/prototype/onboard': typeof PrototypeOnboardRoute
   '/prototype/onboarding-new': typeof PrototypeOnboardingNewRoute
   '/prototype/opus': typeof PrototypeOpusRouteWithChildren
@@ -401,6 +408,7 @@ export interface FileRoutesByTo {
   '/whatsnew': typeof WhatsnewRoute
   '/guidance/$guidanceId': typeof GuidanceGuidanceIdRoute
   '/policies/$policyId': typeof PoliciesPolicyIdRoute
+  '/prototype/navigation': typeof PrototypeNavigationRoute
   '/prototype/onboard': typeof PrototypeOnboardRoute
   '/prototype/onboarding-new': typeof PrototypeOnboardingNewRoute
   '/releases/$releaseId': typeof ReleasesReleaseIdRoute
@@ -457,6 +465,7 @@ export interface FileRoutesById {
   '/prototype/$appId': typeof PrototypeAppIdRouteWithChildren
   '/prototype/codex': typeof PrototypeCodexRouteWithChildren
   '/prototype/kimi': typeof PrototypeKimiRouteWithChildren
+  '/prototype/navigation': typeof PrototypeNavigationRoute
   '/prototype/onboard': typeof PrototypeOnboardRoute
   '/prototype/onboarding-new': typeof PrototypeOnboardingNewRoute
   '/prototype/opus': typeof PrototypeOpusRouteWithChildren
@@ -515,6 +524,7 @@ export interface FileRouteTypes {
     | '/prototype/$appId'
     | '/prototype/codex'
     | '/prototype/kimi'
+    | '/prototype/navigation'
     | '/prototype/onboard'
     | '/prototype/onboarding-new'
     | '/prototype/opus'
@@ -564,6 +574,7 @@ export interface FileRouteTypes {
     | '/whatsnew'
     | '/guidance/$guidanceId'
     | '/policies/$policyId'
+    | '/prototype/navigation'
     | '/prototype/onboard'
     | '/prototype/onboarding-new'
     | '/releases/$releaseId'
@@ -619,6 +630,7 @@ export interface FileRouteTypes {
     | '/prototype/$appId'
     | '/prototype/codex'
     | '/prototype/kimi'
+    | '/prototype/navigation'
     | '/prototype/onboard'
     | '/prototype/onboarding-new'
     | '/prototype/opus'
@@ -675,6 +687,7 @@ export interface RootRouteChildren {
   PrototypeAppIdRoute: typeof PrototypeAppIdRouteWithChildren
   PrototypeCodexRoute: typeof PrototypeCodexRouteWithChildren
   PrototypeKimiRoute: typeof PrototypeKimiRouteWithChildren
+  PrototypeNavigationRoute: typeof PrototypeNavigationRoute
   PrototypeOnboardRoute: typeof PrototypeOnboardRoute
   PrototypeOnboardingNewRoute: typeof PrototypeOnboardingNewRoute
   PrototypeOpusRoute: typeof PrototypeOpusRouteWithChildren
@@ -803,6 +816,13 @@ declare module '@tanstack/react-router' {
       path: '/prototype/kimi'
       fullPath: '/prototype/kimi'
       preLoaderRoute: typeof PrototypeKimiRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/prototype/navigation': {
+      id: '/prototype/navigation'
+      path: '/prototype/navigation'
+      fullPath: '/prototype/navigation'
+      preLoaderRoute: typeof PrototypeNavigationRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/prototype/onboard': {
@@ -1228,6 +1248,7 @@ const rootRouteChildren: RootRouteChildren = {
   PrototypeAppIdRoute: PrototypeAppIdRouteWithChildren,
   PrototypeCodexRoute: PrototypeCodexRouteWithChildren,
   PrototypeKimiRoute: PrototypeKimiRouteWithChildren,
+  PrototypeNavigationRoute: PrototypeNavigationRoute,
   PrototypeOnboardRoute: PrototypeOnboardRoute,
   PrototypeOnboardingNewRoute: PrototypeOnboardingNewRoute,
   PrototypeOpusRoute: PrototypeOpusRouteWithChildren,
