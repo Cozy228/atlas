@@ -5,7 +5,7 @@ export function SetupProgress({ completed, total }: { completed: number; total: 
   const { reduced: reducedMotion } = useOnboardingMotion();
   return (
     <div
-      className="on-progress"
+      className="on-progress mx-4 mt-6 mb-0 h-1 overflow-hidden bg-border [&>div]:size-full [&>div]:origin-left [&>div]:bg-muted-foreground [&+.on-sidebar-bottom]:mt-2"
       role="progressbar"
       aria-label="Onboarding completion"
       aria-valuemin={0}

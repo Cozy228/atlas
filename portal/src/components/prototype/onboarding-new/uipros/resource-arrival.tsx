@@ -77,7 +77,7 @@ export function ResourceArrival({ ref }: { ref: Ref<ResourceArrivalHandle> }) {
   return (
     <motion.div
       ref={scope}
-      className="on-resource-flight"
+      className="on-resource-flight pointer-events-none fixed top-0 left-0 z-90 grid size-8 place-items-center rounded border border-muted-foreground bg-card text-foreground"
       initial={{ opacity: 0 }}
       aria-hidden="true"
     >

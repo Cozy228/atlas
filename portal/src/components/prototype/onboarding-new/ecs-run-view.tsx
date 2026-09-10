@@ -31,6 +31,7 @@ import { ecsPipelineRuns } from "./ecs-journey";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "./uipros/accordion";
 import { Button } from "./uipros/button";
 import { Input } from "./uipros/input";
+import { cn } from "@/lib/utils";
 import "./ecs-run.css";
 
 function ExecutionAction({ children }: { children: ReactNode }) {
@@ -38,7 +39,10 @@ function ExecutionAction({ children }: { children: ReactNode }) {
   const present = useIsPresent();
   return (
     <motion.div
-      className="ecs-action-content"
+      className={cn(
+        !present &&
+          "pointer-events-none absolute top-0 right-0 left-6 @max-[800px]:top-6 @max-[800px]:left-0",
+      )}
       inert={!present}
       aria-hidden={!present}
       initial={{ opacity: 0, y: reduced ? 0 : 6, filter: reduced ? "blur(0px)" : "blur(2px)" }}
@@ -56,7 +60,7 @@ function ExecutionFiles({ children }: { children: ReactNode }) {
   const present = useIsPresent();
   return (
     <motion.div
-      className="ecs-file-reveal"
+      className="overflow-hidden"
       inert={!present}
       aria-hidden={!present}
       initial={{ height: 0, opacity: 0 }}
@@ -276,35 +280,54 @@ export function EcsRunView({
     targetGroupArn: inputs.targetGroupArn,
   };
   return (
-    <div className="ecs-live-run" data-phase={phase.id}>
-      <header className="ecs-workspace-heading">
+    <div className="ecs-live-run @container min-w-0" data-phase={phase.id}>
+      <header className="flex min-h-20 items-end justify-between gap-4 border-b border-border py-2 pb-6">
         <div>
-          <span>{applicationStage ? "Application delivery" : "Infrastructure"}</span>
-          <h2>{config.serviceName}</h2>
+          <span className="m-0 text-xs leading-6 text-muted-foreground">
+            {applicationStage ? "Application delivery" : "Infrastructure"}
+          </span>
+          <h2 className="m-0 text-[24px] font-semibold leading-8 text-foreground [overflow-wrap:anywhere]">
+            {config.serviceName}
+          </h2>
         </div>
-        <p>
+        <p className="m-0 text-xs leading-6 text-muted-foreground">
           {config.environment} · {config.region} · Internal
         </p>
       </header>
-      <div className="ecs-execution-workspace">
-        <section className="ecs-stack-pane" aria-label="Deployment architecture">
-          <div className="ecs-stack-caption">
-            <h3>Architecture</h3>
-            <span>Planned → Created</span>
-          </div>
-          <ScaffoldArchitecture
-            config={{ ...config, cluster: inputs.cluster }}
-            executionPhase={phase.id}
-            applyStep={applyStep}
-            onOpenFile={openFile}
-          />
-        </section>
-        <aside className="ecs-action-pane" aria-label="Current action">
+      {appReview && (
+        <ScaffoldPreview
+          config={fileConfig}
+          onEdit={onEdit}
+          scope="app"
+          executionPhase={phase.id}
+        />
+      )}
+      <div
+        className={`ecs-execution-workspace grid min-h-[512px] items-start gap-8 pt-6 @max-[800px]:gap-6 ${appReview ? "grid-cols-1" : "grid-cols-[minmax(0,1fr)_320px] @max-[800px]:grid-cols-1"}`}
+      >
+        {!appReview && (
+          <section className="min-w-0" aria-label="Deployment architecture">
+            <div className="mb-4 flex items-center justify-between gap-4">
+              <h3 className="m-0 text-[14px] font-[550] leading-6">Architecture</h3>
+              <span className="m-0 text-xs leading-6 text-muted-foreground">Planned → Created</span>
+            </div>
+            <ScaffoldArchitecture
+              config={{ ...config, cluster: inputs.cluster }}
+              executionPhase={phase.id}
+              applyStep={applyStep}
+              onOpenFile={openFile}
+            />
+          </section>
+        )}
+        <aside
+          className="relative min-h-96 min-w-0 border-l border-border pl-6 @max-[800px]:min-h-0 @max-[800px]:border-t @max-[800px]:border-l-0 @max-[800px]:px-0 @max-[800px]:pt-6"
+          aria-label="Current action"
+        >
           <AnimatePresence initial={false} mode="sync">
             <ExecutionAction key={phase.id}>
               {complete && (
                 <motion.span
-                  className="ecs-success-icon"
+                  className="inline-flex size-8 items-center justify-center rounded-full bg-success/10 text-success-ink"
                   aria-hidden="true"
                   initial={{
                     opacity: 0,
@@ -319,13 +342,24 @@ export function EcsRunView({
               )}
               {!complete && (
                 <span
-                  className="ecs-check-status"
+                  className={cn(
+                    "inline-flex items-center gap-1.5 rounded-md bg-muted px-2 py-0.5 text-xs leading-6 text-muted-foreground",
+                    status === "open" && "text-[var(--color-pr-open)]",
+                    status === "merged" && "text-[var(--color-pr-merged)]",
+                    status === "closed" && "text-[var(--color-error)]",
+                    status === "approval" && "text-warning-ink",
+                    status === "running" && "text-info-ink",
+                    status === "complete" && "text-success-ink",
+                  )}
                   data-status={status}
                   data-pr-state={activePr ? status : undefined}
                   role="status"
                 >
                   {running ? (
-                    <IconLoader2 size={15} />
+                    <IconLoader2
+                      size={15}
+                      className="motion-safe:animate-[ecs-check-spin_1.5s_linear_infinite] motion-reduce:animate-none"
+                    />
                   ) : activePr ? (
                     <IconGitPullRequest size={15} />
                   ) : complete ? (
@@ -336,15 +370,20 @@ export function EcsRunView({
                   {statusLabel}
                 </span>
               )}
-              <h3>{actionTitle}</h3>
-              <p>{description}</p>
-              {(activePr || appReview) && (
-                <div className="ecs-action-summary">
-                  <span>Target repository</span>
-                  <strong>{repository}</strong>
+              <h3 className="mt-4 mb-2 text-[20px] font-semibold leading-7 text-foreground">
+                {actionTitle}
+              </h3>
+              <p className="m-0 text-[13px] leading-6 text-muted-foreground">{description}</p>
+              {activePr && (
+                <div className="mt-5 grid min-w-0 gap-1">
+                  <span className="text-xs leading-6 text-muted-foreground">Target repository</span>
+                  <strong className="text-[13px] font-[550] leading-6 [overflow-wrap:anywhere]">
+                    {repository}
+                  </strong>
                   <Button
                     variant="ghost"
                     size="sm"
+                    className="justify-self-start pl-0"
                     onClick={() =>
                       openFile(scope === "infra" ? "ecs/service.tf" : "ecs/task-definition.json")
                     }
@@ -354,20 +393,32 @@ export function EcsRunView({
                 </div>
               )}
               {pipeline && (
-                <div className="ecs-action-summary">
-                  <span>{pipelineKind === "deploy" ? "Image to deploy" : "Pipeline"}</span>
-                  <strong>
+                <div className="mt-5 grid min-w-0 gap-1">
+                  <span className="text-xs leading-6 text-muted-foreground">
+                    {pipelineKind === "deploy" ? "Image to deploy" : "Pipeline"}
+                  </span>
+                  <strong className="text-[13px] font-[550] leading-6 [overflow-wrap:anywhere]">
                     {pipelineKind === "deploy"
                       ? `${config.serviceName}:${inputs.imageTag}`
                       : values[`artifact:${pipelineArtifact}:pipeline`] || pipeline.title}
                   </strong>
-                  {!missing && <small>Inputs ready · {pipeline.inputs.length} values filled</small>}
+                  {!missing && (
+                    <small className="text-xs leading-6 text-muted-foreground">
+                      Inputs ready · {pipeline.inputs.length} values filled
+                    </small>
+                  )}
                 </div>
               )}
               {appReview && !values["artifact:app-repository:repository"]?.trim() && (
-                <div className="ecs-action-summary">
-                  <strong>Application repository not confirmed</strong>
-                  <Button variant="outline" onClick={onRepositorySetup}>
+                <div className="mt-5 grid min-w-0 gap-1">
+                  <strong className="text-[13px] font-[550] leading-6 [overflow-wrap:anywhere]">
+                    Application repository not confirmed
+                  </strong>
+                  <Button
+                    className="justify-self-start"
+                    variant="outline"
+                    onClick={onRepositorySetup}
+                  >
                     Set up repositories
                   </Button>
                 </div>
@@ -380,7 +431,7 @@ export function EcsRunView({
                   Authorize GitHub App
                 </Button>
               )}
-              <div className="ecs-current-action">
+              <div className="mt-6 [&_[data-slot=button]]:max-w-full">
                 {complete ? (
                   <Button
                     nativeButton={false}
@@ -428,7 +479,7 @@ export function EcsRunView({
                     Create application PR <IconArrowRight size={16} />
                   </Button>
                 ) : (
-                  <p className="ecs-monitoring">
+                  <p className="m-0 text-[13px] leading-6 text-muted-foreground">
                     {waitingTfe
                       ? "Waiting for TFE to pick up the run."
                       : "Waiting for this run to report success."}
@@ -439,16 +490,19 @@ export function EcsRunView({
                 <Accordion
                   key={pipeline.kind}
                   defaultValue={missing ? ["parameters"] : []}
-                  className="ecs-input-disclosure"
+                  className="mt-5 border-t border-border [&_[data-slot=accordion-trigger]]:text-xs"
                 >
                   <AccordionItem value="parameters">
                     <AccordionTrigger>
                       {missing ? "Complete missing inputs" : "Run details"}
                     </AccordionTrigger>
                     <AccordionContent>
-                      <div className="ecs-run-parameters">
+                      <div className="grid gap-4 px-2 pt-2 pb-4 @max-[800px]:grid-cols-2">
                         {pipeline.inputs.map((input) => (
-                          <label key={input.key}>
+                          <label
+                            key={input.key}
+                            className="grid min-w-0 gap-1.5 text-xs leading-6 text-muted-foreground"
+                          >
                             <span>{input.label}</span>
                             <Input
                               value={parameters[input.key]}
@@ -486,17 +540,22 @@ export function EcsRunView({
                 </Accordion>
               )}
               {(activePr || running || approval || waitingTfe) && (
-                <div className="ecs-observation-actions">
+                <div className="mt-4 flex flex-wrap items-center gap-2">
                   <Button variant="ghost" size="sm" onClick={checkNow}>
                     {activePr ? "Check PR status" : "Check run status"}
                     <IconRefresh size={14} />
                   </Button>
                   {!activePr && runUrl && (
-                    <a href={runUrl} target="_blank" rel="noreferrer">
+                    <a
+                      className="inline-flex items-center gap-1 text-xs text-brand-ink"
+                      href={runUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
                       View run <IconExternalLink size={13} />
                     </a>
                   )}
-                  <span role="status">
+                  <span className="basis-full text-xs text-muted-foreground" role="status">
                     {checked
                       ? activePr
                         ? activePrMerged
@@ -514,9 +573,12 @@ export function EcsRunView({
       <AnimatePresence initial={false}>
         {file && (
           <ExecutionFiles>
-            <section className="ecs-file-evidence" aria-label="Generated file details">
-              <header>
-                <h3>Generated files</h3>
+            <section
+              className="mt-6 border-t border-border pt-4"
+              aria-label="Generated file details"
+            >
+              <header className="mb-3 flex items-center justify-between">
+                <h3 className="m-0 text-[14px] font-[550] leading-6">Generated files</h3>
                 <Button variant="ghost" size="sm" onClick={() => setFile(null)}>
                   Close files
                 </Button>
@@ -534,12 +596,12 @@ export function EcsRunView({
           </ExecutionFiles>
         )}
       </AnimatePresence>
-      <footer className="ecs-execution-footer">
-        <Accordion className="ecs-simulation-controls">
+      <footer className="mt-8 flex items-start justify-between gap-8 border-t border-border pt-4">
+        <Accordion className="max-w-[608px] [&_[data-slot=accordion-trigger]]:w-auto [&_[data-slot=accordion-trigger]]:flex-[0_1_auto] [&_[data-slot=accordion-trigger]]:gap-4 [&_[data-slot=accordion-trigger]]:text-xs [&_[data-slot=accordion-trigger]]:text-muted-foreground">
           <AccordionItem value="simulation">
             <AccordionTrigger>Simulation controls</AccordionTrigger>
             <AccordionContent>
-              <div className="ecs-live-toolbar">
+              <div className="flex flex-wrap items-center gap-3 px-1 py-2">
                 {activePr && !activePrMerged && (
                   <Button
                     variant="outline"

@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
 import { createServer } from "node:net";
-import { resolve } from "node:path";
+import { extname, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
 export async function findAvailablePort(startPort) {
@@ -26,6 +26,12 @@ async function isHostAvailable(port, host) {
   });
 }
 
+export function packageManagerCommand(execPath, args) {
+  return [".js", ".cjs", ".mjs"].includes(extname(execPath))
+    ? { command: process.execPath, args: [execPath, ...args] }
+    : { command: execPath, args };
+}
+
 async function main() {
   const clientPort = await findAvailablePort(3000);
   const serverPort = await findAvailablePort(clientPort + 1);
@@ -33,7 +39,8 @@ async function main() {
   if (!npmExecPath) throw new Error("Start the portal with pnpm dev.");
 
   console.log(`Atlas dev ports: client ${clientPort}, server ${serverPort}`);
-  const child = spawn(process.execPath, [npmExecPath, "run", "/^dev:(client|server)$/"], {
+  const invocation = packageManagerCommand(npmExecPath, ["run", "/^dev:(client|server)$/"]);
+  const child = spawn(invocation.command, invocation.args, {
     cwd: resolve(import.meta.dirname, ".."),
     env: {
       ...process.env,

@@ -86,7 +86,7 @@ function ContentBlock({ block, applicationCode }: { block: Block; applicationCod
       const headers = block.rows?.filter((row) => row.cells.every((cell) => cell.header)) ?? [];
       const rows = block.rows?.filter((row) => !row.cells.every((cell) => cell.header)) ?? [];
       return (
-        <Accordion className="on-help">
+        <Accordion className="on-help mt-6 border-y border-border [&_[data-slot=accordion-trigger]]:min-h-[46px] [&_[data-slot=accordion-trigger]]:items-center [&_[data-slot=accordion-trigger]]:px-0 [&_[data-slot=accordion-trigger]]:py-2 [&_[data-slot=accordion-trigger]]:text-[13px] [&_.on-accordion-inner]:h-auto [&_.on-accordion-inner]:pb-6 [&_.on-accordion-inner]:leading-6 [&_.on-accordion-inner]:text-muted-foreground">
           <AccordionItem value="table">
             <AccordionTrigger indicator="plus">
               {block.caption ?? "Reference table"}
@@ -130,7 +130,11 @@ function ContentBlock({ block, applicationCode }: { block: Block; applicationCod
     }
     case "callout":
       return (
-        <Alert role="note" className="on-source-callout" data-tone={block.tone}>
+        <Alert
+          role="note"
+          className="on-source-callout rounded-md border-border bg-muted p-4 [&_[data-slot=alert-description]]:gap-3 [&_[data-slot=alert-description]]:leading-6 [&_[data-slot=alert-description]]:text-muted-foreground [&_[data-slot=alert-title]]:mb-2 [&_[data-slot=alert-title]]:line-clamp-none data-[tone=warning]:border-l-[3px] data-[tone=warning]:border-l-warning-ink data-[tone=caution]:border-l-[3px] data-[tone=caution]:border-l-warning-ink data-[tone=warning]:[&>svg]:text-warning-ink data-[tone=caution]:[&>svg]:text-warning-ink"
+          data-tone={block.tone}
+        >
           {block.tone === "warning" || block.tone === "caution" ? (
             <IconAlertTriangle />
           ) : (
@@ -168,7 +172,7 @@ export function SourceContent({
   applicationCode: string;
 }) {
   return (
-    <div className="on-source-content">
+    <div className="on-source-content grid min-w-0 gap-6 text-sm empty:hidden [&_p]:m-0 [&_p]:leading-6 [&>p]:text-muted-foreground [&_h2]:text-base [&_h2]:font-semibold [&>h2]:text-lg [&>h2]:leading-6 [&>h2]:text-foreground [&_a]:text-brand [&_a]:underline [&_a]:wrap-anywhere [&_ol]:grid [&_ol]:list-decimal [&_ol]:gap-3 [&_ol]:pl-6 [&_ul]:grid [&_ul]:list-disc [&_ul]:gap-3 [&_ul]:pl-6 [&>ol]:text-foreground [&>ul]:text-foreground [&_.on-help]:mt-0 [&_.on-help]:min-w-0 [&_.on-help_[data-slot=accordion-trigger]]:font-semibold [&_.on-help_[data-slot=accordion-trigger]]:text-foreground [&_[data-slot=table-container]]:border [&_[data-slot=table-container]]:border-border [&_th]:min-w-32 [&_th]:bg-muted [&_th]:p-3 [&_th]:leading-6 [&_th]:whitespace-normal [&_th]:wrap-anywhere [&_td]:min-w-32 [&_td]:p-3 [&_td]:leading-6 [&_td]:whitespace-normal [&_td]:wrap-anywhere">
       {blocks.map((block, index) => (
         <ContentBlock key={index} block={block} applicationCode={applicationCode} />
       ))}

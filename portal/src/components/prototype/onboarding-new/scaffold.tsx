@@ -12,12 +12,12 @@ import { motionEase, useOnboardingMotion } from "./motion";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "./uipros/accordion";
 import { Button } from "./uipros/button";
 import { Input } from "./uipros/input";
+import { cn } from "@/lib/utils";
 import { EcsRunView } from "./ecs-run-view";
 import { executionPatch, runPhaseKey } from "./ecs-run";
 import { ecsStage, ecsStages, ecsCompleted, type EcsStage } from "./ecs-journey";
 import { getScaffoldBuildMethod, scaffoldBuildMethods } from "./scaffold-build";
 import { ScaffoldPreview } from "./scaffold-preview";
-import "./scaffold.css";
 
 type ScaffoldFieldKey =
   | "scaffold:app_code"
@@ -52,8 +52,17 @@ function fieldValue(values: Record<string, string>, key: ScaffoldFieldKey, fallb
   return values[key] ?? fallback;
 }
 
-function Provenance({ children }: { children: string }) {
-  return <span className="on-scaffold-provenance">{children}</span>;
+function Provenance({ children, className }: { children: string; className?: string }) {
+  return (
+    <span
+      className={cn(
+        "on-scaffold-provenance inline-flex items-center gap-1.5 text-[11px] leading-[18px] font-[450] text-muted-foreground",
+        className,
+      )}
+    >
+      {children}
+    </span>
+  );
 }
 
 function ContextValue({
@@ -72,12 +81,18 @@ function ContextValue({
   const cancelled = useRef(false);
   const missing = !value.trim();
   return (
-    <div className="on-scaffold-context-value" data-missing={missing}>
-      <span className="on-scaffold-context-label">{label}</span>
+    <div
+      className="on-scaffold-context-value grid min-w-0 grid-cols-[120px_minmax(0,1fr)] items-center gap-x-4 gap-y-0 border-b border-border py-3"
+      data-missing={missing}
+    >
+      <span className="on-scaffold-context-label text-xs leading-[18px] text-muted-foreground">
+        {label}
+      </span>
       {editing ? (
         <Input
           autoFocus
           aria-label={label}
+          className="h-8 w-full min-w-0 px-3 text-sm border-border rounded-md shadow-none text-foreground bg-card"
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
           onBlur={() => {
@@ -96,7 +111,7 @@ function ContextValue({
       ) : (
         <button
           type="button"
-          className="on-scaffold-context-edit"
+          className="on-scaffold-context-edit flex min-h-6 w-full items-center justify-between gap-2 rounded-md border border-transparent bg-transparent px-0 text-left text-foreground hover:bg-muted focus-visible:outline-2 focus-visible:outline-brand"
           aria-label={`Edit ${label}`}
           onClick={() => {
             cancelled.current = false;
@@ -104,11 +119,20 @@ function ContextValue({
             setEditing(true);
           }}
         >
-          <strong>{missing ? "Add value" : value}</strong>
-          <IconPencil size={14} />
+          <strong
+            className={cn(
+              "truncate text-[13px] font-medium leading-5 text-foreground",
+              missing && "text-warning-ink",
+            )}
+          >
+            {missing ? "Add value" : value}
+          </strong>
+          <IconPencil size={14} className="shrink-0 text-foreground" />
         </button>
       )}
-      <Provenance>{missing ? "Not available from onboarding" : source}</Provenance>
+      <Provenance className="col-start-2 text-xs leading-5">
+        {missing ? "Not available from onboarding" : source}
+      </Provenance>
     </div>
   );
 }
@@ -174,11 +198,14 @@ export function EcsScaffold({
   const canPreview = /^[a-z][a-z0-9-]*$/.test(serviceName) && serviceName.length <= 32;
 
   return (
-    <section className="on-scaffold" aria-label="ECS service journey">
+    <section
+      className="on-scaffold @container grid w-full gap-4 text-foreground"
+      aria-label="ECS service journey"
+    >
       <AnimatePresence initial={false} mode="popLayout">
         <motion.div
           key={stage === "config" || stage === "preview" ? stage : "execution"}
-          className="on-scaffold-stage-panel"
+          className="on-scaffold-stage-panel grid gap-4 focus-visible:outline-none"
           initial={{ opacity: 0, filter: reduced ? "blur(0px)" : "blur(2px)" }}
           animate={{ opacity: 1, filter: "blur(0px)" }}
           exit={{ opacity: 0 }}
@@ -186,32 +213,46 @@ export function EcsScaffold({
         >
           {stage === "config" && (
             <>
-              <div className="on-scaffold-decisions-layout">
-                <section className="on-scaffold-name-entry" aria-label="Service configuration">
-                  <label htmlFor="on-scaffold-service-name">
-                    Service name <span>Required</span>
+              <div className="on-scaffold-decisions-layout grid grid-cols-[minmax(0,1.4fr)_minmax(288px,1fr)] gap-8 py-2 pb-4 @max-[680px]:grid-cols-[minmax(0,1fr)]">
+                <section
+                  className="on-scaffold-name-entry min-w-0"
+                  aria-label="Service configuration"
+                >
+                  <label
+                    className="mb-3 flex items-baseline gap-3 text-lg font-semibold leading-6 text-foreground"
+                    htmlFor="on-scaffold-service-name"
+                  >
+                    Service name{" "}
+                    <span className="text-xs font-normal text-muted-foreground">Required</span>
                   </label>
                   <Input
                     id="on-scaffold-service-name"
                     aria-label="Service name"
+                    className="h-8 w-full max-w-[416px] px-3 text-sm border-border rounded-md shadow-none text-foreground bg-card"
                     required
                     value={serviceName}
                     placeholder="checkout-api"
                     onChange={(event) => setField("scaffold:service_name", event.target.value)}
                   />
-                  <p className="on-scaffold-decision-help">
+                  <p className="on-scaffold-decision-help mt-2 text-xs leading-6 text-muted-foreground">
                     Lowercase letters, numbers and hyphens, up to 32 characters.
                   </p>
-                  <Accordion className="on-scaffold-build-settings">
+                  <Accordion className="on-scaffold-build-settings mt-6 border-t border-border">
                     <AccordionItem value="build-method">
-                      <AccordionTrigger indicator="plus">
+                      <AccordionTrigger
+                        className="rounded-none! py-4 text-xs leading-[1.428571] text-muted-foreground"
+                        indicator="plus"
+                      >
                         <span>
-                          Build method <strong>{buildLabel}</strong>
+                          Build method
+                          <strong className="mt-1 block text-sm font-medium leading-6 text-foreground">
+                            {buildLabel}
+                          </strong>
                         </span>
                       </AccordionTrigger>
                       <AccordionContent>
                         <div
-                          className="on-scaffold-build-options"
+                          className="on-scaffold-build-options grid grid-cols-[repeat(auto-fit,minmax(224px,1fr))] gap-2"
                           role="group"
                           aria-label="Build method"
                         >
@@ -221,14 +262,27 @@ export function EcsScaffold({
                               type="button"
                               variant="ghost"
                               aria-pressed={buildMethod === method.id}
+                              className={cn(
+                                "h-auto min-h-16 justify-between border-border p-3 text-left",
+                                buildMethod === method.id && "border-brand bg-brand-tint",
+                              )}
                               onClick={() => setField("scaffold:build_method", method.id)}
                             >
                               <span>
-                                <strong>{method.label}</strong>
-                                <small>{method.hint}</small>
+                                <strong className="block text-[13px] font-[550]">
+                                  {method.label}
+                                </strong>
+                                <small className="block text-xs leading-6 font-normal text-muted-foreground">
+                                  {method.hint}
+                                </small>
                               </span>
                               <span
-                                className="on-scaffold-build-check"
+                                className={cn(
+                                  "on-scaffold-build-check inline-flex transition-[opacity,scale,filter] duration-200 ease-out motion-reduce:transition-none",
+                                  buildMethod === method.id
+                                    ? "scale-100 opacity-100 blur-0"
+                                    : "scale-[0.25] opacity-0 blur-[4px]",
+                                )}
                                 data-selected={buildMethod === method.id}
                                 aria-hidden="true"
                               >
@@ -242,15 +296,21 @@ export function EcsScaffold({
                   </Accordion>
                 </section>
                 <aside
-                  className="on-scaffold-prepared on-scaffold-derived on-scaffold-summary"
+                  className="on-scaffold-prepared on-scaffold-derived on-scaffold-summary min-w-0 border-l border-border pl-8 @max-[680px]:border-l-0 @max-[680px]:border-t @max-[680px]:p-0 @max-[680px]:pt-4"
                   aria-label="Configuration summary"
                 >
-                  <h3>Configuration</h3>
-                  <p>Defaults and values from your onboarding.</p>
-                  <dl>
-                    <div>
-                      <dt>Deployment</dt>
-                      <dd>DEV · us-east-1 · Internal</dd>
+                  <h3 className="mb-1 text-[15px] font-semibold leading-6 text-foreground">
+                    Configuration
+                  </h3>
+                  <p className="mb-3 text-xs leading-6 text-muted-foreground">
+                    Defaults and values from your onboarding.
+                  </p>
+                  <dl className="m-0">
+                    <div className="grid grid-cols-[120px_minmax(0,1fr)] items-baseline gap-4 border-b border-border py-3">
+                      <dt className="text-xs leading-6 text-muted-foreground">Deployment</dt>
+                      <dd className="m-0 break-words text-[13px] leading-6 text-foreground">
+                        DEV · us-east-1 · Internal
+                      </dd>
                     </div>
                   </dl>
                   <ContextValue
@@ -273,21 +333,35 @@ export function EcsScaffold({
                     }
                     onChange={(value) => setField("scaffold:aws_account_id", value)}
                   />
-                  <Accordion className="on-scaffold-names">
+                  <Accordion className="on-scaffold-names [&_h3]:mb-1 [&_h3]:font-semibold [&_p:not(:last-child)]:mb-0">
                     <AccordionItem value="derived-names">
-                      <AccordionTrigger indicator="plus">Resource names</AccordionTrigger>
+                      <AccordionTrigger
+                        className="rounded-none! py-3 text-xs leading-[1.428571]"
+                        indicator="plus"
+                      >
+                        Resource names
+                      </AccordionTrigger>
                       <AccordionContent>
-                        <p>Derived from your service name.</p>
-                        <dl>
+                        <p className="m-0 text-xs leading-6 text-muted-foreground">
+                          Derived from your service name.
+                        </p>
+                        <dl className="m-0">
                           {[
                             { label: "ECS cluster", value: cluster },
                             { label: "Infrastructure repo", value: infraRepo },
                             { label: "Application repo", value: appRepo },
                             { label: "Stack", value: stackName },
                           ].map((item) => (
-                            <div key={item.label}>
-                              <dt>{item.label}</dt>
-                              <dd>{item.value || "—"}</dd>
+                            <div
+                              className="grid grid-cols-[120px_minmax(0,1fr)] items-baseline gap-4 border-b border-border py-3"
+                              key={item.label}
+                            >
+                              <dt className="text-xs leading-6 text-muted-foreground">
+                                {item.label}
+                              </dt>
+                              <dd className="m-0 break-words text-[13px] leading-6 text-foreground">
+                                {item.value || "—"}
+                              </dd>
                             </div>
                           ))}
                         </dl>
@@ -296,14 +370,18 @@ export function EcsScaffold({
                   </Accordion>
                 </aside>
               </div>
-              <div className="on-scaffold-actions">
-                <span className="on-scaffold-action-note">
+              <div className="on-scaffold-actions flex min-h-8 items-center justify-end gap-4">
+                <span className="on-scaffold-action-note mr-auto inline-flex max-w-[480px] items-center gap-1.5 text-xs leading-[18px] text-muted-foreground">
                   {!contextAppCode || !contextAccount
                     ? "Missing context remains marked in the preview."
                     : ""}
                 </span>
                 <Button type="button" disabled={!canPreview} onClick={() => setStage("preview")}>
-                  Preview changes <IconArrowRight size={16} />
+                  Preview changes
+                  <IconArrowRight
+                    size={16}
+                    className="transition-transform duration-200 ease-out group-hover/button:translate-x-0.5 motion-reduce:transition-none"
+                  />
                 </Button>
               </div>
             </>
@@ -329,22 +407,26 @@ export function EcsScaffold({
               />
 
               {!infraRepositoryReady && (
-                <div className="on-scaffold-github-access">
+                <div className="on-scaffold-github-access grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 border-t border-border py-4">
                   <IconClock size={24} aria-hidden="true" />
                   <div>
-                    <strong>Infrastructure repository not confirmed</strong>
-                    <p>Complete repository setup in onboarding, then return to create the PR.</p>
+                    <strong className="text-sm leading-6 text-foreground">
+                      Infrastructure repository not confirmed
+                    </strong>
+                    <p className="m-0 text-xs leading-6 text-muted-foreground">
+                      Complete repository setup in onboarding, then return to create the PR.
+                    </p>
                   </div>
-                  <Button variant="outline" onClick={onRepositorySetup}>
+                  <Button className="col-start-3" variant="outline" onClick={onRepositorySetup}>
                     Set up repositories
                   </Button>
                 </div>
               )}
-              <div className="on-scaffold-github-access">
+              <div className="on-scaffold-github-access grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 border-t border-border py-4">
                 <IconBrandGithub size={24} aria-hidden="true" />
                 <div>
-                  <strong>GitHub App</strong>
-                  <p>
+                  <strong className="text-sm leading-6 text-foreground">GitHub App</strong>
+                  <p className="m-0 text-xs leading-6 text-muted-foreground">
                     {githubAuthorized
                       ? "Authorized · Prototype"
                       : "Authorize access to create pull requests in the target repositories."}
@@ -367,11 +449,19 @@ export function EcsScaffold({
                     "Authorize GitHub App"
                   )}
                 </Button>
-                {!githubAuthorized && <small>Simulated authorization</small>}
+                {!githubAuthorized && (
+                  <small className="col-start-3 justify-self-end text-[11px] text-muted-foreground">
+                    Simulated authorization
+                  </small>
+                )}
               </div>
-              <div className="on-scaffold-actions">
+              <div className="on-scaffold-actions flex min-h-8 items-center justify-end gap-4">
                 <Button type="button" variant="ghost" onClick={() => setStage("config")}>
-                  <IconArrowLeft size={16} /> Back to configuration
+                  <IconArrowLeft
+                    size={16}
+                    className="transition-transform duration-200 ease-out group-hover/button:translate-x-0.5 motion-reduce:transition-none"
+                  />
+                  Back to configuration
                 </Button>
                 <Button
                   type="button"
@@ -385,7 +475,11 @@ export function EcsScaffold({
                       onValueChange(key, value);
                   }}
                 >
-                  Create infrastructure PR <IconArrowRight size={16} />
+                  Create infrastructure PR
+                  <IconArrowRight
+                    size={16}
+                    className="transition-transform duration-200 ease-out group-hover/button:translate-x-0.5 motion-reduce:transition-none"
+                  />
                 </Button>
               </div>
             </>

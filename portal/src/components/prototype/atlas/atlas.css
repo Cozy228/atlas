@@ -12,30 +12,6 @@
   --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
-/* Brand corner ticks on key panels (DESIGN.md §4): 7px L-shapes, top-left and
-   bottom-right, at half opacity. */
-.proto-atlas .corner-ticks::before,
-.proto-atlas .corner-ticks::after {
-  content: "";
-  position: absolute;
-  width: 7px;
-  height: 7px;
-  opacity: 0.5;
-  pointer-events: none;
-}
-.proto-atlas .corner-ticks::before {
-  top: -1px;
-  left: -1px;
-  border-top: 1.5px solid var(--brand);
-  border-left: 1.5px solid var(--brand);
-}
-.proto-atlas .corner-ticks::after {
-  bottom: -1px;
-  right: -1px;
-  border-bottom: 1.5px solid var(--brand);
-  border-right: 1.5px solid var(--brand);
-}
-
 /* Hover-only elevation for interactive cards (DESIGN.md §6): no shadows at
    rest; one soft pop appears under the cursor. */
 .proto-atlas .pop-hover {

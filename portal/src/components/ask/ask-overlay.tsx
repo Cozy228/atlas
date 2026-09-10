@@ -66,11 +66,11 @@ export function AskOverlay({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogPortal>
-        <DialogOverlay className="atlas-ask-overlay-backdrop" />
+        <DialogOverlay className="atlas-ask-overlay-backdrop z-100" />
         <DialogPrimitive.Popup
           finalFocus={returnFocus ?? undefined}
           className={cn(
-            "atlas-ask-overlay-dialog fixed left-1/2 bg-popover text-popover-foreground border border-border outline-none flex w-full max-w-[640px] flex-col gap-0 overflow-hidden p-0 sm:max-w-[640px]",
+            "atlas-ask-overlay-dialog fixed top-40 left-1/2 z-[101] -translate-x-1/2 translate-y-0 rounded-[4px] bg-popover text-popover-foreground border border-border outline-none flex w-full max-w-[640px] flex-col gap-0 overflow-hidden p-0 sm:max-w-[640px]",
             activeTab === "ask"
               ? "h-[min(640px,calc(100vh-6rem))]"
               : "max-h-[min(640px,calc(100vh-6rem))]",

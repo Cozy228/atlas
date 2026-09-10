@@ -29,7 +29,7 @@ export function ArrowNudge({ size = 16 }: { size?: number }) {
   return (
     <motion.span
       ref={ref}
-      className="on-arrow-nudge"
+      className="on-arrow-nudge inline-flex shrink-0 items-center"
       aria-hidden="true"
       animate={{ transform: `translateX(${active && !reduced ? 3 : 0}px)` }}
       transition={reduced ? { duration: 0 } : { type: "spring", stiffness: 400, damping: 30 }}

@@ -47,7 +47,10 @@ function AccordionTrigger({
       >
         {children}
         {indicator === "plus" ? (
-          <span className="on-accordion-plus" aria-hidden="true">
+          <span
+            className="on-accordion-plus relative inline-block size-4 shrink-0 self-center [&>span]:absolute [&>span]:top-[7px] [&>span]:left-0.5 [&>span]:h-px [&>span]:w-3 [&>span]:bg-current"
+            aria-hidden="true"
+          >
             <span />
             <span />
           </span>
@@ -74,7 +77,7 @@ function AccordionBody({
   const { reduced } = useOnboardingMotion();
   return (
     <motion.div
-      className="on-accordion-motion"
+      className="on-accordion-motion overflow-hidden"
       initial={false}
       animate={open ? "open" : "closed"}
       variants={{

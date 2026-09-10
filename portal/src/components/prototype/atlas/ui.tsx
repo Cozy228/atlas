@@ -128,7 +128,8 @@ export function Panel({
     <section
       className={cn(
         "relative rounded-[4px] border border-border bg-card",
-        ticks && "corner-ticks",
+        ticks &&
+          "corner-ticks before:pointer-events-none before:absolute before:-top-px before:-left-px before:size-[7px] before:border-t-[1.5px] before:border-l-[1.5px] before:border-brand before:opacity-50 after:pointer-events-none after:absolute after:-right-px after:-bottom-px after:size-[7px] after:border-r-[1.5px] after:border-b-[1.5px] after:border-brand after:opacity-50",
         className,
       )}
     >

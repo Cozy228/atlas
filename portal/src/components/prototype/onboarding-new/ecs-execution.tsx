@@ -267,7 +267,7 @@ export function EcsExecution({
           Run status is confirmed by you; opening a link does not mark it complete.
         </p>
       )}
-      <div className="on-scaffold-actions">
+      <div className="on-scaffold-actions flex min-h-8 items-center justify-end gap-4 [&>span]:mr-auto [&>span]:text-xs [&>span]:text-muted-foreground">
         <span className="ecs-step-note">
           {!ready && !demoPrs ? "Complete the items above to continue." : ""}
         </span>

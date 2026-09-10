@@ -48,7 +48,7 @@ export function ResourceRow({
             <Button
               type="button"
               variant="ghost"
-              className="on-resource-copy"
+              className="on-resource-copy shrink-0"
               size="icon-xs"
               aria-label={`Copy ${label} for ${name}`}
               disabled={!copyValue.trim()}
@@ -58,7 +58,7 @@ export function ResourceRow({
         >
           <AnimatePresence initial={false} mode="popLayout">
             <motion.span
-              className="on-copy-feedback"
+              className="on-copy-feedback relative inline-flex shrink-0"
               key={isCopied ? "copied" : "copy"}
               initial={reducedMotion ? false : { opacity: 0, filter: "blur(4px)" }}
               animate={{ opacity: 1, filter: "blur(0px)" }}
@@ -106,7 +106,7 @@ export function ResourceRow({
   }
   return (
     <Accordion
-      className="on-resource-row on-resource-details"
+      className="on-resource-row relative isolate flex min-h-0 items-center justify-between gap-0 border-b border-border py-1 [&>div:first-child]:min-w-0 [&>.flex]:gap-0 [&_strong]:block [&_strong]:text-[13px] [&_strong]:leading-6 [&_strong]:font-medium [&_span]:block [&_span]:text-[13px] [&_span]:leading-6 [&_span]:wrap-anywhere [&_span]:text-muted-foreground on-resource-details [&>[data-slot=accordion-item]]:w-full [&_[data-slot=accordion-item]>.flex>.flex>h3]:min-w-0 [&_[data-slot=accordion-item]>.flex>.flex>h3]:flex-1 [&_[data-slot=accordion-content]_.on-accordion-inner]:h-auto [&_.on-accordion-inner]:pb-0 [&_h3]:h-auto [&_h3]:min-h-8"
       role="group"
       aria-label={name}
       onFocus={onFocus}
@@ -115,21 +115,29 @@ export function ResourceRow({
     >
       {active && (
         <motion.div
-          className="on-resource-selection"
+          className="on-resource-selection absolute inset-y-0 -inset-x-2 -z-1 rounded-md bg-muted"
           layoutId="resource-selection"
           transition={{ duration: reducedMotion ? 0 : 0.16 }}
         />
       )}
       <AccordionItem value="details">
-        <div className="on-resource-heading" data-link={isLink}>
+        <div
+          className="on-resource-heading flex items-start justify-between gap-3 [&>h3]:min-h-6 [&>h3]:flex-1 [&_.on-resource-detail-trigger]:h-6 [&_.on-resource-detail-trigger]:w-full [&_.on-resource-detail-trigger]:justify-between data-[link=true]:[&>h3]:flex-none data-[link=true]:[&_.on-resource-detail-trigger]:w-6 data-[link=true]:[&_.on-resource-detail-trigger]:justify-center [&>.on-resource-name-link]:text-foreground [&>.on-resource-name-link>svg]:text-muted-foreground"
+          data-link={isLink}
+        >
           {isLink ? (
-            <a className="on-resource-name-link" href={link} target="_blank" rel="noreferrer">
+            <a
+              className="on-resource-name-link inline-flex min-w-0 items-baseline gap-1.5 text-brand no-underline hover:underline [&_svg]:shrink-0 [&_svg]:self-center [&>span]:text-inherit"
+              href={link}
+              target="_blank"
+              rel="noreferrer"
+            >
               <strong>{name}</strong>
               <IconExternalLink size={14} aria-hidden="true" />
             </a>
           ) : null}
           <AccordionTrigger
-            className="on-resource-detail-trigger"
+            className="on-resource-detail-trigger items-center gap-2 rounded-none! border-0 p-0 text-foreground [&_strong]:text-left [&_strong]:leading-5 [&_[data-slot=accordion-trigger-icon]]:size-3"
             data-resource-primary
             aria-label={`Details for ${name}`}
           >
@@ -137,9 +145,14 @@ export function ResourceRow({
           </AccordionTrigger>
         </div>
         {value !== link && (
-          <div className="on-resource-identifier">
+          <div className="on-resource-identifier mt-1 flex w-fit max-w-full items-center gap-2 [&>span]:wrap-anywhere">
             {link ? (
-              <a href={link} target="_blank" rel="noreferrer" className="on-resource-name-link">
+              <a
+                href={link}
+                target="_blank"
+                rel="noreferrer"
+                className="on-resource-name-link inline-flex min-w-0 items-baseline gap-1.5 text-brand no-underline hover:underline [&_svg]:shrink-0 [&_svg]:self-center [&>span]:text-inherit"
+              >
                 <span>{value || "Open artifact"}</span>
                 <IconExternalLink size={14} aria-hidden="true" />
               </a>
@@ -150,7 +163,7 @@ export function ResourceRow({
           </div>
         )}
         <AccordionContent>
-          <div className="on-resource-detail-body">
+          <div className="on-resource-detail-body mt-2 mr-2 ml-4 border-t border-border pt-3 pb-2 [&_dl]:grid [&_dl]:gap-2 [&_dl>div]:grid [&_dl>div]:grid-cols-[80px_minmax(0,1fr)] [&_dl>div]:gap-3 [&_dt]:text-xs [&_dt]:leading-6 [&_dt]:text-muted-foreground [&_dd]:m-0 [&_dd]:flex [&_dd]:min-w-0 [&_dd]:items-start [&_dd]:gap-2 [&_dd]:text-[13px] [&_dd]:leading-5 [&_dd]:wrap-anywhere [&_dd]:text-foreground [&_dd>span]:leading-6 [&_dd>span]:text-foreground [&_dd>.on-resource-copy]:shrink-0 [&_dd>.on-resource-name-link]:min-h-6 [&_dd>.on-resource-name-link]:items-center [&_dd>.on-resource-name-link]:leading-6">
             <dl>
               {fields
                 .filter((field) => field.value.trim() && field.value !== link)
@@ -177,7 +190,7 @@ export function ResourceRow({
                       href={link}
                       target="_blank"
                       rel="noreferrer"
-                      className="on-resource-name-link"
+                      className="on-resource-name-link inline-flex min-w-0 items-baseline gap-1.5 text-brand no-underline hover:underline [&_svg]:shrink-0 [&_svg]:self-center [&>span]:text-inherit"
                     >
                       Open artifact <IconExternalLink size={14} aria-hidden="true" />
                     </a>
@@ -186,8 +199,12 @@ export function ResourceRow({
                 </div>
               )}
             </dl>
-            <div className="on-resource-detail-actions">
-              <Button variant="ghost" className="on-resource-task-link" onClick={onViewTask}>
+            <div className="on-resource-detail-actions mt-2 flex items-center gap-4 [&>button]:mt-0 [&>button]:px-0">
+              <Button
+                variant="ghost"
+                className="on-resource-task-link mt-3 px-0 text-xs text-brand"
+                onClick={onViewTask}
+              >
                 View source task <ArrowNudge size={14} />
               </Button>
             </div>
